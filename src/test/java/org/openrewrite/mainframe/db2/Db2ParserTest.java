@@ -22,6 +22,9 @@ import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.mainframe.db2.tree.Db2Container;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -347,6 +350,26 @@ class Db2ParserTest {
         assertThat(errorsIn("UPDATE CARDDEMO.ACCOUNT SET ACCT_STATUS = 'N';\n")).isNotEmpty();
         assertThat(errorsIn("DELETE FROM CARDDEMO.ACCOUNT WHERE ACCT_ID = 1;\n")).isNotEmpty();
         assertThat(errorsIn("CREATE TABLE CARDDEMO.ACCOUNT (ACCT_ID INTEGER;\n")).isNotEmpty();
+    }
+
+    /**
+     * A character the lexer has no token for is reported like any other syntax error. A console
+     * write per character fills a build log when a {@code .sql} file is in another dialect.
+     */
+    @Test
+    void aCharacterWithNoTokenIsAnErrorAndNotConsoleOutput() {
+        PrintStream stderr = System.err;
+        ByteArrayOutputStream console = new ByteArrayOutputStream();
+        List<String> errors;
+        try {
+            System.setErr(new PrintStream(console, true, StandardCharsets.UTF_8));
+            errors = errorsIn("CREATE TABLESPACE ACCOUNT IN BANKZ;\n\\\n\\\n");
+        } finally {
+            System.setErr(stderr);
+        }
+
+        assertThat(console.toString(StandardCharsets.UTF_8)).doesNotContain("token recognition error");
+        assertThat(errors).anySatisfy(e -> assertThat(e).contains("line 2:0 token recognition error at: '\\'"));
     }
 
     /**

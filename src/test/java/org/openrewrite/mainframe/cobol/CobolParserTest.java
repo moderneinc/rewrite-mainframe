@@ -26,6 +26,8 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.tree.ParseError;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 
@@ -81,6 +83,27 @@ class CobolParserTest {
         ParseExceptionResult failure = parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow();
         assertThat(failure.getParserType()).isEqualTo("CobolParser");
         assertThat(failure.getExceptionType()).isEqualTo("CobolParsingException");
+    }
+
+    /**
+     * A character the lexer has no token for, like a DOS end-of-file mark, is skipped without a
+     * console write. One write per character fills a build log.
+     */
+    @Test
+    void aCharacterWithNoTokenIsNotConsoleOutput() {
+        String source = "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. HELLO.\n       PROCEDURE DIVISION.\n           STOP RUN.\n\032";
+        PrintStream stderr = System.err;
+        ByteArrayOutputStream console = new ByteArrayOutputStream();
+        SourceFile parsed;
+        try {
+            System.setErr(new PrintStream(console, true, StandardCharsets.UTF_8));
+            parsed = parse("HELLO.cbl", source);
+        } finally {
+            System.setErr(stderr);
+        }
+
+        assertThat(console.toString(StandardCharsets.UTF_8)).doesNotContain("token recognition error");
+        assertThat(parsed).isInstanceOf(Cobol.CompilationUnit.class);
     }
 
     /**
