@@ -91,9 +91,11 @@ public class CobolParser implements Parser {
             CobolPreprocessorOutputSourcePrinter<ExecutionContext> printWithoutColumns = new CobolPreprocessorOutputSourcePrinter<>(cobolDialect, false);
             printWithoutColumns.visit(preprocessedCU, cobolParserOutput);
 
+            // Any character with no token is skipped silently: a trailing SUB has to parse, and ForwardingErrorListener throws.
+            CobolLexer lexer = new CobolLexer(CharStreams.fromString(cobolParserOutput.getOut()));
+            lexer.removeErrorListeners();
             org.openrewrite.mainframe.cobol.internal.grammar.CobolParser parser =
-                    new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(
-                            new CommonTokenStream(new CobolLexer(CharStreams.fromString(cobolParserOutput.getOut())))) {{
+                    new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(new CommonTokenStream(lexer)) {{
                         _interp = new TimeLimitingParserATNSimulator(this, _ATN, _decisionToDFA, _sharedContextCache);
                     }};
             parser.removeErrorListeners();

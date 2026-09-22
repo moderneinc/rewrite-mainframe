@@ -83,11 +83,14 @@ public class Db2Parser implements Parser {
 
     private Db2.Ddl parse(Path path, String source, Charset charset, boolean charsetBomMarked,
                                       Path reportedPath, ExecutionContext ctx) {
-        CommonTokenStream tokens = new CommonTokenStream(new DB2Lexer(CharStreams.fromString(source)));
-        DB2Parser parser = new DB2Parser(tokens);
+        ForwardingErrorListener errorListener = new ForwardingErrorListener(reportedPath, ctx);
+        DB2Lexer lexer = new DB2Lexer(CharStreams.fromString(source));
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(errorListener);
+        DB2Parser parser = new DB2Parser(new CommonTokenStream(lexer));
 
         parser.removeErrorListeners();
-        parser.addErrorListener(new ForwardingErrorListener(reportedPath, ctx));
+        parser.addErrorListener(errorListener);
 
         return new Db2ParserVisitor(path, null, source, charset, charsetBomMarked)
                 .visitCompilationUnit(parser.compilationUnit());
