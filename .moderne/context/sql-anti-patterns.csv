@@ -1,0 +1,6 @@
+Source path,Line number,Rule,Severity,Finding,Query
+src/test/java/org/openrewrite/mainframe/controlcard/utility/UtilityParserTest.java,308,select-star,WARNING,`SELECT *` fetches every column; enumerate only the columns the code uses,"SELECT * FROM CLM.POLICY
+    OUTDDN (POLUNL)"
+src/test/java/org/openrewrite/mainframe/db2/Db2ParserTest.java,362,dml-without-where,CRITICAL,`UPDATE` without a `WHERE` clause rewrites every row in the table; add a predicate unless a full-table change is intended,UPDATE CARDDEMO.ACCOUNT SET ACCT_STATUS = 'N';
+src/test/java/org/openrewrite/mainframe/db2/bind/BindLineReaderTest.java,63,select-star,WARNING,`SELECT *` fetches every column; enumerate only the columns the code uses,SELECT * FROM SYSIBM.SYSPACKDEP;
+src/test/java/org/openrewrite/mainframe/db2/bind/BindParserTest.java,159,select-star,WARNING,`SELECT *` fetches every column; enumerate only the columns the code uses,SELECT * FROM SYSIBM.SYSPACKDEP;
