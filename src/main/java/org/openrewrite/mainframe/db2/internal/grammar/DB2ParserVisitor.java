@@ -164,6 +164,24 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitPartitionSpec(DB2Parser.PartitionSpecContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DB2Parser#partitionBound}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPartitionBound(DB2Parser.PartitionBoundContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#partitionLimit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPartitionLimit(DB2Parser.PartitionLimitContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#partitionValue}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPartitionValue(DB2Parser.PartitionValueContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DB2Parser#createIndex}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
