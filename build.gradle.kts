@@ -167,7 +167,7 @@ dependencies {
     antlr("org.antlr:antlr4:4.13.2")
     implementation("org.antlr:antlr4-runtime:4.13.2")
     implementation("io.micrometer:micrometer-core:1.9.+")
-    implementation("io.github.classgraph:classgraph:latest.release")
+    implementation("io.github.classgraph:classgraph:4.+")
     runtimeOnly("org.openrewrite.tools:java-object-diff:latest.release")
     testImplementation("org.junit-pioneer:junit-pioneer:2.3.0")
 
