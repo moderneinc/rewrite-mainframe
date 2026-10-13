@@ -122,21 +122,22 @@ public class Db2Parser implements Parser {
         if (!name.endsWith(".ddl") && !name.endsWith(".sql")) {
             return false;
         }
-        String source = read(path);
+        String source;
+        try {
+            source = read(path);
+        } catch (IOException | UncheckedIOException e) {
+            return true;
+        }
         return SqlDialect.of(source) == null || readsAsDb2(source);
     }
 
-    private static String read(Path path) {
+    private static String read(Path path) throws IOException {
         if (!Files.isRegularFile(path)) {
             return "";
         }
         try (EncodingDetectingInputStream is =
                      new EncodingDetectingInputStream(Files.newInputStream(path))) {
             return is.readFully();
-        } catch (IOException | UncheckedIOException e) {
-            // Taking the file leaves what cannot be read to be reported one file at a time, where
-            // letting it out of here would fail every file this step was given.
-            return "";
         }
     }
 
