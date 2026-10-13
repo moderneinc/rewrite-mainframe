@@ -15,6 +15,7 @@
  */
 package org.openrewrite.mainframe.db2;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
@@ -372,49 +373,101 @@ class Db2ParserTest {
         assertThat(errors).anySatisfy(e -> assertThat(e).contains("line 2:0 token recognition error at: '\\'"));
     }
 
-    @Test
-    void aRangePartitionIsWrittenByNumberOrByBounds() {
-        Db2.Ddl byBounds = parse(
-          """
-            CREATE TABLE SUT.ARCHIVED_EXTENDED_ALLOCATION_LINE_ITEM (
-                ALLOCATION_LINE_ITEM_ID     BIGINT      NOT NULL,
-                POSTING_YEAR                INTEGER     NOT NULL,
-                PRIMARY KEY(ALLOCATION_LINE_ITEM_ID)
-            ) PARTITION BY RANGE (POSTING_YEAR) (
-                   STARTING FROM (2020) ENDING AT (2099)
-            );
-            """);
+    @Nested
+    class RangePartition {
 
-        Db2.CreateTable table = (Db2.CreateTable) byBounds.getStatements().get(0);
-        assertThat(table.getName().getFullName())
-          .isEqualTo("SUT.ARCHIVED_EXTENDED_ALLOCATION_LINE_ITEM");
-        assertThat(columns(table)).extracting(c -> c.getName().getSimpleName())
-          .containsExactly("ALLOCATION_LINE_ITEM_ID", "POSTING_YEAR");
+        @Test
+        void aPartitionNeedNotBeNumbered() {
+            Db2.Ddl ddl = parse(
+              """
+                CREATE TABLE SUT.ARCHIVED_EXTENDED_ALLOCATION_LINE_ITEM (
+                    ALLOCATION_LINE_ITEM_ID     BIGINT      NOT NULL,
+                    POSTING_YEAR                INTEGER     NOT NULL,
+                    PRIMARY KEY(ALLOCATION_LINE_ITEM_ID)
+                ) PARTITION BY RANGE (POSTING_YEAR) (
+                       STARTING FROM (2020) ENDING AT (2099)
+                );
+                """);
 
-        assertThat(table.getOptions()).hasSize(1);
-        Db2.Option partitioning = (Db2.Option) table.getOptions().get(0);
-        assertThat(partitioning.getKeywords()).extracting(Db2.Keyword::getType)
-          .containsExactly(Db2.Keyword.Type.Partition, Db2.Keyword.Type.By, Db2.Keyword.Type.Range);
-        assertThat(Db2.elementsOf(partitioning.getValues(), Db2.Name.class))
-          .extracting(Db2.Name::getFullName).containsExactly("POSTING_YEAR");
-        assertThat(wordsOf(partitioning))
-          .containsSequence("STARTING", "FROM", "(", "2020", ")", "ENDING", "AT", "(", "2099", ")");
+            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+            assertThat(table.getName().getFullName())
+              .isEqualTo("SUT.ARCHIVED_EXTENDED_ALLOCATION_LINE_ITEM");
+            assertThat(columns(table)).extracting(c -> c.getName().getSimpleName())
+              .containsExactly("ALLOCATION_LINE_ITEM_ID", "POSTING_YEAR");
 
-        // The numbered form DB2 for z/OS writes, beside a bound whose range is left open.
-        Db2.Ddl byNumber = parse(
-          """
-            CREATE TABLE SUT.ALLOCATION (POSTING_YEAR INTEGER NOT NULL)
-              PARTITION BY RANGE (POSTING_YEAR)
-              (PARTITION 1 ENDING AT (2019) INCLUSIVE,
-               STARTING FROM (2020) EXCLUSIVE ENDING AT (MAXVALUE) EVERY (1));
-            """);
+            Db2.Option partitioning = partitioningOf(ddl);
+            assertThat(partitioning.getKeywords()).extracting(Db2.Keyword::getType)
+              .containsExactly(Db2.Keyword.Type.Partition, Db2.Keyword.Type.By, Db2.Keyword.Type.Range);
+            assertThat(keyOf(partitioning)).containsExactly("POSTING_YEAR");
+            assertThat(wordsOf(partitioning))
+              .containsSequence("STARTING", "FROM", "(", "2020", ")", "ENDING", "AT", "(", "2099", ")");
+        }
 
-        Db2.CreateTable partitioned = (Db2.CreateTable) byNumber.getStatements().get(0);
-        assertThat(partitioned.getOptions()).hasSize(1);
-        assertThat(wordsOf((Db2.Option) partitioned.getOptions().get(0)))
-          .containsSequence("PARTITION", "1", "ENDING", "AT", "(", "2019", ")", "INCLUSIVE")
-          .containsSequence("STARTING", "FROM", "(", "2020", ")", "EXCLUSIVE")
-          .containsSequence("ENDING", "AT", "(", "MAXVALUE", ")", "EVERY", "(", "1", ")");
+        /**
+         * The form DB2 for z/OS writes.
+         */
+        @Test
+        void aNumberedPartitionEndsAtItsLimit() {
+            Db2.Option partitioning = partitioningOf(parse(
+              """
+                CREATE TABLE SUT.ALLOCATION (POSTING_YEAR INTEGER NOT NULL)
+                  PARTITION BY RANGE (POSTING_YEAR)
+                  (PARTITION 1 ENDING AT (2019) INCLUSIVE);
+                """));
+
+            assertThat(wordsOf(partitioning))
+              .containsSequence("PARTITION", "1", "ENDING", "AT", "(", "2019", ")", "INCLUSIVE");
+        }
+
+        @Test
+        void aRangeLeftOpenRepeatsEveryInterval() {
+            Db2.Option partitioning = partitioningOf(parse(
+              """
+                CREATE TABLE SUT.ALLOCATION (POSTING_YEAR INTEGER NOT NULL)
+                  PARTITION BY RANGE (POSTING_YEAR)
+                  (STARTING FROM (2020) EXCLUSIVE ENDING AT (MAXVALUE) EVERY (1));
+                """));
+
+            assertThat(wordsOf(partitioning))
+              .containsSequence("STARTING", "FROM", "(", "2020", ")", "EXCLUSIVE")
+              .containsSequence("ENDING", "AT", "(", "MAXVALUE", ")", "EVERY", "(", "1", ")");
+        }
+
+        @Test
+        void aKeyOfSeveralColumnsBoundsEachInKeyOrder() {
+            Db2.Option partitioning = partitioningOf(parse(
+              """
+                CREATE TABLE SUT.LEDGER (
+                    POSTING_YEAR  INTEGER NOT NULL,
+                    POSTING_MONTH INTEGER NOT NULL
+                ) PARTITION BY RANGE (POSTING_YEAR, POSTING_MONTH)
+                  (PARTITION 1 ENDING AT (2019, 12),
+                   PARTITION 2 ENDING AT (MAXVALUE, MAXVALUE));
+                """));
+
+            assertThat(keyOf(partitioning)).containsExactly("POSTING_YEAR", "POSTING_MONTH");
+            assertThat(wordsOf(partitioning))
+              .containsSequence("PARTITION", "1", "ENDING", "AT", "(", "2019", ",", "12", ")")
+              .containsSequence("PARTITION", "2", "ENDING", "AT", "(", "MAXVALUE", ",", "MAXVALUE", ")");
+        }
+
+        private Db2.Option partitioningOf(Db2.Ddl ddl) {
+            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+            assertThat(table.getOptions()).hasSize(1);
+            return (Db2.Option) table.getOptions().get(0);
+        }
+
+        private List<String> keyOf(Db2.Option partitioning) {
+            return Db2.elementsOf(partitioning.getValues(), Db2.Name.class).stream()
+              .map(Db2.Name::getFullName)
+              .collect(Collectors.toList());
+        }
+
+        private List<String> wordsOf(Db2.Option partitioning) {
+            return Db2.elementsOf(partitioning.getValues(), Db2.Word.class).stream()
+              .map(Db2.Word::getText)
+              .collect(Collectors.toList());
+        }
     }
 
     /**
@@ -579,12 +632,6 @@ class Db2ParserTest {
             }
         }
         return false;
-    }
-
-    private static List<String> wordsOf(Db2.Option option) {
-        return Db2.elementsOf(option.getValues(), Db2.Word.class).stream()
-          .map(Db2.Word::getText)
-          .collect(Collectors.toList());
     }
 
     private static List<String> names(Db2Container<Db2.Name> columns) {
