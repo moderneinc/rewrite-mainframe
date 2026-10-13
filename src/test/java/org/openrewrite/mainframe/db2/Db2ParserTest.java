@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.db2;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.InMemoryExecutionContext;
@@ -26,10 +27,14 @@ import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.mainframe.db2.tree.Db2Container;
+import org.openrewrite.tree.ParseError;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +42,11 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonList;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 
 /**
  * What the grammar reads, and what it refuses to read.
@@ -387,6 +396,60 @@ class Db2ParserTest {
         Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
         assertThat(elements(table)).hasSize(1);
         assertThat(columns(table)).isEmpty();
+    }
+
+    /**
+     * A statement that cannot be assembled at all fails in a way that says nothing, so the file is
+     * reported as the syntax error that led to it rather than as the failure itself.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "DROP WIDGET CARDDEMO.ACCOUNT;\n",
+      "GRANT EXEC ON CARDDEMO.ACCOUNT TO PUBLIC\n"})
+    void aStatementThatCannotBeAssembledIsReportedAsItsSyntaxError(String source) {
+        SourceFile parsed = parseIgnoringErrors(source);
+
+        assertThat(parsed).isInstanceOf(ParseError.class);
+        assertThat(((ParseError) parsed).getText()).isEqualTo(source);
+        assertThat(parsed.getMarkers().findFirst(ParseExceptionResult.class))
+          .get().extracting(ParseExceptionResult::getMessage, as(STRING))
+          .contains("Db2ParsingException").contains("Syntax error in");
+        assertThat(errorsIn(source)).isNotEmpty();
+    }
+
+    /**
+     * A member a build cannot read is still taken, since typing a file happens outside the one
+     * place that can report a failure against the file it came from.
+     */
+    @Test
+    void aFileThatCannotBeReadIsStillTaken(@TempDir Path directory) throws IOException {
+        Path unreadable = directory.resolve("unreadable.sql");
+        Files.write(unreadable, "CREATE TABLE CARDDEMO.CARD (ID INTEGER NOT NULL);\n".getBytes(StandardCharsets.UTF_8));
+        assumeTrue(unreadable.toFile().setReadable(false), "the file system kept the file readable");
+
+        try {
+            assertThat(Db2Parser.builder().build().accept(unreadable)).isTrue();
+        } finally {
+            unreadable.toFile().setReadable(true);
+        }
+    }
+
+    /**
+     * A {@code .sql} file is as likely to be another vendor's SQL as it is DDL, so one that is goes
+     * unclaimed and reaches the build step that keeps a file as text, where a DDL file is taken.
+     */
+    @Test
+    void aFileOfAnotherDialectIsNotTakenForDdl(@TempDir Path directory) throws IOException {
+        Path sybase = directory.resolve("AccountReport.sql");
+        Files.write(sybase, "drop proc dbo.usp_AccountReport\ngo\n".getBytes(StandardCharsets.UTF_8));
+        Path db2 = directory.resolve("account.sql");
+        Files.write(db2, "CREATE TABLE CARDDEMO.ACCOUNT (ID INTEGER NOT NULL);\n".getBytes(StandardCharsets.UTF_8));
+
+        Db2Parser parser = Db2Parser.builder().build();
+        assertThat(parser.accept(sybase)).isFalse();
+        assertThat(parser.accept(db2)).isTrue();
+        assertThat(parser.parse(singletonList(sybase), directory, new InMemoryExecutionContext(t -> {
+        })).collect(Collectors.toList())).isEmpty();
     }
 
     /**

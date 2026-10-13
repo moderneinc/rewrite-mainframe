@@ -19,7 +19,7 @@ import lombok.Getter;
 
 import java.nio.file.Path;
 
-public class Db2ParsingException extends Exception {
+public class Db2ParsingException extends RuntimeException {
     @Getter
     private final Path sourcePath;
 
