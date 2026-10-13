@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.mainframe.db2.tree.Db2Container;
@@ -27,7 +28,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -610,6 +614,27 @@ class Db2ParserTest {
     @Test
     void theSpaceBetweenTwoKeywordsSurvives() {
         parse("CREATE   TABLESPACE   GENATS04   IN   <DB2DBID>;\n");
+    }
+
+    /**
+     * A word the lexer learns without a keyword type to match reads as a plain word, and nothing
+     * else would notice.
+     */
+    @Test
+    void everyWordTheLexerKnowsIsAKeywordType() {
+        Set<String> types = Arrays.stream(Db2.Keyword.Type.values())
+          .map(type -> type.name().toUpperCase(Locale.ROOT))
+          .collect(Collectors.toSet());
+        List<String> words = new ArrayList<>();
+        for (int token = 1; token <= DB2Parser.VOCABULARY.getMaxTokenType(); token++) {
+            String literal = DB2Parser.VOCABULARY.getLiteralName(token);
+            if (literal != null && literal.matches("'[A-Z_]+'")) {
+                words.add(DB2Parser.VOCABULARY.getSymbolicName(token));
+            }
+        }
+
+        assertThat(words).isNotEmpty()
+          .allSatisfy(word -> assertThat(types).contains(word.replace("_", "")));
     }
 
     private static List<Db2> elements(Db2.CreateTable table) {
