@@ -110,7 +110,7 @@ public interface Ims extends Tree {
      * Every IMS gen library is written this way — {@code DBD}, {@code DATASET}, {@code SEGM},
      * {@code FIELD}, {@code LCHILD} and {@code XDFLD} in a DBD, {@code PCB} and {@code SENSEG} in a
      * PSB, {@code FMT} and {@code MFLD} in a format set — so they share a node and are told apart by
-     * {@link #getOperation()}. Named for the assembler construct rather than simply {@link Statement},
+     * {@code getOperation()}. Named for the assembler construct rather than simply {@link Statement},
      * which is what every line of a member is, comments among them.
      */
     @Value

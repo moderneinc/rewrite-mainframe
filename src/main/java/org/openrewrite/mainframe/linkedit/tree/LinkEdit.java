@@ -113,7 +113,7 @@ public interface LinkEdit extends Tree {
      * <p>
      * {@code INCLUDE}, {@code ENTRY}, {@code ALIAS}, {@code NAME}, {@code ORDER}, {@code MODE},
      * {@code SETCODE}, {@code SETOPT}, {@code CHANGE}, {@code REPLACE}, {@code IDENTIFY} and
-     * {@code PAGE} share this shape, so they share a node and are told apart by {@link #getOperator()}.
+     * {@code PAGE} share this shape, so they share a node and are told apart by {@code getOperator()}.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)

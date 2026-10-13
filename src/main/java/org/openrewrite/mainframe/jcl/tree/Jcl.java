@@ -162,7 +162,7 @@ public interface Jcl extends Tree {
      * many lines they are written over.
      * <p>
      * All of {@code JOB}, {@code EXEC}, {@code DD}, {@code PROC} and the rest share this shape, so
-     * they share a node and are told apart by {@link #getOperation()}. Twelve near identical classes
+     * they share a node and are told apart by {@code getOperation()}. Twelve near identical classes
      * would say nothing this does not.
      * <p>
      * Named for what IBM calls it rather than simply {@code Statement}, because {@link Statement} is

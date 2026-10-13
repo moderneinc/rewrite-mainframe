@@ -113,7 +113,7 @@ public interface Sort extends Tree {
      * <p>
      * {@code SORT}, {@code MERGE}, {@code INCLUDE}, {@code OMIT}, {@code INREC}, {@code OUTREC},
      * {@code OUTFIL}, {@code SUM} and {@code OPTION} share this shape, as do the ICETOOL operators,
-     * so they share a node and are told apart by {@link #getOperator()}.
+     * so they share a node and are told apart by {@code getOperator()}.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)

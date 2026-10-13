@@ -37,7 +37,7 @@ import static java.util.Collections.emptyList;
  * statements whose shape says what they reach, and only those: a {@code SUBMIT}, a {@code CALL}, a
  * {@code RUN} under DSN, a call of another script, an allocation, an edit and an existence check.
  * <p>
- * A name written as a variable is reported as it stands and marked {@link Reference#isSymbolic()}.
+ * A name written as a variable is reported as it stands and marked {@code Reference.isSymbolic()}.
  * Nothing here resolves one: {@code CLMCOMP} picks a job into {@code &JOB} and hands it to
  * {@code CLMSUB}, which submits it, so the job a script really submits is a fact about two members and
  * a parameter and not one this can read off a statement. What each member writes of that fact is
