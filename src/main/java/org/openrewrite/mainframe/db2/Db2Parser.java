@@ -107,8 +107,6 @@ public class Db2Parser implements Parser {
             return new Db2ParserVisitor(path, null, source, charset, charsetBomMarked)
                     .visitCompilationUnit(cu);
         } catch (RuntimeException e) {
-            // A statement assembled from a token ANTLR invented fails in a way that says nothing,
-            // where the syntax error that led to it says where to look.
             if (errorListener.errors.isEmpty()) {
                 throw e;
             }
