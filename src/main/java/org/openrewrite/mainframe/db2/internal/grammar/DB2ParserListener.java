@@ -253,6 +253,36 @@ public interface DB2ParserListener extends ParseTreeListener {
 	 */
 	void exitPartitionSpec(DB2Parser.PartitionSpecContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DB2Parser#partitionBound}.
+	 * @param ctx the parse tree
+	 */
+	void enterPartitionBound(DB2Parser.PartitionBoundContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#partitionBound}.
+	 * @param ctx the parse tree
+	 */
+	void exitPartitionBound(DB2Parser.PartitionBoundContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#partitionLimit}.
+	 * @param ctx the parse tree
+	 */
+	void enterPartitionLimit(DB2Parser.PartitionLimitContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#partitionLimit}.
+	 * @param ctx the parse tree
+	 */
+	void exitPartitionLimit(DB2Parser.PartitionLimitContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#partitionValue}.
+	 * @param ctx the parse tree
+	 */
+	void enterPartitionValue(DB2Parser.PartitionValueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#partitionValue}.
+	 * @param ctx the parse tree
+	 */
+	void exitPartitionValue(DB2Parser.PartitionValueContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DB2Parser#createIndex}.
 	 * @param ctx the parse tree
 	 */

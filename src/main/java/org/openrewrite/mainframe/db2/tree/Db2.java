@@ -1858,6 +1858,7 @@ public interface Db2 extends Tree {
             Environment,
             Erase,
             Escape,
+            Every,
             Except,
             Exception,
             Exclude,
@@ -2092,6 +2093,7 @@ public interface Db2 extends Tree {
             Sqlid,
             Standard,
             Start,
+            Starting,
             Statement,
             Static,
             Stay,
@@ -2163,7 +2165,7 @@ public interface Db2 extends Tree {
 
             /**
              * DB2's own spelling, which is what a generated statement should be written with.
-             * A parsed one prints {@link Keyword#getText()} instead, to keep the file's own case.
+             * A parsed one prints {@code Keyword.getText()} instead, to keep the file's own case.
              */
             public String getKeyword() {
                 // Type.Locale shadows java.util.Locale inside this enum.

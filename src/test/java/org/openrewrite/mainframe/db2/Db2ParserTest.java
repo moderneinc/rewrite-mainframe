@@ -15,9 +15,11 @@
  */
 package org.openrewrite.mainframe.db2;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.mainframe.db2.tree.Db2Container;
@@ -26,7 +28,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -372,6 +377,103 @@ class Db2ParserTest {
         assertThat(errors).anySatisfy(e -> assertThat(e).contains("line 2:0 token recognition error at: '\\'"));
     }
 
+    @Nested
+    class RangePartition {
+
+        @Test
+        void aPartitionNeedNotBeNumbered() {
+            Db2.Ddl ddl = parse(
+              """
+                CREATE TABLE SUT.ARCHIVED_EXTENDED_ALLOCATION_LINE_ITEM (
+                    ALLOCATION_LINE_ITEM_ID     BIGINT      NOT NULL,
+                    POSTING_YEAR                INTEGER     NOT NULL,
+                    PRIMARY KEY(ALLOCATION_LINE_ITEM_ID)
+                ) PARTITION BY RANGE (POSTING_YEAR) (
+                       STARTING FROM (2020) ENDING AT (2099)
+                );
+                """);
+
+            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+            assertThat(table.getName().getFullName())
+              .isEqualTo("SUT.ARCHIVED_EXTENDED_ALLOCATION_LINE_ITEM");
+            assertThat(columns(table)).extracting(c -> c.getName().getSimpleName())
+              .containsExactly("ALLOCATION_LINE_ITEM_ID", "POSTING_YEAR");
+
+            Db2.Option partitioning = partitioningOf(ddl);
+            assertThat(partitioning.getKeywords()).extracting(Db2.Keyword::getType)
+              .containsExactly(Db2.Keyword.Type.Partition, Db2.Keyword.Type.By, Db2.Keyword.Type.Range);
+            assertThat(keyOf(partitioning)).containsExactly("POSTING_YEAR");
+            assertThat(wordsOf(partitioning))
+              .containsSequence("STARTING", "FROM", "(", "2020", ")", "ENDING", "AT", "(", "2099", ")");
+        }
+
+        /**
+         * The form DB2 for z/OS writes.
+         */
+        @Test
+        void aNumberedPartitionEndsAtItsLimit() {
+            Db2.Option partitioning = partitioningOf(parse(
+              """
+                CREATE TABLE SUT.ALLOCATION (POSTING_YEAR INTEGER NOT NULL)
+                  PARTITION BY RANGE (POSTING_YEAR)
+                  (PARTITION 1 ENDING AT (2019) INCLUSIVE);
+                """));
+
+            assertThat(wordsOf(partitioning))
+              .containsSequence("PARTITION", "1", "ENDING", "AT", "(", "2019", ")", "INCLUSIVE");
+        }
+
+        @Test
+        void aRangeLeftOpenRepeatsEveryInterval() {
+            Db2.Option partitioning = partitioningOf(parse(
+              """
+                CREATE TABLE SUT.ALLOCATION (POSTING_YEAR INTEGER NOT NULL)
+                  PARTITION BY RANGE (POSTING_YEAR)
+                  (STARTING FROM (2020) EXCLUSIVE ENDING AT (MAXVALUE) EVERY (1));
+                """));
+
+            assertThat(wordsOf(partitioning))
+              .containsSequence("STARTING", "FROM", "(", "2020", ")", "EXCLUSIVE")
+              .containsSequence("ENDING", "AT", "(", "MAXVALUE", ")", "EVERY", "(", "1", ")");
+        }
+
+        @Test
+        void aKeyOfSeveralColumnsBoundsEachInKeyOrder() {
+            Db2.Option partitioning = partitioningOf(parse(
+              """
+                CREATE TABLE SUT.LEDGER (
+                    POSTING_YEAR  INTEGER NOT NULL,
+                    POSTING_MONTH INTEGER NOT NULL
+                ) PARTITION BY RANGE (POSTING_YEAR, POSTING_MONTH)
+                  (PARTITION 1 ENDING AT (2019, 12),
+                   PARTITION 2 ENDING AT (MAXVALUE, MAXVALUE));
+                """));
+
+            assertThat(keyOf(partitioning)).containsExactly("POSTING_YEAR", "POSTING_MONTH");
+            assertThat(wordsOf(partitioning))
+              .containsSequence("PARTITION", "1", "ENDING", "AT", "(", "2019", ",", "12", ")")
+              .containsSequence("PARTITION", "2", "ENDING", "AT", "(", "MAXVALUE", ",", "MAXVALUE", ")");
+        }
+
+        private Db2.Option partitioningOf(Db2.Ddl ddl) {
+            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+            assertThat(table.getOptions()).hasSize(1);
+            return (Db2.Option) table.getOptions().get(0);
+        }
+
+        private List<String> keyOf(Db2.Option partitioning) {
+            return Db2.elementsOf(partitioning.getValues(), Db2.Name.class).stream()
+              .map(Db2.Name::getFullName)
+              .collect(Collectors.toList());
+        }
+
+        private List<String> wordsOf(Db2.Option partitioning) {
+            return Db2.elementsOf(partitioning.getValues(), Db2.Word.class).stream()
+              .map(Db2.Word::getText)
+              .collect(Collectors.toList());
+        }
+    }
+
     /**
      * A catalog query is what the .sql files beside a schema usually hold, and the names it reads
      * are what a lineage graph joins on.
@@ -512,6 +614,27 @@ class Db2ParserTest {
     @Test
     void theSpaceBetweenTwoKeywordsSurvives() {
         parse("CREATE   TABLESPACE   GENATS04   IN   <DB2DBID>;\n");
+    }
+
+    /**
+     * A word the lexer learns without a keyword type to match reads as a plain word, and nothing
+     * else would notice.
+     */
+    @Test
+    void everyWordTheLexerKnowsIsAKeywordType() {
+        Set<String> types = Arrays.stream(Db2.Keyword.Type.values())
+          .map(type -> type.name().toUpperCase(Locale.ROOT))
+          .collect(Collectors.toSet());
+        List<String> words = new ArrayList<>();
+        for (int token = 1; token <= DB2Parser.VOCABULARY.getMaxTokenType(); token++) {
+            String literal = DB2Parser.VOCABULARY.getLiteralName(token);
+            if (literal != null && literal.matches("'[A-Z_]+'")) {
+                words.add(DB2Parser.VOCABULARY.getSymbolicName(token));
+            }
+        }
+
+        assertThat(words).isNotEmpty()
+          .allSatisfy(word -> assertThat(types).contains(word.replace("_", "")));
     }
 
     private static List<Db2> elements(Db2.CreateTable table) {
