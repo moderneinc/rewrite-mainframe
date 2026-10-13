@@ -200,16 +200,32 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         if (ctx.tableConstraint() != null) {
             return constraint(ctx.tableConstraint());
         }
-        return option(ctx.periodDefinition());
+        if (ctx.periodDefinition() != null) {
+            return option(ctx.periodDefinition());
+        }
+        return option(ctx);
     }
 
-    private Db2.ColumnDefinition columnDefinition(DB2Parser.ColumnDefinitionContext ctx) {
+    private Db2 columnDefinition(DB2Parser.ColumnDefinitionContext ctx) {
+        if (ctx.identifier() == null || !readable(ctx.dataType())) {
+            return option(ctx);
+        }
         Space prefix = prefix(ctx);
         return new Db2.ColumnDefinition(randomId(), prefix, Markers.EMPTY,
                 name(ctx.identifier()), dataType(ctx.dataType()), options(ctx.columnAttribute()));
     }
 
-    private Db2.DataType dataType(DB2Parser.DataTypeContext ctx) {
+    private static boolean readable(DB2Parser.@Nullable DataTypeContext ctx) {
+        return ctx != null && !children(ctx.typeName()).isEmpty();
+    }
+
+    private Db2.DataType dataType(DB2Parser.@Nullable DataTypeContext ctx) {
+        if (!readable(ctx)) {
+            return new Db2.DataType(randomId(), EMPTY, Markers.EMPTY,
+                    new Db2.Name(randomId(), EMPTY, Markers.EMPTY,
+                            singletonList(new Db2.Word(randomId(), EMPTY, Markers.EMPTY, ""))),
+                    null, emptyList());
+        }
         Space prefix = prefix(ctx);
         Db2.Name name = typeName(ctx.typeName());
         Db2Container<Db2.Word> arguments = null;
@@ -235,7 +251,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         }
         Space prefix = prefix(ctx);
         List<Db2.Word> parts = new ArrayList<>(2);
-        for (ParseTree child : ctx.children) {
+        for (ParseTree child : children(ctx)) {
             parts.add(word((TerminalNode) child));
         }
         return new Db2.Name(randomId(), prefix, Markers.EMPTY, parts);
@@ -259,7 +275,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Db2Container<Db2.Name> columns = null;
         Db2Container<Db2.Name> referencedColumns = null;
 
-        for (ParseTree child : ctx.constraintBody().children) {
+        for (ParseTree child : children(ctx.constraintBody())) {
             if (child instanceof DB2Parser.ColumnListContext) {
                 Db2Container<Db2.Name> list = columnList((DB2Parser.ColumnListContext) child);
                 if (columns == null) {
@@ -301,7 +317,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2.Keyword> keywords = new ArrayList<>(4);
         keywords.add(keyword(ctx.CREATE()));
         for (DB2Parser.IndexModifierContext modifier : ctx.indexModifier()) {
-            for (ParseTree child : modifier.children) {
+            for (ParseTree child : children(modifier)) {
                 keywords.add(keyword((TerminalNode) child));
             }
         }
@@ -319,7 +335,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Space prefix = prefix(ctx);
         Db2.Name name = name(ctx.identifier());
         Db2.Keyword direction = null;
-        for (ParseTree child : ctx.children) {
+        for (ParseTree child : children(ctx)) {
             if (child instanceof TerminalNode) {
                 direction = keyword((TerminalNode) child);
             }
@@ -596,7 +612,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2> options = new ArrayList<>();
         Db2.Block body = null;
 
-        for (ParseTree child : ctx.children) {
+        for (ParseTree child : children(ctx)) {
             if (child instanceof DB2Parser.QualifiedNameContext) {
                 Db2.Name qualified = name((DB2Parser.QualifiedNameContext) child);
                 if (name == null) {
@@ -658,7 +674,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2> clauses = new ArrayList<>();
         Db2.Block body = null;
 
-        for (ParseTree child : ctx.children) {
+        for (ParseTree child : children(ctx)) {
             if (child instanceof DB2Parser.QualifiedNameContext && name == null) {
                 name = name((DB2Parser.QualifiedNameContext) child);
             } else if (child instanceof DB2Parser.RoutineParameterContext) {
@@ -697,7 +713,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     private Db2.Parameter parameter(DB2Parser.RoutineParameterContext ctx) {
         Space prefix = prefix(ctx);
         Db2.Keyword mode = null;
-        for (ParseTree child : ctx.children) {
+        for (ParseTree child : children(ctx)) {
             if (child instanceof TerminalNode) {
                 mode = keyword((TerminalNode) child);
             }
@@ -756,7 +772,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
      */
     private Db2.@Nullable Name commentTarget(ParserRuleContext ctx, List<Db2.Keyword> keywords) {
         Db2.Name target = null;
-        for (ParseTree child : ctx.children) {
+        for (ParseTree child : children(ctx)) {
             if (child instanceof DB2Parser.QualifiedNameContext) {
                 target = name((DB2Parser.QualifiedNameContext) child);
             } else if (child instanceof DB2Parser.IdentifierContext) {
@@ -794,7 +810,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         int direction = granting ? DB2Parser.TO : DB2Parser.FROM;
         boolean pastOn = false;
 
-        for (ParseTree child : ctx.children) {
+        for (ParseTree child : children(ctx)) {
             if (child instanceof DB2Parser.PrivilegeContext) {
                 privileges.add(Db2RightPadded.build((Db2) option((ParserRuleContext) child))
                         .withAfter(whitespace()));
@@ -1091,6 +1107,10 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
 
     private static boolean isKeywordToken(Token token) {
         return KEYWORDS.containsKey(token.getType());
+    }
+
+    private static List<ParseTree> children(@Nullable ParserRuleContext ctx) {
+        return ctx == null || ctx.children == null ? emptyList() : ctx.children;
     }
 
     private Db2.Word word(TerminalNode node) {

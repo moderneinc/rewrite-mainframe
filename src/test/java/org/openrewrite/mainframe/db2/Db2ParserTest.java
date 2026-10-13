@@ -17,7 +17,10 @@ package org.openrewrite.mainframe.db2;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
@@ -357,6 +360,35 @@ class Db2ParserTest {
         assertThat(errorsIn("CREATE TABLE CARDDEMO.ACCOUNT (ACCT_ID INTEGER;\n")).isNotEmpty();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "CREATE TABLE T(COMMENT VARCHAR(10));\n",
+      "CREATE TABLE T(DATA VARCHAR(10));\n",
+      "CREATE TABLE T(CONSTRAINT VARCHAR(10));\n",
+      "ALTER TABLE T ADD COLUMN DATA VARCHAR(10);\n",
+      "CREATE TABLE T(ID);\n"})
+    void aTableElementThatCannotBeReadDoesNotFailTheWholeFile(String source) {
+        SourceFile parsed = parseIgnoringErrors(source);
+
+        assertThat(parsed).isInstanceOf(Db2.Ddl.class);
+        assertThat(parsed.getMarkers().findFirst(ParseExceptionResult.class)).isEmpty();
+        assertThat(errorsIn(source)).isNotEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "CREATE TABLE T(COMMENT VARCHAR(10));\n",
+      "CREATE TABLE T(DATA VARCHAR(10));\n",
+      "CREATE TABLE T(ID);\n"})
+    void anUnreadableColumnIsKeptAsLooseWords(String source) {
+        Db2.Ddl ddl = (Db2.Ddl) parseIgnoringErrors(source);
+        assertThat(ddl.printAll()).isEqualTo(source);
+
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        assertThat(elements(table)).hasSize(1);
+        assertThat(columns(table)).isEmpty();
+    }
+
     /**
      * A character the lexer has no token for is reported like any other syntax error. A console
      * write per character fills a build log when a {@code .sql} file is in another dialect.
@@ -673,6 +705,13 @@ class Db2ParserTest {
           .forEach(cu -> {
           });
         return errors;
+    }
+
+    private static SourceFile parseIgnoringErrors(String source) {
+        return Db2Parser.builder().build()
+          .parse(new InMemoryExecutionContext(t -> {
+          }), source)
+          .findFirst().orElseThrow();
     }
 
     private static Db2.Ddl parse(String source) {
