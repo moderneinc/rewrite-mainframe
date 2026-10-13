@@ -113,7 +113,7 @@ public interface Idcams extends Tree {
      * <p>
      * {@code DEFINE}, {@code DELETE}, {@code REPRO}, {@code LISTCAT}, {@code PRINT}, {@code ALTER}
      * and the modal {@code SET} and {@code IF} share this shape, so they share a node and are told
-     * apart by {@link #getVerb()}.
+     * apart by {@code getVerb()}.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)

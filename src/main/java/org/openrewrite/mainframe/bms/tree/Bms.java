@@ -108,7 +108,7 @@ public interface Bms extends Tree {
      * however many lines they are written over.
      * <p>
      * {@code DFHMSD}, {@code DFHMDI}, {@code DFHMDF} and {@code END} share this shape, so they share
-     * a node and are told apart by {@link #getOperation()}. Named for the assembler construct rather
+     * a node and are told apart by {@code getOperation()}. Named for the assembler construct rather
      * than simply {@code Statement}, because {@link Statement} is what every line of a mapset is,
      * comments among them.
      */

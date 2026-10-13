@@ -116,7 +116,7 @@ public interface Utility extends Tree {
      * A keyword and everything written under it.
      * <p>
      * A utility control statement and the blocks written inside one share this shape, so they share a
-     * node and are told apart by {@link #getVerb()} and by what encloses them: {@code UNLOAD},
+     * node and are told apart by {@code getVerb()} and by what encloses them: {@code UNLOAD},
      * {@code GLOBAL}, {@code TEMPLATE}, {@code LOAD}, {@code RUNSTATS} open a statement, and
      * {@code SELECT}, {@code FROM TABLE}, {@code FORMAT} and {@code OPTIONS} open a block within one.
      * <p>

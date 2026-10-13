@@ -27,7 +27,7 @@ import java.util.UUID;
  * the parameter or word as written. The tree text is left alone, so the source still prints back
  * byte for byte and the resolved reading is there for anything that needs it.
  * <p>
- * A symbol nothing set stays as it was written and is listed in {@link #getSymbolics()} with no
+ * A symbol nothing set stays as it was written and is listed in {@code getSymbolics()} with no
  * value, which is how a job that would fail to resolve is told from one that resolves to something.
  */
 @With

@@ -112,7 +112,7 @@ public interface Bind extends Tree {
      * written over.
      * <p>
      * {@code BIND}, {@code REBIND}, {@code FREE}, {@code DSN}, {@code RUN} and {@code END} share this
-     * shape, so they share a node and are told apart by {@link #getVerb()}.
+     * shape, so they share a node and are told apart by {@code getVerb()}.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
