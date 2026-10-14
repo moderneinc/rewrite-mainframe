@@ -34,8 +34,14 @@ import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -76,6 +82,7 @@ public class Db2Parser implements Parser {
      *
      * @param path what to call the result, which for in-stream DDL names the job it was found in
      *             rather than anything on disk.
+     * @throws Db2ParsingException when the stream holds a statement this grammar cannot read.
      */
     public Db2.Ddl parseFragment(Path path, String source, ExecutionContext ctx) {
         return parse(path, source, UTF_8, false, path, ctx);
@@ -83,7 +90,7 @@ public class Db2Parser implements Parser {
 
     private Db2.Ddl parse(Path path, String source, Charset charset, boolean charsetBomMarked,
                                       Path reportedPath, ExecutionContext ctx) {
-        ForwardingErrorListener errorListener = new ForwardingErrorListener(reportedPath, ctx);
+        BufferingErrorListener errorListener = new BufferingErrorListener(reportedPath);
         DB2Lexer lexer = new DB2Lexer(CharStreams.fromString(source));
         lexer.removeErrorListeners();
         lexer.addErrorListener(errorListener);
@@ -92,14 +99,58 @@ public class Db2Parser implements Parser {
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
 
-        return new Db2ParserVisitor(path, null, source, charset, charsetBomMarked)
-                .visitCompilationUnit(parser.compilationUnit());
+        DB2Parser.CompilationUnitContext cu = parser.compilationUnit();
+        for (Db2ParsingException error : errorListener.errors) {
+            ctx.getOnError().accept(error);
+        }
+        try {
+            return new Db2ParserVisitor(path, null, source, charset, charsetBomMarked)
+                    .visitCompilationUnit(cu);
+        } catch (RuntimeException e) {
+            // A visitor failure on a tree ANTLR recovered from says less than the syntax error behind it
+            if (errorListener.errors.isEmpty()) {
+                throw e;
+            }
+            throw errorListener.errors.get(0);
+        }
     }
 
     @Override
     public boolean accept(Path path) {
         String name = path.toString().toLowerCase();
-        return name.endsWith(".ddl") || name.endsWith(".sql");
+        if (!name.endsWith(".ddl") && !name.endsWith(".sql")) {
+            return false;
+        }
+        String source;
+        try {
+            source = read(path);
+        } catch (IOException | UncheckedIOException e) {
+            // Taken so parse reports the read failure as a ParseError on this file, as it did before typing by content
+            return true;
+        }
+        return SqlDialect.of(source) == null || readsAsDb2(source);
+    }
+
+    private static String read(Path path) throws IOException {
+        if (!Files.isRegularFile(path)) {
+            return "";
+        }
+        try (EncodingDetectingInputStream is =
+                     new EncodingDetectingInputStream(Files.newInputStream(path))) {
+            return is.readFully();
+        }
+    }
+
+    private static boolean readsAsDb2(String source) {
+        BufferingErrorListener errorListener = new BufferingErrorListener(Paths.get(""));
+        DB2Lexer lexer = new DB2Lexer(CharStreams.fromString(source));
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(errorListener);
+        DB2Parser parser = new DB2Parser(new CommonTokenStream(lexer));
+        parser.removeErrorListeners();
+        parser.addErrorListener(errorListener);
+        parser.compilationUnit();
+        return errorListener.errors.isEmpty();
     }
 
     @Override
@@ -108,14 +159,15 @@ public class Db2Parser implements Parser {
     }
 
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static class ForwardingErrorListener extends BaseErrorListener {
+    private static class BufferingErrorListener extends BaseErrorListener {
         private final Path sourcePath;
-        private final ExecutionContext ctx;
+
+        final List<Db2ParsingException> errors = new ArrayList<>();
 
         @Override
         public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol,
                                 int line, int charPositionInLine, String msg, RecognitionException e) {
-            ctx.getOnError().accept(new Db2ParsingException(sourcePath,
+            errors.add(new Db2ParsingException(sourcePath,
                     String.format("Syntax error in %s at line %d:%d %s.", sourcePath, line, charPositionInLine, msg), e));
         }
     }
