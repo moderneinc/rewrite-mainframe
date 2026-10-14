@@ -107,6 +107,7 @@ public class Db2Parser implements Parser {
             return new Db2ParserVisitor(path, null, source, charset, charsetBomMarked)
                     .visitCompilationUnit(cu);
         } catch (RuntimeException e) {
+            // A visitor failure on a tree ANTLR recovered from says less than the syntax error behind it
             if (errorListener.errors.isEmpty()) {
                 throw e;
             }
@@ -124,6 +125,7 @@ public class Db2Parser implements Parser {
         try {
             source = read(path);
         } catch (IOException | UncheckedIOException e) {
+            // Taken so parse reports the read failure as a ParseError on this file, as it did before typing by content
             return true;
         }
         return SqlDialect.of(source) == null || readsAsDb2(source);
