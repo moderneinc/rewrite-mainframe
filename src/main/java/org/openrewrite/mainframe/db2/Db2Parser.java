@@ -24,6 +24,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.mainframe.db2.internal.Db2ParserVisitor;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Lexer;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
@@ -41,10 +42,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonList;
 
 public class Db2Parser implements Parser {
 
@@ -115,11 +121,24 @@ public class Db2Parser implements Parser {
         }
     }
 
+    /**
+     * DDL a shop keeps with its control cards, as a deck a {@code DSNTEP2} or {@code DSNTIAD} step
+     * runs, carries a control card's extension or none, and is known by its first statement.
+     */
+    private static final List<String> CONTROL_CARD_EXTENSIONS = singletonList(".ctl");
+
+    /**
+     * What {@code ALTER} alters in DB2, which tells it from the {@code ALTER} IDCAMS writes.
+     */
+    private static final Set<String> ALTERED = new HashSet<>(Arrays.asList("TABLE", "TABLESPACE", "INDEX",
+            "DATABASE", "STOGROUP", "VIEW", "SEQUENCE", "PROCEDURE", "FUNCTION", "TRIGGER", "MASK", "PERMISSION",
+            "TRUSTED"));
+
     @Override
     public boolean accept(Path path) {
         String name = path.toString().toLowerCase();
         if (!name.endsWith(".ddl") && !name.endsWith(".sql")) {
-            return false;
+            return ControlCards.accept(path, CONTROL_CARD_EXTENSIONS, Db2Parser::opensWithDdl);
         }
         String source;
         try {
@@ -138,6 +157,37 @@ public class Db2Parser implements Parser {
         try (EncodingDetectingInputStream is =
                      new EncodingDetectingInputStream(Files.newInputStream(path))) {
             return is.readFully();
+        }
+    }
+
+    /**
+     * Whether the first statement of text, past its comments, is DDL, or the {@code SET CURRENT SQLID}
+     * a DDL deck opens with to say whose objects it makes. A control card library holds SORT and
+     * IDCAMS cards beside it, and neither opens with {@code CREATE}, {@code DROP}, {@code COMMENT ON}
+     * or {@code LABEL ON}; IDCAMS has an {@code ALTER} of its own, so an {@code ALTER} is DDL only
+     * before an object DB2 alters.
+     */
+    static boolean opensWithDdl(String source) {
+        StringBuilder code = new StringBuilder();
+        for (String line : source.replaceAll("(?s)/\\*.*?\\*/", " ").split("\n")) {
+            int comment = line.indexOf("--");
+            code.append(comment < 0 ? line : line.substring(0, comment)).append(' ');
+        }
+        String[] words = code.toString().trim().toUpperCase(Locale.ROOT).split("[\\s;(=]+", 4);
+        switch (words[0]) {
+            case "CREATE":
+            case "DROP":
+                return true;
+            case "COMMENT":
+            case "LABEL":
+                return words.length > 1 && "ON".equals(words[1]);
+            case "ALTER":
+                return words.length > 1 && ALTERED.contains(words[1]);
+            case "SET":
+                return words.length > 2 && "CURRENT".equals(words[1]) &&
+                       ("SQLID".equals(words[2]) || "SCHEMA".equals(words[2]));
+            default:
+                return false;
         }
     }
 
