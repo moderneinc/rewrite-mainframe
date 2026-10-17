@@ -67,4 +67,25 @@ class BindLineReaderTest {
     void doesNotReadAsABindDeck(String source) {
         assertThat(BindLineReader.isBindDeck(source)).isFalse();
     }
+
+    /**
+     * A deck that runs a program under DSN is read by the same grammar as one that binds, and is no
+     * bind deck.
+     */
+    @Test
+    void aRunDeckIsADsnDeck() {
+        String run = "DSN SYSTEM(DB2P)\nRUN PROGRAM(DSNTEP2) PLAN(DSNTEP2)\nEND\n";
+        assertThat(BindLineReader.isDsnDeck(run)).isTrue();
+        assertThat(BindLineReader.isBindDeck(run)).isFalse();
+        assertThat(BindLineReader.isDsnDeck("DSN SYSTEM(DB2P)\nBIND PACKAGE(A) MEMBER(P)\nEND\n")).isTrue();
+        assertThat(BindLineReader.isDsnDeck("DSN SYSTEM(DB2P)\nFREE PACKAGE(A.P)\nEND\n")).isFalse();
+        assertThat(BindLineReader.isDsnDeck("  SORT FIELDS=(1,8,CH,A)\n")).isFalse();
+    }
+
+    @Test
+    void opensWithDsnReadsTheFirstSubcommand() {
+        assertThat(BindLineReader.opensWithDsn("\n  DSN SYSTEM(DB2P)\nRUN PROGRAM(X)\n")).isTrue();
+        assertThat(BindLineReader.opensWithDsn("BIND PACKAGE(A) MEMBER(P)\n")).isFalse();
+        assertThat(BindLineReader.opensWithDsn("")).isFalse();
+    }
 }
