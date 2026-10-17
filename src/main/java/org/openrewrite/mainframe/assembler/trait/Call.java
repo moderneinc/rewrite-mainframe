@@ -35,7 +35,9 @@ import static java.util.Collections.emptyList;
  * The {@code CALL} macro is the one that says so: {@code CALL CLMU030,MF=(E,U40PLST)} names the
  * subroutine and the parameter list in one statement. The other way is three statements that say
  * nothing on their own — a V-type address constant, a load of it into R15 and a {@code BALR 14,15} —
- * and it is a call because of the shape and not because of any word in it.
+ * and it is a call because of the shape and not because of any word in it. The supervisor's
+ * {@code LINK}, {@code XCTL} and {@code ATTACH} reach a program too, named by {@code EP=} or by the
+ * constant {@code EPLOC=} addresses.
  * <p>
  * Which module the name reaches is the binder's answer, not this one: a name the link-edit deck
  * includes is bound in, and a name it leaves out is loaded at run time.
@@ -98,7 +100,20 @@ public class Call implements Trait<Assembler.Instruction> {
          * A V-type address constant loaded into R15 and branched to, which is what the macro would
          * have generated and what a program writes when it wants the registers left alone.
          */
-        V_CON
+        V_CON,
+        /**
+         * {@code LINK}, which loads the program if it is not loaded, passes control to it and gets it
+         * back.
+         */
+        LINK,
+        /**
+         * {@code XCTL}, which passes control to the program for good: this one ends.
+         */
+        XCTL,
+        /**
+         * {@code ATTACH}, which starts the program as a task of its own.
+         */
+        ATTACH
     }
 
     public static class Matcher extends SimpleTraitMatcher<Call> {
@@ -110,9 +125,45 @@ public class Call implements Trait<Assembler.Instruction> {
                 return null;
             }
             Assembler.Instruction instruction = (Assembler.Instruction) value;
-            return instruction.isOperation("CALL") ? fromMacro(cursor, instruction) :
-                    fromAddressConstant(cursor, instruction);
+            if (instruction.isOperation("CALL")) {
+                return fromMacro(cursor, instruction);
+            }
+            for (Kind kind : new Kind[]{Kind.LINK, Kind.XCTL, Kind.ATTACH}) {
+                if (instruction.isOperation(kind.name())) {
+                    return fromSupervisor(cursor, instruction, kind);
+                }
+            }
+            return fromAddressConstant(cursor, instruction);
         }
+    }
+
+    /**
+     * {@code LINK EP=CLMU040,PARAM=(A,B),VL=1}, or {@code EPLOC=} for the address of the eight bytes
+     * that hold the name, which the member declares as a constant: {@code PGMNAME DC CL8'CLMU040'}.
+     */
+    private static @Nullable Call fromSupervisor(Cursor cursor, Assembler.Instruction macro, Kind kind) {
+        String target = null;
+        List<String> arguments = emptyList();
+        String parameterList = null;
+        boolean variableLength = false;
+        for (Assembler.Operand operand : macro.getParameters()) {
+            if (operand.isKeyword("EP")) {
+                target = operand.getValue();
+            } else if (operand.isKeyword("EPLOC") && target == null) {
+                String name = Statements.constantOf(cursor, operand.getValue());
+                target = name == null ? null : name.trim();
+            } else if (operand.isKeyword("PARAM")) {
+                arguments = operand.getMembers();
+            } else if (operand.isKeyword("VL")) {
+                variableLength = "1".equals(operand.getValue());
+            } else if (operand.isKeyword("MF")) {
+                List<String> form = operand.getMembers();
+                parameterList = form.size() > 1 ? form.get(1) : null;
+            }
+        }
+        // EPLOC=(R2) addresses the name through a register, which nothing here can read.
+        return target == null || target.isEmpty() || target.startsWith("(") ? null :
+                new Call(cursor, target, kind, arguments, parameterList, variableLength);
     }
 
     private static @Nullable Call fromMacro(Cursor cursor, Assembler.Instruction call) {

@@ -201,6 +201,94 @@ class DliCallTest implements RewriteTest {
         assertThat(calls.get(0).getSegments()).containsExactly("CUSTOMER");
     }
 
+    /**
+     * A program that never moves anything into an SSA writes the segment name as the {@code VALUE}
+     * of the group's first field, the eight bytes at offset 0, and builds the qualification after it.
+     * That name stands over the data name's: neither SSA here is named for its segment.
+     */
+    @Test
+    void readsAGroupSsaThroughItsFirstField() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                         \s
+            000000 PROGRAM-ID. IMSPGM.                                              \s
+            000000 DATA DIVISION.                                                   \s
+            000000 WORKING-STORAGE SECTION.                                         \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                                \s
+            000000 01  ROOT-QUAL-SSA.                                               \s
+            000000     05  FILLER        PIC X(8)  VALUE 'CLMROOT '.                \s
+            000000     05  FILLER        PIC X     VALUE '('.                       \s
+            000000     05  FILLER        PIC X(8)  VALUE 'CLMNO   '.                \s
+            000000     05  FILLER        PIC X(2)  VALUE ' ='.                      \s
+            000000     05  SSA-KEY       PIC X(10).                                 \s
+            000000     05  FILLER        PIC X     VALUE ')'.                       \s
+            000000 01  CLMROOT-ADJ-SSA.                                             \s
+            000000     05  SSA-NAME.                                                \s
+            000000         10  FILLER    PIC X(8)  VALUE 'CLMROOT '.                \s
+            000000     05  FILLER        PIC X     VALUE ' '.                       \s
+            000000 PROCEDURE DIVISION.                                              \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB IO-AREA ROOT-QUAL-SSA.   \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB IO-AREA CLMROOT-ADJ-SSA. \s
+            000000     GOBACK.                                                      \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getSegments)
+          .containsExactly(singletonList("CLMROOT"), singletonList("CLMROOT"));
+    }
+
+    /**
+     * A checkpoint's later arguments are the areas it saves, which a program declares with values
+     * as it declares an SSA, and are no search arguments.
+     */
+    @Test
+    void aCheckpointCarriesNoSsas() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                         \s
+            000000 PROGRAM-ID. IMSPGM.                                              \s
+            000000 DATA DIVISION.                                                   \s
+            000000 WORKING-STORAGE SECTION.                                         \s
+            000000 77 CHKP-FUNC PIC X(4) VALUE 'CHKP'.                              \s
+            000000 77 CHKP-LEN PIC S9(9) COMP VALUE 8.                              \s
+            000000 77 CHKP-ID PIC X(8) VALUE 'CLMCHK01'.                            \s
+            000000 PROCEDURE DIVISION.                                              \s
+            000000     CALL 'CBLTDLI' USING CHKP-FUNC IO-PCB CHKP-LEN               \s
+            000000                          CHKP-ID SAVE-AREA.                      \s
+            000000     GOBACK.                                                      \s
+            """
+        );
+
+        assertThat(calls).singleElement().satisfies(chkp -> {
+            assertThat(chkp.getAccess()).isEqualTo(DliCall.Access.CHECKPOINT);
+            assertThat(chkp.getSsas()).isEmpty();
+            assertThat(chkp.getSegments()).isEmpty();
+        });
+    }
+
+    @Test
+    void keepsEachSsasSegmentInItsPlace() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                         \s
+            000000 PROGRAM-ID. IMSPGM.                                              \s
+            000000 DATA DIVISION.                                                   \s
+            000000 WORKING-STORAGE SECTION.                                         \s
+            000000 77 GN-FUNC PIC X(4) VALUE 'GN  '.                                \s
+            000000 77 ACCT-SSA PIC X(9) VALUE 'ACCOUNT '.                           \s
+            000000 PROCEDURE DIVISION.                                              \s
+            000000     CALL 'CBLTDLI' USING GN-FUNC DB-PCB IO-AREA WS-QUAL ACCT-SSA.\s
+            000000     GOBACK.                                                      \s
+            """
+        );
+
+        assertThat(calls).singleElement().satisfies(gn -> {
+            assertThat(gn.getSsas()).containsExactly("WS-QUAL", "ACCT-SSA");
+            assertThat(gn.getSsaSegments()).containsExactly(null, "ACCOUNT");
+            assertThat(gn.getSegments()).containsExactly("ACCOUNT");
+        });
+    }
+
     @Test
     void recognisesTheCommandLevelInterface() {
         List<DliCall> calls = parse(

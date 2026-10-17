@@ -146,4 +146,73 @@ class CallTest implements RewriteTest {
           )
         );
     }
+
+    /**
+     * An SSA the member does not declare names no segment it can read, and its place among the SSAs
+     * is kept, so the second segment searched for is still the second.
+     */
+    @Test
+    void keepsEachSsasSegmentInItsPlace() {
+        rewriteRun(
+          assembler(
+            """
+              A10LOOP  CALL  ASMTDLI,(A10GU,(R11),A10DETL,PARENTQ,A10SSA),VL
+              A10GU    DC    CL4'GU  '
+              A10SSA   DC    CL9'CLMDETL'
+              A10DETL  DS    CL65
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(new DliCall.Matcher().lower(cu)
+              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+                assertThat(call.getSsas()).containsExactly("PARENTQ", "A10SSA");
+                assertThat(call.getSsaSegments()).containsExactly(null, "CLMDETL");
+                assertThat(call.getSegments()).containsExactly("CLMDETL");
+            }))
+          )
+        );
+    }
+
+    @Test
+    void readsTheProgramALinkNames() {
+        rewriteRun(
+          assembler(
+            """
+              CLMU030  CSECT
+                       LINK  EP=CLMU040,PARAM=(CLMRCLM),VL=1
+                       END   CLMU030
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
+              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+                assertThat(call.getTarget()).isEqualTo("CLMU040");
+                assertThat(call.getKind()).isEqualTo(Call.Kind.LINK);
+                assertThat(call.getArguments()).containsExactly("CLMRCLM");
+                assertThat(call.isVariableLength()).isTrue();
+                assertThat(call.getLine()).isEqualTo(2);
+            }))
+          )
+        );
+    }
+
+    /**
+     * {@code EPLOC=} addresses eight bytes that hold the name, which a constant declares; through a
+     * register it says nothing that can be read here.
+     */
+    @Test
+    void readsTheNameTheConstantAnEplocAddressesHolds() {
+        rewriteRun(
+          assembler(
+            """
+              CLMU030  CSECT
+                       XCTL  EPLOC=PGMNAME
+                       ATTACH EPLOC=(R2)
+              PGMNAME  DC    CL8'CLMU040'
+                       END   CLMU030
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
+              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+                assertThat(call.getTarget()).isEqualTo("CLMU040");
+                assertThat(call.getKind()).isEqualTo(Call.Kind.XCTL);
+            }))
+          )
+        );
+    }
 }
