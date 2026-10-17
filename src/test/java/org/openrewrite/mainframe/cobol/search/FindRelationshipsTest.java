@@ -993,6 +993,61 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
+    /**
+     * A statement's tables are read off the statement rather than off the word after a keyword. That
+     * word was only the first table of a join, half of a qualified name COBOL writes as more than one
+     * word, nothing at all when the table was on the line after its verb, and the cursor a fetch
+     * reads from when the cursor was declared further down.
+     */
+    @Test
+    void readsEveryTableAStatementNames() {
+        String program = """
+          000000 IDENTIFICATION DIVISION.
+                 PROGRAM-ID.
+                     TABLES.
+                 DATA DIVISION.
+                 WORKING-STORAGE SECTION.
+                 01 WS-NO PIC X(12).
+                 PROCEDURE DIVISION.
+                     EXEC SQL
+                         SELECT P.POLICY_NO INTO :WS-NO
+                         FROM CLM.POLICY P, CLM.CLAIM_ADJ A
+                         WHERE P.POLICY_NO = A.POLICY_NO
+                     END-EXEC.
+                     EXEC SQL
+                         DELETE FROM CLM.CLAIM_HIST
+                         WHERE POLICY_NO = :WS-NO
+                     END-EXEC.
+                     EXEC SQL
+                         UPDATE
+                           CLM.CLAIM_ARCH SET STATUS = 'C'
+                     END-EXEC.
+                     EXEC SQL
+                         FETCH FROM POLCSR INTO :WS-NO
+                     END-EXEC.
+                     EXEC SQL
+                         DECLARE POLCSR CURSOR FOR
+                         SELECT POLICY_NO FROM CLM.POLICY
+                     END-EXEC.
+          """;
+        rewriteRun(
+          spec -> spec.dataTable(Row.class, rows -> {
+              List<Row> accesses = rows.stream().filter(r -> r.getAction() == ACCESS).toList();
+              assertThat(accesses)
+                .extracting(Row::getDependency, Row::getActionMetadata)
+                .containsExactlyInAnyOrder(
+                  tuple("CLM.POLICY", "READ"),
+                  tuple("CLM.CLAIM_ADJ", "READ"),
+                  tuple("CLM.CLAIM_HIST", "DELETE"),
+                  tuple("CLM.CLAIM_ARCH", "UPDATE"));
+              // Each row is anchored on the line its table was written on.
+              assertThat(accesses).allSatisfy(r ->
+                assertThat(lineAt(program, r.getDependentLine())).contains(r.getDependency()));
+          }),
+          cobol(program, "", spec -> spec.after(s -> s).path("TABLES.CBL"))
+        );
+    }
+
     @Test
     void SM206A() {
         rewriteRun(
