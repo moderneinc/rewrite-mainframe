@@ -27,14 +27,20 @@ import org.openrewrite.marker.SearchResult;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 
 /**
  * An IMS DL/I database or message call, however it was written: {@code CALL 'CBLTDLI'},
@@ -93,6 +99,8 @@ public class DliCall implements Trait<Cobol> {
 
     /**
      * Segment search argument data names, in order. Qualification lives inside these at run time.
+     * Empty for a checkpoint or system call, whose later arguments are the areas it saves and
+     * restores or the data it passes, never a search argument.
      */
     List<String> ssas;
 
@@ -120,6 +128,12 @@ public class DliCall implements Trait<Cobol> {
      * option. Empty when the call is unqualified or the segment name is not statically known.
      */
     List<String> segments;
+
+    /**
+     * The segment each of {@link #getSsas()} names, in the same order, with null where an SSA
+     * resolves to none. {@link #getSegments()} is these less the nulls.
+     */
+    List<@Nullable String> ssaSegments;
 
     /**
      * What this call does to the database, derived from {@link #function}.
@@ -287,9 +301,25 @@ public class DliCall implements Trait<Cobol> {
         String modOperand = "ISRT".equals(function) && !trailing.isEmpty() &&
                             entry != null && entry.isMessagePcb(pcb) ? trailing.get(0) : null;
         List<String> ssas = modOperand == null ? trailing : trailing.subList(1, trailing.size());
+        // A checkpoint's later arguments are the areas it saves, and a system call's its own data.
+        Access access = Access.of(function);
+        if (access == Access.CHECKPOINT || access == Access.SYSTEM) {
+            ssas = emptyList();
+        }
 
+        List<@Nullable String> ssaSegments = segmentsFromSsas(ssas, cursor);
         return new DliCall(cursor, iface.toUpperCase(Locale.ROOT), function, functionOperand, pcb, ioArea,
-                ssas, resolveMod(modOperand, cursor), modOperand, segmentsFromSsas(ssas, cursor));
+                ssas, resolveMod(modOperand, cursor), modOperand, named(ssaSegments), ssaSegments);
+    }
+
+    private static List<String> named(List<@Nullable String> segments) {
+        List<String> named = new ArrayList<>(segments.size());
+        for (String segment : segments) {
+            if (segment != null) {
+                named.add(segment);
+            }
+        }
+        return named;
     }
 
     /**
@@ -322,7 +352,7 @@ public class DliCall implements Trait<Cobol> {
         }
         // Command level DL/I has no message call, so it never names a MOD.
         return new DliCall(cursor, "EXEC DLI", function, function, pcb, ioArea, emptyList(), null, null,
-                segments);
+                segments, emptyList());
     }
 
     private static @Nullable String operandAfter(List<String> tokens, int i) {
@@ -385,31 +415,121 @@ public class DliCall implements Trait<Cobol> {
     }
 
     /**
-     * Segment names carried by the SSAs. An SSA holds the segment name in its first eight bytes, so
-     * the name is recoverable when the SSA is built from a literal, and otherwise from the
-     * {@code <segment>-SSA} naming convention that IMS shops follow.
+     * The segment each SSA names, with null where one names none that can be read. An SSA holds the
+     * segment name in its first eight bytes, so the name is recoverable when the SSA is assigned a
+     * literal; when it is a group whose first field is declared with one, as a program writes an SSA
+     * it never moves anything into; and otherwise from the {@code <segment>-SSA} naming convention
+     * that IMS shops follow.
      */
-    private static List<String> segmentsFromSsas(List<String> ssas, Cursor cursor) {
+    private static List<@Nullable String> segmentsFromSsas(List<String> ssas, Cursor cursor) {
         if (ssas.isEmpty()) {
             return emptyList();
         }
-        List<String> segments = new ArrayList<>(ssas.size());
+        List<@Nullable String> segments = new ArrayList<>(ssas.size());
         for (String ssa : ssas) {
-            String resolved = LiteralAssignment.resolve(cursor, ssa);
-            if (resolved != null && !resolved.isEmpty()) {
-                // The segment name occupies the first eight bytes of an SSA.
-                String name = resolved.length() > 8 ? resolved.substring(0, 8) : resolved;
-                name = name.trim().toUpperCase(Locale.ROOT);
-                if (!name.isEmpty()) {
-                    segments.add(name);
-                    continue;
-                }
+            String name = segmentIn(LiteralAssignment.resolve(cursor, ssa));
+            if (name == null) {
+                name = segmentIn(firstValues(cursor).get(ssa.toUpperCase(Locale.ROOT)));
             }
-            if (ssa.endsWith(SSA_SUFFIX) && ssa.length() > SSA_SUFFIX.length()) {
-                segments.add(ssa.substring(0, ssa.length() - SSA_SUFFIX.length()));
+            if (name == null && ssa.endsWith(SSA_SUFFIX) && ssa.length() > SSA_SUFFIX.length()) {
+                name = ssa.substring(0, ssa.length() - SSA_SUFFIX.length());
             }
+            segments.add(name);
         }
         return segments;
+    }
+
+    // The segment name occupies the first eight bytes of an SSA.
+    private static @Nullable String segmentIn(@Nullable String ssa) {
+        if (ssa == null) {
+            return null;
+        }
+        String name = (ssa.length() > 8 ? ssa.substring(0, 8) : ssa).trim().toUpperCase(Locale.ROOT);
+        return name.isEmpty() ? null : name;
+    }
+
+    /**
+     * The literal each group's first elementary item is declared with, the bytes at offset 0, by
+     * the group's name upper cased. Kept on the program's cursor, as {@link LiteralAssignment} keeps
+     * what it reads, since every call in a program asks.
+     */
+    private static Map<String, String> firstValues(Cursor cursor) {
+        Cursor program = null;
+        for (Iterator<Cursor> path = cursor.getPathAsCursors(); path.hasNext(); ) {
+            Cursor enclosing = path.next();
+            if (enclosing.getValue() instanceof Cobol.ProgramUnit) {
+                program = enclosing;
+                break;
+            }
+        }
+        if (program == null) {
+            return emptyMap();
+        }
+        Cursor unit = program;
+        return unit.computeMessageIfAbsent("cobol.firstValues", k -> {
+            Map<String, String> values = new HashMap<>();
+            // Groups opened and still waiting for their first elementary item, innermost last.
+            Deque<Integer> levels = new ArrayDeque<>();
+            Deque<String> groups = new ArrayDeque<>();
+            new CopybookSkippingVisitor<Integer>() {
+                @Override
+                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit nested, Integer p) {
+                    // A nested program's data is its own, read from its own cursor.
+                    return getCursor().getParentTreeCursor().getValue() instanceof Cobol.ProgramUnit ?
+                            nested : super.visitProgramUnit(nested, p);
+                }
+
+                @Override
+                public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry, Integer p) {
+                    int level = levelOf(entry);
+                    if (level == 0 || level == 88 || level == 66) {
+                        return entry;
+                    }
+                    // A group with no elementary item before an entry of its own level or above has none.
+                    while (!levels.isEmpty() && levels.peekLast() >= level) {
+                        levels.removeLast();
+                        groups.removeLast();
+                    }
+                    boolean elementary = false;
+                    String value = null;
+                    for (Cobol clause : entry.getClauses()) {
+                        if (clause instanceof Cobol.DataPictureClause) {
+                            elementary = true;
+                        } else if (clause instanceof Cobol.DataValueClause && value == null) {
+                            for (Cobol literal : ((Cobol.DataValueClause) clause).getCobols()) {
+                                String word = Names.of(literal);
+                                value = word == null ? null : Literals.valueOf(word);
+                                if (value != null) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (elementary) {
+                        if (value != null) {
+                            for (String group : groups) {
+                                values.putIfAbsent(group, value);
+                            }
+                        }
+                        levels.clear();
+                        groups.clear();
+                    } else if (entry.getName() != null && !"FILLER".equalsIgnoreCase(entry.getName().getWord())) {
+                        levels.addLast(level);
+                        groups.addLast(entry.getName().getWord().toUpperCase(Locale.ROOT));
+                    }
+                    return entry;
+                }
+            }.visit(unit.getValue(), 0, unit.getParentOrThrow());
+            return values;
+        });
+    }
+
+    private static int levelOf(Cobol.DataDescriptionEntry entry) {
+        try {
+            return entry.getWords().isEmpty() ? 0 : Integer.parseInt(entry.getWords().get(0).getWord());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     @Override

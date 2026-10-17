@@ -99,6 +99,12 @@ public class DliCall implements Trait<Assembler.Instruction> {
     List<String> segments;
 
     /**
+     * The segment each of {@link #getSsas()} names, in the same order, with null where an SSA's
+     * constant is not declared in this member. {@link #getSegments()} is these less the nulls.
+     */
+    List<@Nullable String> ssaSegments;
+
+    /**
      * The register the PCB is addressed by, without the parentheses, or null where the call names the
      * mask.
      */
@@ -162,12 +168,19 @@ public class DliCall implements Trait<Assembler.Instruction> {
             String function = Statements.constantOf(cursor, functionOperand);
             List<String> ssas = arguments.size() > 3 ?
                     new ArrayList<>(arguments.subList(3, arguments.size())) : emptyList();
+            List<@Nullable String> ssaSegments = segmentsOf(cursor, ssas);
+            List<String> segments = new ArrayList<>(ssaSegments.size());
+            for (String segment : ssaSegments) {
+                if (segment != null) {
+                    segments.add(segment);
+                }
+            }
             return new DliCall(cursor, target.toUpperCase(Locale.ROOT),
                     function == null ? null : function.trim().toUpperCase(Locale.ROOT),
                     functionOperand,
                     arguments.size() > 1 ? arguments.get(1) : null,
                     arguments.size() > 2 ? arguments.get(2) : null,
-                    ssas, segmentsOf(cursor, ssas));
+                    ssas, segments, ssaSegments);
         }
     }
 
@@ -185,23 +198,17 @@ public class DliCall implements Trait<Assembler.Instruction> {
     }
 
     /**
-     * The segment each SSA names, from the constant it is built out of. An SSA holds the segment name
-     * in its first eight bytes, so a member that declares the SSA says which segment the call asked
-     * for.
+     * The segment each SSA names, from the constant it is built out of, or null where there is none
+     * to read. An SSA holds the segment name in its first eight bytes, so a member that declares the
+     * SSA says which segment the call asked for.
      */
-    private static List<String> segmentsOf(Cursor cursor, List<String> ssas) {
-        List<String> segments = new ArrayList<>(ssas.size());
+    private static List<@Nullable String> segmentsOf(Cursor cursor, List<String> ssas) {
+        List<@Nullable String> segments = new ArrayList<>(ssas.size());
         for (String ssa : ssas) {
             String constant = Statements.constantOf(cursor, ssa);
-            if (constant == null) {
-                continue;
-            }
-            String name = constant.length() > SEGMENT_NAME_LENGTH ?
-                    constant.substring(0, SEGMENT_NAME_LENGTH) : constant;
-            name = name.trim().toUpperCase(Locale.ROOT);
-            if (!name.isEmpty()) {
-                segments.add(name);
-            }
+            String name = constant == null ? "" : (constant.length() > SEGMENT_NAME_LENGTH ?
+                    constant.substring(0, SEGMENT_NAME_LENGTH) : constant).trim().toUpperCase(Locale.ROOT);
+            segments.add(name.isEmpty() ? null : name);
         }
         return segments;
     }
