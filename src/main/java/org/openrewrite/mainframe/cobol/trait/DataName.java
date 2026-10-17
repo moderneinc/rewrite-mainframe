@@ -45,9 +45,9 @@ import static java.util.Collections.emptyList;
  * <p>
  * This is the compiler's cross-reference listing, read off the tree. A name index has to tell the
  * definition from the usages and leave out an item nothing names; a search wants a subscripted or
- * reference-modified occurrence to reach the item; and a {@code SET} of a level-88 condition name
- * counts as a usage of the item the condition is declared under, since that is what the {@code SET}
- * assigns.
+ * reference-modified occurrence to reach the item; and any use of a level-88 condition name counts
+ * as a usage of the item the condition is declared under, since a test of the condition reads that
+ * item and a {@code SET} of it assigns it.
  * <p>
  * Within an {@code EXEC} block only a name the program declares is an occurrence — a {@code :HOST}
  * variable, an operand in a CICS or DLI option — because the block's words are not parsed, and an
@@ -121,16 +121,22 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * For a condition name, the item it is declared under, which a {@code SET} of the name assigns.
-     * Null for a data name and for an occurrence resolving to nothing.
+     * For a condition name, the item it is declared under, which a test of the name reads and a
+     * {@code SET} of it assigns. Null for a data name, for an occurrence resolving to nothing, and for
+     * a condition declared under a {@code FILLER}, which nothing else can name.
      */
     public @Nullable DataName getConditionalVariable() {
-        return isConditionName() ? getParent() : null;
+        if (!isConditionName()) {
+            return null;
+        }
+        Definition definition = definition(index());
+        Definition item = definition == null ? null : definition.getParent();
+        return item == null ? null : item.trait();
     }
 
     /**
      * Whether the occurrence is a target of {@code SET}. For a condition name that is an assignment
-     * to its conditional variable, and counts as a usage of it.
+     * to its conditional variable.
      */
     public boolean isSet() {
         Cursor identifier = identifier();
@@ -144,8 +150,8 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * Whether anything in the program names a definition: a usage resolving to it, or a {@code SET}
-     * of a condition name declared under it. False for a usage.
+     * Whether anything in the program names a definition: a usage resolving to it, or a use of a
+     * condition name declared under it. False for a usage.
      */
     public boolean isReferenced() {
         return isDefinition() && index().referenced.contains(getTree().getId());
@@ -446,11 +452,12 @@ public class DataName implements Trait<Cobol.Word> {
             // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
             for (Cursor at : usages) {
                 DataName usage = new DataName(at);
-                boolean set = usage.isSet();
                 for (Definition definition : usage.candidates(index)) {
                     index.reference(definition);
-                    if (set && definition.getLevel() == 88) {
-                        index.reference(definition.namedParent());
+                    // A condition name reads its item where it is tested and assigns it where it is SET.
+                    // A FILLER item has no name to be credited by, so the group above it is not.
+                    if (definition.getLevel() == 88) {
+                        index.reference(definition.getParent());
                     }
                 }
             }
