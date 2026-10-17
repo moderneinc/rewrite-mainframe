@@ -641,7 +641,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
 
             int numberOfSpaces;
             if (!isEndOfLine && totalChars > contentAreaLength) {
-                String replaced = word.print(getCursor());
+                String replaced = word.print(getCursor().getParentOrThrow());
                 numberOfSpaces = getCurrentIndex(replaced);
             } else {
                 numberOfSpaces = curIndex == 0 ? cobolDialect.getColumns().getContentArea() : curIndex;
@@ -663,7 +663,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
             int difference = originalWord.getWord().length() - word.getCobolWord().getWord().length();
             // The difference exceeds the content area.
             if (curIndex + difference > cobolDialect.getColumns().getOtherArea()) {
-                String fullWord = word.print(getCursor());
+                String fullWord = word.print(getCursor().getParentOrThrow());
                 int lastIndex = fullWord.lastIndexOf("\n");
                 fullWord = fullWord.substring(lastIndex + 1);
 
