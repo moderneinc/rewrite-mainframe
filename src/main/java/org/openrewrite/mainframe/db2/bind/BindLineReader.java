@@ -52,10 +52,40 @@ public class BindLineReader {
      * holds catalog query decks and IDCAMS cards beside the binds.
      */
     public static boolean isBindDeck(String source) {
+        return opensAndDoes(source, BINDING_VERBS);
+    }
+
+    /**
+     * Whether text is a DSN command deck that binds or runs something: a bind deck, or a deck that
+     * runs a program under a plan, {@code RUN PROGRAM(CLMD010) PLAN(CLMPLAN)}, as a TSO batch step
+     * reads one from its {@code SYSTSIN}. Both are read by the same grammar.
+     */
+    public static boolean isDsnDeck(String source) {
+        return opensAndDoes(source, DECK_VERBS);
+    }
+
+    /**
+     * Whether the first subcommand of text is {@code DSN}, as a deck kept among other control cards,
+     * where only that tells it apart, opens.
+     */
+    public static boolean opensWithDsn(String source) {
+        for (String line : source.split("\n")) {
+            String verb = verbOf(line);
+            if (!verb.isEmpty()) {
+                return "DSN".equals(verb);
+            }
+        }
+        return false;
+    }
+
+    private static final Set<String> BINDING_VERBS = new HashSet<>(Arrays.asList("BIND", "REBIND"));
+
+    private static final Set<String> DECK_VERBS = new HashSet<>(Arrays.asList("BIND", "REBIND", "RUN"));
+
+    private static boolean opensAndDoes(String source, Set<String> doing) {
         boolean opens = false;
         for (String line : source.split("\n")) {
-            String[] words = line.trim().split("[\\s(]+", 2);
-            String verb = words[0].toUpperCase(Locale.ROOT);
+            String verb = verbOf(line);
             if (verb.isEmpty()) {
                 continue;
             }
@@ -65,11 +95,15 @@ public class BindLineReader {
                 }
                 opens = true;
             }
-            if ("BIND".equals(verb) || "REBIND".equals(verb)) {
+            if (doing.contains(verb)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static String verbOf(String line) {
+        return line.trim().split("[\\s(]+", 2)[0].toUpperCase(Locale.ROOT);
     }
 
     public static String readLines(String source) {
