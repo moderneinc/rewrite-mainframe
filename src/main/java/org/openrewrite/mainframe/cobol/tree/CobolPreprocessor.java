@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.cobol.tree;
 
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.With;
@@ -657,14 +658,23 @@ public interface CobolPreprocessor extends Tree {
 
     @SuppressWarnings("unchecked")
     @Value
+    @AllArgsConstructor
     @EqualsAndHashCode(callSuper = false)
     class Word implements CobolPreprocessor {
+
+        // Its own rather than its COBOL word's, since that word is a tree nested in this one.
+        @With
+        UUID id;
 
         Space prefix;
         Markers markers;
 
         @With
         Cobol.Word cobolWord;
+
+        public Word(Space prefix, Markers markers, Cobol.Word cobolWord) {
+            this(Tree.randomId(), prefix, markers, cobolWord);
+        }
 
 		@Override public Space getPrefix() {
             return cobolWord.getPrefix();
@@ -680,14 +690,6 @@ public interface CobolPreprocessor extends Tree {
 
 		@Override public Word withMarkers(Markers markers) {
             return cobolWord.getMarkers() == markers ? this : withCobolWord(cobolWord.withMarkers(markers));
-        }
-
-		@Override public UUID getId() {
-            return cobolWord.getId();
-        }
-
-		@Override public <T extends Tree> T withId(UUID id) {
-            return (T) withCobolWord(cobolWord.withId(id));
         }
 
         @Override

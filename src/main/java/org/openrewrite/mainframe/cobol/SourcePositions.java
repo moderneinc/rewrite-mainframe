@@ -308,9 +308,9 @@ public class SourcePositions {
                     CobolPreprocessor printed = super.visit(tree, p);
                     int[] span = {before, p.out.length()};
                     preprocessed.put(((CobolPreprocessor) tree).getId(), span);
-                    // A block's word shares its id with the COBOL word it wraps, so the block's words are placed too.
+                    // A block's word is kept under the COBOL word it wraps, so the block's words are placed too.
                     if (tree instanceof CobolPreprocessor.Word && carryingAnElidedExec()) {
-                        spans.put(((CobolPreprocessor) tree).getId(), span);
+                        spans.put(((CobolPreprocessor.Word) tree).getCobolWord().getId(), span);
                     }
                     return printed;
                 }
