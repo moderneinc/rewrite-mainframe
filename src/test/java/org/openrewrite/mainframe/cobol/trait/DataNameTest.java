@@ -107,12 +107,12 @@ class DataNameTest implements RewriteTest {
     }
 
     /**
-     * {@code SET ERR-FLG-OFF TO TRUE} moves {@code 'N'} to {@code WS-ERR-FLG}, so it is a usage of
-     * that item even though nothing in the program writes its name. A test of a condition name reads
-     * the condition, and is not counted for the item.
+     * {@code SET ERR-FLG-OFF TO TRUE} moves {@code 'N'} to {@code WS-ERR-FLG}, and {@code IF
+     * END-OF-FILE} compares {@code WS-EOF-FLG} with {@code 'Y'}, so each is a usage of its item even
+     * though nothing in the program writes the item's name.
      */
     @Test
-    void countsASetOfAConditionNameAsAUsageOfItsConditionalVariable() {
+    void countsAnyUseOfAConditionNameAsAUsageOfItsConditionalVariable() {
         List<DataName> names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
@@ -146,10 +146,42 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-ERR-FLG").isReferenced()).isTrue();
         assertThat(definitionOf(names, "ERR-FLG-OFF").isReferenced()).isTrue();
         assertThat(definitionOf(names, "ERR-FLG-ON").isReferenced()).isFalse();
-        assertThat(definitionOf(names, "WS-EOF-FLG").isReferenced()).isFalse();
+        assertThat(definitionOf(names, "WS-EOF-FLG").isReferenced()).isTrue();
+        assertThat(definitionOf(names, "END-OF-FILE").isReferenced()).isTrue();
+        // The group a condition's item sits in is not used by the condition.
+        assertThat(definitionOf(names, "WS-FLAGS").isReferenced()).isFalse();
         assertThat(definitionOf(names, "ERR-FLG-ON").getConditionalVariable())
           .isNotNull().extracting(DataName::getName).isEqualTo("WS-ERR-FLG");
         assertThat(definitionOf(names, "WS-ERR-FLG").getConditionalVariable()).isNull();
+    }
+
+    /**
+     * A condition declared under a {@code FILLER} reads an item nothing else can name, so its uses
+     * credit no item, and not the group above the {@code FILLER} either.
+     */
+    @Test
+    void aConditionUnderAFillerCreditsNoItem() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. FILLPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-SWITCHES.                                                \s
+            000000     05  FILLER         PIC X VALUE 'N'.                         \s
+            000000         88  SWITCH-ON          VALUE 'Y'.                       \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     SET SWITCH-ON TO TRUE.                                      \s
+            000000     IF SWITCH-ON                                                \s
+            000000         GOBACK                                                  \s
+            000000     END-IF.                                                     \s
+            """
+        );
+
+        assertThat(usagesOf(names, "SWITCH-ON")).hasSize(2)
+          .allSatisfy(use -> assertThat(use.getConditionalVariable()).isNull());
+        assertThat(definitionOf(names, "SWITCH-ON").isReferenced()).isTrue();
+        assertThat(definitionOf(names, "WS-SWITCHES").isReferenced()).isFalse();
     }
 
     /**
