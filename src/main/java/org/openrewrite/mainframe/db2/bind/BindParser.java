@@ -68,10 +68,10 @@ public class BindParser implements Parser {
                         EncodingDetectingInputStream is = sourceFile.getSource(ctx);
                         String sourceStr = is.readFully();
                         // The grammar reads any command deck, so a member named .bnd that binds
-                        // nothing has to be refused before it.
-                        if (!sourceFile.isSynthetic() && !BindLineReader.isBindDeck(sourceStr)) {
+                        // and runs nothing has to be refused before it.
+                        if (!sourceFile.isSynthetic() && !BindLineReader.isDsnDeck(sourceStr)) {
                             throw new WrongLanguageException(sourceFile.getPath(),
-                                    sourceFile.getPath() + " is not a bind deck: it has no BIND or REBIND subcommand.", null);
+                                    sourceFile.getPath() + " is not a bind deck: it has no BIND, REBIND or RUN subcommand.", null);
                         }
                         Bind.CompilationUnit cu = parse(path, sourceFile.getFileAttributes(), sourceStr,
                                 is.getCharset(), is.isCharsetBomMarked(),
@@ -127,8 +127,16 @@ public class BindParser implements Parser {
         }
         // A CARDLIB member is a PDS member, so it reaches a repository with no extension at all and
         // is known by nothing but its first subcommand.
-        return name.indexOf('.') < 0 && Files.isRegularFile(path) &&
-               BindLineReader.isBindDeck(ControlCards.head(path));
+        if (name.indexOf('.') < 0) {
+            return Files.isRegularFile(path) && BindLineReader.isBindDeck(ControlCards.head(path));
+        }
+        // A deck kept with the other control cards, as one a TSO batch step runs a program by, is a
+        // .ctl member that opens with DSN.
+        if (name.endsWith(".ctl") && Files.isRegularFile(path)) {
+            String head = ControlCards.head(path);
+            return BindLineReader.opensWithDsn(head) && BindLineReader.isDsnDeck(head);
+        }
+        return false;
     }
 
     @Override

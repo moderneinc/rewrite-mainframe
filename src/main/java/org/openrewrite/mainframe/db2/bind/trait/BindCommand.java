@@ -199,7 +199,7 @@ public class BindCommand implements Trait<Bind.Command> {
     /**
      * Where the words of a deck are, for {@link CardLines} to count the cards between them.
      */
-    private static BindIsoVisitor<CardLines> words() {
+    static BindIsoVisitor<CardLines> words() {
         return new BindIsoVisitor<CardLines>() {
             @Override
             public Space visitSpace(Space space, Space.Location location, CardLines lines) {

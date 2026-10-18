@@ -23,6 +23,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.db2.bind.trait.RunCommand;
 import org.openrewrite.mainframe.db2.bind.tree.Bind;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.tree.ParseError;
@@ -165,14 +166,14 @@ class BindParserTest implements RewriteTest {
     }
 
     /**
-     * The grammar reads any command deck, so a member named for the language but binding nothing is
-     * refused by name rather than read as an empty deck — and under its own type, so a parse-quality
-     * report can tell it from a grammar gap.
+     * The grammar reads any command deck, so a member named for the language but binding and running
+     * nothing is refused by name rather than read as an empty deck — and under its own type, so a
+     * parse-quality report can tell it from a grammar gap.
      */
     @Test
     void aMemberThatBindsNothingIsSaidSo() {
-        Parser.Input input = new Parser.Input(Paths.get("RUNTEP2.bnd"),
-          () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nRUN PROGRAM(DSNTEP2) PLAN(DSNTEP2)\nEND\n".getBytes(StandardCharsets.UTF_8)));
+        Parser.Input input = new Parser.Input(Paths.get("FREEPKG.bnd"),
+          () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nFREE PACKAGE(CLMPKG.CLMD010)\nEND\n".getBytes(StandardCharsets.UTF_8)));
         SourceFile parsed = BindParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
 
@@ -180,7 +181,73 @@ class BindParserTest implements RewriteTest {
         ParseExceptionResult failure = parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow();
         assertThat(failure.getParserType()).isEqualTo("BindParser");
         assertThat(failure.getExceptionType()).isEqualTo("WrongLanguageException");
-        assertThat(failure.getMessage()).contains("RUNTEP2.bnd is not a bind deck: it has no BIND or REBIND subcommand.");
+        assertThat(failure.getMessage()).contains("FREEPKG.bnd is not a bind deck: it has no BIND, REBIND or RUN subcommand.");
+    }
+
+    /**
+     * A TSO batch step's JCL names only {@code IKJEFT01}; the program it runs, the plan and the library
+     * are in the deck its {@code SYSTSIN} reads.
+     */
+    @Test
+    void readsTheProgramARunDeckRuns() {
+        rewriteRun(
+          bind(
+            """
+              DSN SYSTEM(DB2P)
+              RUN PROGRAM(CLMD010) PLAN(CLMPLAN) LIB('CLM.PROD.LOADLIB')
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(new RunCommand.Matcher().lower(cu))
+              .singleElement().satisfies(run -> {
+                  assertThat(run.getProgram()).isEqualTo("CLMD010");
+                  assertThat(run.getPlan()).isEqualTo("CLMPLAN");
+                  assertThat(run.getLibrary()).isEqualTo("CLM.PROD.LOADLIB");
+                  assertThat(run.getSubsystem()).isEqualTo("DB2P");
+                  assertThat(run.getParameters()).isNull();
+                  assertThat(run.getLine()).isEqualTo(2);
+              }))
+          )
+        );
+    }
+
+    @Test
+    void readsARunsAbbreviatedKeywords() {
+        rewriteRun(
+          bind(
+            """
+              DSN SYSTEM(DB2T)
+              RUN PROG(DSNTEP2) PLAN(DSNTEP61) LIBRARY('DSN610.RUNLIB.LOAD') PARMS('/ALIGN(MID)')
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(new RunCommand.Matcher().lower(cu))
+              .singleElement().satisfies(run -> {
+                  assertThat(run.getProgram()).isEqualTo("DSNTEP2");
+                  assertThat(run.getLibrary()).isEqualTo("DSN610.RUNLIB.LOAD");
+                  assertThat(run.getParameters()).isEqualTo("/ALIGN(MID)");
+                  assertThat(run.getSubsystem()).isEqualTo("DB2T");
+              }))
+          )
+        );
+    }
+
+    /**
+     * A deck kept with the other control cards is a .ctl member, told from a SORT or IDCAMS card by
+     * opening with {@code DSN}.
+     */
+    @Test
+    void acceptsAControlCardMemberThatOpensWithDsn(@TempDir Path tempDir) throws IOException {
+        Path run = write(tempDir, "RUNCLM01.ctl", "  DSN SYSTEM(DB2P)\n  RUN PROGRAM(CLMD010) PLAN(CLMPLAN)\n  END\n");
+        Path binds = write(tempDir, "BNDCLM01.ctl", "DSN SYSTEM(DB2P)\nBIND PACKAGE(CLMPKG) MEMBER(CLMD010)\nEND\n");
+        Path sort = write(tempDir, "SRTCLM01.ctl", "  SORT FIELDS=(1,8,CH,A)\n");
+        Path bare = write(tempDir, "RUNCLM09.ctl", "  RUN PROGRAM(CLMD010) PLAN(CLMPLAN)\n");
+        Path nothing = write(tempDir, "DSNCLM01.ctl", "  DSN SYSTEM(DB2P)\n  END\n");
+
+        BindParser parser = BindParser.builder().build();
+        assertThat(parser.accept(run)).isTrue();
+        assertThat(parser.accept(binds)).isTrue();
+        assertThat(parser.accept(sort)).isFalse();
+        assertThat(parser.accept(bare)).isFalse();
+        assertThat(parser.accept(nothing)).isFalse();
     }
 
     private static Path write(Path directory, String name, String content) throws IOException {
