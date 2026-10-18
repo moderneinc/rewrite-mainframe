@@ -168,6 +168,9 @@ dependencies {
     implementation("org.antlr:antlr4-runtime:4.13.2")
     implementation("io.micrometer:micrometer-core:1.9.+")
     implementation("io.github.classgraph:classgraph:4.+")
+    // Pinned, so the SQL a COBOL program embeds reads alike in every repository built on this one. A
+    // newer parser is a deliberate change that the recipes reading its answers have to pass.
+    implementation("com.github.jsqlparser:jsqlparser:5.4")
     runtimeOnly("org.openrewrite.tools:java-object-diff:latest.release")
     testImplementation("org.junit-pioneer:junit-pioneer:2.3.0")
 
