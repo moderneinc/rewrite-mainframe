@@ -32,7 +32,9 @@ import org.openrewrite.marker.Markers;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.db2.bind.tree.Space.EMPTY;
@@ -53,10 +55,18 @@ public class BindParserVisitor extends BindParserBaseVisitor<Bind> {
      */
     private final BufferedTokenStream tokens;
 
+    /**
+     * Where each comment the lexer hid begins in the source, and where it ends. White space is read
+     * from the source, so these are what lets it take in exactly the comments the lexer did and no
+     * more — a comment written hard against a word is lexed as part of the word.
+     */
+    private final Map<Integer, Integer> comments = new HashMap<>();
+
     private int cursor = 0;
 
     @Override
     public Bind.CompilationUnit visitCompilationUnit(BindParser.CompilationUnitContext ctx) {
+        findComments();
         List<Statement> statements = new ArrayList<>();
         List<BindParser.WordContext> pending = new ArrayList<>();
 
@@ -207,28 +217,46 @@ public class BindParserVisitor extends BindParserBaseVisitor<Bind> {
     private Space whitespace() {
         int start = cursor;
         while (cursor < source.length()) {
-            if (Character.isWhitespace(source.charAt(cursor))) {
+            Integer comment = comments.get(cursor);
+            if (comment != null) {
+                cursor = comment;
+            } else if (Character.isWhitespace(source.charAt(cursor))) {
                 cursor++;
-                continue;
-            }
-            int close = source.startsWith("/*", cursor) ? closingComment() : -1;
-            if (close < 0) {
+            } else {
                 break;
             }
-            cursor = close + 2;
         }
         return Space.build(source.substring(start, cursor));
     }
 
     /**
-     * Where the comment at the cursor closes, or -1 when it does not close on the line it opened on —
-     * in which case the lexer read it as words, and so does this.
+     * Records where the comments the lexer hid sit in the source. The lexer read the text the line
+     * reader marked, so a comment's place in the source is its place in that text less the markers
+     * written in front of it. A comment line is its marker and the line itself.
      */
-    private int closingComment() {
-        int close = source.indexOf("*/", cursor + 2);
-        int newline = source.indexOf('\n', cursor + 2);
-        return close >= 0 && (newline < 0 || close < newline) ? close : -1;
+    private void findComments() {
+        tokens.fill();
+        int markers = 0;
+        for (Token token : tokens.getTokens()) {
+            int type = token.getType();
+            if (type == BindLexer.CARD || type == BindLexer.CARD_CONTINUATION) {
+                markers += token.getText().length();
+            } else if (type == BindLexer.COMMENT_CARD) {
+                markers += COMMENT_LINE.length();
+                int start = token.getStartIndex() + COMMENT_LINE.length() - markers;
+                comments.put(start, start + token.getText().length() - COMMENT_LINE.length());
+            } else if (type == BindLexer.COMMENT) {
+                int start = token.getStartIndex() - markers;
+                comments.put(start, start + token.getText().length());
+            }
+        }
     }
+
+    /**
+     * The marker {@link org.openrewrite.mainframe.db2.bind.BindLineReader} writes in front of a line
+     * of nothing but comments.
+     */
+    private static final String COMMENT_LINE = "^^COMMENT^^";
 
     private Space sourceBefore(String untilDelim) {
         Space prefix = whitespace();

@@ -291,6 +291,31 @@ class BindParserTest implements RewriteTest {
     }
 
     /**
+     * What the lexer takes for a comment becomes white space, and nothing else does. A comment written
+     * hard against a word is lexed as part of that word, the longest token being the one taken, and
+     * two comments written end to end fill a line of their own. Either way the deck prints back.
+     */
+    @Test
+    void onlyWhatIsLexedAsACommentIsWhiteSpace() {
+        rewriteRun(
+          bind(
+            """
+              DSN SYSTEM(DB2P)
+              /*FIRST*//*SECOND*/
+              BIND /*X*/PACKAGE(CLMPKG) MEMBER(CLMD010) /*Y*/
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(cu.getStatements()).extracting(s -> ((Bind.Command) s).getVerb().getText())
+                  .containsExactly("DSN", "BIND", "END");
+                Bind.Command bind = (Bind.Command) cu.getStatements().get(1);
+                assertThat(bind.getParameter("MEMBER").getValueText()).isEqualTo("(CLMD010)");
+            })
+          )
+        );
+    }
+
+    /**
      * CardDemo's three DSN decks, as written: .ctl members that open with its licence, told from a
      * SORT card kept beside them by the {@code DSN} past it — DB2FREE included, which frees and does
      * nothing else. Each is read from its file and prints back as it was.
