@@ -27,7 +27,9 @@ import java.util.WeakHashMap;
 import static java.util.Collections.synchronizedMap;
 
 /**
- * Bind card white space.
+ * What separates one word of a DSN deck from the next: white space, and the {@code /* … *}{@code /}
+ * comments written among the subcommands, which carry no meaning of their own but have to print back
+ * where they were.
  */
 @EqualsAndHashCode
 @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@ref")

@@ -67,11 +67,11 @@ public class BindParser implements Parser {
                     try {
                         EncodingDetectingInputStream is = sourceFile.getSource(ctx);
                         String sourceStr = is.readFully();
-                        // The grammar reads any command deck, so a member named .bnd that binds
-                        // and runs nothing has to be refused before it.
+                        // The grammar reads any command deck, so a member named .bnd that binds,
+                        // runs and frees nothing has to be refused before it.
                         if (!sourceFile.isSynthetic() && !BindLineReader.isDsnDeck(sourceStr)) {
                             throw new WrongLanguageException(sourceFile.getPath(),
-                                    sourceFile.getPath() + " is not a bind deck: it has no BIND, REBIND or RUN subcommand.", null);
+                                    sourceFile.getPath() + " is not a bind deck: it has no BIND, REBIND, RUN or FREE subcommand.", null);
                         }
                         Bind.CompilationUnit cu = parse(path, sourceFile.getFileAttributes(), sourceStr,
                                 is.getCharset(), is.isCharsetBomMarked(),

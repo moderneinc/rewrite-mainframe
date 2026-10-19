@@ -200,14 +200,34 @@ public class BindParserVisitor extends BindParserBaseVisitor<Bind> {
         return false;
     }
 
+    /**
+     * Everything between one word and the next: white space, and the comments written among the
+     * subcommands, which the lexer hid and which print back from here.
+     */
     private Space whitespace() {
-        int endIndex = cursor;
-        while (endIndex < source.length() && Character.isWhitespace(source.charAt(endIndex))) {
-            endIndex++;
+        int start = cursor;
+        while (cursor < source.length()) {
+            if (Character.isWhitespace(source.charAt(cursor))) {
+                cursor++;
+                continue;
+            }
+            int close = source.startsWith("/*", cursor) ? closingComment() : -1;
+            if (close < 0) {
+                break;
+            }
+            cursor = close + 2;
         }
-        String prefix = source.substring(cursor, endIndex);
-        cursor += prefix.length();
-        return Space.build(prefix);
+        return Space.build(source.substring(start, cursor));
+    }
+
+    /**
+     * Where the comment at the cursor closes, or -1 when it does not close on the line it opened on —
+     * in which case the lexer read it as words, and so does this.
+     */
+    private int closingComment() {
+        int close = source.indexOf("*/", cursor + 2);
+        int newline = source.indexOf('\n', cursor + 2);
+        return close >= 0 && (newline < 0 || close < newline) ? close : -1;
     }
 
     private Space sourceBefore(String untilDelim) {

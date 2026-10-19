@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/openrewrite/rewrite-cobol/.claude/worktrees/oraweb/src/main/antlr-bind/BindParser.g4 by ANTLR 4.13.2
+// Generated from /Users/jon/Projects/github/moderneinc/moderne-cli/.claude/worktrees/mainframe-trigrep/working-oraweb-plan/rewrite-mainframe-dsn/src/main/antlr-bind/BindParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.db2.bind.internal.grammar;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
@@ -32,8 +32,8 @@ public class BindParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, CARD=4, CARD_CONTINUATION=5, STRINGLITERAL=6, 
-		TEXT=7;
+		UTF_8_BOM=1, WS=2, EOL=3, CARD=4, CARD_CONTINUATION=5, COMMENT_CARD=6, 
+		COMMENT=7, STRINGLITERAL=8, TEXT=9;
 	public static final int
 		RULE_compilationUnit = 0, RULE_word = 1;
 	private static String[] makeRuleNames() {
@@ -51,8 +51,8 @@ public class BindParser extends Parser {
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "CARD", "CARD_CONTINUATION", "STRINGLITERAL", 
-			"TEXT"
+			null, "UTF_8_BOM", "WS", "EOL", "CARD", "CARD_CONTINUATION", "COMMENT_CARD", 
+			"COMMENT", "STRINGLITERAL", "TEXT"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -224,16 +224,16 @@ public class BindParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\u0004\u0001\u0007\u000f\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001"+
-		"\u0001\u0000\u0005\u0000\u0006\b\u0000\n\u0000\f\u0000\t\t\u0000\u0001"+
-		"\u0000\u0001\u0000\u0001\u0001\u0001\u0001\u0001\u0001\u0000\u0000\u0002"+
-		"\u0000\u0002\u0000\u0001\u0001\u0000\u0006\u0007\r\u0000\u0007\u0001\u0000"+
-		"\u0000\u0000\u0002\f\u0001\u0000\u0000\u0000\u0004\u0006\u0003\u0002\u0001"+
-		"\u0000\u0005\u0004\u0001\u0000\u0000\u0000\u0006\t\u0001\u0000\u0000\u0000"+
-		"\u0007\u0005\u0001\u0000\u0000\u0000\u0007\b\u0001\u0000\u0000\u0000\b"+
-		"\n\u0001\u0000\u0000\u0000\t\u0007\u0001\u0000\u0000\u0000\n\u000b\u0005"+
-		"\u0000\u0000\u0001\u000b\u0001\u0001\u0000\u0000\u0000\f\r\u0007\u0000"+
-		"\u0000\u0000\r\u0003\u0001\u0000\u0000\u0000\u0001\u0007";
+		"\u0004\u0001\t\u000f\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0001"+
+		"\u0000\u0005\u0000\u0006\b\u0000\n\u0000\f\u0000\t\t\u0000\u0001\u0000"+
+		"\u0001\u0000\u0001\u0001\u0001\u0001\u0001\u0001\u0000\u0000\u0002\u0000"+
+		"\u0002\u0000\u0001\u0001\u0000\b\t\r\u0000\u0007\u0001\u0000\u0000\u0000"+
+		"\u0002\f\u0001\u0000\u0000\u0000\u0004\u0006\u0003\u0002\u0001\u0000\u0005"+
+		"\u0004\u0001\u0000\u0000\u0000\u0006\t\u0001\u0000\u0000\u0000\u0007\u0005"+
+		"\u0001\u0000\u0000\u0000\u0007\b\u0001\u0000\u0000\u0000\b\n\u0001\u0000"+
+		"\u0000\u0000\t\u0007\u0001\u0000\u0000\u0000\n\u000b\u0005\u0000\u0000"+
+		"\u0001\u000b\u0001\u0001\u0000\u0000\u0000\f\r\u0007\u0000\u0000\u0000"+
+		"\r\u0003\u0001\u0000\u0000\u0000\u0001\u0007";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {

@@ -35,6 +35,11 @@ import java.util.Set;
  * <p>
  * A deck is a TSO command stream, so all 80 columns are data: there is no sequence area to take off
  * the end, and the dash a line continues with is simply its last non-blank character.
+ * <p>
+ * TSO reads a {@code /*}…{@code *}{@code /} comment wherever a blank may stand. A line holding nothing
+ * but comments is neither a subcommand nor part of one: it does not open a subcommand, a subcommand
+ * continued over it goes on being continued, and a deck that opens with a block of them — CardDemo's
+ * licence — is typed by the first line after it.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BindLineReader {
@@ -56,17 +61,18 @@ public class BindLineReader {
     }
 
     /**
-     * Whether text is a DSN command deck that binds or runs something: a bind deck, or a deck that
+     * Whether text is a DSN command deck that binds, runs or frees something: a bind deck, a deck that
      * runs a program under a plan, {@code RUN PROGRAM(CLMD010) PLAN(CLMPLAN)}, as a TSO batch step
-     * reads one from its {@code SYSTSIN}. Both are read by the same grammar.
+     * reads one from its {@code SYSTSIN}, or a deck that frees the plans and packages it names,
+     * {@code FREE PLAN(CARDDEMO)}. All of them are read by the same grammar.
      */
     public static boolean isDsnDeck(String source) {
         return opensAndDoes(source, DECK_VERBS);
     }
 
     /**
-     * Whether the first subcommand of text is {@code DSN}, as a deck kept among other control cards,
-     * where only that tells it apart, opens.
+     * Whether the first subcommand of text, past any lines of comments, is {@code DSN}, as a deck kept
+     * among other control cards, where only that tells it apart, opens.
      */
     public static boolean opensWithDsn(String source) {
         for (String line : source.split("\n")) {
@@ -80,7 +86,7 @@ public class BindLineReader {
 
     private static final Set<String> BINDING_VERBS = new HashSet<>(Arrays.asList("BIND", "REBIND"));
 
-    private static final Set<String> DECK_VERBS = new HashSet<>(Arrays.asList("BIND", "REBIND", "RUN"));
+    private static final Set<String> DECK_VERBS = new HashSet<>(Arrays.asList("BIND", "REBIND", "RUN", "FREE"));
 
     private static boolean opensAndDoes(String source, Set<String> doing) {
         boolean opens = false;
@@ -102,8 +108,12 @@ public class BindLineReader {
         return false;
     }
 
+    /**
+     * The first word of a line, past the comments in front of it, or empty for a line of nothing but
+     * blanks and comments.
+     */
     private static String verbOf(String line) {
-        return line.trim().split("[\\s(]+", 2)[0].toUpperCase(Locale.ROOT);
+        return withoutComments(line).trim().split("[\\s(]+", 2)[0].toUpperCase(Locale.ROOT);
     }
 
     public static String readLines(String source) {
@@ -114,9 +124,14 @@ public class BindLineReader {
         Scanner scanner = new Scanner(source);
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
-            if (line.trim().isEmpty()) {
-                // A blank line carries no operands, so it cannot be the continuation of anything.
-                continued = false;
+            if (withoutComments(line).trim().isEmpty()) {
+                if (line.trim().isEmpty()) {
+                    // A blank line carries no operands, so it cannot be the continuation of anything.
+                    continued = false;
+                } else {
+                    // A comment says nothing about the subcommand it interrupts.
+                    p.append("^^COMMENT^^");
+                }
             } else {
                 p.append(continued ? "^^CARD_CONT^^" : "^^CARD^^");
                 continued = continuesOnNextLine(line);
@@ -127,11 +142,33 @@ public class BindLineReader {
         return p.toString();
     }
 
+    /**
+     * A line with its comments blanked out, which is how the reader decides whether the line says
+     * anything at all. Only a comment closed on the line it opens on counts, which is the rule the
+     * lexer follows too, and the one an IDCAMS card is read by.
+     */
+    static String withoutComments(String line) {
+        StringBuilder text = new StringBuilder(line);
+        int open = text.indexOf("/*");
+        while (open >= 0) {
+            int close = text.indexOf("*/", open + 2);
+            if (close < 0) {
+                break;
+            }
+            for (int i = open; i < close + 2; i++) {
+                text.setCharAt(i, ' ');
+            }
+            open = text.indexOf("/*", close + 2);
+        }
+        return text.toString();
+    }
+
     private static boolean continuesOnNextLine(String line) {
-        int last = line.length() - 1;
-        while (last >= 0 && Character.isWhitespace(line.charAt(last))) {
+        String text = withoutComments(line);
+        int last = text.length() - 1;
+        while (last >= 0 && Character.isWhitespace(text.charAt(last))) {
             last--;
         }
-        return last >= 0 && line.charAt(last) == '-';
+        return last >= 0 && text.charAt(last) == '-';
     }
 }
