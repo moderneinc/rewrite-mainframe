@@ -78,8 +78,20 @@ class BindLineReaderTest {
         assertThat(BindLineReader.isDsnDeck(run)).isTrue();
         assertThat(BindLineReader.isBindDeck(run)).isFalse();
         assertThat(BindLineReader.isDsnDeck("DSN SYSTEM(DB2P)\nBIND PACKAGE(A) MEMBER(P)\nEND\n")).isTrue();
-        assertThat(BindLineReader.isDsnDeck("DSN SYSTEM(DB2P)\nFREE PACKAGE(A.P)\nEND\n")).isFalse();
+        assertThat(BindLineReader.isDsnDeck("DSN SYSTEM(DB2P)\nEND\n")).isFalse();
         assertThat(BindLineReader.isDsnDeck("  SORT FIELDS=(1,8,CH,A)\n")).isFalse();
+    }
+
+    /**
+     * {@code FREE PLAN} and {@code FREE PACKAGE} are DSN subcommands as {@code BIND} is, so a deck
+     * that does nothing but free them, as CardDemo's DB2FREE does, is a DSN deck. It binds nothing,
+     * so it is no bind deck.
+     */
+    @Test
+    void aDeckThatFreesIsADsnDeck() {
+        String free = " DSN SYSTEM(DAZ1)\n  FREE PLAN(CARDDEMO)\n  FREE PACKAGE(COTRTLIC.*)\n END";
+        assertThat(BindLineReader.isDsnDeck(free)).isTrue();
+        assertThat(BindLineReader.isBindDeck(free)).isFalse();
     }
 
     @Test
@@ -87,5 +99,44 @@ class BindLineReaderTest {
         assertThat(BindLineReader.opensWithDsn("\n  DSN SYSTEM(DB2P)\nRUN PROGRAM(X)\n")).isTrue();
         assertThat(BindLineReader.opensWithDsn("BIND PACKAGE(A) MEMBER(P)\n")).isFalse();
         assertThat(BindLineReader.opensWithDsn("")).isFalse();
+    }
+
+    /**
+     * CardDemo opens each of its DSN decks with its licence, a block of comment lines, so the first
+     * subcommand is the first line past them.
+     */
+    @Test
+    void aDeckIsTypedPastTheCommentsItOpensWith() {
+        String run =
+          "/* Copyright Amazon.com, Inc. or its affiliates.                   */\n" +
+          "/* All Rights Reserved.                                            */\n" +
+          "  DSN SYSTEM(DAZ1)\n" +
+          "  RUN PROGRAM(DSNTIAD) -\n" +
+          "  PARMS('RC0')\n";
+        assertThat(BindLineReader.opensWithDsn(run)).isTrue();
+        assertThat(BindLineReader.isDsnDeck(run)).isTrue();
+        assertThat(BindLineReader.isBindDeck(run)).isFalse();
+
+        assertThat(BindLineReader.opensWithDsn("/* RUNCLM01 */\n\n /* AGAIN */ DSN SYSTEM(DB2P)\n")).isTrue();
+        assertThat(BindLineReader.isBindDeck("/* BIND THE CLAIM PACKAGES */\nBIND PACKAGE(A) MEMBER(P)\n")).isTrue();
+        assertThat(BindLineReader.opensWithDsn("/* SORT THE CLAIMS */\n  SORT FIELDS=(1,8,CH,A)\n")).isFalse();
+        assertThat(BindLineReader.opensWithDsn("/* NOTHING BUT A COMMENT */\n")).isFalse();
+    }
+
+    /**
+     * A line of nothing but comments is marked as one: it does not open a subcommand, and a
+     * subcommand continued over it goes on being continued.
+     */
+    @Test
+    void aCommentLineIsNeitherASubcommandNorABreakInOne() {
+        assertThat(BindLineReader.readLines(
+          "/* LICENCE */\n" +
+          "RUN PROGRAM(DSNTEP4) - /* CONTINUED */\n" +
+          "  /* THE PARMS DSNTEP4 TAKES */\n" +
+          "PARMS('/ALIGN(LHS) MIXED')\n")).isEqualTo(
+          "^^COMMENT^^/* LICENCE */\n" +
+          "^^CARD^^RUN PROGRAM(DSNTEP4) - /* CONTINUED */\n" +
+          "^^COMMENT^^  /* THE PARMS DSNTEP4 TAKES */\n" +
+          "^^CARD_CONT^^PARMS('/ALIGN(LHS) MIXED')\n");
     }
 }
