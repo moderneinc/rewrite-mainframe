@@ -128,10 +128,60 @@ class TableTest implements RewriteTest {
 
                 ForeignKey foreignKey = foreignKeys.get(0);
                 assertThat(foreignKey.getTable()).isEqualTo("CARDDEMO.TRANSACTION_TYPE_CATEGORY");
+                assertThat(foreignKey.getName()).isNull();
                 assertThat(foreignKey.getColumns()).containsExactly("TRC_TYPE_CODE");
                 assertThat(foreignKey.getReferencedTable()).isEqualTo("CARDDEMO.TRANSACTION_TYPE");
                 assertThat(foreignKey.getReferencedColumns()).containsExactly("TR_TYPE");
                 assertThat(foreignKey.getDeleteRule()).isEqualTo("RESTRICT");
+            })
+          )
+        );
+    }
+
+    /**
+     * The form DB2 documents adds a key with {@code ADD} and names it after {@code CONSTRAINT}. It is
+     * the same edge CardDemo's {@code ALTER} draws, and its name is the one DB2 catalogs it under —
+     * as is the name CardDemo's {@code CREATE TABLE} writes between {@code FOREIGN KEY} and the
+     * columns.
+     */
+    @Test
+    void aForeignKeyAddedUnderAName() {
+        rewriteRun(
+          db2(
+            """
+              CREATE TABLE CARDDEMO.TRANSACTION_TYPE_CATEGORY
+              (   TRC_TYPE_CODE  CHAR(2) NOT NULL,
+                  PRIMARY KEY(TRC_TYPE_CODE),
+                  FOREIGN KEY TRC_TYPE_CODE (TRC_TYPE_CODE)
+                  REFERENCES CARDDEMO.TRANSACTION_TYPE (TR_TYPE));
+
+              ALTER TABLE CLM.CLAIM_HIST
+                ADD CONSTRAINT FK_HIST_POLICY FOREIGN KEY (POLICY_NO)
+                    REFERENCES CLM.POLICY (POLICY_NO)
+                ON DELETE CASCADE;
+
+              ALTER TABLE CLM.CLAIM_HIST ADD FOREIGN KEY (CLAIM_NO) REFERENCES CLM.CLAIM;
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<ForeignKey> foreignKeys = new ForeignKey.Matcher().lower(cu).collect(toList());
+                assertThat(foreignKeys).hasSize(3);
+                assertThat(foreignKeys.get(0).getName()).isEqualTo("TRC_TYPE_CODE");
+
+                ForeignKey named = foreignKeys.get(1);
+                assertThat(named.getTable()).isEqualTo("CLM.CLAIM_HIST");
+                assertThat(named.getName()).isEqualTo("FK_HIST_POLICY");
+                assertThat(named.getColumns()).containsExactly("POLICY_NO");
+                assertThat(named.getReferencedTable()).isEqualTo("CLM.POLICY");
+                assertThat(named.getReferencedColumns()).containsExactly("POLICY_NO");
+                assertThat(named.getDeleteRule()).isEqualTo("CASCADE");
+
+                // Given no name, and left to the primary key of the table it references.
+                ForeignKey unnamed = foreignKeys.get(2);
+                assertThat(unnamed.getTable()).isEqualTo("CLM.CLAIM_HIST");
+                assertThat(unnamed.getName()).isNull();
+                assertThat(unnamed.getColumns()).containsExactly("CLAIM_NO");
+                assertThat(unnamed.getReferencedTable()).isEqualTo("CLM.CLAIM");
+                assertThat(unnamed.getReferencedColumns()).isEmpty();
             })
           )
         );

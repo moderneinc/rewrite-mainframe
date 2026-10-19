@@ -355,6 +355,11 @@ public interface Db2 extends Tree {
         }
     }
 
+    /**
+     * Another name for a table or sequence. The keywords run on past the name: the {@code FOR}, and
+     * the {@code TABLE} or {@code SEQUENCE} that may follow it, are written between the alias and
+     * its target.
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
@@ -378,6 +383,10 @@ public interface Db2 extends Tree {
         }
     }
 
+    /**
+     * A synonym, whose {@code FOR} is the last of its keywords and is written between the synonym and
+     * its target.
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
@@ -719,6 +728,11 @@ public interface Db2 extends Tree {
 
     /**
      * CardDemo declares its foreign key here rather than in the CREATE TABLE.
+     * <p>
+     * A constraint written straight after the table, as CardDemo writes its key, is an action of its
+     * own. One written after {@code ADD}, and a column added with or without {@code COLUMN}, is an
+     * {@link Option} whose keywords are those words and whose value is the {@link Constraint} or
+     * {@link ColumnDefinition} the {@code CREATE TABLE} would have held.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -1061,6 +1075,10 @@ public interface Db2 extends Tree {
         }
     }
 
+    /**
+     * A table or index given a new name, whose {@code TO} is the last of its keywords and is written
+     * between the two names.
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
@@ -1084,6 +1102,11 @@ public interface Db2 extends Tree {
         }
     }
 
+    /**
+     * A description of an object, which the {@code IS} that ends the keywords sets apart from the
+     * object's name. The target of {@code COMMENT ON COLUMN} is the column qualified by its table,
+     * {@code CLM.POLICY.POLICY_NO}, so its simple name is the column's.
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
@@ -1107,6 +1130,10 @@ public interface Db2 extends Tree {
         }
     }
 
+    /**
+     * A label, read the way a {@link Comment} is: the {@code IS} ends the keywords, and the target of
+     * {@code LABEL ON COLUMN} is the column qualified by its table.
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
@@ -1328,7 +1355,8 @@ public interface Db2 extends Tree {
     }
 
     /**
-     * Seed data, which a DDL script carries as often as not.
+     * Seed data, which a DDL script carries as often as not. The {@code VALUES} written between the
+     * columns and the rows is the last of the keywords.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
