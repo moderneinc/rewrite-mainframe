@@ -358,6 +358,30 @@ class Db2ParserTest {
     }
 
     /**
+     * What a {@code GRANT} lets its grantees pass on, and whose grants a {@code REVOKE} takes back,
+     * are written after the grantees, and print there.
+     */
+    @Test
+    void aGrantOrARevokeEndsWithItsOption() {
+        Db2.Ddl ddl = parse(
+          """
+            GRANT SELECT, UPDATE ON TABLE CLM.POLICY TO CLMUSER, CLMADMIN WITH GRANT OPTION;
+            GRANT DBADM TO CLMADMIN WITH ADMIN OPTION;
+            REVOKE SELECT ON CLM.POLICY FROM CLMUSER BY ALL RESTRICT;
+            revoke dbadm from clmadmin by all;
+            """);
+
+        Db2.Grant grant = (Db2.Grant) ddl.getStatements().get(0);
+        assertThat(grant.getObjects().getElements()).extracting(Db2.Name::getFullName).containsExactly("CLM.POLICY");
+        assertThat(grant.getGrantees().getElements()).hasSize(2);
+        assertThat(grant.getKeywords()).extracting(Db2.Keyword::getType).containsExactly(
+          Db2.Keyword.Type.Grant, Db2.Keyword.Type.With, Db2.Keyword.Type.Grant, Db2.Keyword.Type.Option);
+        Db2.Revoke revoke = (Db2.Revoke) ddl.getStatements().get(2);
+        assertThat(revoke.getObjects().getElements()).extracting(Db2.Name::getFullName).containsExactly("CLM.POLICY");
+        assertThat(revoke.getGrantees().getElements()).hasSize(1);
+    }
+
+    /**
      * The {@code AS} of a view, a sequence or a type and the {@code IS} of a comment or a label are
      * keywords, so they print in the case the file wrote them in, as every other keyword does.
      */

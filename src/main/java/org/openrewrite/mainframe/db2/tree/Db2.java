@@ -1158,7 +1158,8 @@ public interface Db2 extends Tree {
     }
 
     /**
-     * Who may do what to which object.
+     * Who may do what to which object. The keywords run on past the grantees: a {@code WITH GRANT
+     * OPTION} or {@code WITH ADMIN OPTION} is written after them.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -1192,6 +1193,10 @@ public interface Db2 extends Tree {
         }
     }
 
+    /**
+     * A grant taken back, read the way a {@link Grant} is. A {@code BY ALL}, and the {@code RESTRICT}
+     * or {@code CASCADE} after it, is written after the grantees.
+     */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With

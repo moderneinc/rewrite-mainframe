@@ -477,12 +477,16 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitGrant(Db2.Grant grant, PrintOutputCapture<P> p) {
         beforeSyntax(grant, Space.Location.GRANT_PREFIX, p);
-        visit(grant.getKeywords(), p);
+        // WITH GRANT OPTION and WITH ADMIN OPTION follow the grantees.
+        List<Db2.Keyword> keywords = grant.getKeywords();
+        int with = indexOf(keywords, Db2.Keyword.Type.With);
+        visit(keywords.subList(0, with), p);
         printContainer("", grant.getPrivileges(), ",", "", p);
         visit(grant.getOn(), p);
         printContainer("", grant.getObjects(), ",", "", p);
         visit(grant.getTo(), p);
         printContainer("", grant.getGrantees(), ",", "", p);
+        visit(keywords.subList(with, keywords.size()), p);
         visit(grant.getOptions(), p);
         afterSyntax(grant, p);
         return grant;
@@ -491,12 +495,16 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitRevoke(Db2.Revoke revoke, PrintOutputCapture<P> p) {
         beforeSyntax(revoke, Space.Location.REVOKE_PREFIX, p);
-        visit(revoke.getKeywords(), p);
+        // BY ALL, and the RESTRICT or CASCADE after it, follow the grantees.
+        List<Db2.Keyword> keywords = revoke.getKeywords();
+        int by = indexOf(keywords, Db2.Keyword.Type.By, Db2.Keyword.Type.Restrict, Db2.Keyword.Type.Cascade);
+        visit(keywords.subList(0, by), p);
         printContainer("", revoke.getPrivileges(), ",", "", p);
         visit(revoke.getOn(), p);
         printContainer("", revoke.getObjects(), ",", "", p);
         visit(revoke.getTo(), p);
         printContainer("", revoke.getGrantees(), ",", "", p);
+        visit(keywords.subList(by, keywords.size()), p);
         visit(revoke.getOptions(), p);
         afterSyntax(revoke, p);
         return revoke;
