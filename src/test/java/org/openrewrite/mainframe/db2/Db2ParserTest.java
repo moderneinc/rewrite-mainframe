@@ -46,6 +46,7 @@ import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 
 /**
@@ -207,6 +208,258 @@ class Db2ParserTest {
         assertThat(constraints.get(0).getReferencedTable()).isNotNull();
         assertThat(constraints.get(0).getReferencedTable().getFullName())
           .isEqualTo("CARDDEMO.TRANSACTION_TYPE");
+    }
+
+    /**
+     * The form DB2 documents writes {@code ADD}, and a name after {@code CONSTRAINT}. What is added
+     * is the same constraint a {@code CREATE TABLE} would have held, so a key added this way is read
+     * as a key rather than as words.
+     */
+    @Test
+    void anAlterTableAddsAConstraintOfEachKind() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TABLE CLM.CLAIM_HIST
+              ADD CONSTRAINT FK_HIST_POLICY FOREIGN KEY (POLICY_NO)
+                  REFERENCES CLM.POLICY (POLICY_NO) ON DELETE RESTRICT;
+            ALTER TABLE CLM.CLAIM_HIST ADD FOREIGN KEY (CLAIM_NO) REFERENCES CLM.CLAIM;
+            ALTER TABLE CLM.CLAIM ADD CONSTRAINT PK_CLAIM PRIMARY KEY (CLAIM_NO);
+            ALTER TABLE CLM.CLAIM ADD UNIQUE (CLAIM_REF);
+            ALTER TABLE CLM.CLAIM ADD CONSTRAINT CK_AMOUNT CHECK (CLAIM_AMT >= 0);
+            """);
+
+        List<Db2.Constraint> added = new ArrayList<>();
+        for (Db2.AlterTable alter : Db2.elementsOf(ddl.getStatements(), Db2.AlterTable.class)) {
+            assertThat(alter.getActions()).singleElement().isInstanceOfSatisfying(Db2.Option.class, add -> {
+                assertThat(add.getKeywords()).extracting(Db2.Keyword::getType).containsExactly(Db2.Keyword.Type.Add);
+                added.addAll(Db2.elementsOf(add.getValues(), Db2.Constraint.class));
+            });
+        }
+        assertThat(added).hasSize(5);
+        assertThat(added).extracting(c -> c.getConstraintName() == null ? null : c.getConstraintName().getSimpleName())
+          .containsExactly("FK_HIST_POLICY", null, "PK_CLAIM", null, "CK_AMOUNT");
+
+        Db2.Constraint foreignKey = added.get(0);
+        assertThat(Db2.has(foreignKey.getKeywords(), Db2.Keyword.Type.Foreign)).isTrue();
+        assertThat(names(foreignKey.getColumns())).containsExactly("POLICY_NO");
+        assertThat(foreignKey.getReferencedTable()).isNotNull();
+        assertThat(foreignKey.getReferencedTable().getFullName()).isEqualTo("CLM.POLICY");
+        assertThat(names(foreignKey.getReferencedColumns())).containsExactly("POLICY_NO");
+
+        assertThat(added.get(1).getReferencedTable()).isNotNull();
+        assertThat(added.get(1).getReferencedTable().getFullName()).isEqualTo("CLM.CLAIM");
+        assertThat(Db2.has(added.get(2).getKeywords(), Db2.Keyword.Type.Primary)).isTrue();
+        assertThat(names(added.get(2).getColumns())).containsExactly("CLAIM_NO");
+        assertThat(Db2.has(added.get(3).getKeywords(), Db2.Keyword.Type.Unique)).isTrue();
+        assertThat(names(added.get(3).getColumns())).containsExactly("CLAIM_REF");
+        assertThat(Db2.has(added.get(4).getKeywords(), Db2.Keyword.Type.Check)).isTrue();
+    }
+
+    /**
+     * A column added afterwards is a column definition like any other, whether or not the
+     * {@code COLUMN} that may introduce it is written. The words in front of it are keywords of the
+     * {@code ADD}, not white space in front of the column.
+     */
+    @Test
+    void anAlterTableAddsAColumn() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TABLE CLM.CLAIM ADD COLUMN CLAIM_NOTE VARCHAR(40);
+            ALTER TABLE CLM.CLAIM ADD CLAIM_CLOSED DATE;
+            """);
+
+        List<Db2.Option> adds = new ArrayList<>();
+        for (Db2.AlterTable alter : Db2.elementsOf(ddl.getStatements(), Db2.AlterTable.class)) {
+            adds.addAll(Db2.elementsOf(alter.getActions(), Db2.Option.class));
+        }
+        assertThat(adds).extracting(add -> add.getKeywords().stream().map(Db2.Keyword::getType).collect(Collectors.toList()))
+          .containsExactly(Arrays.asList(Db2.Keyword.Type.Add, Db2.Keyword.Type.Column), singletonList(Db2.Keyword.Type.Add));
+        List<Db2.ColumnDefinition> columns = new ArrayList<>();
+        adds.forEach(add -> columns.addAll(Db2.elementsOf(add.getValues(), Db2.ColumnDefinition.class)));
+        assertThat(columns).extracting(c -> c.getName().getSimpleName()).containsExactly("CLAIM_NOTE", "CLAIM_CLOSED");
+        assertThat(columns).extracting(c -> c.getPrefix().getWhitespace()).containsOnly(" ");
+    }
+
+    /**
+     * {@code VALUES} is written between the columns and the rows, so it prints after the table it
+     * fills rather than in front of it.
+     */
+    @Test
+    void anInsertNamesItsTableBeforeItsValues() {
+        Db2.Ddl ddl = parse(
+          """
+            INSERT INTO CARDDEMO.TRANSACTION_TYPE VALUES ('01','PURCHASE');
+            INSERT INTO CARDDEMO.TRANSACTION_TYPE
+                   (TR_TYPE,TR_DESCRIPTION)
+            VALUES ('02','PAYMENT'), ('03','CREDIT');
+            insert into carddemo.transaction_type values ('04','AUTHORIZATION');
+            """);
+
+        List<Db2.Insert> inserts = Db2.elementsOf(ddl.getStatements(), Db2.Insert.class);
+        assertThat(inserts).extracting(insert -> insert.getTable().getFullName())
+          .containsExactly("CARDDEMO.TRANSACTION_TYPE", "CARDDEMO.TRANSACTION_TYPE", "CARDDEMO.TRANSACTION_TYPE");
+        Db2.Insert rows = inserts.get(1);
+        assertThat(names(rows.getColumns())).containsExactly("TR_TYPE", "TR_DESCRIPTION");
+        assertThat(rows.getValues().getElements()).hasSize(2);
+        assertThat(rows.getKeywords()).extracting(Db2.Keyword::getType)
+          .containsExactly(Db2.Keyword.Type.Insert, Db2.Keyword.Type.Into, Db2.Keyword.Type.Values);
+    }
+
+    /**
+     * {@code FOR}, and the {@code TABLE} or {@code SEQUENCE} that may follow it, sit between an alias
+     * and what it names, and print there.
+     */
+    @Test
+    void anAliasNamesWhatItStandsForAfterFor() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE ALIAS CLM.POL FOR CLM.POLICY;
+            CREATE ALIAS CLM.HIST FOR TABLE CLM.CLAIM_HIST;
+            CREATE PUBLIC ALIAS CLMSEQ FOR SEQUENCE CLM.CLAIM_SEQ;
+            CREATE SYNONYM POLICY FOR CLM.POLICY;
+            create alias clm.pol2 for clm.policy;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateAlias.class))
+          .extracting(alias -> alias.getName().getFullName(), alias -> alias.getTarget().getElement().getFullName())
+          .containsExactly(tuple("CLM.POL", "CLM.POLICY"), tuple("CLM.HIST", "CLM.CLAIM_HIST"),
+            tuple("CLMSEQ", "CLM.CLAIM_SEQ"), tuple("CLM.POL2", "CLM.POLICY"));
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateSynonym.class))
+          .extracting(synonym -> synonym.getName().getFullName(), synonym -> synonym.getTarget().getElement().getFullName())
+          .containsExactly(tuple("POLICY", "CLM.POLICY"));
+    }
+
+    /**
+     * Each of these writes keywords after the name it acts on — the {@code TO} of a rename, the mode
+     * a table is locked in, the rule a drop is made under, what an {@code ALTER VIEW} does — and each
+     * prints them there.
+     */
+    @Test
+    void aKeywordWrittenAfterTheNamePrintsAfterIt() {
+        Db2.Ddl ddl = parse(
+          """
+            RENAME TABLE CLM.POLICY TO POLICY_OLD;
+            RENAME INDEX CLM.XPOLICY TO XPOLICY_OLD;
+            LOCK TABLE CLM.POLICY IN EXCLUSIVE MODE;
+            DROP PROCEDURE CLM.PURGE_CLAIMS RESTRICT;
+            DROP FUNCTION CLM.CLAIM_AGE (DATE) RESTRICT;
+            ALTER VIEW CLM.OPEN_CLAIMS REGENERATE;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.Rename.class))
+          .extracting(rename -> rename.getName().getFullName(), rename -> rename.getNewName().getElement().getFullName())
+          .containsExactly(tuple("CLM.POLICY", "POLICY_OLD"), tuple("CLM.XPOLICY", "XPOLICY_OLD"));
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.LockTable.class))
+          .extracting(lock -> lock.getName().getFullName()).containsExactly("CLM.POLICY");
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.Drop.class))
+          .extracting(drop -> drop.getName().getFullName()).containsExactly("CLM.PURGE_CLAIMS", "CLM.CLAIM_AGE");
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterView.class))
+          .extracting(alter -> alter.getName().getFullName()).containsExactly("CLM.OPEN_CLAIMS");
+    }
+
+    /**
+     * What a {@code GRANT} lets its grantees pass on, and whose grants a {@code REVOKE} takes back,
+     * are written after the grantees, and print there.
+     */
+    @Test
+    void aGrantOrARevokeEndsWithItsOption() {
+        Db2.Ddl ddl = parse(
+          """
+            GRANT SELECT, UPDATE ON TABLE CLM.POLICY TO CLMUSER, CLMADMIN WITH GRANT OPTION;
+            GRANT DBADM TO CLMADMIN WITH ADMIN OPTION;
+            REVOKE SELECT ON CLM.POLICY FROM CLMUSER BY ALL RESTRICT;
+            revoke dbadm from clmadmin by all;
+            """);
+
+        Db2.Grant grant = (Db2.Grant) ddl.getStatements().get(0);
+        assertThat(grant.getObjects().getElements()).extracting(Db2.Name::getFullName).containsExactly("CLM.POLICY");
+        assertThat(grant.getGrantees().getElements()).hasSize(2);
+        assertThat(grant.getKeywords()).extracting(Db2.Keyword::getType).containsExactly(
+          Db2.Keyword.Type.Grant, Db2.Keyword.Type.With, Db2.Keyword.Type.Grant, Db2.Keyword.Type.Option);
+        Db2.Revoke revoke = (Db2.Revoke) ddl.getStatements().get(2);
+        assertThat(revoke.getObjects().getElements()).extracting(Db2.Name::getFullName).containsExactly("CLM.POLICY");
+        assertThat(revoke.getGrantees().getElements()).hasSize(1);
+    }
+
+    /**
+     * The {@code AS} of a view, a sequence or a type and the {@code IS} of a comment or a label are
+     * keywords, so they print in the case the file wrote them in, as every other keyword does.
+     */
+    @Test
+    void aWordBetweenTwoPartsKeepsItsCase() {
+        Db2.Ddl ddl = parse(
+          """
+            create view clm.open_claims as select claim_no from clm.claim;
+            create sequence clm.claim_seq as integer;
+            create distinct type clm.money as decimal(11,2) with comparisons;
+            comment on table clm.claim is 'one row per claim';
+            label on table clm.claim is 'Claims';
+            """);
+
+        Db2.CreateView view = (Db2.CreateView) ddl.getStatements().get(0);
+        assertThat(view.getKeywords()).extracting(Db2.Keyword::getText).containsExactly("create", "view", "as");
+        assertThat(Db2.elementsOf(view.getQuery().getElement().getParts(), Db2.Name.class))
+          .extracting(Db2.Name::getFullName).contains("CLM.CLAIM");
+        Db2.Comment comment = (Db2.Comment) ddl.getStatements().get(3);
+        assertThat(comment.getTarget().getFullName()).isEqualTo("CLM.CLAIM");
+        assertThat(comment.getText().getElement().getText()).isEqualTo("'one row per claim'");
+    }
+
+    /**
+     * {@code COMMENT ON COLUMN} names the column through its table. The target is that one
+     * qualified name, so the column is its simple name and the table is what qualifies it — and a
+     * comment on a column no longer turns the whole file into a parse error.
+     */
+    @Test
+    void aCommentOnAColumnNamesItThroughItsTable() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TABLE CLM.POLICY (POLICY_NO CHAR(10) NOT NULL, PRIMARY KEY (POLICY_NO));
+            COMMENT ON TABLE CLM.POLICY IS 'One row per policy';
+            COMMENT ON COLUMN CLM.POLICY.POLICY_NO IS 'The policy number';
+            LABEL ON COLUMN CLM.POLICY.POLICY_NO IS 'Policy';
+            COMMENT ON COLUMN POLICY.POLICY_NO IS 'Unqualified';
+            """);
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("CreateTable", "Comment", "Comment", "Label", "Comment");
+
+        Db2.Comment onColumn = (Db2.Comment) ddl.getStatements().get(2);
+        assertThat(Db2.has(onColumn.getKeywords(), Db2.Keyword.Type.Column)).isTrue();
+        assertThat(onColumn.getTarget().getSimpleName()).isEqualTo("POLICY_NO");
+        assertThat(onColumn.getTarget().getParts()).extracting(Db2.Word::getText)
+          .containsExactly("CLM", ".", "POLICY", ".", "POLICY_NO");
+        assertThat(onColumn.getText().getElement().getText()).isEqualTo("'The policy number'");
+
+        Db2.Label label = (Db2.Label) ddl.getStatements().get(3);
+        assertThat(Db2.has(label.getKeywords(), Db2.Keyword.Type.Column)).isTrue();
+        assertThat(label.getTarget().getSimpleName()).isEqualTo("POLICY_NO");
+
+        Db2.Comment unqualified = (Db2.Comment) ddl.getStatements().get(4);
+        assertThat(unqualified.getTarget().getQualifier()).isEqualTo("POLICY");
+        assertThat(unqualified.getTarget().getSimpleName()).isEqualTo("POLICY_NO");
+    }
+
+    /**
+     * A variable's default and a distinct type's comparisons are options of their statement. Reading
+     * either used to fail the visit, which turned every table in the file into a parse error with it.
+     */
+    @Test
+    void aVariableDefaultAndATypeComparisonAreOptions() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE VARIABLE CLM.BATCH_FLAG CHAR(1) DEFAULT 'N';
+            CREATE VARIABLE CLM.RUN_NO INTEGER DEFAULT 0;
+            CREATE DISTINCT TYPE CLM.MONEY AS DECIMAL(11,2) WITH COMPARISONS;
+            """);
+
+        Db2.CreateVariable runNo = (Db2.CreateVariable) ddl.getStatements().get(1);
+        assertThat(runNo.getOptions()).singleElement().isInstanceOfSatisfying(Db2.Option.class, option ->
+          assertThat(option.getKeywords()).extracting(Db2.Keyword::getType).containsExactly(Db2.Keyword.Type.Default));
+        Db2.CreateType money = (Db2.CreateType) ddl.getStatements().get(2);
+        assertThat(money.getOptions()).singleElement().isInstanceOfSatisfying(Db2.Option.class, option ->
+          assertThat(option.getKeywords()).extracting(Db2.Keyword::getType)
+            .containsExactly(Db2.Keyword.Type.With, Db2.Keyword.Type.Comparisons));
     }
 
     /**

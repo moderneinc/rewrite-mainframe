@@ -106,10 +106,13 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateView(Db2.CreateView createView, PrintOutputCapture<P> p) {
         beforeSyntax(createView, Space.Location.CREATE_VIEW_PREFIX, p);
-        visit(createView.getKeywords(), p);
+        List<Db2.Keyword> keywords = createView.getKeywords();
+        int as = indexOf(keywords, Db2.Keyword.Type.As);
+        visit(keywords.subList(0, as), p);
         visit(createView.getName(), p);
         printContainer("(", createView.getColumns(), ",", ")", p);
-        printLeftPadded("AS", createView.getQuery(), p);
+        visit(keywords.subList(as, keywords.size()), p);
+        printLeftPadded(as < keywords.size() ? "" : "AS", createView.getQuery(), p);
         visit(createView.getOptions(), p);
         afterSyntax(createView, p);
         return createView;
@@ -118,8 +121,11 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateAlias(Db2.CreateAlias createAlias, PrintOutputCapture<P> p) {
         beforeSyntax(createAlias, Space.Location.CREATE_ALIAS_PREFIX, p);
-        visit(createAlias.getKeywords(), p);
+        List<Db2.Keyword> keywords = createAlias.getKeywords();
+        int target = indexOf(keywords, Db2.Keyword.Type.For);
+        visit(keywords.subList(0, target), p);
         visit(createAlias.getName(), p);
+        visit(keywords.subList(target, keywords.size()), p);
         printLeftPadded("", createAlias.getTarget(), p);
         afterSyntax(createAlias, p);
         return createAlias;
@@ -128,8 +134,11 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateSynonym(Db2.CreateSynonym createSynonym, PrintOutputCapture<P> p) {
         beforeSyntax(createSynonym, Space.Location.CREATE_SYNONYM_PREFIX, p);
-        visit(createSynonym.getKeywords(), p);
+        List<Db2.Keyword> keywords = createSynonym.getKeywords();
+        int target = indexOf(keywords, Db2.Keyword.Type.For);
+        visit(keywords.subList(0, target), p);
         visit(createSynonym.getName(), p);
+        visit(keywords.subList(target, keywords.size()), p);
         printLeftPadded("", createSynonym.getTarget(), p);
         afterSyntax(createSynonym, p);
         return createSynonym;
@@ -138,9 +147,12 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateSequence(Db2.CreateSequence createSequence, PrintOutputCapture<P> p) {
         beforeSyntax(createSequence, Space.Location.CREATE_SEQUENCE_PREFIX, p);
-        visit(createSequence.getKeywords(), p);
+        List<Db2.Keyword> keywords = createSequence.getKeywords();
+        int as = indexOf(keywords, Db2.Keyword.Type.As);
+        visit(keywords.subList(0, as), p);
         visit(createSequence.getName(), p);
-        printLeftPadded("AS", createSequence.getType(), p);
+        visit(keywords.subList(as, keywords.size()), p);
+        printLeftPadded(as < keywords.size() ? "" : "AS", createSequence.getType(), p);
         visit(createSequence.getOptions(), p);
         afterSyntax(createSequence, p);
         return createSequence;
@@ -168,9 +180,12 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateType(Db2.CreateType createType, PrintOutputCapture<P> p) {
         beforeSyntax(createType, Space.Location.CREATE_TYPE_PREFIX, p);
-        visit(createType.getKeywords(), p);
+        List<Db2.Keyword> keywords = createType.getKeywords();
+        int as = indexOf(keywords, Db2.Keyword.Type.As);
+        visit(keywords.subList(0, as), p);
         visit(createType.getName(), p);
-        printLeftPadded("AS", createType.getType(), p);
+        visit(keywords.subList(as, keywords.size()), p);
+        printLeftPadded(as < keywords.size() ? "" : "AS", createType.getType(), p);
         visit(createType.getOptions(), p);
         afterSyntax(createType, p);
         return createType;
@@ -332,8 +347,11 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitAlterView(Db2.AlterView alterView, PrintOutputCapture<P> p) {
         beforeSyntax(alterView, Space.Location.ALTER_VIEW_PREFIX, p);
-        visit(alterView.getKeywords(), p);
+        List<Db2.Keyword> keywords = alterView.getKeywords();
+        int regenerate = indexOf(keywords, Db2.Keyword.Type.Regenerate);
+        visit(keywords.subList(0, regenerate), p);
         visit(alterView.getName(), p);
+        visit(keywords.subList(regenerate, keywords.size()), p);
         visit(alterView.getOptions(), p);
         afterSyntax(alterView, p);
         return alterView;
@@ -406,9 +424,13 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitDrop(Db2.Drop drop, PrintOutputCapture<P> p) {
         beforeSyntax(drop, Space.Location.DROP_PREFIX, p);
-        visit(drop.getKeywords(), p);
+        // RESTRICT and CASCADE end the statement, after a routine's parameter types.
+        List<Db2.Keyword> keywords = drop.getKeywords();
+        int rule = indexOf(keywords, Db2.Keyword.Type.Restrict, Db2.Keyword.Type.Cascade);
+        visit(keywords.subList(0, rule), p);
         visit(drop.getName(), p);
         visit(drop.getOptions(), p);
+        visit(keywords.subList(rule, keywords.size()), p);
         afterSyntax(drop, p);
         return drop;
     }
@@ -416,8 +438,11 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitRename(Db2.Rename rename, PrintOutputCapture<P> p) {
         beforeSyntax(rename, Space.Location.RENAME_PREFIX, p);
-        visit(rename.getKeywords(), p);
+        List<Db2.Keyword> keywords = rename.getKeywords();
+        int to = indexOf(keywords, Db2.Keyword.Type.To);
+        visit(keywords.subList(0, to), p);
         visit(rename.getName(), p);
+        visit(keywords.subList(to, keywords.size()), p);
         printLeftPadded("", rename.getNewName(), p);
         afterSyntax(rename, p);
         return rename;
@@ -426,9 +451,12 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitComment(Db2.Comment comment, PrintOutputCapture<P> p) {
         beforeSyntax(comment, Space.Location.COMMENT_PREFIX, p);
-        visit(comment.getKeywords(), p);
+        List<Db2.Keyword> keywords = comment.getKeywords();
+        int is = indexOf(keywords, Db2.Keyword.Type.Is);
+        visit(keywords.subList(0, is), p);
         visit(comment.getTarget(), p);
-        printLeftPadded("IS", comment.getText(), p);
+        visit(keywords.subList(is, keywords.size()), p);
+        printLeftPadded(is < keywords.size() ? "" : "IS", comment.getText(), p);
         afterSyntax(comment, p);
         return comment;
     }
@@ -436,9 +464,12 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitLabel(Db2.Label label, PrintOutputCapture<P> p) {
         beforeSyntax(label, Space.Location.LABEL_PREFIX, p);
-        visit(label.getKeywords(), p);
+        List<Db2.Keyword> keywords = label.getKeywords();
+        int is = indexOf(keywords, Db2.Keyword.Type.Is);
+        visit(keywords.subList(0, is), p);
         visit(label.getTarget(), p);
-        printLeftPadded("IS", label.getText(), p);
+        visit(keywords.subList(is, keywords.size()), p);
+        printLeftPadded(is < keywords.size() ? "" : "IS", label.getText(), p);
         afterSyntax(label, p);
         return label;
     }
@@ -446,12 +477,16 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitGrant(Db2.Grant grant, PrintOutputCapture<P> p) {
         beforeSyntax(grant, Space.Location.GRANT_PREFIX, p);
-        visit(grant.getKeywords(), p);
+        // WITH GRANT OPTION and WITH ADMIN OPTION follow the grantees.
+        List<Db2.Keyword> keywords = grant.getKeywords();
+        int with = indexOf(keywords, Db2.Keyword.Type.With);
+        visit(keywords.subList(0, with), p);
         printContainer("", grant.getPrivileges(), ",", "", p);
         visit(grant.getOn(), p);
         printContainer("", grant.getObjects(), ",", "", p);
         visit(grant.getTo(), p);
         printContainer("", grant.getGrantees(), ",", "", p);
+        visit(keywords.subList(with, keywords.size()), p);
         visit(grant.getOptions(), p);
         afterSyntax(grant, p);
         return grant;
@@ -460,12 +495,16 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitRevoke(Db2.Revoke revoke, PrintOutputCapture<P> p) {
         beforeSyntax(revoke, Space.Location.REVOKE_PREFIX, p);
-        visit(revoke.getKeywords(), p);
+        // BY ALL, and the RESTRICT or CASCADE after it, follow the grantees.
+        List<Db2.Keyword> keywords = revoke.getKeywords();
+        int by = indexOf(keywords, Db2.Keyword.Type.By, Db2.Keyword.Type.Restrict, Db2.Keyword.Type.Cascade);
+        visit(keywords.subList(0, by), p);
         printContainer("", revoke.getPrivileges(), ",", "", p);
         visit(revoke.getOn(), p);
         printContainer("", revoke.getObjects(), ",", "", p);
         visit(revoke.getTo(), p);
         printContainer("", revoke.getGrantees(), ",", "", p);
+        visit(keywords.subList(by, keywords.size()), p);
         visit(revoke.getOptions(), p);
         afterSyntax(revoke, p);
         return revoke;
@@ -519,8 +558,11 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitLockTable(Db2.LockTable lockTable, PrintOutputCapture<P> p) {
         beforeSyntax(lockTable, Space.Location.LOCK_TABLE_PREFIX, p);
-        visit(lockTable.getKeywords(), p);
+        List<Db2.Keyword> keywords = lockTable.getKeywords();
+        int mode = indexOf(keywords, Db2.Keyword.Type.Part, Db2.Keyword.Type.In);
+        visit(keywords.subList(0, mode), p);
         visit(lockTable.getName(), p);
+        visit(keywords.subList(mode, keywords.size()), p);
         afterSyntax(lockTable, p);
         return lockTable;
     }
@@ -528,9 +570,12 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitInsert(Db2.Insert insert, PrintOutputCapture<P> p) {
         beforeSyntax(insert, Space.Location.INSERT_PREFIX, p);
-        visit(insert.getKeywords(), p);
+        List<Db2.Keyword> keywords = insert.getKeywords();
+        int values = indexOf(keywords, Db2.Keyword.Type.Values);
+        visit(keywords.subList(0, values), p);
         visit(insert.getTable(), p);
         printContainer("(", insert.getColumns(), ",", ")", p);
+        visit(keywords.subList(values, keywords.size()), p);
         printContainer("", insert.getValues(), ",", "", p);
         afterSyntax(insert, p);
         return insert;
@@ -717,6 +762,26 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
         visitSpace(padded.getBefore(), Space.Location.LEFT_PADDED_BEFORE, p);
         p.append(operator);
         visit(padded.getElement(), p);
+    }
+
+    /**
+     * Where the keywords a statement writes after its name begin in its keyword run: the first one of
+     * these types, or the end of the run for a statement that writes none of them. A keyword that
+     * follows the name — the FOR of an alias, the VALUES of an insert, the IS of a comment — is kept
+     * in the statement's one run, so the run is printed in two parts with the name between them.
+     * <p>
+     * DDL read before the AS of a view or the IS of a comment was kept as a keyword has none in the
+     * run, and its statements print the operator themselves.
+     */
+    private static int indexOf(List<Db2.Keyword> keywords, Db2.Keyword.Type... types) {
+        for (int i = 0; i < keywords.size(); i++) {
+            for (Db2.Keyword.Type type : types) {
+                if (keywords.get(i).getType() == type) {
+                    return i;
+                }
+            }
+        }
+        return keywords.size();
     }
 
     /**

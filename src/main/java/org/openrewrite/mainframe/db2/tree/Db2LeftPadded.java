@@ -25,8 +25,11 @@ import java.util.function.UnaryOperator;
 
 /**
  * An element and the space in front of the operator that introduces it — the {@code =} of a
- * {@code SET}, the {@code AS} of a sequence's type. The operator is printed rather than stored, for
- * the same reason a comma is.
+ * {@code SET}. The operator is printed rather than stored, for the same reason a comma is.
+ * <p>
+ * An operator that is a word — the {@code AS} of a view or a sequence's type, the {@code IS} of a
+ * comment — is a keyword in the statement's keyword run instead, so it prints in the case it was
+ * written, and the element here has no space of its own in front of it.
  */
 @Value
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)

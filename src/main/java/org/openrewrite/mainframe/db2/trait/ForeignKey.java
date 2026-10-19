@@ -46,6 +46,16 @@ public class ForeignKey implements Trait<Db2.Constraint> {
         return table == null ? null : table.getFullName();
     }
 
+    /**
+     * The name the key was given: after {@code CONSTRAINT}, or between {@code FOREIGN KEY} and its
+     * columns in the older form CardDemo writes. Null for a key given no name.
+     */
+    public @Nullable String getName() {
+        Db2.Name name = getTree().getConstraintName() != null ? getTree().getConstraintName() :
+                getTree().getKeyName();
+        return name == null ? null : name.getSimpleName();
+    }
+
     public List<String> getColumns() {
         return Constraints.columnNames(getTree().getColumns());
     }

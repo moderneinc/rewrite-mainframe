@@ -351,14 +351,29 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2> actions = new ArrayList<>();
         for (DB2Parser.AlterTableActionContext action : ctx.alterTableAction()) {
             if (action.tableConstraint() != null && action.ADD() == null) {
+                // CardDemo writes its foreign key straight after the table, with no ADD.
                 actions.add(constraint(action.tableConstraint()));
+            } else if (action.tableConstraint() != null) {
+                actions.add(added(action, () -> constraint(action.tableConstraint())));
             } else if (action.columnDefinition() != null) {
-                actions.add(columnDefinition(action.columnDefinition()));
+                actions.add(added(action, () -> columnDefinition(action.columnDefinition())));
             } else {
                 actions.add(option(action));
             }
         }
         return new Db2.AlterTable(randomId(), prefix, Markers.EMPTY, keywords, name, actions);
+    }
+
+    /**
+     * What an {@code ADD} adds, as an option: {@code ADD}, and the {@code COLUMN} a column may be
+     * introduced by, are its keywords, and its value is the column or constraint itself — the same
+     * node the {@code CREATE TABLE} would have held, so a foreign key added afterwards is read as
+     * one.
+     */
+    private Db2.Option added(DB2Parser.AlterTableActionContext action, Supplier<Db2> element) {
+        Space prefix = prefix(action);
+        List<Db2.Keyword> keywords = keywords(action.ADD(), action.COLUMN());
+        return new Db2.Option(randomId(), prefix, Markers.EMPTY, keywords, singletonList(element.get()));
     }
 
     //
@@ -525,7 +540,9 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Db2.DataType type = dataType(ctx.dataType());
         List<Db2> options = new ArrayList<>();
         if (ctx.DEFAULT() != null) {
-            options.add(option(ctx));
+            // The option is DEFAULT and its value, not the statement read over again from the start.
+            options.add(new Db2.Option(randomId(), EMPTY, Markers.EMPTY, keywords(ctx.DEFAULT()),
+                    singletonList(option(ctx.defaultValue()))));
         }
         return new Db2.CreateVariable(randomId(), prefix, Markers.EMPTY, keywords, name, type, options);
     }
@@ -542,7 +559,9 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2.Keyword> keywords = keywords(ctx.CREATE(), ctx.VIEW());
         Db2.Name name = name(ctx.qualifiedName());
         Db2Container<Db2.Name> columns = ctx.columnList() == null ? null : columnList(ctx.columnList());
-        Db2LeftPadded<Db2.Query> query = leftPadded(ctx.AS(), () -> query(ctx.queryExpression()));
+        // AS joins the keyword run, as written, rather than being printed as the operator of the query.
+        keywords.add(keyword(ctx.AS()));
+        Db2LeftPadded<Db2.Query> query = Db2LeftPadded.build(query(ctx.queryExpression()));
         return new Db2.CreateView(randomId(), prefix, Markers.EMPTY, keywords, name, columns, query,
                 options(ctx.viewOption()));
     }
@@ -574,8 +593,11 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Space prefix = prefix(ctx);
         List<Db2.Keyword> keywords = keywords(ctx.CREATE(), ctx.SEQUENCE());
         Db2.Name name = name(ctx.qualifiedName());
-        Db2LeftPadded<Db2.DataType> type = ctx.dataType() == null ? null :
-                leftPadded(ctx.AS(), () -> dataType(ctx.dataType()));
+        Db2LeftPadded<Db2.DataType> type = null;
+        if (ctx.dataType() != null) {
+            keywords.add(keyword(ctx.AS()));
+            type = Db2LeftPadded.build(dataType(ctx.dataType()));
+        }
         return new Db2.CreateSequence(randomId(), prefix, Markers.EMPTY, keywords, name, type,
                 options(ctx.sequenceOption()));
     }
@@ -585,10 +607,12 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Space prefix = prefix(ctx);
         List<Db2.Keyword> keywords = keywords(ctx.CREATE(), ctx.DISTINCT(), ctx.TYPE());
         Db2.Name name = name(ctx.qualifiedName());
-        Db2LeftPadded<Db2.DataType> type = leftPadded(ctx.AS(), () -> dataType(ctx.dataType()));
+        keywords.add(keyword(ctx.AS()));
+        Db2LeftPadded<Db2.DataType> type = Db2LeftPadded.build(dataType(ctx.dataType()));
         List<Db2> options = new ArrayList<>();
         if (ctx.WITH() != null) {
-            options.add(option(ctx));
+            options.add(new Db2.Option(randomId(), EMPTY, Markers.EMPTY,
+                    keywords(ctx.WITH(), ctx.COMPARISONS()), emptyList()));
         }
         return new Db2.CreateType(randomId(), prefix, Markers.EMPTY, keywords, name, type, options);
     }
@@ -753,7 +777,8 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Space prefix = prefix(ctx);
         List<Db2.Keyword> keywords = keywords(ctx.COMMENT(), ctx.ON());
         Db2.Name target = commentTarget(ctx.commentTarget(), keywords);
-        Db2LeftPadded<Db2.Word> text = leftPadded(ctx.IS(), () -> word(ctx.STRING()));
+        keywords.add(keyword(ctx.IS()));
+        Db2LeftPadded<Db2.Word> text = Db2LeftPadded.build(word(ctx.STRING()));
         return new Db2.Comment(randomId(), prefix, Markers.EMPTY, keywords, target, text);
     }
 
@@ -762,26 +787,37 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Space prefix = prefix(ctx);
         List<Db2.Keyword> keywords = keywords(ctx.LABEL(), ctx.ON());
         Db2.Name target = commentTarget(ctx.labelTarget(), keywords);
-        Db2LeftPadded<Db2.Word> text = leftPadded(ctx.IS(), () -> word(ctx.STRING()));
+        keywords.add(keyword(ctx.IS()));
+        Db2LeftPadded<Db2.Word> text = Db2LeftPadded.build(word(ctx.STRING()));
         return new Db2.Label(randomId(), prefix, Markers.EMPTY, keywords, target, text);
     }
 
     /**
      * The object a COMMENT or LABEL is about. Which kind of object it is arrives as keywords, so
      * those join the statement's run and the name comes back on its own.
+     * <p>
+     * A column is written {@code COLUMN CLM.POLICY.POLICY_NO}: its table, a dot, and the column. That
+     * is one name, the column qualified by its table, the way a table is qualified by its schema.
      */
     private Db2.@Nullable Name commentTarget(ParserRuleContext ctx, List<Db2.Keyword> keywords) {
-        Db2.Name target = null;
+        Space prefix = null;
+        List<Db2.Word> parts = new ArrayList<>();
         for (ParseTree child : children(ctx)) {
-            if (child instanceof DB2Parser.QualifiedNameContext) {
-                target = name((DB2Parser.QualifiedNameContext) child);
-            } else if (child instanceof DB2Parser.IdentifierContext) {
-                target = name((DB2Parser.IdentifierContext) child);
+            if (child instanceof DB2Parser.QualifiedNameContext || child instanceof DB2Parser.IdentifierContext) {
+                if (prefix == null) {
+                    prefix = prefix((ParserRuleContext) child);
+                }
+                collectWords(child, parts);
             } else if (child instanceof TerminalNode) {
-                keywords.add(keyword((TerminalNode) child));
+                Token token = ((TerminalNode) child).getSymbol();
+                if (token.getType() == DB2Parser.DOT) {
+                    parts.add(word(token));
+                } else {
+                    keywords.add(keyword(token));
+                }
             }
         }
-        return target;
+        return prefix == null ? null : new Db2.Name(randomId(), prefix, Markers.EMPTY, parts);
     }
 
     @Override
