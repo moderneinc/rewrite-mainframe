@@ -41,9 +41,7 @@ import java.util.List;
 public class ExpandedPrinter<P> extends JclPrinter<P> {
 
     public static String print(Jcl.CompilationUnit cu) {
-        PrintOutputCapture<Integer> out = new PrintOutputCapture<>(0);
-        new ExpandedPrinter<Integer>().visit(cu, out);
-        return out.getOut();
+        return new ExpandedPrinter<Integer>().reduce(cu, new PrintOutputCapture<>(0)).getOut();
     }
 
     @Override

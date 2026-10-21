@@ -60,9 +60,7 @@ public final class CardLines {
                                                          TreeVisitor<?, CardLines> words) {
         T deck = cursor.firstEnclosingOrThrow(deckType);
         return cursor.getRoot().computeMessageIfAbsent("cardLines." + deck.getId(), k -> {
-            CardLines lines = new CardLines();
-            words.visit(deck, lines);
-            return lines.lines;
+            return words.reduce(deck, new CardLines()).lines;
         });
     }
 }

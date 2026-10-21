@@ -1361,8 +1361,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
      */
     private static Map<UUID, Integer> wordLines(ControlM.CompilationUnit cu) {
         Map<UUID, Integer> offsets = new LinkedHashMap<>();
-        PrintOutputCapture<Integer> out = new PrintOutputCapture<>(0);
-        new ControlMPrinter<Integer>() {
+        String source = new ControlMPrinter<Integer>() {
             @Override
             public ControlM visitWord(ControlM.Word word, PrintOutputCapture<Integer> p) {
                 int before = p.out.length();
@@ -1374,9 +1373,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
                 }
                 return printed;
             }
-        }.visit(cu, out, new Cursor(null, Cursor.ROOT_VALUE));
-
-        String source = out.getOut();
+        }.reduce(cu, new PrintOutputCapture<>(0), new Cursor(null, Cursor.ROOT_VALUE)).getOut();
         Map<UUID, Integer> lines = new HashMap<>();
         int line = 1;
         int at = 0;

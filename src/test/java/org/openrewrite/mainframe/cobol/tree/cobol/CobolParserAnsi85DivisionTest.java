@@ -356,8 +356,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               %s
               """.formatted(input),
             spec -> spec.afterRecipe(cu -> {
-                var count = new AtomicInteger();
-                new CobolIsoVisitor<AtomicInteger>() {
+                var count = new CobolIsoVisitor<AtomicInteger>() {
                     @Override
                     public Cobol.Word visitWord(Cobol.Word word, AtomicInteger atomicInteger) {
                         if (",".equals(word.getWord())) {
@@ -365,7 +364,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                         }
                         return super.visitWord(word, atomicInteger);
                     }
-                }.visit(cu, count);
+                }.reduce(cu, new AtomicInteger());
                 assertThat(count.get()).as("Comma count").isEqualTo(3);
             })
           )

@@ -70,9 +70,7 @@ public class UsesCopybook extends CobolIsoVisitor<ExecutionContext> {
                 }
             };
 
-            AtomicBoolean found = new AtomicBoolean(false);
-            visitor.visit(cobol, found);
-            return found.get();
+            return visitor.reduce(cobol, new AtomicBoolean(false)).get();
         }
     }
 }

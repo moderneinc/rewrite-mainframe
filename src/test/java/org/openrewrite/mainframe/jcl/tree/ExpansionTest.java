@@ -51,15 +51,13 @@ class ExpansionTest implements RewriteTest {
         """));
 
     private static List<Jcl.Expansion> expansions(Jcl.CompilationUnit cu) {
-        List<Jcl.Expansion> found = new ArrayList<>();
-        new JclIsoVisitor<List<Jcl.Expansion>>() {
+        return new JclIsoVisitor<List<Jcl.Expansion>>() {
             @Override
             public Jcl.Expansion visitExpansion(Jcl.Expansion expansion, List<Jcl.Expansion> out) {
                 out.add(expansion);
                 return super.visitExpansion(expansion, out);
             }
-        }.visit(cu, found);
-        return found;
+        }.reduce(cu, new ArrayList<>());
     }
 
     private static List<String> cards(Jcl.Expansion expansion) {

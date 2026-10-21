@@ -44,15 +44,13 @@ public class Names {
         if (tree instanceof Cobol.Word) {
             return ((Cobol.Word) tree).getWord();
         }
-        AtomicReference<String> found = new AtomicReference<>();
-        new CobolIsoVisitor<AtomicReference<String>>() {
+        return new CobolIsoVisitor<AtomicReference<String>>() {
             @Override
             public Cobol.Word visitWord(Cobol.Word word, AtomicReference<String> first) {
                 first.compareAndSet(null, word.getWord());
                 return word;
             }
-        }.visit(tree, found);
-        return found.get();
+        }.reduce(tree, new AtomicReference<>()).get();
     }
 
     /**

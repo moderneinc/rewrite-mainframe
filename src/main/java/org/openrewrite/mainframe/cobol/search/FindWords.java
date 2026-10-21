@@ -34,8 +34,6 @@ public class FindWords {
                 return super.visitWord(word, words);
             }
         };
-        List<Cobol.Word> results = new ArrayList<>();
-        visitor.visit(cobol, results);
-        return results;
+        return visitor.reduce(cobol, new ArrayList<>());
     }
 }

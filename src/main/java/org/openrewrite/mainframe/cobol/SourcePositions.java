@@ -86,8 +86,7 @@ public class SourcePositions {
 
     public static SourcePositions of(Cobol.CompilationUnit cu) {
         Measure<Integer> measure = new Measure<>();
-        PrintOutputCapture<Integer> out = new PrintOutputCapture<>(0);
-        measure.visit(cu, out, new Cursor(null, Cursor.ROOT_VALUE));
+        PrintOutputCapture<Integer> out = measure.reduce(cu, new PrintOutputCapture<>(0), new Cursor(null, Cursor.ROOT_VALUE));
         return new SourcePositions(out.getOut(), measure.spans, measure.texts, measure.words,
                 measure.preprocessed, measure.preprocessedWords);
     }
@@ -98,8 +97,7 @@ public class SourcePositions {
      */
     public static SourcePositions of(CobolPreprocessor sourceFile) {
         MeasurePreprocessed<Integer> measure = new MeasurePreprocessed<>();
-        PrintOutputCapture<Integer> out = new PrintOutputCapture<>(0);
-        measure.visit(sourceFile, out, new Cursor(null, Cursor.ROOT_VALUE));
+        PrintOutputCapture<Integer> out = measure.reduce(sourceFile, new PrintOutputCapture<>(0), new Cursor(null, Cursor.ROOT_VALUE));
         return new SourcePositions(out.getOut(), emptyMap(), measure.texts, emptyList(),
                 measure.preprocessed, measure.preprocessedWords);
     }

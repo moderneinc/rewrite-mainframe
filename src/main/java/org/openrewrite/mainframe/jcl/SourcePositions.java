@@ -67,8 +67,7 @@ public class SourcePositions {
 
     public static SourcePositions of(Jcl.CompilationUnit cu) {
         Measure<Integer> measure = new Measure<>();
-        PrintOutputCapture<Integer> out = new PrintOutputCapture<>(0);
-        measure.visit(cu, out, new Cursor(null, Cursor.ROOT_VALUE));
+        PrintOutputCapture<Integer> out = measure.reduce(cu, new PrintOutputCapture<>(0), new Cursor(null, Cursor.ROOT_VALUE));
         SourcePositions positions = new SourcePositions(out.getOut(), measure.spans, measure.words);
         positions.placeExpansions(cu.getStatements(), null);
         return positions;

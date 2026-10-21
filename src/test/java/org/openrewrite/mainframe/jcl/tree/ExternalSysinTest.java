@@ -51,16 +51,14 @@ class ExternalSysinTest implements RewriteTest {
      * searched rather than the statement list.
      */
     private static Optional<ParmMember> parmMarker(Jcl.CompilationUnit cu) {
-        List<ParmMember> found = new ArrayList<>();
-        new JclIsoVisitor<List<ParmMember>>() {
+        return new JclIsoVisitor<List<ParmMember>>() {
             @Override
             public Jcl.KeywordParameter visitKeywordParameter(Jcl.KeywordParameter parameter,
                                                               List<ParmMember> markers) {
                 parameter.getMarkers().findFirst(ParmMember.class).ifPresent(markers::add);
                 return super.visitKeywordParameter(parameter, markers);
             }
-        }.visit(cu, found);
-        return found.stream().findFirst();
+        }.reduce(cu, new ArrayList<>()).stream().findFirst();
     }
 
     private static Optional<ParmMember> parmMarker(Jcl.CompilationUnit cu, ParmMember.Status status) {
@@ -80,8 +78,7 @@ class ExternalSysinTest implements RewriteTest {
      * expansion rather than among the job's own cards.
      */
     private static List<String> graftedAnywhere(Jcl.CompilationUnit cu) {
-        List<String> found = new ArrayList<>();
-        new JclVisitor<List<String>>() {
+        return new JclVisitor<List<String>>() {
             @Override
             public Jcl visitDataDefinitionStream(DataDefinitionStream data, List<String> words) {
                 if (data.getMarkers().findFirst(GeneratedParmContent.class).isPresent()) {
@@ -89,8 +86,7 @@ class ExternalSysinTest implements RewriteTest {
                 }
                 return super.visitDataDefinitionStream(data, words);
             }
-        }.visit(cu, found);
-        return found;
+        }.reduce(cu, new ArrayList<>());
     }
 
     private static String wordText(Statement s) {

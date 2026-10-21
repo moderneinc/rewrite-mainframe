@@ -371,8 +371,7 @@ public class DliCall implements Trait<Cobol> {
         if (call.getCallUsingPhrase() == null) {
             return emptyList();
         }
-        List<String> arguments = new ArrayList<>(4);
-        new CobolIsoVisitor<List<String>>() {
+        return new CobolIsoVisitor<List<String>>() {
             @Override
             public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<String> acc) {
                 String name = Names.upperOf(callBy.getIdentifier());
@@ -381,8 +380,7 @@ public class DliCall implements Trait<Cobol> {
                 }
                 return callBy;
             }
-        }.visit(call.getCallUsingPhrase(), arguments);
-        return arguments;
+        }.reduce(call.getCallUsingPhrase(), new ArrayList<>(4));
     }
 
     /**
