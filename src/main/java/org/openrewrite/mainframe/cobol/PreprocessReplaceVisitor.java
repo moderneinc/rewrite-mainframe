@@ -93,7 +93,9 @@ public class PreprocessReplaceVisitor<P> extends CobolPreprocessorIsoVisitor<P> 
         for (Map.Entry<List<CobolPreprocessor.Word>, List<CobolPreprocessor.Word>> entry : replacements.entrySet()) {
             List<List<CobolPreprocessor.Word>> replaceWords = new ArrayList<>();
             FindReplaceableAreasVisitor findReplaceableAreasVisitor = new FindReplaceableAreasVisitor(entry.getKey());
-            ListUtils.map(r.getCobols(), it -> findReplaceableAreasVisitor.visit(it, replaceWords, getCursor()));
+            if (r.getCobols() != null) {
+                r.getCobols().forEach(it -> findReplaceableAreasVisitor.visit(it, replaceWords, getCursor()));
+            }
             requireWholeWords(findReplaceableAreasVisitor, entry.getKey());
 
             if (!replaceWords.isEmpty()) {

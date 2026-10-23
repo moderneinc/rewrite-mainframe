@@ -20,7 +20,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.mainframe.cobol.tree.*;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 
 import java.util.ArrayList;
@@ -410,7 +409,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         if (replacement != null && replacement.getType() == Replacement.Type.EQUAL) {
             List<CobolLine> lines = replacement.getOriginalWords().get(0).getOriginal().getLines();
             if (lines != null) {
-                ListUtils.map(lines, l -> cobolSourcePrinter.visitLine(l, p));
+                lines.forEach(l -> cobolSourcePrinter.visitLine(l, p));
             }
 
             replaceTemplate(word, p, replacement);
