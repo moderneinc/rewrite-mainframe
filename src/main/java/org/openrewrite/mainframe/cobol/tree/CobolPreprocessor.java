@@ -15,9 +15,13 @@
  */
 package org.openrewrite.mainframe.cobol.tree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.Value;
 import lombok.With;
 import org.jspecify.annotations.Nullable;
@@ -247,6 +251,10 @@ public interface CobolPreprocessor extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
+    @AllArgsConstructor
+    // Read through the no-argument creator, which accepts a copybook written without an @ref.
+    @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE, onConstructor_ = @JsonCreator)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@ref")
     class Copybook implements CobolPreprocessor, CobolSourceFile {
 
         @EqualsAndHashCode.Include

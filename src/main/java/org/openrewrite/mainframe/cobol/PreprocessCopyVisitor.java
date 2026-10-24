@@ -35,9 +35,21 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
     Map<String, SourceFile> copybooks = new HashMap<>();
     Map<String, CobolPreprocessor> preprocessorMap;
     Deque<String> copyStack = new ArrayDeque<>();
+    Map<String, CobolPreprocessor.Copybook> resolved;
 
     public PreprocessCopyVisitor(Map<String, CobolPreprocessor> preprocessorMap,
                                  List<SourceFile> copybooks) {
+        this(preprocessorMap, copybooks, new HashMap<>());
+    }
+
+    /**
+     * @param resolved Copybooks this visitor resolved, by member name. Programs that share it attach one tree
+     *                 per member, so a serializer that tracks identity writes each copybook once.
+     */
+    public PreprocessCopyVisitor(Map<String, CobolPreprocessor> preprocessorMap,
+                                 List<SourceFile> copybooks,
+                                 Map<String, CobolPreprocessor.Copybook> resolved) {
+        this.resolved = resolved;
         this.preprocessorMap = preprocessorMap;
         copybooks.forEach(it -> {
             String fileName = it.getSourcePath().getFileName().toString();
@@ -66,7 +78,9 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
     private CobolPreprocessor inCopiedStatement(CobolPreprocessor c) {
         if (copyStack.size() > 1) {
             copyStack.pop();
-            c = c.withMarkers(c.getMarkers().addIfAbsent(new CopiedStatement(randomId(), copyStack.peek())));
+            if (!c.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
+                c = c.withMarkers(c.getMarkers().add(new CopiedStatement(randomId(), copyStack.peek())));
+            }
         } else {
             copyStack.pop();
         }
@@ -89,21 +103,34 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
         if (copybooks.containsKey(member)) {
             SourceFile sf = copybooks.get(member);
             if (sf instanceof ParseError) {
-                return c.withMarkers(c.getMarkers().addIfAbsent(new MissingCopybook(randomId(), MissingCopybook.Status.PARSE_ERROR)));
+                return missing(c, MissingCopybook.Status.PARSE_ERROR);
             }
 
-            CobolPreprocessor.Copybook cb = (CobolPreprocessor.Copybook) sf;
+            CobolPreprocessor.Copybook cb = resolved.get(member);
+            if (cb == null) {
+                // A COPY never carries the copybook's own source file. A serializer tracking identity would write
+                // that source file as a reference, and a reference does not read back as a source file.
+                cb = (CobolPreprocessor.Copybook) sf;
+                cb = cb.withLst(new ArrayList<>(cb.getLst()));
+            }
+            // Resolving a resolved copybook again returns it unchanged and registers its statements for this program.
             cb = cb.withLst(ListUtils.map(cb.getLst(), l -> visit(l, p)));
+            resolved.put(member, cb);
             if (c instanceof CobolPreprocessor.CopyStatement) {
                 c = ((CobolPreprocessor.CopyStatement) c).withCopybook(cb);
             } else {
                 c = ((CobolPreprocessor.ExecSqlIncludeStatement) c).withCopybook(cb);
             }
         } else {
-            c = c.withMarkers(c.getMarkers().addIfAbsent(new MissingCopybook(randomId(), MissingCopybook.Status.MISSING)));
+            c = missing(c, MissingCopybook.Status.MISSING);
         }
 
         return c;
+    }
+
+    private static CobolPreprocessor missing(CobolPreprocessor c, MissingCopybook.Status status) {
+        return c.getMarkers().findFirst(MissingCopybook.class).isPresent() ? c :
+                c.withMarkers(c.getMarkers().add(new MissingCopybook(randomId(), status)));
     }
 
     // Add preprocessor elements to the map. This happens in the CopyVisitor since statements may occur in copybooks.
