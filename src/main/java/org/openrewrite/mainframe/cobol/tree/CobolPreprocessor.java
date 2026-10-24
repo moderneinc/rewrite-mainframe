@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.Value;
 import lombok.With;
 import org.jspecify.annotations.Nullable;
@@ -252,8 +251,6 @@ public interface CobolPreprocessor extends Tree {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
     @AllArgsConstructor
-    // Read through the no-argument creator, which accepts a copybook written without an @ref.
-    @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE, onConstructor_ = @JsonCreator)
     @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@ref")
     class Copybook implements CobolPreprocessor, CobolSourceFile {
 
@@ -290,6 +287,12 @@ public interface CobolPreprocessor extends Tree {
 
         List<CobolPreprocessor> lst;
         CobolPreprocessor.Word eof;
+
+        // Jackson reads through this creator, which accepts a copybook written without an @ref.
+        @JsonCreator
+        private Copybook() {
+            this(null, null, null, null, null, null, false, null, null, null);
+        }
 
         @Override
         public <P> CobolPreprocessor acceptCobolPreprocessor(CobolPreprocessorVisitor<P> v, P p) {
