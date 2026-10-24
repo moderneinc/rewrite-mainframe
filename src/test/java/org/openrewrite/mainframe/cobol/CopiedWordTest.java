@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
@@ -35,28 +35,36 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
  */
 class CopiedWordTest implements RewriteTest {
 
-    private Map<String, String> copiedWords(String source) {
-        Map<String, String> byWord = new LinkedHashMap<>();
+    private List<Cobol.Word> copiedWords(String source) {
+        List<Cobol.Word> copied = new ArrayList<>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
               public Cobol.Word visitWord(Cobol.Word word, ExecutionContext ctx) {
-                  word.getMarkers().findFirst(CopiedWord.class).ifPresent(copied -> {
-                      if (!word.getWord().isEmpty()) {
-                          byWord.put(word.getWord(), copied.getCopybook());
-                      }
-                  });
+                  if (!word.getWord().isEmpty() && word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
+                      copied.add(word);
+                  }
                   return super.visitWord(word, ctx);
               }
           })),
           cobol(source)
         );
+        return copied;
+    }
+
+    private static String copybook(Cobol.Word word) {
+        return word.getMarkers().findFirst(CopiedWord.class).orElseThrow(IllegalStateException::new).getCopybook();
+    }
+
+    private Map<String, String> copybookByWord(String source) {
+        Map<String, String> byWord = new LinkedHashMap<>();
+        copiedWords(source).forEach(word -> byWord.put(word.getWord(), copybook(word)));
         return byWord;
     }
 
     @Test
     void namesTheCopybookAWordCameFrom() {
-        assertThat(copiedWords(
+        assertThat(copybookByWord(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -76,7 +84,7 @@ class CopiedWordTest implements RewriteTest {
      */
     @Test
     void namesTheCopybookThatDeclaredIt() {
-        assertThat(copiedWords(
+        assertThat(copybookByWord(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -87,5 +95,28 @@ class CopiedWordTest implements RewriteTest {
             """
         )).containsEntry("SUB-CALLED", "INCEPTION_3")
           .containsEntry("DN1", "INCEPTION_3");
+    }
+
+    @Test
+    void wordsCopiedTogetherShareTheirMarkers() {
+        Map<String, Set<Markers>> markersByCopybook = new LinkedHashMap<>();
+        for (Cobol.Word word : copiedWords(
+          """
+            000000 IDENTIFICATION DIVISION.                                         *
+                   PROGRAM-ID. IC109A.                                              *
+                   DATA DIVISION.                                                   *
+                   LINKAGE SECTION.                                                 *
+                       01  GRP-01.                                                  *
+                           COPY INCEPTION_3.                                        *
+                   PROCEDURE DIVISION.                                              *
+                   MAIN-PARA.                                                       *
+                       COPY KSM31.                                                  *
+            """
+        )) {
+            markersByCopybook.computeIfAbsent(copybook(word),
+              k -> Collections.newSetFromMap(new IdentityHashMap<>())).add(word.getMarkers());
+        }
+        assertThat(markersByCopybook).containsOnlyKeys("INCEPTION_3", "KSM31")
+          .allSatisfy((copybook, markers) -> assertThat(markers).as(copybook).hasSize(1));
     }
 }
