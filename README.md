@@ -15,7 +15,7 @@
 <div align="center">
 
 <!-- Keep the gap above this line, otherwise they won't render correctly! -->
-[![ci](https://github.com/moderneinc/rewrite-mainframe/actions/workflows/ci.yml/badge.svg)](https://github.com/moderneinc/rewrite-mainframe/actions/workflows/ci.yml)
+[![ci](https://codegenomeproject.org/ci/modules/moderneinc/rewrite-mainframe/badge.svg)](https://codegenomeproject.org/ci/modules/moderneinc/rewrite-mainframe/builds/latest)
 </div>
 
 ## What is this?
