@@ -29,6 +29,7 @@ import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
 import org.openrewrite.mainframe.cobol.tree.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.marker.Markers;
 
 import java.nio.charset.Charset;
@@ -96,7 +97,9 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     private String copyUuidComment = null;
     private String copybookNotFoundComment = null;
 
-    private final Deque<CopiedWord> copiedWordStack = new ArrayDeque<>();
+    // The words of a copied region that carry no other marker share one Markers,
+    // which a serialized tree then writes once.
+    private final Deque<Markers> copiedWordMarkers = new ArrayDeque<>();
 
     private String replaceStartComment = null;
     private String replaceStopComment = null;
@@ -5596,8 +5599,10 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
 
         // An unresolved copybook will not have any words from a copied source to add the statement to.
         // So the current copy is set to null on the next word that occurs in the LST.
-        if (!copiedWordStack.isEmpty()) {
-            markers = markers.addIfAbsent(copiedWordStack.peek());
+        if (!copiedWordMarkers.isEmpty()) {
+            Markers copied = copiedWordMarkers.peek();
+            markers = markers.getMarkers().isEmpty() ? copied :
+                    markers.withMarkers(ListUtils.concatAll(markers.getMarkers(), copied.getMarkers()));
         }
         return new Cobol.Word(randomId(),
                 prefix,
@@ -6131,8 +6136,8 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                         // contributing no words is still closed by its own stop comment.
                         // Pushed rather than appended: a copybook that copies another has to close
                         // before the one that copied it, and peek and pop both read the head.
-                        copiedWordStack.push(new CopiedWord(randomId(),
-                                CopybookReference.nameOf(copybookSource)));
+                        copiedWordMarkers.push(Markers.build(singletonList(new CopiedWord(randomId(),
+                                CopybookReference.nameOf(copybookSource)))));
                         objects.add(copybookSource);
                     } else if (copyStopComment.equals(contentArea)) {
                         copyStopComment();
@@ -6149,8 +6154,8 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 } else {
                     cursor += contentArea.length();
                     CommentArea commentArea = commentArea();
-                    CobolLine line = indicatorArea != null && "*".equals(indicatorArea.getIndicator()) ? new CommentLine(Markers.EMPTY, sequenceArea, indicatorArea, contentArea, commentArea, !copiedWordStack.isEmpty()) :
-                            new BlankLine(Markers.EMPTY, sequenceArea, indicatorArea, contentArea, commentArea, !copiedWordStack.isEmpty());
+                    CobolLine line = indicatorArea != null && "*".equals(indicatorArea.getIndicator()) ? new CommentLine(Markers.EMPTY, sequenceArea, indicatorArea, contentArea, commentArea, !copiedWordMarkers.isEmpty()) :
+                            new BlankLine(Markers.EMPTY, sequenceArea, indicatorArea, contentArea, commentArea, !copiedWordMarkers.isEmpty());
                     lines.add(line);
                 }
 
@@ -6400,8 +6405,8 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     private void copyStopComment() {
         parseComment(copyStopComment);
 
-        if (!copiedWordStack.isEmpty()) {
-            copiedWordStack.pop();
+        if (!copiedWordMarkers.isEmpty()) {
+            copiedWordMarkers.pop();
         }
 
         sequenceArea();

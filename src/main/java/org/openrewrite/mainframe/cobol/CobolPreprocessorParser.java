@@ -20,7 +20,6 @@ import io.micrometer.core.instrument.Timer;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.antlr.v4.runtime.*;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -39,7 +38,9 @@ import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -51,8 +52,13 @@ import static org.openrewrite.mainframe.cobol.CobolStringUtils.isDebuggingModeEn
 @AllArgsConstructor
 public class CobolPreprocessorParser implements Parser {
     private final CobolDialect cobolDialect;
-	@Setter
 	private List<SourceFile> copybooks;
+	private final Map<String, CobolPreprocessor.Copybook> resolvedCopybooks = new HashMap<>();
+
+	public void setCopybooks(List<SourceFile> copybooks) {
+		this.copybooks = copybooks;
+		resolvedCopybooks.clear();
+	}
 
     @Override
     public Stream<SourceFile> parseInputs(Iterable<org.openrewrite.Parser.Input> sourceFiles, @Nullable Path relativeTo, ExecutionContext ctx) {
@@ -92,7 +98,7 @@ public class CobolPreprocessorParser implements Parser {
 
                         CobolPreprocessor.CompilationUnit preprocessedCU = parserVisitor.visitCompilationUnit(parser.compilationUnit());
 
-                        PreprocessCopyVisitor<ExecutionContext> copyPhase = new PreprocessCopyVisitor<>(preprocessedCU.getPreprocessorStatements(), copybooks);
+                        PreprocessCopyVisitor<ExecutionContext> copyPhase = new PreprocessCopyVisitor<>(preprocessedCU.getPreprocessorStatements(), copybooks, resolvedCopybooks);
 
                         // CU after copy includes the copied source.
                         preprocessedCU = (CobolPreprocessor.CompilationUnit) copyPhase.visit(preprocessedCU, new InMemoryExecutionContext());

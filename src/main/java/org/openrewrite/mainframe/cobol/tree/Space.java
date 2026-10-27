@@ -21,10 +21,7 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.EqualsAndHashCode;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Map;
-import java.util.WeakHashMap;
-
-import static java.util.Collections.synchronizedMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * COBOL white space.
@@ -42,7 +39,7 @@ public class Space {
      * e.g.: a single space between keywords, or the common indentation of every line in a block.
      * So use flyweights to avoid storing many instances of functionally identical spaces
      */
-    private static final Map<String, Space> flyweights = synchronizedMap(new WeakHashMap<>());
+    private static final ConcurrentHashMap<String, Space> flyweights = new ConcurrentHashMap<>();
 
     private Space(@Nullable String whitespace) {
         this.whitespace = whitespace == null || whitespace.isEmpty() ? null : whitespace;
@@ -54,8 +51,8 @@ public class Space {
 			return Space.EMPTY;
 		}
 		if (whitespace.length() <= 100) {
-			//noinspection StringOperationCanBeSimplified
-			return flyweights.computeIfAbsent(whitespace, k -> new Space(new String(whitespace)));
+			Space existing = flyweights.get(whitespace);
+			return existing != null ? existing : flyweights.computeIfAbsent(whitespace, Space::new);
 		}
 		return new Space(whitespace);
 	}
