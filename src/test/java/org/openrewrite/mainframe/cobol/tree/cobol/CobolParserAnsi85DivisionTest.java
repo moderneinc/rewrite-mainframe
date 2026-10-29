@@ -27,9 +27,11 @@ import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.internal.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
@@ -1508,6 +1510,42 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000007 (IDENTIFIER, IDENTIFIER IDENTIFIER) (1: 10))                     C_AREA.07
               000008     CONTINUE.                                                    C_AREA.08
               """
+          )
+        );
+    }
+
+    @Test
+    void trimWithLeadingOrTrailing() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. TRIMFN.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  WS-IN    PIC X(10).
+              000006 01  WS-OUT   PIC X(10).
+              000007 PROCEDURE DIVISION.
+              000008     MOVE FUNCTION TRIM(WS-IN, LEADING) TO WS-OUT.
+              000009     MOVE FUNCTION TRIM(WS-IN TRAILING) TO WS-OUT.
+              000010     DISPLAY FUNCTION TRIM(WS-IN, TRAILING)
+              000011             FUNCTION TRIM(WS-IN LEADING).
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> arguments = new CobolIsoVisitor<List<String>>() {
+                    @Override
+                    public Cobol.FunctionCall visitFunctionCall(Cobol.FunctionCall functionCall, List<String> found) {
+                        for (Cobol.Parenthesized p : functionCall.getArguments()) {
+                            found.add(p.getContents().stream()
+                              .map(c -> c.printTrimmed(getCursor()))
+                              .collect(joining(" ")));
+                        }
+                        return super.visitFunctionCall(functionCall, found);
+                    }
+                }.reduce(cu, new ArrayList<>());
+                assertThat(arguments).containsExactly(
+                  "WS-IN , LEADING", "WS-IN TRAILING", "WS-IN , TRAILING", "WS-IN LEADING");
+            })
           )
         );
     }
