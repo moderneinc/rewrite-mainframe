@@ -3,8 +3,6 @@ parser grammar DB2Parser;
 options { caseInsensitive = true; tokenVocab=DB2Lexer; }
 
 @members {
-    private static IntervalSet identifierStart;
-
     /**
      * The predicates that take a rule's context are ones ANTLR treats as context-dependent. SLL prediction
      * evaluates each only in its own rule's decisions, so the predicates of nested rules never combine.
@@ -14,10 +12,11 @@ options { caseInsensitive = true; tokenVocab=DB2Lexer; }
     }
 
     private boolean startsIdentifier(int type) {
-        if (identifierStart == null) {
-            identifierStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_identifier]);
-        }
-        return identifierStart.contains(type);
+        return _ATN.nextTokens(_ATN.ruleToStartState[RULE_identifier]).contains(type);
+    }
+
+    boolean starts(ParserRuleContext ctx, int rule) {
+        return _ATN.nextTokens(_ATN.ruleToStartState[rule]).contains(_input.LA(1));
     }
 
     /**
@@ -47,29 +46,6 @@ options { caseInsensitive = true; tokenVocab=DB2Lexer; }
         boolean columnTable = (target instanceof CommentTargetContext || target instanceof LabelTargetContext) &&
                 target.getStart().getType() == COLUMN;
         return !columnTable || _input.LA(3) == DOT;
-    }
-
-    private static IntervalSet[] namedOptionStart;
-
-    /**
-     * Whether the word ahead starts one of the option rule's named alternatives, all but its last. The last
-     * alternative takes any word, so that an unknown option still parses, and a named option's value word would
-     * otherwise read as an unknown option of its own.
-     */
-    boolean startsNamedOption(ParserRuleContext option) {
-        if (namedOptionStart == null) {
-            namedOptionStart = new IntervalSet[ruleNames.length];
-        }
-        int rule = option.getRuleIndex();
-        if (namedOptionStart[rule] == null) {
-            ATNState block = _ATN.ruleToStartState[rule].transition(0).target;
-            IntervalSet start = new IntervalSet();
-            for (int alt = 0; alt < block.getNumberOfTransitions() - 1; alt++) {
-                start.addAll(_ATN.nextTokens(block.transition(alt).target));
-            }
-            namedOptionStart[rule] = start;
-        }
-        return namedOptionStart[rule].contains(_input.LA(1));
     }
 
     /**
@@ -354,7 +330,14 @@ indexKey
     : ({columnKeyAhead($ctx)}? identifier | {!columnKeyAhead($ctx)}? expression) (ASC | DESC | RANDOM)?
     ;
 
+// Any other word, so that an unknown option still parses. A named option's keyword is never one, or its
+// value word could read as an unknown option of its own.
 indexOption
+    : namedIndexOption
+    | {!starts($ctx, RULE_namedIndexOption)}? nonReserved
+    ;
+
+namedIndexOption
     : NOT? CLUSTER
     | NOT? PADDED
     | (INCLUDE | EXCLUDE) NULL KEYS
@@ -370,7 +353,6 @@ indexOption
     | COMPRESS (YES | NO)
     | PIECESIZE NUMBER identifier?
     | storageOption
-    | {!startsNamedOption($ctx)}? nonReserved
     ;
 
 //
@@ -382,6 +364,11 @@ createTablespace
     ;
 
 tablespaceOption
+    : namedTablespaceOption
+    | {!starts($ctx, RULE_namedTablespaceOption)}? nonReserved
+    ;
+
+namedTablespaceOption
     : USING (STOGROUP identifier | VCAT identifier)
     | SEGSIZE NUMBER
     | NUMPARTS NUMBER partitionClause*
@@ -400,7 +387,6 @@ tablespaceOption
     | PAGENUM (ABSOLUTE | RELATIVE)
     | MAXROWS NUMBER
     | {!ahead($ctx, USING)}? storageOption
-    | {!startsNamedOption($ctx)}? nonReserved
     ;
 
 createDatabase
@@ -594,6 +580,7 @@ compoundStatement
 
 bodyItem
     : compoundStatement
+    // closesBlock names the same words.
     | END (IF | WHILE | FOR | CASE | LOOP | REPEAT)
     | ~(BEGIN | END)
     ;

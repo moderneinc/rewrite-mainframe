@@ -1169,10 +1169,6 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         return new Db2.Word(randomId(), prefix, Markers.EMPTY, token.getText());
     }
 
-    /**
-     * The white space and comments in front of a rule, without taking its first token, so the node
-     * carries the indentation and its first child carries nothing.
-     */
     private static List<TerminalNode> semicolons(DB2Parser.StatementContext statement) {
         ParseTree last = statement;
         while (!(last instanceof DB2Parser.EndContext)) {
@@ -1184,6 +1180,10 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         return ((DB2Parser.EndContext) last).SEMI();
     }
 
+    /**
+     * The white space and comments in front of a rule, without taking its first token, so the node
+     * carries the indentation and its first child carries nothing.
+     */
     private Space prefix(ParserRuleContext ctx) {
         return prefix(ctx.getStart());
     }
