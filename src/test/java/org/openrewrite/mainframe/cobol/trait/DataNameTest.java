@@ -353,16 +353,19 @@ class DataNameTest implements RewriteTest {
             000000 01  WS-RESP   PIC S9(8) COMP.                                   \s
             000000     88  RESP-NORMAL  VALUE DFHRESP(NORMAL).                     \s
             000000 01  BUSY      PIC X.                                            \s
+            000000 01  DUPKEY    PIC X.                                            \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     MOVE DFHRESP(NORMAL) TO WS-RESP.                            \s
             000000     IF WS-RESP = DFHVALUE(BUSY) CONTINUE.                       \s
+            000000     IF WS-RESP = DFHRESP(NORMAL) OR DFHRESP(DUPKEY) CONTINUE.   \s
             """
         );
 
         assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
-          .containsExactly("WS-RESP", "WS-RESP");
+          .containsExactly("WS-RESP", "WS-RESP", "WS-RESP");
         // The condition in the parentheses names nothing, so an item spelled the same is not credited.
         assertThat(definitionOf(names, "BUSY").isReferenced()).isFalse();
+        assertThat(definitionOf(names, "DUPKEY").isReferenced()).isFalse();
     }
 
     @Test

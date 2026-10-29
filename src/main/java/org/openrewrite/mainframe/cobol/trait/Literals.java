@@ -19,9 +19,12 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
+import org.openrewrite.mainframe.cobol.tree.Name;
+
+import java.util.List;
 
 /**
- * Telling a quoted literal from a data name.
+ * Telling a literal from a data name.
  * <p>
  * This is the difference between a resource an analysis can name and one it cannot: {@code LINK
  * PROGRAM('PAYROLL')} says which program, {@code LINK PROGRAM(WS-PGM)} says only that a field decides
@@ -40,13 +43,36 @@ public class Literals {
     }
 
     /**
-     * Whether the call is {@code DFHRESP(NORMAL)} or {@code DFHVALUE(BUSY)}: a literal the CICS
-     * translator replaces with a number, parsed as the keyword subscripted by the condition.
+     * Whether {@code reference} is {@code DFHRESP(NORMAL)} or {@code DFHVALUE(BUSY)}: a literal the
+     * CICS translator replaces with a number, parsed as the keyword subscripted by the condition. That
+     * is a {@code TableCall}, or a {@code ConditionNameReference} after {@code OR} in an abbreviated
+     * condition, where a condition name is written the same way.
      */
-    public static boolean isCicsLiteral(Cobol.TableCall call) {
-        String keyword = Names.upperOf(call.getQualifiedDataName());
-        return ("DFHRESP".equals(keyword) || "DFHVALUE".equals(keyword)) &&
-               call.getSubscripts().size() == 1 && call.getReferenceModifier() == null;
+    public static boolean isCicsLiteral(@Nullable Object reference) {
+        Name name;
+        List<Cobol.Parenthesized> subscripts;
+        if (reference instanceof Cobol.TableCall) {
+            Cobol.TableCall call = (Cobol.TableCall) reference;
+            if (call.getReferenceModifier() != null) {
+                return false;
+            }
+            Cobol qualified = call.getQualifiedDataName().getDataName();
+            name = qualified instanceof Cobol.QualifiedDataNameFormat1 ?
+                    ((Cobol.QualifiedDataNameFormat1) qualified).getName() : null;
+            subscripts = call.getSubscripts();
+        } else if (reference instanceof Cobol.ConditionNameReference) {
+            Cobol.ConditionNameReference condition = (Cobol.ConditionNameReference) reference;
+            if (condition.getInDatas() != null && !condition.getInDatas().isEmpty()) {
+                return false;
+            }
+            name = condition.getName();
+            subscripts = condition.getReferences();
+        } else {
+            return false;
+        }
+        String keyword = name instanceof Cobol.Word ? ((Cobol.Word) name).getWord() : "";
+        return (keyword.equalsIgnoreCase("DFHRESP") || keyword.equalsIgnoreCase("DFHVALUE")) &&
+               subscripts != null && subscripts.size() == 1;
     }
 
     /**

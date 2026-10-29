@@ -307,7 +307,7 @@ public class DataName implements Trait<Cobol.Word> {
                    !inCicsLiteral(at.getParentTreeCursor());
         }
         if (parent instanceof Cobol.ConditionNameReference) {
-            return is(((Cobol.ConditionNameReference) parent).getName(), word);
+            return is(((Cobol.ConditionNameReference) parent).getName(), word) && !Literals.isCicsLiteral(parent);
         }
         if (parent instanceof Cobol.InData) {
             return is(((Cobol.InData) parent).getName(), word);
@@ -338,7 +338,7 @@ public class DataName implements Trait<Cobol.Word> {
         if (above.getValue() instanceof Cobol.Subscript) {
             above = above.getParentTreeCursor().getParentTreeCursor();
         }
-        return above.getValue() instanceof Cobol.TableCall && Literals.isCicsLiteral(above.getValue());
+        return Literals.isCicsLiteral(above.getValue());
     }
 
     /**
