@@ -2403,16 +2403,6 @@ public interface CobolListener extends ParseTreeListener {
 	 */
 	void exitPictureString(CobolParser.PictureStringContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link CobolParser#picture}.
-	 * @param ctx the parse tree
-	 */
-	void enterPicture(CobolParser.PictureContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#picture}.
-	 * @param ctx the parse tree
-	 */
-	void exitPicture(CobolParser.PictureContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link CobolParser#pictureChars}.
 	 * @param ctx the parse tree
 	 */
@@ -2972,6 +2962,16 @@ public interface CobolListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitCallUsingParameter(CobolParser.CallUsingParameterContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#callByReferenceBarePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#callByReferenceBarePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#callByReferencePhrase}.
 	 * @param ctx the parse tree
@@ -3552,26 +3552,6 @@ public interface CobolListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitGoToStatement(CobolParser.GoToStatementContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#goToStatementSimple}.
-	 * @param ctx the parse tree
-	 */
-	void enterGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#goToStatementSimple}.
-	 * @param ctx the parse tree
-	 */
-	void exitGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#goToDependingOnStatement}.
-	 * @param ctx the parse tree
-	 */
-	void enterGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#goToDependingOnStatement}.
-	 * @param ctx the parse tree
-	 */
-	void exitGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#ifStatement}.
 	 * @param ctx the parse tree
@@ -5503,16 +5483,6 @@ public interface CobolListener extends ParseTreeListener {
 	 */
 	void exitIdentifier(CobolParser.IdentifierContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link CobolParser#tableCall}.
-	 * @param ctx the parse tree
-	 */
-	void enterTableCall(CobolParser.TableCallContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#tableCall}.
-	 * @param ctx the parse tree
-	 */
-	void exitTableCall(CobolParser.TableCallContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link CobolParser#tableCallSubscripts}.
 	 * @param ctx the parse tree
 	 */
@@ -5613,26 +5583,6 @@ public interface CobolListener extends ParseTreeListener {
 	 */
 	void exitQualifiedDataNameFormat1(CobolParser.QualifiedDataNameFormat1Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link CobolParser#qualifiedDataNameFormat2}.
-	 * @param ctx the parse tree
-	 */
-	void enterQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat2}.
-	 * @param ctx the parse tree
-	 */
-	void exitQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#qualifiedDataNameFormat3}.
-	 * @param ctx the parse tree
-	 */
-	void enterQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat3}.
-	 * @param ctx the parse tree
-	 */
-	void exitQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx);
-	/**
 	 * Enter a parse tree produced by {@link CobolParser#qualifiedDataNameFormat4}.
 	 * @param ctx the parse tree
 	 */
@@ -5692,26 +5642,6 @@ public interface CobolListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitInSection(CobolParser.InSectionContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#inLibrary}.
-	 * @param ctx the parse tree
-	 */
-	void enterInLibrary(CobolParser.InLibraryContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#inLibrary}.
-	 * @param ctx the parse tree
-	 */
-	void exitInLibrary(CobolParser.InLibraryContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#inTable}.
-	 * @param ctx the parse tree
-	 */
-	void enterInTable(CobolParser.InTableContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#inTable}.
-	 * @param ctx the parse tree
-	 */
-	void exitInTable(CobolParser.InTableContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#alphabetName}.
 	 * @param ctx the parse tree
@@ -5982,16 +5912,6 @@ public interface CobolListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSymbolicCharacter(CobolParser.SymbolicCharacterContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#textName}.
-	 * @param ctx the parse tree
-	 */
-	void enterTextName(CobolParser.TextNameContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#textName}.
-	 * @param ctx the parse tree
-	 */
-	void exitTextName(CobolParser.TextNameContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#cobolWord}.
 	 * @param ctx the parse tree

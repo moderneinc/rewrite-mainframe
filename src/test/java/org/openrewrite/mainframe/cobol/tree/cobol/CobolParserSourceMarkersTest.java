@@ -233,4 +233,20 @@ class CobolParserSourceMarkersTest extends CobolTest {
           )
         );
     }
+
+    @Test
+    void separatorInLastContentColumnBeforeCommentArea() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.                                         C_AREA.01
+              000002 PROGRAM-ID. communicationSection.                                C_AREA.02
+              000003 PROCEDURE DIVISION.                                              C_AREA.03
+              000004     MOVE SAVED-LINE-BUFFER TO NOP-RECORD (1:SAVED-LINE-RECLEN-X);C_AREA.04
+              000005     SKIP1                                                        C_AREA.05
+              000006     GOBACK.                                                      C_AREA.06
+              """
+          )
+        );
+    }
 }

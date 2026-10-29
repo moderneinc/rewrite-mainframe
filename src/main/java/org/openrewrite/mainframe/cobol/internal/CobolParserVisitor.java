@@ -536,8 +536,8 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.Argument(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.literal(), ctx.identifier(), ctx.qualifiedDataName(), ctx.indexName(), ctx.arithmeticExpression()),
-                visitNullable(ctx.integerLiteral())
+                operand(ctx.arithmeticExpression()),
+                null
         );
     }
 
@@ -651,8 +651,17 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 wordsList(ctx.ADDRESS(), ctx.OF(), ctx.INTEGER(), ctx.STRING(), ctx.OMITTED()),
                 ctx.identifier() != null ? (Name) visit(ctx.identifier()) :
-                        ctx.literal() != null ? (Name) visit(ctx.literal()) :
-                                ctx.fileName() != null ? (Name) visit(ctx.fileName()) : null
+                        ctx.literal() != null ? (Name) visit(ctx.literal()) : null
+        );
+    }
+
+    @Override
+    public Object visitCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx) {
+        return new Cobol.CallPhrase(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                null,
+                convertAll(ctx.callByReference())
         );
     }
 
@@ -718,7 +727,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.USING()),
-                convertAllList(ctx.callUsingParameter())
+                convertAllList(singletonList(ctx.callByReferenceBarePhrase()), ctx.callUsingParameter())
         );
     }
 
@@ -1055,9 +1064,9 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 (Name) visit(ctx.conditionName()),
                 convertAll(ctx.inData()),
-                visitNullable(ctx.inFile()),
+                null,
                 convertAll(ctx.conditionNameSubscriptReference()),
-                convertAll(ctx.inMnemonic())
+                emptyList()
         );
     }
 
@@ -1884,6 +1893,27 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitEvaluateValue(CobolParser.EvaluateValueContext ctx) {
+        return operand(ctx.arithmeticExpression());
+    }
+
+    /**
+     * The node for an arithmetic expression read where a bare identifier or literal is the common case: an
+     * expression of a single operand yields the operand's own node, an expression with an operator or
+     * parentheses yields the expression.
+     */
+    private Cobol operand(CobolParser.ArithmeticExpressionContext ctx) {
+        CobolParser.MultDivsContext multDivs = ctx.multDivs();
+        CobolParser.PowersContext powers = multDivs.powers();
+        CobolParser.BasisContext basis = powers.basis();
+        if (ctx.plusMinus().isEmpty() && multDivs.multDiv().isEmpty() && powers.PLUSCHAR() == null &&
+            powers.MINUSCHAR() == null && powers.power().isEmpty() && basis.arithmeticExpression() == null) {
+            return (Cobol) visit(basis);
+        }
+        return (Cobol) visit(ctx);
+    }
+
+    @Override
     public Object visitExecCicsStatement(CobolParser.ExecCicsStatementContext ctx) {
         return new Cobol.ExecCicsStatement(randomId(),
                 EMPTY,
@@ -2055,23 +2085,20 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx) {
-        return new Cobol.GoToDependingOnStatement(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                convertAll(ctx.procedureName()),
-                wordsList(ctx.MORE_LABELS(), ctx.DEPENDING(), ctx.ON()),
-                visitNullable(ctx.identifier())
-        );
-    }
-
-    @Override
     public Object visitGoToStatement(CobolParser.GoToStatementContext ctx) {
         return new Cobol.GoTo(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.GO(), ctx.TO()),
-                visit(ctx.goToStatementSimple(), ctx.goToDependingOnStatement())
+                ctx.MORE_LABELS() == null && ctx.DEPENDING() == null && ctx.procedureName().size() == 1 ?
+                        (Cobol) visit(ctx.procedureName(0)) :
+                        new Cobol.GoToDependingOnStatement(randomId(),
+                                EMPTY,
+                                Markers.EMPTY,
+                                convertAll(ctx.procedureName()),
+                                wordsList(ctx.MORE_LABELS(), ctx.DEPENDING(), ctx.ON()),
+                                visitNullable(ctx.identifier())
+                        )
         );
     }
 
@@ -2151,16 +2178,6 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitInLibrary(CobolParser.InLibraryContext ctx) {
-        return new Cobol.InLibrary(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                visit(ctx.IN(), ctx.OF()),
-                (Name) visit(ctx.libraryName())
-        );
-    }
-
-    @Override
     public Object visitInMnemonic(CobolParser.InMnemonicContext ctx) {
         return new Cobol.InMnemonic(randomId(),
                 EMPTY,
@@ -2177,16 +2194,6 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 visit(ctx.IN(), ctx.OF()),
                 (Name) visit(ctx.sectionName())
-        );
-    }
-
-    @Override
-    public Object visitInTable(CobolParser.InTableContext ctx) {
-        return new Cobol.InLibrary(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                visit(ctx.IN(), ctx.OF()),
-                (Name) visit(ctx.tableCall())
         );
     }
 
@@ -3150,7 +3157,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Name) visit(ctx.paragraphName()),
-                visitNullable(ctx.DOT_FS()),
+                (Cobol.Word) visit(ctx.DOT_FS()),
                 visitNullable(ctx.alteredGoTo()),
                 convertAll(ctx.sentence())
         );
@@ -3192,7 +3199,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.BY()),
-                visit(ctx.identifier(), ctx.literal(), ctx.arithmeticExpression())
+                operand(ctx.arithmeticExpression())
         );
     }
 
@@ -3202,7 +3209,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.FROM()),
-                visit(ctx.identifier(), ctx.literal(), ctx.arithmeticExpression())
+                operand(ctx.arithmeticExpression())
         );
     }
 
@@ -3303,16 +3310,6 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     @Override
-    public Cobol.Picture visitPicture(CobolParser.PictureContext ctx) {
-        return new Cobol.Picture(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                convertAll(ctx.pictureChars()),
-                visitNullable(ctx.pictureCardinality())
-        );
-    }
-
-    @Override
     public Object visitPictureCardinality(CobolParser.PictureCardinalityContext ctx) {
         return new Cobol.Parenthesized(randomId(),
                 EMPTY,
@@ -3323,12 +3320,29 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         );
     }
 
+    /**
+     * A cardinality closes the picture of the characters before it, and characters after the last cardinality
+     * form a picture of their own.
+     */
     @Override
     public Object visitPictureString(CobolParser.PictureStringContext ctx) {
+        List<Cobol.Picture> pictures = new ArrayList<>();
+        List<Cobol.Word> words = new ArrayList<>();
+        for (ParseTree child : ctx.children) {
+            if (child instanceof CobolParser.PictureCardinalityContext) {
+                pictures.add(new Cobol.Picture(randomId(), EMPTY, Markers.EMPTY, words, (Cobol.Parenthesized) visit(child)));
+                words = new ArrayList<>();
+            } else {
+                words.add((Cobol.Word) visit(child));
+            }
+        }
+        if (!words.isEmpty()) {
+            pictures.add(new Cobol.Picture(randomId(), EMPTY, Markers.EMPTY, words, null));
+        }
         return new Cobol.PictureString(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.picture())
+                pictures
         );
     }
 
@@ -3421,7 +3435,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
 				EMPTY,
 				Markers.EMPTY,
 				visitNullable(ctx.OPTIONAL()),
-				ctx.identifier() == null ? (Name) visit(ctx.fileName()) : (Name) visit(ctx.identifier())
+				(Name) visit(ctx.identifier())
 			);
 		}
 		return new Cobol.ProcedureDivisionByReference(randomId(),
@@ -3478,7 +3492,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 (Name) visit(ctx.paragraphName()),
                 visitNullable(ctx.inSection()),
-                visitNullable(ctx.sectionName())
+                null
         );
     }
 
@@ -3559,7 +3573,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.QualifiedDataName(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat3(), ctx.qualifiedDataNameFormat4())
+                visit(ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat4())
         );
     }
 
@@ -3568,29 +3582,9 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.QualifiedDataNameFormat1(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.dataName(), ctx.conditionName()),
+                (Name) visit(ctx.dataName()),
                 convertAll(ctx.qualifiedInData()),
-                visitNullable(ctx.inFile())
-        );
-    }
-
-    @Override
-    public Object visitQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx) {
-        return new Cobol.QualifiedDataNameFormat2(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                (Name) visit(ctx.paragraphName()),
-                (Cobol.InSection) visit(ctx.inSection())
-        );
-    }
-
-    @Override
-    public Object visitQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx) {
-        return new Cobol.QualifiedDataNameFormat3(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                (Name) visit(ctx.textName()),
-                (Cobol.InLibrary) visit(ctx.inLibrary())
+                null
         );
     }
 
@@ -3609,7 +3603,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.QualifiedDataName(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.inData(), ctx.inTable())
+                (Cobol) visit(ctx.inData())
         );
     }
 
@@ -4560,7 +4554,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 visit(ctx.BACKGROUND_COLOR(), ctx.BACKGROUND_COLOUR()),
                 visitNullable(ctx.IS()),
-                visit(ctx.identifier(), ctx.identifier())
+                visit(ctx.identifier(), ctx.integerLiteral())
         );
     }
 
@@ -5397,9 +5391,8 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.Subscript(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                ctx.ALL() == null && ctx.qualifiedDataName() == null &&
-                ctx.indexName() == null && ctx.arithmeticExpression() == null ? null :
-                        visit(ctx.ALL(), ctx.qualifiedDataName(), ctx.indexName(), ctx.arithmeticExpression()),
+                ctx.ALL() == null && ctx.qualifiedDataName() == null && ctx.arithmeticExpression() == null ? null :
+                        visit(ctx.ALL(), ctx.qualifiedDataName(), ctx.arithmeticExpression()),
                 visitNullable(ctx.integerLiteral())
         );
     }
@@ -5537,8 +5530,19 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         );
     }
 
+    /**
+     * A bare name is a {@code QualifiedDataName}; subscripts or a reference modifier make it a {@code TableCall}.
+     * The grammar reads both as one identifier with optional subscripts and modifier, so that prediction has no
+     * choice to make between them.
+     */
     @Override
-    public Cobol.TableCall visitTableCall(CobolParser.TableCallContext ctx) {
+    public Object visitIdentifier(CobolParser.IdentifierContext ctx) {
+        if (ctx.qualifiedDataName() == null) {
+            return visit(ctx.functionCall(), ctx.specialRegister());
+        }
+        if (ctx.tableCallSubscripts().isEmpty() && ctx.referenceModifier() == null) {
+            return visit(ctx.qualifiedDataName());
+        }
         return new Cobol.TableCall(randomId(),
                 EMPTY,
                 Markers.EMPTY,
@@ -5932,7 +5936,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
             if (!Character.isWhitespace(c) || isColumnArea) {
                 if (c == ',' || c == ';' && delimIndex + 1 < source.length() - 1) {
                     char next = source.charAt(delimIndex + 1);
-                    if (next == ' ' || next == '\r' || next == '\n') {
+                    if (next == ' ' || next == '\r' || next == '\n' || commentAreas.containsKey(delimIndex + 1)) {
                         continue;
                     }
                 }

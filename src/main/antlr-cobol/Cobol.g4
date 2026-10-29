@@ -23,17 +23,23 @@ options { caseInsensitive = true; }
 
 @parser::members {
     /**
-     * Whether the period at the current position belongs to a PICTURE character-string rather than
-     * ending the entry. A picture ends at a separator period, meaning one followed by a space or the
-     * end of the line; a period followed immediately by another character is the decimal point of an
-     * edited picture such as `PIC ZZ9.99`. Without this distinction `picture+` runs through the
-     * period and consumes the level number and name of the entry that follows.
+     * Whether the next token continues the PICTURE character-string. A picture contains no spaces, so it ends
+     * at the first token that does not touch the one before it. A touching period is the decimal point of an
+     * edited picture such as `PIC ZZ9.99` only while a character touches it in turn; one followed by a space
+     * or the end of the line is the separator period that ends the entry.
      */
-    boolean pictureDot() {
-        Token dot = _input.LT(1);
-        Token next = _input.LT(2);
-        return dot != null && next != null && next.getType() != Token.EOF &&
-               dot.getStopIndex() + 1 == next.getStartIndex();
+    boolean continuesPicture() {
+        Token previous = _input.LT(-1);
+        Token next = _input.LT(1);
+        if (!touches(previous, next)) {
+            return false;
+        }
+        return next.getType() != DOT_FS || touches(next, _input.LT(2));
+    }
+
+    private static boolean touches(Token first, Token second) {
+        return first != null && second != null && second.getType() != Token.EOF &&
+               first.getStopIndex() + 1 == second.getStartIndex();
     }
 
     private static IntervalSet statementStart;
@@ -54,6 +60,31 @@ options { caseInsensitive = true; }
 
     boolean startsWhenCondition() {
         return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
+    }
+
+    /**
+     * Whether the next token opens a subscript group. A reference modifier opens with the same parenthesis and
+     * is told apart only by the colon at its top level, so the group is scanned to its closing parenthesis.
+     * A parenthesis after a name always belongs to the name, so the only other question at that point is
+     * which of the two it opens.
+     */
+    boolean startsSubscripts() {
+        if (_input.LA(1) != LPARENCHAR) {
+            return false;
+        }
+        int depth = 0;
+        for (int i = 1; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return false;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR && --depth == 0) {
+                return true;
+            } else if (type == COLONCHAR && depth == 1) {
+                return false;
+            }
+        }
     }
 }
 
@@ -308,7 +339,7 @@ inputOutputSectionParagraph
 // - file control paragraph ----------------------------------
 
 fileControlParagraph
-   : FILE_CONTROL? (DOT_FS? fileControlEntry)* DOT_FS
+   : FILE_CONTROL (DOT_FS? fileControlEntry)* DOT_FS
    ;
 
 fileControlEntry
@@ -1068,15 +1099,11 @@ dataPictureClause
    ;
 
 pictureString
-   : picture+
-   ;
-
-picture
-   : (pictureChars+ pictureCardinality?)
+   : (pictureChars | pictureCardinality) ({continuesPicture()}? (pictureChars | pictureCardinality))* {!continuesPicture()}?
    ;
 
 pictureChars
-   : DOLLARCHAR | IDENTIFIER | NUMERICLITERAL | SLASHCHAR | COMMACHAR | {pictureDot()}? DOT_FS | COLONCHAR | ASTERISKCHAR | DOUBLEASTERISKCHAR | LPARENCHAR | RPARENCHAR | PLUSCHAR | MINUSCHAR | LESSTHANCHAR | MORETHANCHAR | integerLiteral
+   : DOLLARCHAR | IDENTIFIER | NUMERICLITERAL | SLASHCHAR | COMMACHAR | DOT_FS | COLONCHAR | ASTERISKCHAR | DOUBLEASTERISKCHAR | PLUSCHAR | MINUSCHAR | LESSTHANCHAR | MORETHANCHAR | integerLiteral
    ;
 
 pictureCardinality
@@ -1128,7 +1155,7 @@ dataUsingClause
    ;
 
 dataValueClause
-   : ((VALUE | VALUES) (IS | ARE)?)? (dataValueInterval COMMACHAR?)+
+   : (VALUE | VALUES) (IS | ARE)? (dataValueInterval COMMACHAR?)+
    ;
 
 dataValueInterval
@@ -1170,7 +1197,7 @@ procedureDivisionByReferencePhrase
    ;
 
 procedureDivisionByReference
-   : (OPTIONAL? (identifier | fileName)) | ANY
+   : (OPTIONAL? identifier) | ANY
    ;
 
 procedureDivisionByValuePhrase
@@ -1208,7 +1235,7 @@ paragraphs
    ;
 
 paragraph
-   : paragraphName DOT_FS? (alteredGoTo | sentence*)
+   : paragraphName DOT_FS (alteredGoTo | sentence*)
    ;
 
 sentence
@@ -1306,19 +1333,23 @@ callStatement
    ;
 
 callUsingPhrase
-   : USING callUsingParameter+
+   : USING (callByReferenceBarePhrase callUsingParameter* | callUsingParameter+)
    ;
 
 callUsingParameter
    : callByReferencePhrase | callByValuePhrase | callByContentPhrase
    ;
 
+callByReferenceBarePhrase
+   : callByReference+
+   ;
+
 callByReferencePhrase
-   : (BY? REFERENCE)? callByReference+
+   : BY? REFERENCE callByReference+
    ;
 
 callByReference
-   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal | fileName) | OMITTED
+   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal) | OMITTED
    ;
 
 callByValuePhrase
@@ -1523,7 +1554,7 @@ evaluateWhenOther
    ;
 
 evaluateValue
-   : identifier | literal | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // exec cics statement
@@ -1583,15 +1614,7 @@ gobackStatement
 // goto statement
 
 goToStatement
-   : GO TO? (goToStatementSimple | goToDependingOnStatement)
-   ;
-
-goToStatementSimple
-   : procedureName
-   ;
-
-goToDependingOnStatement
-   : MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?
+   : GO TO? (MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?)
    ;
 
 // if statement
@@ -1859,11 +1882,11 @@ performAfter
    ;
 
 performFrom
-   : FROM (identifier | literal | arithmeticExpression)
+   : FROM arithmeticExpression
    ;
 
 performBy
-   : BY (identifier | literal | arithmeticExpression)
+   : BY arithmeticExpression
    ;
 
 performTestClause
@@ -2391,7 +2414,7 @@ classCondition
    ;
 
 conditionNameReference
-   : conditionName (inData* inFile? conditionNameSubscriptReference* | inMnemonic*)
+   : conditionName inData* conditionNameSubscriptReference*
    ;
 
 conditionNameSubscriptReference
@@ -2431,11 +2454,7 @@ abbreviation
 // identifier ----------------------------------
 
 identifier
-   : qualifiedDataName | tableCall | functionCall | specialRegister
-   ;
-
-tableCall
-   : qualifiedDataName tableCallSubscripts* referenceModifier?
+   : qualifiedDataName tableCallSubscripts* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}? | functionCall | specialRegister
    ;
 
 tableCallSubscripts
@@ -2443,7 +2462,7 @@ tableCallSubscripts
     ;
 
 functionCall
-   : FUNCTION functionName functionCallArguments* referenceModifier?
+   : FUNCTION functionName functionCallArguments* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}?
    ;
 
 functionCallArguments
@@ -2463,29 +2482,21 @@ length
    ;
 
 subscript
-   : ALL | integerLiteral | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : ALL | integerLiteral | qualifiedDataName integerLiteral? | arithmeticExpression
    ;
 
 argument
-   : literal | identifier | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // qualified data name ----------------------------------
 
 qualifiedDataName
-   : qualifiedDataNameFormat1 | qualifiedDataNameFormat2 | qualifiedDataNameFormat3 | qualifiedDataNameFormat4
+   : qualifiedDataNameFormat1 | qualifiedDataNameFormat4
    ;
 
 qualifiedDataNameFormat1
-   : (dataName | conditionName) (qualifiedInData+ inFile? | inFile)?
-   ;
-
-qualifiedDataNameFormat2
-   : paragraphName inSection
-   ;
-
-qualifiedDataNameFormat3
-   : textName inLibrary
+   : dataName qualifiedInData*
    ;
 
 qualifiedDataNameFormat4
@@ -2493,7 +2504,7 @@ qualifiedDataNameFormat4
    ;
 
 qualifiedInData
-   : inData | inTable
+   : inData
    ;
 
 // in ----------------------------------
@@ -2512,14 +2523,6 @@ inMnemonic
 
 inSection
    : (IN | OF) sectionName
-   ;
-
-inLibrary
-   : (IN | OF) libraryName
-   ;
-
-inTable
-   : (IN | OF) tableCall
    ;
 
 // names ----------------------------------
@@ -2597,7 +2600,7 @@ paragraphName
    ;
 
 procedureName
-   : paragraphName inSection? | sectionName
+   : paragraphName inSection?
    ;
 
 programName
@@ -2629,10 +2632,6 @@ systemName
    ;
 
 symbolicCharacter
-   : cobolWord
-   ;
-
-textName
    : cobolWord
    ;
 
@@ -2674,7 +2673,7 @@ booleanLiteral
    ;
 
 numericLiteral
-   : NUMERICLITERAL | ZERO | integerLiteral
+   : NUMERICLITERAL | integerLiteral
    ;
 
 integerLiteral
