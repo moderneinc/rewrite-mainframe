@@ -5153,6 +5153,56 @@ public interface CobolParserListener extends ParseTreeListener {
 	 */
 	void exitWriteNotAtEndOfPagePhrase(CobolParser.WriteNotAtEndOfPagePhraseContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolParser#xmlParseStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterXmlParseStatement(CobolParser.XmlParseStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#xmlParseStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitXmlParseStatement(CobolParser.XmlParseStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#xmlEncodingPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterXmlEncodingPhrase(CobolParser.XmlEncodingPhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#xmlEncodingPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitXmlEncodingPhrase(CobolParser.XmlEncodingPhraseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#xmlReturningNationalPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterXmlReturningNationalPhrase(CobolParser.XmlReturningNationalPhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#xmlReturningNationalPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitXmlReturningNationalPhrase(CobolParser.XmlReturningNationalPhraseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#xmlValidatingPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterXmlValidatingPhrase(CobolParser.XmlValidatingPhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#xmlValidatingPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitXmlValidatingPhrase(CobolParser.XmlValidatingPhraseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#xmlProcessingProcedurePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterXmlProcessingProcedurePhrase(CobolParser.XmlProcessingProcedurePhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#xmlProcessingProcedurePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitXmlProcessingProcedurePhrase(CobolParser.XmlProcessingProcedurePhraseContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolParser#atEndPhrase}.
 	 * @param ctx the parse tree
 	 */

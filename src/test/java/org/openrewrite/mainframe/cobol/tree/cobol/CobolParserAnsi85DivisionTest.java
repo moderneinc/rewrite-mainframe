@@ -1312,6 +1312,35 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void xmlParseStatement() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.                                         C_AREA.01
+              000002 PROGRAM-ID. XMLPARSE.                                            C_AREA.02
+              000003 PROCEDURE DIVISION.                                              C_AREA.03
+              000004 MAIN-LOGIC.                                                      C_AREA.04
+              000005     XML PARSE XML-BUFFER (1:XML-BUFFER-LENGTH)                   C_AREA.05
+              000006      PROCESSING PROCEDURE XML-HANDLER                            C_AREA.06
+              000007      THRU XML-HANDLER-EXIT                                       C_AREA.07
+              000008      ON EXCEPTION                                                C_AREA.08
+              000009       PERFORM SIGNAL-CONDITION                                   C_AREA.09
+              000010      NOT ON EXCEPTION                                            C_AREA.10
+              000011       MOVE ZERO TO CONVERTER-RC                                  C_AREA.11
+              000012     END-XML                                                      C_AREA.12
+              000013     XML PARSE XML-BUFFER WITH ENCODING 1208 RETURNING NATIONAL   C_AREA.13
+              000014      VALIDATING WITH FILE XML-SCHEMA                             C_AREA.14
+              000015      PROCESSING PROCEDURE IS XML-HANDLER.                        C_AREA.15
+              000016 XML-HANDLER.                                                     C_AREA.16
+              000017     CONTINUE.                                                    C_AREA.17
+              000018 XML-HANDLER-EXIT.                                                C_AREA.18
+              000019     EXIT.                                                        C_AREA.19
+              """
+          )
+        );
+    }
+
+    @Test
     void writeStatement() {
         rewriteRun(
           cobol(

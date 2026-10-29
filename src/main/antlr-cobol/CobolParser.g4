@@ -1223,7 +1223,7 @@ imperativeStatements
    ;
 
 statement
-   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement
+   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement
    ;
 
 // accept statement
@@ -2291,6 +2291,28 @@ writeAtEndOfPagePhrase
 
 writeNotAtEndOfPagePhrase
    : NOT AT? (END_OF_PAGE | EOP) imperativeStatements
+   ;
+
+// xml parse statement
+
+xmlParseStatement
+   : XML PARSE identifier xmlEncodingPhrase? xmlReturningNationalPhrase? xmlValidatingPhrase? xmlProcessingProcedurePhrase onExceptionClause? notOnExceptionClause? END_XML?
+   ;
+
+xmlEncodingPhrase
+   : WITH? ENCODING (identifier | integerLiteral)
+   ;
+
+xmlReturningNationalPhrase
+   : RETURNING NATIONAL
+   ;
+
+xmlValidatingPhrase
+   : VALIDATING WITH? (identifier | FILE cobolWord)
+   ;
+
+xmlProcessingProcedurePhrase
+   : PROCESSING PROCEDURE IS? procedureName ((THROUGH | THRU) procedureName)?
    ;
 
 // statement phrases ----------------------------------
