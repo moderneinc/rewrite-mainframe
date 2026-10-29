@@ -78,7 +78,7 @@ public class IdcamsParserVisitor extends IdcamsCardParserBaseVisitor<Idcams> {
                 charsetBomMarked,
                 null,
                 statements,
-                Space.build(source.substring(cursor))
+                Space.build(source, cursor, source.length())
         );
     }
 
@@ -232,7 +232,7 @@ public class IdcamsParserVisitor extends IdcamsCardParserBaseVisitor<Idcams> {
             }
             cursor = close + 2;
         }
-        return Space.build(source.substring(start, cursor));
+        return Space.build(source, start, cursor);
     }
 
     /**

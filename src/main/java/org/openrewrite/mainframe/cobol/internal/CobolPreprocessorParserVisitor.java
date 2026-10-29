@@ -885,9 +885,10 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
     }
 
     private Space whitespace() {
-        String prefix = source.substring(cursor, indexOfNextNonWhitespace(cursor, source));
-        cursor += prefix.length();
-        return Space.build(prefix);
+        int endIndex = indexOfNextNonWhitespace(cursor, source);
+        Space prefix = Space.build(source, cursor, endIndex);
+        cursor = endIndex;
+        return prefix;
     }
 
     private int indexOfNextNonWhitespace(int cursor, String source) {
