@@ -1790,6 +1790,12 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitCallUsingParameter(CobolParser.CallUsingParameterContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#callByReferenceBarePhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#callByReferencePhrase}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -2137,18 +2143,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitGoToStatement(CobolParser.GoToStatementContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#goToStatementSimple}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#goToDependingOnStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#ifStatement}.
 	 * @param ctx the parse tree

@@ -3560,6 +3560,18 @@ public class CobolBaseListener implements CobolListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCallByReferencePhrase(CobolParser.CallByReferencePhraseContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -4251,30 +4263,6 @@ public class CobolBaseListener implements CobolListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitGoToStatement(CobolParser.GoToStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

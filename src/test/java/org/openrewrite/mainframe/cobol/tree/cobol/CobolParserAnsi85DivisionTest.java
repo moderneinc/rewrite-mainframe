@@ -853,7 +853,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000042     MOVE WS1 TO DN9.                                             C_AREA.42
               000043 EXIT-IC109.                                                      C_AREA.43
               000045     EXIT PROGRAM.                                                C_AREA.45
-              000046 END-OF                                                           C_AREA.46
+              000046 END-OF.                                                          C_AREA.46
               """
           )
         );
@@ -1604,6 +1604,82 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                     }
                 }.reduce(cu, new ArrayList<>());
                 assertThat(pictures).containsExactly("X(10)", "S9(5) V99", "ZZ,ZZ9.99-", "9(3) V9(2)", "XX", "$$$9");
+            })
+          )
+        );
+    }
+
+    @Test
+    void foldedAlternativeShapes() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. FOLDS.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  I   PIC 9.
+              000006 01  J   PIC 9.
+              000007 PROCEDURE DIVISION.
+              000008 MAIN SECTION.
+              000009 P1.
+              000010     PERFORM VARYING I FROM 1 BY J UNTIL I > 3
+              000011        CONTINUE
+              000012     END-PERFORM.
+              000013     PERFORM VARYING I FROM J + 1 BY 1 UNTIL I > 3
+              000014        CONTINUE
+              000015     END-PERFORM.
+              000016     EVALUATE I
+              000017       WHEN 1 CONTINUE
+              000018       WHEN J CONTINUE
+              000019       WHEN J + 1 CONTINUE
+              000020     END-EVALUATE.
+              000021     CALL 'SUB' USING I J BY VALUE I BY REFERENCE J.
+              000022     GO TO P1.
+              000023     GO TO P1 P2 DEPENDING ON I.
+              000024 P2.
+              000025     STOP RUN.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> shapes = new ArrayList<>();
+                new CobolIsoVisitor<Integer>() {
+                    @Override
+                    public Cobol.Performable visitPerformable(Cobol.Performable performable, Integer p) {
+                        shapes.add(performable.getWord().getWord() + " " + performable.getExpression().getClass().getSimpleName());
+                        return super.visitPerformable(performable, p);
+                    }
+
+                    @Override
+                    public Cobol.EvaluateCondition visitEvaluateCondition(Cobol.EvaluateCondition condition, Integer p) {
+                        shapes.add("WHEN " + condition.getCondition().getClass().getSimpleName());
+                        return super.visitEvaluateCondition(condition, p);
+                    }
+
+                    @Override
+                    public Cobol.CallPhrase visitCallPhrase(Cobol.CallPhrase phrase, Integer p) {
+                        if (phrase.getWords() != null && "USING".equals(phrase.getWords().get(0).getWord())) {
+                            shapes.add("USING " + phrase.getParameters().stream()
+                              .map(parameter -> (Cobol.CallPhrase) parameter)
+                              .map(group -> (group.getWords() == null ? "" :
+                                            group.getWords().stream().map(Cobol.Word::getWord).collect(joining(" "))) +
+                                            ":" + group.getParameters().size())
+                              .collect(joining(" ")));
+                        }
+                        return super.visitCallPhrase(phrase, p);
+                    }
+
+                    @Override
+                    public Cobol.GoTo visitGoTo(Cobol.GoTo goTo, Integer p) {
+                        shapes.add("GO TO " + goTo.getStatement().getClass().getSimpleName());
+                        return super.visitGoTo(goTo, p);
+                    }
+                }.visit(cu, 0);
+                assertThat(shapes).containsExactly(
+                  "FROM Word", "BY QualifiedDataName",
+                  "FROM ArithmeticExpression", "BY Word",
+                  "WHEN Word", "WHEN QualifiedDataName", "WHEN ArithmeticExpression",
+                  "USING :2 BY VALUE:1 BY REFERENCE:1",
+                  "GO TO ProcedureName", "GO TO GoToDependingOnStatement");
             })
           )
         );
