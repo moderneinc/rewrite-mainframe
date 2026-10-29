@@ -24,13 +24,41 @@ import org.openrewrite.internal.StringUtils;
 public class CobolPrinterUtils {
 
     public static int getInsertIndex(String output) {
-        int insertIndex = output.lastIndexOf("\n");
-        return insertIndex == -1 ? 0 : insertIndex + 1;
+        return getInsertIndex((CharSequence) output);
+    }
+
+    /**
+     * The index just past the output's last line break, or 0 when it has none.
+     * Printers pass their {@code PrintOutputCapture.out}, since {@code getOut()} copies it.
+     */
+    public static int getInsertIndex(CharSequence output) {
+        int newline = lastNewline(output);
+        return newline == -1 ? 0 : newline + 1;
     }
 
     public static int getCurrentIndex(String output) {
-        int index = output.lastIndexOf("\n");
-        return index == -1 ? index : output.substring(index + 1).length();
+        return getCurrentIndex((CharSequence) output);
+    }
+
+    /**
+     * The column the output's last line has reached, or -1 when the output has no line break.
+     */
+    public static int getCurrentIndex(CharSequence output) {
+        int newline = lastNewline(output);
+        return newline == -1 ? -1 : output.length() - newline - 1;
+    }
+
+    public static boolean endsWithNewline(CharSequence output) {
+        return output.length() > 0 && output.charAt(output.length() - 1) == '\n';
+    }
+
+    private static int lastNewline(CharSequence output) {
+        for (int i = output.length() - 1; i >= 0; i--) {
+            if (output.charAt(i) == '\n') {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public static String generateWhitespace(int count) {
