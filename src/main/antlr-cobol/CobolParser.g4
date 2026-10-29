@@ -66,6 +66,34 @@ options { tokenVocab = CobolLexer; }
             }
         }
     }
+
+    /**
+     * Whether the conditional phrase that the word names starts here, past an optional AT or ON, as in AT END or
+     * ON SIZE ERROR. A statement takes the phrases and the END- terminator that follow it before an enclosing
+     * statement can, as statement lists do at startsStatement. Naming the statement's context makes ANTLR treat
+     * these predicates as context-dependent. SLL prediction then weighs each one only in its own statement's
+     * decisions, and the predicates of nested statements do not combine.
+     */
+    boolean startsPhrase(ParserRuleContext statement, int word) {
+        return phraseWord(1) == word;
+    }
+
+    boolean startsNotPhrase(ParserRuleContext statement, int word) {
+        return _input.LA(1) == NOT && phraseWord(2) == word;
+    }
+
+    boolean ahead(ParserRuleContext statement, int type) {
+        return _input.LA(1) == type;
+    }
+
+    boolean ahead(ParserRuleContext statement, int first, int second) {
+        return _input.LA(1) == first && _input.LA(2) == second;
+    }
+
+    private int phraseWord(int i) {
+        int type = _input.LA(i);
+        return type == AT || type == ON ? _input.LA(i + 1) : type;
+    }
 }
 
 compilationUnit
@@ -1229,7 +1257,7 @@ statement
 // accept statement
 
 acceptStatement
-   : ACCEPT identifier (acceptFromDateStatement | acceptFromEscapeKeyStatement | acceptFromMnemonicStatement | acceptMessageCountStatement)? onExceptionClause? notOnExceptionClause? END_ACCEPT?
+   : ACCEPT identifier (acceptFromDateStatement | acceptFromEscapeKeyStatement | acceptFromMnemonicStatement | acceptMessageCountStatement)? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_ACCEPT | {!ahead($ctx, END_ACCEPT)}?)
    ;
 
 acceptFromDateStatement
@@ -1255,7 +1283,7 @@ roundable
 // add statement
 
 addStatement
-   : ADD (addToStatement | addToGivingStatement | addCorrespondingStatement) onSizeErrorPhrase? notOnSizeErrorPhrase? END_ADD?
+   : ADD (addToStatement | addToGivingStatement | addCorrespondingStatement) (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_ADD | {!ahead($ctx, END_ADD)}?)
    ;
 
 addToStatement
@@ -1305,7 +1333,7 @@ alterProceedTo
 // call statement
 
 callStatement
-   : CALL (identifier | literal) callUsingPhrase? callGivingPhrase? onOverflowPhrase? onExceptionClause? notOnExceptionClause? END_CALL?
+   : CALL (identifier | literal) callUsingPhrase? callGivingPhrase? (onOverflowPhrase | {!startsPhrase($ctx, OVERFLOW)}?) (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_CALL | {!ahead($ctx, END_CALL)}?)
    ;
 
 callUsingPhrase
@@ -1398,7 +1426,7 @@ closePortFileIOUsingAssociatedDataLength
 // compute statement
 
 computeStatement
-   : COMPUTE computeStore+ (EQUALCHAR | EQUAL) arithmeticExpression onSizeErrorPhrase? notOnSizeErrorPhrase? END_COMPUTE?
+   : COMPUTE computeStore+ (EQUALCHAR | EQUAL) arithmeticExpression (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_COMPUTE | {!ahead($ctx, END_COMPUTE)}?)
    ;
 
 computeStore
@@ -1414,7 +1442,7 @@ continueStatement
 // delete statement
 
 deleteStatement
-   : DELETE fileName RECORD? invalidKeyPhrase? notInvalidKeyPhrase? END_DELETE?
+   : DELETE fileName RECORD? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_DELETE | {!ahead($ctx, END_DELETE)}?)
    ;
 
 // disable statement
@@ -1426,7 +1454,7 @@ disableStatement
 // display statement
 
 displayStatement
-   : DISPLAY (displayOperand COMMACHAR?)+ displayAt? displayUpon? displayWith? onExceptionClause? notOnExceptionClause? END_DISPLAY?
+   : DISPLAY (displayOperand COMMACHAR?)+ displayAt? displayUpon? displayWith? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_DISPLAY | {!ahead($ctx, END_DISPLAY)}?)
    ;
 
 displayOperand
@@ -1448,7 +1476,7 @@ displayWith
 // divide statement
 
 divideStatement
-   : DIVIDE (identifier | literal) (divideIntoStatement | divideIntoGivingStatement | divideByGivingStatement) divideRemainder? onSizeErrorPhrase? notOnSizeErrorPhrase? END_DIVIDE?
+   : DIVIDE (identifier | literal) (divideIntoStatement | divideIntoGivingStatement | divideByGivingStatement) divideRemainder? (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_DIVIDE | {!ahead($ctx, END_DIVIDE)}?)
    ;
 
 divideIntoStatement
@@ -1756,7 +1784,7 @@ moveCorrespondingToSendingArea
 // multiply statement
 
 multiplyStatement
-   : MULTIPLY (identifier | literal) BY (multiplyRegular | multiplyGiving) onSizeErrorPhrase? notOnSizeErrorPhrase? END_MULTIPLY?
+   : MULTIPLY (identifier | literal) BY (multiplyRegular | multiplyGiving) (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_MULTIPLY | {!ahead($ctx, END_MULTIPLY)}?)
    ;
 
 multiplyRegular
@@ -1878,7 +1906,7 @@ purgeStatement
 // read statement
 
 readStatement
-   : READ fileName NEXT? RECORD? readInto? readWith? readKey? invalidKeyPhrase? notInvalidKeyPhrase? atEndPhrase? notAtEndPhrase? END_READ?
+   : READ fileName NEXT? RECORD? readInto? readWith? readKey? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (atEndPhrase | {!startsPhrase($ctx, END)}?) (notAtEndPhrase | {!startsNotPhrase($ctx, END)}?) (END_READ | {!ahead($ctx, END_READ)}?)
    ;
 
 readInto
@@ -1896,7 +1924,7 @@ readKey
 // receive statement
 
 receiveStatement
-   : RECEIVE (receiveFromStatement | receiveIntoStatement) onExceptionClause? notOnExceptionClause? END_RECEIVE?
+   : RECEIVE (receiveFromStatement | receiveIntoStatement) (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_RECEIVE | {!ahead($ctx, END_RECEIVE)}?)
    ;
 
 receiveFromStatement
@@ -1908,7 +1936,7 @@ receiveFrom
    ;
 
 receiveIntoStatement
-   : cdName (MESSAGE | SEGMENT) INTO? identifier receiveNoData? receiveWithData?
+   : cdName (MESSAGE | SEGMENT) INTO? identifier (receiveNoData | {!ahead($ctx, NO, DATA)}?) (receiveWithData | {!ahead($ctx, WITH, DATA)}?)
    ;
 
 receiveNoData
@@ -1948,7 +1976,7 @@ releaseStatement
 // return statement
 
 returnStatement
-   : RETURN fileName RECORD? returnInto? atEndPhrase notAtEndPhrase? END_RETURN?
+   : RETURN fileName RECORD? returnInto? atEndPhrase (notAtEndPhrase | {!startsNotPhrase($ctx, END)}?) (END_RETURN | {!ahead($ctx, END_RETURN)}?)
    ;
 
 returnInto
@@ -1958,7 +1986,7 @@ returnInto
 // rewrite statement
 
 rewriteStatement
-   : REWRITE recordName rewriteFrom? invalidKeyPhrase? notInvalidKeyPhrase? END_REWRITE?
+   : REWRITE recordName rewriteFrom? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_REWRITE | {!ahead($ctx, END_REWRITE)}?)
    ;
 
 rewriteFrom
@@ -1968,7 +1996,7 @@ rewriteFrom
 // search statement
 
 searchStatement
-   : SEARCH ALL? qualifiedDataName searchVarying? atEndPhrase? searchWhen+ {_input.LA(1) != WHEN}? (END_SEARCH | {_input.LA(1) != END_SEARCH}?)
+   : SEARCH ALL? qualifiedDataName searchVarying? (atEndPhrase | {!startsPhrase($ctx, END)}?) searchWhen+ {_input.LA(1) != WHEN}? (END_SEARCH | {_input.LA(1) != END_SEARCH}?)
    ;
 
 searchVarying
@@ -1982,7 +2010,7 @@ searchWhen
 // send statement
 
 sendStatement
-   : SEND (sendStatementSync | sendStatementAsync) onExceptionClause? notOnExceptionClause?
+   : SEND (sendStatementSync | sendStatementAsync) (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?)
    ;
 
 sendStatementSync
@@ -2110,7 +2138,7 @@ sortGiving
 // start statement
 
 startStatement
-   : START fileName startKey? invalidKeyPhrase? notInvalidKeyPhrase? END_START?
+   : START fileName startKey? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_START | {!ahead($ctx, END_START)}?)
    ;
 
 startKey
@@ -2130,7 +2158,7 @@ stopStatementGiving
 // string statement
 
 stringStatement
-   : STRING stringSendingPhrase+ stringIntoPhrase stringWithPointerPhrase? onOverflowPhrase? notOnOverflowPhrase? END_STRING?
+   : STRING stringSendingPhrase+ stringIntoPhrase stringWithPointerPhrase? (onOverflowPhrase | {!startsPhrase($ctx, OVERFLOW)}?) (notOnOverflowPhrase | {!startsNotPhrase($ctx, OVERFLOW)}?) (END_STRING | {!ahead($ctx, END_STRING)}?)
    ;
 
 stringSendingPhrase
@@ -2160,7 +2188,7 @@ stringWithPointerPhrase
 // subtract statement
 
 subtractStatement
-   : SUBTRACT (subtractFromStatement | subtractFromGivingStatement | subtractCorrespondingStatement) onSizeErrorPhrase? notOnSizeErrorPhrase? END_SUBTRACT?
+   : SUBTRACT (subtractFromStatement | subtractFromGivingStatement | subtractCorrespondingStatement) (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_SUBTRACT | {!ahead($ctx, END_SUBTRACT)}?)
    ;
 
 subtractFromStatement
@@ -2204,7 +2232,7 @@ terminateStatement
 // unstring statement
 
 unstringStatement
-   : UNSTRING unstringSendingPhrase unstringIntoPhrase unstringWithPointerPhrase? unstringTallyingPhrase? onOverflowPhrase? notOnOverflowPhrase? END_UNSTRING?
+   : UNSTRING unstringSendingPhrase unstringIntoPhrase unstringWithPointerPhrase? unstringTallyingPhrase? (onOverflowPhrase | {!startsPhrase($ctx, OVERFLOW)}?) (notOnOverflowPhrase | {!startsNotPhrase($ctx, OVERFLOW)}?) (END_UNSTRING | {!ahead($ctx, END_UNSTRING)}?)
    ;
 
 unstringSendingPhrase
@@ -2268,7 +2296,7 @@ useDebugOn
 // write statement
 
 writeStatement
-   : WRITE recordName writeFromPhrase? writeAdvancingPhrase? writeAtEndOfPagePhrase? writeNotAtEndOfPagePhrase? invalidKeyPhrase? notInvalidKeyPhrase? END_WRITE?
+   : WRITE recordName writeFromPhrase? writeAdvancingPhrase? (writeAtEndOfPagePhrase | {!startsPhrase($ctx, END_OF_PAGE) && !startsPhrase($ctx, EOP)}?) (writeNotAtEndOfPagePhrase | {!startsNotPhrase($ctx, END_OF_PAGE) && !startsNotPhrase($ctx, EOP)}?) (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_WRITE | {!ahead($ctx, END_WRITE)}?)
    ;
 
 writeFromPhrase
@@ -2302,7 +2330,7 @@ writeNotAtEndOfPagePhrase
 // xml parse statement
 
 xmlParseStatement
-   : XML PARSE identifier xmlEncodingPhrase? xmlReturningNationalPhrase? xmlValidatingPhrase? xmlProcessingProcedurePhrase onExceptionClause? notOnExceptionClause? END_XML?
+   : XML PARSE identifier xmlEncodingPhrase? xmlReturningNationalPhrase? xmlValidatingPhrase? xmlProcessingProcedurePhrase (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_XML | {!ahead($ctx, END_XML)}?)
    ;
 
 xmlEncodingPhrase

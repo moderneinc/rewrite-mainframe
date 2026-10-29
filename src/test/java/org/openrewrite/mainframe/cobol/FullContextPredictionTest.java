@@ -123,6 +123,28 @@ class FullContextPredictionTest {
           "notOnSizeErrorPhrase", "onOverflowPhrase", "notOnOverflowPhrase", "onExceptionClause",
           "notOnExceptionClause", "invalidKeyPhrase", "notInvalidKeyPhrase", "writeAtEndOfPagePhrase",
           "writeNotAtEndOfPagePhrase", "receiveNoData", "receiveWithData")).isZero();
+
+        assertThat(fullContextFallbacks(program, "readStatement", "addStatement", "stringStatement",
+          "callStatement", "writeStatement", "receiveIntoStatement")).isZero();
+    }
+
+    @Test
+    void statementTerminators() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENDINGS.
+          PROCEDURE DIVISION.
+              READ F INTO X AT END MOVE 1 TO Y END-READ
+              COMPUTE X = A + 1 - B ON SIZE ERROR MOVE 2 TO Y NOT ON SIZE ERROR MOVE 3 TO Y END-COMPUTE
+              STRING A DELIMITED BY SIZE INTO B END-STRING
+              UNSTRING A INTO B C END-UNSTRING
+              CALL 'P' USING A END-CALL
+              DIVIDE A BY B GIVING C END-DIVIDE
+              WRITE R FROM A END-WRITE
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "readStatement", "computeStatement", "stringStatement",
+          "unstringStatement", "callStatement", "divideStatement", "writeStatement")).isZero();
     }
 
     @Test
