@@ -658,7 +658,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             } else if (child instanceof DB2Parser.CompoundStatementContext) {
                 body = block((DB2Parser.CompoundStatementContext) child);
             } else if (child instanceof DB2Parser.TriggeredStatementContext) {
-                // A trigger whose body is a single statement has no BEGIN and no END.
+                // A trigger whose body is a single statement is a block with no BEGIN or END of its own.
                 body = new Db2.Block(randomId(), prefix((ParserRuleContext) child), Markers.EMPTY,
                         emptyList(), new ArrayList<>(words((ParserRuleContext) child)), null, null);
             } else if (child instanceof DB2Parser.EndContext) {
