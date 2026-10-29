@@ -29,6 +29,7 @@ import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
 import org.openrewrite.mainframe.cobol.tree.*;
+import org.openrewrite.mainframe.internal.StringRange;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.marker.Markers;
 
@@ -85,6 +86,10 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     // A LinkedHash map is used to collect information about the next line of code. I.E. continuation indicators.
     private final NavigableMap<Integer, String> indicatorAreas = new TreeMap<>();
     private final NavigableMap<Integer, String> commentAreas = new TreeMap<>();
+    // Where each column area starts, set along with the maps, for the scans that test every source position.
+    // A BitSet reads the position as an int, where a map lookup boxes it.
+    private final BitSet columnAreaStarts = new BitSet();
+    private final BitSet commentAreaStarts = new BitSet();
 
     private final Set<Character> commentIndicators = new HashSet<>();
     private int cursor = 0;
@@ -177,12 +182,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
                 String sequenceArea = cleanedPart.substring(columns.getSequenceArea(), Math.min(cleanedPart.length(), columns.getIndicatorArea()));
                 sequenceAreas.put(pos, sequenceArea);
+                columnAreaStarts.set(pos);
                 pos += sequenceArea.length();
 
                 String indicator = "";
                 if (cleanedPart.length() - 1 >= columns.getIndicatorArea()) {
                     indicator = cleanedPart.substring(columns.getIndicatorArea(), columns.getContentArea());
                     indicatorAreas.put(pos, indicator);
+                    columnAreaStarts.set(pos);
                     pos += indicator.length();
                 }
 
@@ -202,6 +209,8 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 String otherArea = cleanedPart.length() > otherAreaStart ? cleanedPart.substring(otherAreaStart) : "";
                 if (!otherArea.isEmpty()) {
                     commentAreas.put(pos, otherArea);
+                    columnAreaStarts.set(pos);
+                    commentAreaStarts.set(pos);
                     pos += otherArea.length();
                 }
                 pos += isCRLF ? 2 : 1; // Increment for new line delimiter.
@@ -1869,7 +1878,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.ANY(), ctx.NOT()),
-                ctx.ANY() != null ? null : visit(ctx.evaluateValue(), ctx.condition(), ctx.booleanLiteral()),
+                ctx.ANY() != null ? null : visit(ctx.evaluateValue(), ctx.condition()),
                 visitNullable(ctx.evaluateThrough())
         );
     }
@@ -5619,12 +5628,13 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Cobol.Word visitTerminal(TerminalNode node) {
+        String nodeText = node.getText();
         List<Object> objects = new ArrayList<>();
-        Space prefix = processTokenText(node.getText(), objects);
+        Space prefix = processTokenText(nodeText, objects);
         Markers markers = Markers.EMPTY;
         // The tag stands in for an EXEC block that the grammar was never handed, so the word has no text of its own.
-        String text = END_OF_FILE.equals(node.getText()) || node.getText().startsWith(EXEC_TAG) ? "" :
-                node.getText().startsWith(COMMENT_ENTRY) ? node.getText().substring(COMMENT_ENTRY.length()) : node.getText();
+        String text = END_OF_FILE.equals(nodeText) || nodeText.startsWith(EXEC_TAG) ? "" :
+                nodeText.startsWith(COMMENT_ENTRY) ? nodeText.substring(COMMENT_ENTRY.length()) : nodeText;
 
         List<CobolLine> cobolLines = null;
         Continuation continuation = null;
@@ -6045,11 +6055,11 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             char c = source.charAt(delimIndex);
 
             // Do not consume whitespace in blank column areas.
-            isColumnArea = sequenceAreas.containsKey(delimIndex) || indicatorAreas.containsKey(delimIndex) || commentAreas.containsKey(delimIndex);
+            isColumnArea = columnAreaStarts.get(delimIndex);
             if (!Character.isWhitespace(c) || isColumnArea) {
                 if (c == ',' || c == ';' && delimIndex + 1 < source.length() - 1) {
                     char next = source.charAt(delimIndex + 1);
-                    if (next == ' ' || next == '\r' || next == '\n' || commentAreas.containsKey(delimIndex + 1)) {
+                    if (next == ' ' || next == '\r' || next == '\n' || commentAreaStarts.get(delimIndex + 1)) {
                         continue;
                     }
                 }
@@ -6253,10 +6263,12 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
                 int newLinePos = source.indexOf('\n', cursor) == -1 ? source.length() : source.indexOf('\n', cursor);
                 int endOfContentArea = endOfContentArea();
-                String contentArea = source.substring(cursor, Math.min(newLinePos, endOfContentArea));
-                if (!(isCommentIndicator(indicatorArea) || contentArea.trim().isEmpty() || templateKeys.contains(contentArea))) {
+                int contentEnd = Math.min(newLinePos, endOfContentArea);
+                if (!(isCommentIndicator(indicatorArea) || isBlank(cursor, contentEnd) ||
+                      StringRange.contains(templateKeys, source, cursor, contentEnd))) {
                     break;
                 }
+                String contentArea = source.substring(cursor, contentEnd);
 
                 if (templateKeys.contains(contentArea)) {
                     if (replaceStartComment.equals(contentArea)) {
@@ -6363,7 +6375,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
             int end = 0;
             for (; matchedCount + end < text.length(); end++) {
-                if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreas.containsKey(cursor)) {
+                if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreaStarts.get(cursor)) {
                     break;
                 }
                 cursor++;
@@ -6452,7 +6464,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
                     int end = 0;
                     for (; matchedCount + end < text.length(); end++) {
-                        if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreas.containsKey(cursor)) {
+                        if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreaStarts.get(cursor)) {
                             break;
                         }
                         cursor++;

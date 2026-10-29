@@ -93,6 +93,7 @@ public class CopybookParser implements Parser {
                     new org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorParser(new CommonTokenStream(lexer));
             parser.removeErrorListeners();
             parser.addErrorListener(new ForwardingErrorListener(input.getPath()));
+            CobolParser.addPredictionListener(parser, ctx);
 
             CobolPreprocessorParserVisitor parserVisitor = new CobolPreprocessorParserVisitor(
                     input.getRelativePath(relativeTo),

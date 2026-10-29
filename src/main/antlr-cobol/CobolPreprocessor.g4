@@ -44,7 +44,33 @@ options { caseInsensitive = true; }
                         _ATN.nextTokens(_ATN.ruleToStartState[RULE_compilerOption]).contains(option.getType()));
     }
 
+    /**
+     * Whether the next token continues the CBL or PROCESS statement, as an option or a comma before one. The
+     * statement's options share its line, and a comma-led option could otherwise also start a charDataLine.
+     */
+    boolean continuesCompilerOptions() {
+        Token next = _input.LT(1);
+        if (next.getType() == EOF || next.getLine() != _input.LT(-1).getLine()) {
+            return false;
+        }
+        IntervalSet optionStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_compilerOption]);
+        return next.getType() == COMMACHAR ? optionStart.contains(_input.LA(2)) :
+                next.getType() == XOPTS || optionStart.contains(next.getType());
+    }
+
     private static IntervalSet charDataLineStart;
+
+    /**
+     * Whether a compiler option's parenthesized value follows on the same line.
+     */
+    boolean ahead(ParserRuleContext rule, int type) {
+        return _input.LA(1) == type;
+    }
+
+    boolean parenAhead(ParserRuleContext option) {
+        return _input.LA(1) == LPARENCHAR && _input.LT(1).getLine() == _input.LT(-1).getLine();
+    }
+
 
     /**
      * Whether the next token continues the charDataLine. A charDataLine takes every token it can. The rules that
@@ -66,7 +92,7 @@ compilationUnit
 // compiler options
 
 compilerOptions
-   : (PROCESS | CBL) (COMMACHAR? compilerOption | compilerXOpts)+
+   : (PROCESS | CBL) (COMMACHAR? compilerOption | compilerXOpts)+ {!continuesCompilerOptions()}?
    ;
 
 compilerXOpts
@@ -80,14 +106,14 @@ compilerOption
    | BLOCK0
    | (BUFSIZE | BUF) LPARENCHAR literal RPARENCHAR
    | CBLCARD
-   | CICS (LPARENCHAR literal RPARENCHAR)?
+   | CICS (LPARENCHAR literal RPARENCHAR | {!parenAhead($ctx)}?)
    | COBOL2 | COBOL3
    | (CODEPAGE | CP) LPARENCHAR literal RPARENCHAR
    | (COMPILE | C_CHAR)
    | CPP | CPSM
    | (CURRENCY | CURR) LPARENCHAR literal RPARENCHAR
    | DATA LPARENCHAR literal RPARENCHAR
-   | (DATEPROC | DP) (LPARENCHAR (FLAG | NOFLAG)? COMMACHAR? (TRIG | NOTRIG)? RPARENCHAR)?
+   | (DATEPROC | DP) (LPARENCHAR (FLAG | NOFLAG)? COMMACHAR? (TRIG | NOTRIG)? RPARENCHAR | {!parenAhead($ctx)}?)
    | DBCS
    | (DECK | D_CHAR)
    | DEBUG
@@ -110,13 +136,13 @@ compilerOption
    | LINKAGE | LIST
    | MAP
    | MARGINS LPARENCHAR literal COMMACHAR literal (COMMACHAR literal)? RPARENCHAR
-   | (MDECK | MD) (LPARENCHAR (C_CHAR | COMPILE | NOC | NOCOMPILE) RPARENCHAR)?
-   | NAME (LPARENCHAR (ALIAS | NOALIAS) RPARENCHAR)?
+   | (MDECK | MD) (LPARENCHAR (C_CHAR | COMPILE | NOC | NOCOMPILE) RPARENCHAR | {!parenAhead($ctx)}?)
+   | NAME (LPARENCHAR (ALIAS | NOALIAS) RPARENCHAR | {!parenAhead($ctx)}?)
    | NATLANG LPARENCHAR (CS | EN | KA) RPARENCHAR
    | NOADATA | NOADV | NOAWO
    | NOBLOCK0
    | NOCBLCARD | NOCICS | NOCMPR2
-   | (NOCOMPILE | NOC) (LPARENCHAR (S_CHAR | E_CHAR | W_CHAR) RPARENCHAR)?
+   | (NOCOMPILE | NOC) (LPARENCHAR (S_CHAR | E_CHAR | W_CHAR) RPARENCHAR | {!parenAhead($ctx)}?)
    | NOCPSM
    | (NOCURRENCY | NOCURR)
    | (NODATEPROC | NODP)
@@ -165,7 +191,7 @@ compilerOption
    | (OFFSET | OFF)
    | OPMARGINS LPARENCHAR literal COMMACHAR literal (COMMACHAR literal)? RPARENCHAR
    | OPSEQUENCE LPARENCHAR literal COMMACHAR literal RPARENCHAR
-   | (OPTIMIZE | OPT) (LPARENCHAR (FULL | STD) RPARENCHAR)?
+   | (OPTIMIZE | OPT) (LPARENCHAR (FULL | STD) RPARENCHAR | {!parenAhead($ctx)}?)
    | OPTFILE | OPTIONS | OP
    | (OUTDD | OUT) LPARENCHAR cobolWord RPARENCHAR
    | (PGMNAME | PGMN) LPARENCHAR (CO | COMPAT | LM | LONGMIXED | LONGUPPER | LU | M_CHAR | MIXED | U_CHAR | UPPER) RPARENCHAR
@@ -173,24 +199,24 @@ compilerOption
    | (QUOTE | Q_CHAR)
    | RENT
    | RMODE LPARENCHAR (ANY | AUTO | literal) RPARENCHAR
-   | (SEQUENCE | SEQ) (LPARENCHAR literal COMMACHAR literal RPARENCHAR)?
+   | (SEQUENCE | SEQ) (LPARENCHAR literal COMMACHAR literal RPARENCHAR | {!parenAhead($ctx)}?)
    | (SIZE | SZ) LPARENCHAR (MAX | literal) RPARENCHAR
    | (SOURCE | S_CHAR)
    | SP
    | SPACE LPARENCHAR literal RPARENCHAR
    | SPIE
-   | SQL (LPARENCHAR literal RPARENCHAR)?
+   | SQL (LPARENCHAR literal RPARENCHAR | {!parenAhead($ctx)}?)
    | (SQLCCSID | SQLC)
    | (SSRANGE | SSR)
    | SYSEIB
    | (TERMINAL | TERM)
-   | TEST (LPARENCHAR (HOOK | NOHOOK)? COMMACHAR? (SEP | SEPARATE | NOSEP | NOSEPARATE)? COMMACHAR? (EJPD | NOEJPD)? RPARENCHAR)?
+   | TEST (LPARENCHAR (HOOK | NOHOOK)? COMMACHAR? (SEP | SEPARATE | NOSEP | NOSEPARATE)? COMMACHAR? (EJPD | NOEJPD)? RPARENCHAR | {!parenAhead($ctx)}?)
    | THREAD
    | TRUNC LPARENCHAR (BIN | OPT | STD) RPARENCHAR
    | VBREF
    | (WORD | WD) LPARENCHAR cobolWord RPARENCHAR
    | (XMLPARSE | XP) LPARENCHAR (COMPAT | C_CHAR | XMLSS | X_CHAR) RPARENCHAR
-   | (XREF | X_CHAR) (LPARENCHAR (FULL | SHORT)? RPARENCHAR)?
+   | (XREF | X_CHAR) (LPARENCHAR (FULL | SHORT)? RPARENCHAR | {!parenAhead($ctx)}?)
    | (YEARWINDOW | YW) LPARENCHAR literal RPARENCHAR
    | ZWB
    ;
@@ -198,29 +224,29 @@ compilerOption
 // exec cics statement
 
 execCicsStatement
-   : EXEC CICS charData END_EXEC DOT?
+   : EXEC CICS charData END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // exec dli statement
 
 execDliStatement
-   : EXEC DLI charData END_EXEC DOT?
+   : EXEC DLI charData END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // exec sql statement
 
 execSqlStatement
-   : EXEC SQL charDataSql END_EXEC DOT?
+   : EXEC SQL charDataSql END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 execSqlIncludeStatement
-   : EXEC SQL INCLUDE (literal | cobolWord | filename) END_EXEC DOT?
+   : EXEC SQL INCLUDE (literal | cobolWord | filename) END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // exec sql ims statement
 
 execSqlImsStatement
-   : EXEC SQLIMS charData END_EXEC DOT?
+   : EXEC SQLIMS charData END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // copy statement
@@ -230,7 +256,7 @@ copyStatement
    ;
 
 copySource
-   : (literal | cobolWord | filename) ((OF | IN) copyLibrary)?
+   : (literal | cobolWord | filename) ((OF | IN) copyLibrary | {!ahead($ctx, OF) && !ahead($ctx, IN)}?)
    ;
 
 copyLibrary
@@ -244,7 +270,8 @@ replacingPhrase
 // replace statement
 
 replaceArea
-   : replaceByStatement (copyStatement | charData)* replaceOffStatement?
+   : replaceByStatement (copyStatement | charData)* {_input.LA(1) != COPY && !continuesCharDataLine()}?
+     (replaceOffStatement | {_input.LA(1) != REPLACE || _input.LA(2) != OFF}?)
    ;
 
 replaceByStatement
@@ -278,19 +305,19 @@ replacement
 // eject statement
 
 ejectStatement
-   : EJECT DOT?
+   : EJECT (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // skip statement
 
 skipStatement
-   : (SKIP1 | SKIP2 | SKIP3) DOT?
+   : (SKIP1 | SKIP2 | SKIP3) (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // title statement
 
 titleStatement
-   : TITLE literal DOT?
+   : TITLE literal (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // literal ----------------------------------
@@ -332,7 +359,7 @@ filename
    ;
 
 commentEntry
-   : COMMENTENTRYLINE+
+   : COMMENTENTRYLINE+ {_input.LA(1) != COMMENTENTRYLINE}?
    ;
 
 // lexer rules --------------------------------------------------------------------------------

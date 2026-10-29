@@ -123,6 +123,28 @@ class FullContextPredictionTest {
           "notOnSizeErrorPhrase", "onOverflowPhrase", "notOnOverflowPhrase", "onExceptionClause",
           "notOnExceptionClause", "invalidKeyPhrase", "notInvalidKeyPhrase", "writeAtEndOfPagePhrase",
           "writeNotAtEndOfPagePhrase", "receiveNoData", "receiveWithData")).isZero();
+
+        assertThat(fullContextFallbacks(program, "readStatement", "addStatement", "stringStatement",
+          "callStatement", "writeStatement", "receiveIntoStatement")).isZero();
+    }
+
+    @Test
+    void statementTerminators() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENDINGS.
+          PROCEDURE DIVISION.
+              READ F INTO X AT END MOVE 1 TO Y END-READ
+              COMPUTE X = A + 1 - B ON SIZE ERROR MOVE 2 TO Y NOT ON SIZE ERROR MOVE 3 TO Y END-COMPUTE
+              STRING A DELIMITED BY SIZE INTO B END-STRING
+              UNSTRING A INTO B C END-UNSTRING
+              CALL 'P' USING A END-CALL
+              DIVIDE A BY B GIVING C END-DIVIDE
+              WRITE R FROM A END-WRITE
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "readStatement", "computeStatement", "stringStatement",
+          "unstringStatement", "callStatement", "divideStatement", "writeStatement")).isZero();
     }
 
     @Test
@@ -257,6 +279,121 @@ class FullContextPredictionTest {
               STOP RUN.
           """;
         assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "charData", "charDataLine")).isZero();
+    }
+
+    @Test
+    void preprocessorStatementEndings() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENDINGS.
+          AUTHOR. *>CE A. PERSON.
+          *>CE SECOND LINE OF THE ENTRY.
+          INSTALLATION. *>CE SOMEWHERE.
+          PROCEDURE DIVISION.
+              EXEC CICS RETURN END-EXEC.
+              EXEC SQL SELECT A INTO :B FROM T END-EXEC.
+              EXEC SQL INCLUDE SQLCA END-EXEC.
+              STOP RUN.
+          """;
+        assertThat(preprocessorFullContextFallbacks(program, "commentEntry")).isZero();
+
+        assertThat(preprocessorFullContextFallbacks(program, "execCicsStatement", "execSqlStatement",
+          "execSqlIncludeStatement")).isZero();
+    }
+
+    @Test
+    void overlappingAlternatives() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. OVERLAP.
+          PROCEDURE DIVISION.
+              MOVE E (I) TO X
+              MOVE E (I J) TO X
+              MOVE E (1) TO X
+              MOVE E (I + 1) TO X
+              MOVE E (I +1) TO X
+              MOVE E (I OF T) TO X
+              MOVE E (F (1)) TO X
+              MOVE DFHVALUE(NOUCTRAN) TO X
+              IF A = 1 AND B = 2 OR C = 3 MOVE 1 TO Y END-IF
+              IF A = 1 AND 2 OR NOT 3 MOVE 1 TO Y END-IF
+              IF A = 1 AND B NOT = 2 MOVE 1 TO Y END-IF
+              IF A = 1 AND (B = 2 OR C = 3) MOVE 1 TO Y END-IF
+              IF FLAG-ON AND NOT FLAG-OFF MOVE 1 TO Y END-IF
+              COMPUTE X = (A + B) * C - 1
+              COMPUTE X = A - WS-LEN + 1
+              COMPUTE X = DFHRESP(NORMAL)
+              EVALUATE A
+                 WHEN 1 MOVE 1 TO Y
+                 WHEN 'X' MOVE 2 TO Y
+                 WHEN B MOVE 3 TO Y
+                 WHEN A + 1 MOVE 5 TO Y
+                 WHEN NOT 2 MOVE 6 TO Y
+                 WHEN 1 THRU 5 MOVE 7 TO Y
+                 WHEN OTHER MOVE 8 TO Y
+              END-EVALUATE
+              EVALUATE TRUE ALSO A
+                 WHEN A = 1 ALSO ANY MOVE 1 TO Y
+              END-EVALUATE
+              EVALUATE 'A' WHEN 'A' MOVE 1 TO Y END-EVALUATE
+              EVALUATE A + 1 WHEN 2 MOVE 1 TO Y END-EVALUATE
+              EVALUATE A = B WHEN TRUE MOVE 1 TO Y END-EVALUATE
+              EVALUATE (A = 1) WHEN TRUE MOVE 1 TO Y END-EVALUATE
+              EVALUATE TRUE
+                 WHEN PFK07 AND FIRST-PAGE MOVE 1 TO Y
+                 WHEN PFK07 AND NOT FIRST-PAGE MOVE 2 TO Y
+              END-EVALUATE
+              IF (PGM-ENTER AND FROM-PROGRAM NOT EQUAL THIS-PGM) MOVE 1 TO Y END-IF
+              IF A = 1 AND 2 AND 3 MOVE 1 TO Y END-IF
+              SET PGM-ENTER TO TRUE
+              MOVE ALL 'X' TO Y
+              MOVE FUNCTION INTEGER (A) TO Y
+              IF A = 1 NEXT SENTENCE ELSE NEXT SENTENCE END-IF
+              CALL 'P' USING BY CONTENT LENGTH OF A BY VALUE B BY REFERENCE C
+              DIVIDE A INTO B GIVING C
+              DIVIDE A INTO B C ROUNDED
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "subscript", "andOrCondition", "basis", "arithmeticExpression",
+          "evaluateSelect", "evaluateCondition", "moveToSendingArea", "callByContent", "callByValue",
+          "callByReference", "divideStatement", "moveStatement", "functionName", "ifThen", "ifElse")).isZero();
+    }
+
+    @Test
+    void lineLoopsAndNestedPrograms() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. OUTER.
+          PROCEDURE DIVISION USING A B BY VALUE C D.
+          *>EXECCICS EXEC CICS SEND MAP('M')
+          *>EXECCICS END-EXEC
+              STOP RUN.
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. INNER.
+          PROCEDURE DIVISION.
+              STOP RUN.
+          END PROGRAM INNER.
+          END PROGRAM OUTER.
+          """;
+        assertThat(fullContextFallbacks(program, "programUnit", "procedureDivisionByReferencePhrase",
+          "procedureDivisionByValuePhrase", "execCicsStatement")).isZero();
+    }
+
+    @Test
+    void preprocessorCompilerOptionsAndCopyLibraries() {
+        String program = """
+          CBL CICS,DATEPROC,TEST,XREF(FULL),SQL('X'),NAME,OPT
+          CBL CICS('SP'),DATEPROC(FLAG,TRIG),TEST(HOOK,SEP),MDECK(C)
+          PROCESS ADATA,DBCS
+          *> a comment line
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. OPTS.
+          PROCEDURE DIVISION.
+              COPY X IN MYLIB.
+              COPY Y.
+              STOP RUN.
+          """;
+        assertThat(preprocessorFullContextFallbacks(program, "compilerOptions", "compilerOption", "copySource")).isZero();
     }
 
     private static long fullContextFallbacks(String program, String... rules) {

@@ -59,6 +59,12 @@ public class CobolParser implements Parser {
     private static final Pattern IDENTIFICATION_DIVISION =
             Pattern.compile("\\bID(ENTIFICATION)?\\s+DIVISION\\b", Pattern.CASE_INSENSITIVE);
 
+    /**
+     * An {@link org.antlr.v4.runtime.ANTLRErrorListener} under this key in the execution context is added to
+     * every ANTLR parser, so that a test can watch prediction fall back to full context.
+     */
+    public static final String PREDICTION_LISTENER = "org.openrewrite.mainframe.cobol.predictionListener";
+
     private final CobolDialect cobolDialect;
     private final List<SourceFile> copybooks;
     private final Duration timeout;
@@ -72,6 +78,13 @@ public class CobolParser implements Parser {
 
         ParsingEventListener parserListener = ParsingExecutionContextView.view(ctx).getParsingListener();
         return acceptedInputs(sourceFiles).map(s -> parseInput(s, relativeTo, ctx, cobolPreprocessorParser, parserListener));
+    }
+
+    static void addPredictionListener(org.antlr.v4.runtime.Parser parser, ExecutionContext ctx) {
+        org.antlr.v4.runtime.ANTLRErrorListener listener = ctx.getMessage(PREDICTION_LISTENER);
+        if (listener != null) {
+            parser.addErrorListener(listener);
+        }
     }
 
     private SourceFile parseInput(Input input, @Nullable Path relativeTo, ExecutionContext ctx,
@@ -101,6 +114,7 @@ public class CobolParser implements Parser {
                     }};
             parser.removeErrorListeners();
             parser.addErrorListener(new ForwardingErrorListener(input.getPath()));
+            addPredictionListener(parser, ctx);
 
             // Print the pre-processed code to parse COBOL.
             PrintOutputCapture<ExecutionContext> sourceOutput = new PrintOutputCapture<>(new InMemoryExecutionContext());

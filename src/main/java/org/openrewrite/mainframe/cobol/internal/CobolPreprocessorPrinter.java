@@ -19,6 +19,8 @@ import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Space;
 
+import static org.openrewrite.mainframe.cobol.CobolPrinterUtils.endsWithNewline;
+
 /**
  * Print the original preprocessed COBOL.
  * Note: All the logic to print column areas exists in visitWord.
@@ -53,7 +55,7 @@ public class CobolPreprocessorPrinter<P> extends CobolPreprocessorSourcePrinter<
         if (copyStatement.getCopybook() != null) {
             beforeSyntax(copyStatement, Space.Location.COPY_STATEMENT_PREFIX, p);
             visit(copyStatement.getCopybook(), p);
-            if (!p.getOut().endsWith("\n")) {
+            if (!endsWithNewline(p.out)) {
                 p.append("\n");
             }
             afterSyntax(copyStatement, p);
@@ -69,7 +71,7 @@ public class CobolPreprocessorPrinter<P> extends CobolPreprocessorSourcePrinter<
         if (execSqlIncludeStatement.getCopybook() != null) {
             beforeSyntax(execSqlIncludeStatement, Space.Location.EXEC_SQL_INCLUDE_STATEMENT_PREFIX, p);
             visit(execSqlIncludeStatement.getCopybook(), p);
-            if (!p.getOut().endsWith("\n")) {
+            if (!endsWithNewline(p.out)) {
                 p.append("\n");
             }
             afterSyntax(execSqlIncludeStatement, p);

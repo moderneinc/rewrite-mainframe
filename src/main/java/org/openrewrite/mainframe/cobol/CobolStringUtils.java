@@ -20,7 +20,6 @@ import lombok.NoArgsConstructor;
 import org.openrewrite.mainframe.cobol.internal.CobolDialect;
 
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -30,8 +29,6 @@ import static java.util.Collections.unmodifiableSet;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CobolStringUtils {
-
-    private static final String EMPTY_STRING = "";
 
     /**
      * Indicator area characters that mark a debugging line.
@@ -70,11 +67,31 @@ public class CobolStringUtils {
     }
 
     public static String trimLeadingWhitespace(String contentArea) {
-        return contentArea.replaceAll("^\\s+", EMPTY_STRING);
+        return contentArea.substring(leadingWhitespaceLength(contentArea));
     }
 
     public static String trimTrailingWhitespace(String contentArea) {
-        return contentArea.replaceAll("\\s+$", EMPTY_STRING);
+        return contentArea.substring(0, contentArea.length() - trailingWhitespaceLength(contentArea));
+    }
+
+    public static int leadingWhitespaceLength(String text) {
+        int i = 0;
+        while (i < text.length() && isAsciiWhitespace(text.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    public static int trailingWhitespaceLength(String text) {
+        int i = text.length();
+        while (i > 0 && isAsciiWhitespace(text.charAt(i - 1))) {
+            i--;
+        }
+        return text.length() - i;
+    }
+
+    private static boolean isAsciiWhitespace(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\u000B' || c == '\f' || c == '\r';
     }
 
     /**
@@ -110,8 +127,13 @@ public class CobolStringUtils {
         if (i >= 7) {
             return -1;
         }
-        String rest = line.substring(i).toUpperCase(Locale.ROOT);
-        return rest.equals("CBL") || rest.startsWith("CBL ") || rest.equals("PROCESS") || rest.startsWith("PROCESS ") ? i : -1;
+        return isWordAt(line, i, "CBL") || isWordAt(line, i, "PROCESS") ? i : -1;
+    }
+
+    private static boolean isWordAt(String line, int index, String word) {
+        int end = index + word.length();
+        return line.regionMatches(true, index, word, 0, word.length()) &&
+               (end == line.length() || line.charAt(end) == ' ');
     }
 
     public static boolean isSubstituteCharacter(String text) {
