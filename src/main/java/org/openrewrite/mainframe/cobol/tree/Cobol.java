@@ -9746,4 +9746,89 @@ public interface Cobol extends Tree {
             return v.visitWriteFromPhrase(this, p);
         }
     }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class XmlParse implements Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+        Name identifier;
+
+        @Nullable
+        XmlParsePhrase encoding;
+
+        @Nullable
+        XmlParsePhrase returningNational;
+
+        @Nullable
+        XmlParsePhrase validating;
+
+        XmlParseProcessingProcedure processingProcedure;
+
+        @Nullable
+        StatementPhrase onExceptionClause;
+
+        @Nullable
+        StatementPhrase notOnExceptionClause;
+
+        @Nullable
+        Word endXml;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitXmlParse(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class XmlParsePhrase implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+
+        @Nullable
+        Name value;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitXmlParsePhrase(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class XmlParseProcessingProcedure implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+        ProcedureName procedureName;
+
+        @Nullable
+        Word through;
+
+        @Nullable
+        ProcedureName throughProcedure;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitXmlParseProcessingProcedure(this, p);
+        }
+    }
 }

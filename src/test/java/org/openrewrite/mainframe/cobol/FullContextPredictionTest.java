@@ -32,10 +32,10 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Pins that the predicates on optional statement-list endings keep SLL prediction from retrying with full context.
- * The rationale sits with {@code startsStatement} in the grammar.
+ * Pins the decisions where SLL prediction never retries with full context. The statement-list predicates are
+ * explained at {@code startsStatement} in the grammar, and the identifier rule at {@code visitIdentifier}.
  */
-class StatementListPredictionTest {
+class FullContextPredictionTest {
 
     @Test
     void nestedIfsWithoutEndIf() {
@@ -120,6 +120,120 @@ class StatementListPredictionTest {
           "notOnSizeErrorPhrase", "onOverflowPhrase", "notOnOverflowPhrase", "onExceptionClause",
           "notOnExceptionClause", "invalidKeyPhrase", "notInvalidKeyPhrase", "writeAtEndOfPagePhrase",
           "writeNotAtEndOfPagePhrase", "receiveNoData", "receiveWithData")).isZero();
+    }
+
+    @Test
+    void subscriptedAndReferenceModifiedNames() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. SUBSCR.
+          PROCEDURE DIVISION.
+              MOVE A (1) TO B (I, J).
+              MOVE WS-DATE (1:8) TO C (K) (3:2).
+              IF D (I) = E (1:2) DISPLAY F (I) G.
+              MOVE H IN T (I) TO C OF R OF T (I, J) (1:2).
+              MOVE T (A (1)) TO W.
+              MOVE FUNCTION MAX(A (1) B) TO W (1:2).
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "identifier", "qualifiedInData")).isZero();
+    }
+
+    @Test
+    void pictureStrings() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. PICS.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  A   PIC X(10).
+          01  B   PIC S9(5)V99.
+          01  C   PIC ZZ,ZZ9.99-.
+          01  D   PIC 9(3)V9(2) VALUE 1.5.
+          01  E   PIC XX OCCURS 3 TIMES.
+          01  F   PICTURE IS $$$9 COMP-3.
+          PROCEDURE DIVISION.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "pictureString", "pictureCardinality")).isZero();
+    }
+
+    @Test
+    void dataDescriptionEntriesAndQualifiedNames() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENTRIES.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  WS-REC.
+              05  WS-A        PIC X(4) VALUE 'ABCD'.
+              05  FILLER      PIC X VALUE SPACE.
+              05  WS-N        PIC 9(3) COMP VALUE 7.
+                  88  WS-N-SET    VALUE 1 THRU 9.
+              05  WS-T OCCURS 3 TIMES INDEXED BY WS-I.
+                  10  WS-E    PIC X.
+          01  WS-OLD REDEFINES WS-REC PIC X(20).
+          01  WS-BIN          BINARY PIC 9(4).
+          PROCEDURE DIVISION.
+              MOVE WS-A OF WS-REC TO WS-E OF WS-T IN WS-REC (1).
+              IF WS-N-SET MOVE 1 TO WS-N.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "qualifiedDataName", "qualifiedDataNameFormat1",
+          "dataDescriptionEntryFormat1", "dataValueClause")).isZero();
+    }
+
+    @Test
+    void foldedAlternatives() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. FOLDS.
+          ENVIRONMENT DIVISION.
+          INPUT-OUTPUT SECTION.
+          FILE-CONTROL.
+              SELECT IN-FILE ASSIGN TO INDD.
+              SELECT OUT-FILE ASSIGN TO OUTDD.
+          DATA DIVISION.
+          FILE SECTION.
+          FD  IN-FILE.
+          01  IN-REC   PIC X(80).
+          FD  OUT-FILE.
+          01  OUT-REC  PIC X(80).
+          WORKING-STORAGE SECTION.
+          01  I        PIC 9.
+          01  J        PIC 9.
+          01  T.
+              05  E OCCURS 3 TIMES PIC X.
+          01  FLAGS    PIC X.
+              88  DONE  VALUE 'Y'.
+          PROCEDURE DIVISION USING IN-REC OUT-REC.
+          MAIN SECTION.
+          START-PARA.
+              PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+                 MOVE E (I) TO OUT-REC
+              END-PERFORM.
+              PERFORM VARYING I FROM J BY I UNTIL DONE
+                 CONTINUE
+              END-PERFORM.
+              EVALUATE I
+                WHEN 1 CONTINUE
+                WHEN J CONTINUE
+                WHEN ZERO CONTINUE
+                WHEN J + 1 CONTINUE
+              END-EVALUATE.
+              CALL 'SUB' USING IN-REC OUT-REC BY VALUE I BY REFERENCE J.
+              CALL 'SUB' USING BY REFERENCE I J.
+              MOVE FUNCTION MAX(I J) (1:1) TO FLAGS.
+              IF DONE OF FLAGS GO TO END-PARA IN MAIN.
+              GO TO START-PARA END-PARA DEPENDING ON I.
+              GO TO END-PARA.
+          END-PARA.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "procedureName", "paragraph", "goToStatement", "callByReference",
+          "callByReferencePhrase", "callUsingPhrase", "procedureDivisionByReference", "conditionNameReference",
+          "literal", "numericLiteral", "argument", "evaluateValue", "performBy", "performFrom", "functionCall",
+          "fileControlParagraph")).isZero();
     }
 
     /**

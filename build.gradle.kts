@@ -14,9 +14,11 @@ tasks.register<JavaExec>("generateAntlrSourcesCobol") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
         "-o", "src/main/java/org/openrewrite/mainframe/cobol/internal/grammar",
+        // CobolParser.g4 reads its token types from CobolLexer.tokens, so the sorted order generates the lexer first.
+        "-lib", "src/main/java/org/openrewrite/mainframe/cobol/internal/grammar",
         "-package", "org.openrewrite.mainframe.cobol.internal.grammar",
         "-visitor"
-    ) + fileTree("src/main/antlr-cobol").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-cobol").matching { include("**/*.g4") }.map { it.path }.sorted()
 
     classpath = configurations["antlr"]
 
