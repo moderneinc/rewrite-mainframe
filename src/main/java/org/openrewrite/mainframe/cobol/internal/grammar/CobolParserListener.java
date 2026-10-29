@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from src/main/antlr-cobol/Cobol.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-cobol/CobolParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.cobol.internal.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -21,7 +21,7 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  * This interface defines a complete listener for a parse tree produced by
  * {@link CobolParser}.
  */
-public interface CobolListener extends ParseTreeListener {
+public interface CobolParserListener extends ParseTreeListener {
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#compilationUnit}.
 	 * @param ctx the parse tree
@@ -2402,16 +2402,6 @@ public interface CobolListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitPictureString(CobolParser.PictureStringContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#pictureChars}.
-	 * @param ctx the parse tree
-	 */
-	void enterPictureChars(CobolParser.PictureCharsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#pictureChars}.
-	 * @param ctx the parse tree
-	 */
-	void exitPictureChars(CobolParser.PictureCharsContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#pictureCardinality}.
 	 * @param ctx the parse tree

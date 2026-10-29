@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from src/main/antlr-cobol/Cobol.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-cobol/CobolParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.cobol.internal.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -24,7 +24,7 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  * @param <T> The return type of the visit operation. Use {@link Void} for
  * operations with no return type.
  */
-public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
+public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#compilationUnit}.
 	 * @param ctx the parse tree
@@ -1453,12 +1453,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitPictureString(CobolParser.PictureStringContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#pictureChars}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitPictureChars(CobolParser.PictureCharsContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#pictureCardinality}.
 	 * @param ctx the parse tree

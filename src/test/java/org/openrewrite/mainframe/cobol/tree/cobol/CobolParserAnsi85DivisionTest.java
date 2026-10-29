@@ -386,12 +386,6 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                     77 SUM FUNCTION INTEGER (ZERO,ZERO,ZERO,).
         """,
       """
-        000000* pictureChars.
-               DATA DIVISION.
-               WORKING-STORAGE SECTION.
-                 02  FILLER PIC Z1,Z2,Z3,.
-        """,
-      """
         000000* reportGroupSumClause.
                DATA DIVISION.
                REPORT SECTION.
@@ -1685,19 +1679,20 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000008 01  D   PIC 9(3)V9(2).
               000009 01  E   PIC XX.
               000010 01  F   PICTURE IS $$$9 VALUE 0.
+              000011 01  G   PIC ZZ9,.
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<String> pictures = new CobolIsoVisitor<List<String>>() {
                     @Override
                     public Cobol.PictureString visitPictureString(Cobol.PictureString pictureString, List<String> found) {
                         found.add(pictureString.getPictures().stream().map(picture ->
-                          picture.getWords().stream().map(Cobol.Word::getWord).collect(joining()) +
+                          picture.getWords().stream().map(Cobol.Word::getWord).collect(joining("|")) +
                           (picture.getParenthesized() == null ? "" : picture.getParenthesized().printTrimmed(getCursor()))
                         ).collect(joining(" ")));
                         return super.visitPictureString(pictureString, found);
                     }
                 }.reduce(cu, new ArrayList<>());
-                assertThat(pictures).containsExactly("X(10)", "S9(5) V99", "ZZ,ZZ9.99-", "9(3) V9(2)", "XX", "$$$9");
+                assertThat(pictures).containsExactly("X(10)", "S9(5) V99", "ZZ,ZZ9.99-", "9(3) V9(2)", "XX", "$$$9", "ZZ9,");
             })
           )
         );

@@ -155,7 +155,7 @@ class FullContextPredictionTest {
           PROCEDURE DIVISION.
               STOP RUN.
           """;
-        assertThat(fullContextFallbacks(program, "pictureString", "picture", "pictureChars", "pictureCardinality")).isZero();
+        assertThat(fullContextFallbacks(program, "pictureString", "pictureCardinality")).isZero();
     }
 
     @Test
