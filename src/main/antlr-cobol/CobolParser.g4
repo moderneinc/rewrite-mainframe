@@ -95,7 +95,7 @@ options { tokenVocab = CobolLexer; }
     }
 
     static final int OPERAND = 1, EXPRESSION = 2, CONDITION = 3;
-    private static IntervalSet operandStart, cobolWordStart, integerLiteralStart, byReferenceStart;
+    private static IntervalSet operandStart, cobolWordStart, integerLiteralStart, byReferenceStart, byValueStart;
 
     private IntervalSet firstOf(int rule) {
         return _ATN.nextTokens(_ATN.ruleToStartState[rule]);
@@ -296,6 +296,22 @@ options { tokenVocab = CobolLexer; }
             byReferenceStart = firstOf(RULE_procedureDivisionByReference);
         }
         return byReferenceStart.contains(_input.LA(1));
+    }
+
+    boolean startsByValue(ParserRuleContext phrase) {
+        if (byValueStart == null) {
+            byValueStart = firstOf(RULE_procedureDivisionByValue);
+        }
+        return byValueStart.contains(_input.LA(1));
+    }
+
+    boolean namedFunctionAhead(ParserRuleContext name) {
+        switch (_input.LA(1)) {
+            case INTEGER: case LENGTH: case RANDOM: case SUM: case WHEN_COMPILED:
+                return true;
+            default:
+                return false;
+        }
     }
 }
 
@@ -1408,7 +1424,7 @@ procedureDivisionByReference
    ;
 
 procedureDivisionByValuePhrase
-   : BY? VALUE procedureDivisionByValue+
+   : BY? VALUE procedureDivisionByValue+ {!startsByValue($ctx)}?
    ;
 
 procedureDivisionByValue
@@ -1836,11 +1852,11 @@ ifStatement
    ;
 
 ifThen
-   : THEN? (NEXT SENTENCE | imperativeStatements)
+   : THEN? (NEXT SENTENCE | {!ahead($ctx, NEXT)}? imperativeStatements)
    ;
 
 ifElse
-   : ELSE (NEXT SENTENCE | imperativeStatements)
+   : ELSE (NEXT SENTENCE | {!ahead($ctx, NEXT)}? imperativeStatements)
    ;
 
 // initialize statement
@@ -1970,7 +1986,7 @@ mergeGiving
 // move statement
 
 moveStatement
-   : MOVE ALL? (moveToStatement | moveCorrespondingToStatement)
+   : MOVE (ALL | {!ahead($ctx, ALL)}?) (moveToStatement | moveCorrespondingToStatement)
    ;
 
 moveToStatement
@@ -2815,7 +2831,7 @@ fileName
    ;
 
 functionName
-   : INTEGER | LENGTH | RANDOM | SUM | WHEN_COMPILED | cobolWord
+   : INTEGER | LENGTH | RANDOM | SUM | WHEN_COMPILED | {!namedFunctionAhead($ctx)}? cobolWord
    ;
 
 indexName

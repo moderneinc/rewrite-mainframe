@@ -63,6 +63,10 @@ options { caseInsensitive = true; }
     /**
      * Whether a compiler option's parenthesized value follows on the same line.
      */
+    boolean ahead(ParserRuleContext rule, int type) {
+        return _input.LA(1) == type;
+    }
+
     boolean parenAhead(ParserRuleContext option) {
         return _input.LA(1) == LPARENCHAR && _input.LT(1).getLine() == _input.LT(-1).getLine();
     }
@@ -252,7 +256,7 @@ copyStatement
    ;
 
 copySource
-   : (literal | cobolWord | filename) ((OF | IN) copyLibrary)?
+   : (literal | cobolWord | filename) ((OF | IN) copyLibrary | {!ahead($ctx, OF) && !ahead($ctx, IN)}?)
    ;
 
 copyLibrary

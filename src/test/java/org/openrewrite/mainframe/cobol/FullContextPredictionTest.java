@@ -346,6 +346,9 @@ class FullContextPredictionTest {
               IF (PGM-ENTER AND FROM-PROGRAM NOT EQUAL THIS-PGM) MOVE 1 TO Y END-IF
               IF A = 1 AND 2 AND 3 MOVE 1 TO Y END-IF
               SET PGM-ENTER TO TRUE
+              MOVE ALL 'X' TO Y
+              MOVE FUNCTION INTEGER (A) TO Y
+              IF A = 1 NEXT SENTENCE ELSE NEXT SENTENCE END-IF
               CALL 'P' USING BY CONTENT LENGTH OF A BY VALUE B BY REFERENCE C
               DIVIDE A INTO B GIVING C
               DIVIDE A INTO B C ROUNDED
@@ -353,7 +356,7 @@ class FullContextPredictionTest {
           """;
         assertThat(fullContextFallbacks(program, "subscript", "andOrCondition", "basis", "arithmeticExpression",
           "evaluateSelect", "evaluateCondition", "moveToSendingArea", "callByContent", "callByValue",
-          "callByReference", "divideStatement")).isZero();
+          "callByReference", "divideStatement", "moveStatement", "functionName", "ifThen", "ifElse")).isZero();
     }
 
     @Test
@@ -361,7 +364,7 @@ class FullContextPredictionTest {
         String program = """
           IDENTIFICATION DIVISION.
           PROGRAM-ID. OUTER.
-          PROCEDURE DIVISION USING A B BY VALUE C.
+          PROCEDURE DIVISION USING A B BY VALUE C D.
           *>EXECCICS EXEC CICS SEND MAP('M')
           *>EXECCICS END-EXEC
               STOP RUN.
@@ -373,11 +376,11 @@ class FullContextPredictionTest {
           END PROGRAM OUTER.
           """;
         assertThat(fullContextFallbacks(program, "programUnit", "procedureDivisionByReferencePhrase",
-          "execCicsStatement")).isZero();
+          "procedureDivisionByValuePhrase", "execCicsStatement")).isZero();
     }
 
     @Test
-    void preprocessorCompilerOptions() {
+    void preprocessorCompilerOptionsAndCopyLibraries() {
         String program = """
           CBL CICS,DATEPROC,TEST,XREF(FULL),SQL('X'),NAME,OPT
           CBL CICS('SP'),DATEPROC(FLAG,TRIG),TEST(HOOK,SEP),MDECK(C)
@@ -386,9 +389,11 @@ class FullContextPredictionTest {
           IDENTIFICATION DIVISION.
           PROGRAM-ID. OPTS.
           PROCEDURE DIVISION.
+              COPY X IN MYLIB.
+              COPY Y.
               STOP RUN.
           """;
-        assertThat(preprocessorFullContextFallbacks(program, "compilerOptions", "compilerOption")).isZero();
+        assertThat(preprocessorFullContextFallbacks(program, "compilerOptions", "compilerOption", "copySource")).isZero();
     }
 
     private static long fullContextFallbacks(String program, String... rules) {
