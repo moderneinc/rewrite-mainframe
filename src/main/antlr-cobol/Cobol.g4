@@ -339,7 +339,7 @@ inputOutputSectionParagraph
 // - file control paragraph ----------------------------------
 
 fileControlParagraph
-   : FILE_CONTROL? (DOT_FS? fileControlEntry)* DOT_FS
+   : FILE_CONTROL (DOT_FS? fileControlEntry)* DOT_FS
    ;
 
 fileControlEntry
@@ -1197,7 +1197,7 @@ procedureDivisionByReferencePhrase
    ;
 
 procedureDivisionByReference
-   : (OPTIONAL? (identifier | fileName)) | ANY
+   : (OPTIONAL? identifier) | ANY
    ;
 
 procedureDivisionByValuePhrase
@@ -1235,7 +1235,7 @@ paragraphs
    ;
 
 paragraph
-   : paragraphName DOT_FS? (alteredGoTo | sentence*)
+   : paragraphName DOT_FS (alteredGoTo | sentence*)
    ;
 
 sentence
@@ -1333,19 +1333,23 @@ callStatement
    ;
 
 callUsingPhrase
-   : USING callUsingParameter+
+   : USING (callByReferenceBarePhrase callUsingParameter* | callUsingParameter+)
    ;
 
 callUsingParameter
    : callByReferencePhrase | callByValuePhrase | callByContentPhrase
    ;
 
+callByReferenceBarePhrase
+   : callByReference+
+   ;
+
 callByReferencePhrase
-   : (BY? REFERENCE)? callByReference+
+   : BY? REFERENCE callByReference+
    ;
 
 callByReference
-   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal | fileName) | OMITTED
+   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal) | OMITTED
    ;
 
 callByValuePhrase
@@ -1550,7 +1554,7 @@ evaluateWhenOther
    ;
 
 evaluateValue
-   : identifier | literal | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // exec cics statement
@@ -1610,15 +1614,7 @@ gobackStatement
 // goto statement
 
 goToStatement
-   : GO TO? (goToStatementSimple | goToDependingOnStatement)
-   ;
-
-goToStatementSimple
-   : procedureName
-   ;
-
-goToDependingOnStatement
-   : MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?
+   : GO TO? (MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?)
    ;
 
 // if statement
@@ -1886,11 +1882,11 @@ performAfter
    ;
 
 performFrom
-   : FROM (identifier | literal | arithmeticExpression)
+   : FROM arithmeticExpression
    ;
 
 performBy
-   : BY (identifier | literal | arithmeticExpression)
+   : BY arithmeticExpression
    ;
 
 performTestClause
@@ -2418,7 +2414,7 @@ classCondition
    ;
 
 conditionNameReference
-   : conditionName (inData* inFile? conditionNameSubscriptReference* | inMnemonic*)
+   : conditionName inData* conditionNameSubscriptReference*
    ;
 
 conditionNameSubscriptReference
@@ -2466,7 +2462,7 @@ tableCallSubscripts
     ;
 
 functionCall
-   : FUNCTION functionName functionCallArguments* referenceModifier?
+   : FUNCTION functionName functionCallArguments* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}?
    ;
 
 functionCallArguments
@@ -2486,11 +2482,11 @@ length
    ;
 
 subscript
-   : ALL | integerLiteral | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : ALL | integerLiteral | qualifiedDataName integerLiteral? | arithmeticExpression
    ;
 
 argument
-   : literal | identifier | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // qualified data name ----------------------------------
@@ -2604,7 +2600,7 @@ paragraphName
    ;
 
 procedureName
-   : paragraphName inSection? | sectionName
+   : paragraphName inSection?
    ;
 
 programName
@@ -2677,7 +2673,7 @@ booleanLiteral
    ;
 
 numericLiteral
-   : NUMERICLITERAL | ZERO | integerLiteral
+   : NUMERICLITERAL | integerLiteral
    ;
 
 integerLiteral

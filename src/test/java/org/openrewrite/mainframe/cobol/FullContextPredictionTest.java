@@ -183,6 +183,59 @@ class FullContextPredictionTest {
           "dataDescriptionEntryFormat1", "dataValueClause")).isZero();
     }
 
+    @Test
+    void foldedAlternatives() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. FOLDS.
+          ENVIRONMENT DIVISION.
+          INPUT-OUTPUT SECTION.
+          FILE-CONTROL.
+              SELECT IN-FILE ASSIGN TO INDD.
+              SELECT OUT-FILE ASSIGN TO OUTDD.
+          DATA DIVISION.
+          FILE SECTION.
+          FD  IN-FILE.
+          01  IN-REC   PIC X(80).
+          FD  OUT-FILE.
+          01  OUT-REC  PIC X(80).
+          WORKING-STORAGE SECTION.
+          01  I        PIC 9.
+          01  J        PIC 9.
+          01  T.
+              05  E OCCURS 3 TIMES PIC X.
+          01  FLAGS    PIC X.
+              88  DONE  VALUE 'Y'.
+          PROCEDURE DIVISION USING IN-REC OUT-REC.
+          MAIN SECTION.
+          START-PARA.
+              PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+                 MOVE E (I) TO OUT-REC
+              END-PERFORM.
+              PERFORM VARYING I FROM J BY I UNTIL DONE
+                 CONTINUE
+              END-PERFORM.
+              EVALUATE I
+                WHEN 1 CONTINUE
+                WHEN J CONTINUE
+                WHEN ZERO CONTINUE
+                WHEN J + 1 CONTINUE
+              END-EVALUATE.
+              CALL 'SUB' USING IN-REC OUT-REC BY VALUE I BY REFERENCE J.
+              CALL 'SUB' USING BY REFERENCE I J.
+              MOVE FUNCTION MAX(I J) (1:1) TO FLAGS.
+              IF DONE OF FLAGS GO TO END-PARA IN MAIN.
+              GO TO START-PARA END-PARA DEPENDING ON I.
+              GO TO END-PARA.
+          END-PARA.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "procedureName", "paragraph", "goToStatement", "callByReference",
+          "callByReferencePhrase", "callUsingPhrase", "procedureDivisionByReference", "conditionNameReference",
+          "literal", "numericLiteral", "argument", "evaluateValue", "performBy", "performFrom", "functionCall",
+          "fileControlParagraph")).isZero();
+    }
+
     /**
      * How often prediction in the decisions of the given rules retried with full context, over one parse of the
      * program. The program is the text the preprocessor hands the grammar, so it carries no sequence numbers.

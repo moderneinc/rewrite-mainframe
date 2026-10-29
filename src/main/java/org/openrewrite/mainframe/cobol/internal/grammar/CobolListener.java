@@ -2963,6 +2963,16 @@ public interface CobolListener extends ParseTreeListener {
 	 */
 	void exitCallUsingParameter(CobolParser.CallUsingParameterContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolParser#callByReferenceBarePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#callByReferenceBarePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolParser#callByReferencePhrase}.
 	 * @param ctx the parse tree
 	 */
@@ -3542,26 +3552,6 @@ public interface CobolListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitGoToStatement(CobolParser.GoToStatementContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#goToStatementSimple}.
-	 * @param ctx the parse tree
-	 */
-	void enterGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#goToStatementSimple}.
-	 * @param ctx the parse tree
-	 */
-	void exitGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolParser#goToDependingOnStatement}.
-	 * @param ctx the parse tree
-	 */
-	void enterGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#goToDependingOnStatement}.
-	 * @param ctx the parse tree
-	 */
-	void exitGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#ifStatement}.
 	 * @param ctx the parse tree
