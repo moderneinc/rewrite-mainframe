@@ -552,6 +552,7 @@ public class Space {
         SEND_STATEMENT_SYNC_PREFIX,
         SENTENCE_PREFIX,
         SEQUENCE_AREA_PREFIX,
+        SERVICE_PREFIX,
         SET_PREFIX,
         SET_TO_PREFIX,
         SET_UP_DOWN_PREFIX,

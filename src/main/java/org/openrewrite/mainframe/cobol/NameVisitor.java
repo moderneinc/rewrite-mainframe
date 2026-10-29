@@ -2505,6 +2505,12 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     }
 
     @Override
+    public Cobol.Service visitService(Cobol.Service service, P p) {
+        Cobol.Service s = service;
+        return s.withIdentifier(visitAndCast(s.getIdentifier(), p));
+    }
+
+    @Override
     public Cobol.Set visitSet(Cobol.Set set, P p) {
         Cobol.Set s = set;
         s = s.withTo(ListUtils.map(s.getTo(), e -> visitAndCast(e, p)));

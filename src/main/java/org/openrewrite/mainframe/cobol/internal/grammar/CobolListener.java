@@ -4543,6 +4543,16 @@ public interface CobolListener extends ParseTreeListener {
 	 */
 	void exitSendAdvancingMnemonic(CobolParser.SendAdvancingMnemonicContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolParser#serviceStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterServiceStatement(CobolParser.ServiceStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#serviceStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitServiceStatement(CobolParser.ServiceStatementContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolParser#setStatement}.
 	 * @param ctx the parse tree
 	 */

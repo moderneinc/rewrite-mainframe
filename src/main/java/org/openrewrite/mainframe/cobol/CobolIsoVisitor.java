@@ -1970,6 +1970,11 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.Service visitService(Cobol.Service service, P p) {
+        return (Cobol.Service) super.visitService(service, p);
+    }
+
+    @Override
     public Cobol.Set visitSet(Cobol.Set set, P p) {
         return (Cobol.Set) super.visitSet(set, p);
     }

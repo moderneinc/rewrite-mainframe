@@ -2738,6 +2738,12 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSendAdvancingMnemonic(CobolParser.SendAdvancingMnemonicContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#serviceStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitServiceStatement(CobolParser.ServiceStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#setStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

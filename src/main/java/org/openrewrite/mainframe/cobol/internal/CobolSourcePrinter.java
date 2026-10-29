@@ -3778,6 +3778,15 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public Cobol visitService(Cobol.Service service, PrintOutputCapture<P> p) {
+        beforeSyntax(service, Space.Location.SERVICE_PREFIX, p);
+        visit(service.getWords(), p);
+        visit(service.getIdentifier(), p);
+        afterSyntax(service, p);
+        return service;
+    }
+
+    @Override
     public Cobol visitSet(Cobol.Set set, PrintOutputCapture<P> p) {
         beforeSyntax(set, Space.Location.SET_PREFIX, p);
         visit(set.getSet(), p);

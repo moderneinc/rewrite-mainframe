@@ -1372,6 +1372,24 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void serviceStatement() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.                                         C_AREA.01
+              000002 PROGRAM-ID. SERVICES.                                            C_AREA.02
+              000003 PROCEDURE DIVISION.                                              C_AREA.03
+              000004 MAIN-LOGIC.                                                      C_AREA.04
+              000005     CALL 'CEE3SRP' USING RECOVERY-POINT FEEDBACK-CODE            C_AREA.05
+              000006     SERVICE LABEL                                                C_AREA.06
+              000007     SERVICE RELOAD WS-RECORD                                     C_AREA.07
+              000008     GOBACK.                                                      C_AREA.08
+              """
+          )
+        );
+    }
+
+    @Test
     void sendStatement() {
         rewriteRun(
           cobol(
