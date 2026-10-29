@@ -35,6 +35,26 @@ options { caseInsensitive = true; }
         return dot != null && next != null && next.getType() != Token.EOF &&
                dot.getStopIndex() + 1 == next.getStartIndex();
     }
+
+    private static IntervalSet statementStart;
+
+    /**
+     * Whether the next token begins a statement. A statement list whose end is optional, the body of an IF
+     * without END-IF say, takes every statement that follows: COBOL's rule, and SLL prediction's greedy choice.
+     * Without the predicate on the list's exit SLL cannot rule out leaving the statement to an enclosing list,
+     * and retries with full context, which scans ahead as far as the sentence period. The predicates on the
+     * other optional endings, ELSE and END-IF say, settle the same question for the keyword.
+     */
+    boolean startsStatement() {
+        if (statementStart == null) {
+            statementStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_statement]);
+        }
+        return statementStart.contains(_input.LA(1));
+    }
+
+    boolean startsWhenCondition() {
+        return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
+    }
 }
 
 compilationUnit
@@ -1195,6 +1215,10 @@ sentence
    : statement* DOT_FS
    ;
 
+imperativeStatements
+   : statement* {!startsStatement()}?
+   ;
+
 statement
    : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement
    ;
@@ -1463,7 +1487,7 @@ entryStatement
 // evaluate statement
 
 evaluateStatement
-   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase* evaluateWhenOther? END_EVALUATE?
+   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase* (evaluateWhenOther | {_input.LA(1) != WHEN}?) (END_EVALUATE | {_input.LA(1) != END_EVALUATE}?)
    ;
 
 evaluateSelect
@@ -1475,7 +1499,7 @@ evaluateAlsoSelect
    ;
 
 evaluateWhenPhrase
-   : evaluateWhen+ statement*
+   : evaluateWhen+ {!startsWhenCondition()}? imperativeStatements
    ;
 
 evaluateWhen
@@ -1495,7 +1519,7 @@ evaluateAlsoCondition
    ;
 
 evaluateWhenOther
-   : WHEN OTHER statement*
+   : WHEN OTHER imperativeStatements
    ;
 
 evaluateValue
@@ -1573,15 +1597,15 @@ goToDependingOnStatement
 // if statement
 
 ifStatement
-   : IF condition ifThen ifElse? END_IF?
+   : IF condition ifThen (ifElse | {_input.LA(1) != ELSE}?) (END_IF | {_input.LA(1) != END_IF}?)
    ;
 
 ifThen
-   : THEN? (NEXT SENTENCE | statement*)
+   : THEN? (NEXT SENTENCE | imperativeStatements)
    ;
 
 ifElse
-   : ELSE (NEXT SENTENCE | statement*)
+   : ELSE (NEXT SENTENCE | imperativeStatements)
    ;
 
 // initialize statement
@@ -1889,11 +1913,11 @@ receiveIntoStatement
    ;
 
 receiveNoData
-   : NO DATA statement*
+   : NO DATA imperativeStatements
    ;
 
 receiveWithData
-   : WITH DATA statement*
+   : WITH DATA imperativeStatements
    ;
 
 receiveBefore
@@ -1945,7 +1969,7 @@ rewriteFrom
 // search statement
 
 searchStatement
-   : SEARCH ALL? qualifiedDataName searchVarying? atEndPhrase? searchWhen+ END_SEARCH?
+   : SEARCH ALL? qualifiedDataName searchVarying? atEndPhrase? searchWhen+ {_input.LA(1) != WHEN}? (END_SEARCH | {_input.LA(1) != END_SEARCH}?)
    ;
 
 searchVarying
@@ -1953,7 +1977,7 @@ searchVarying
    ;
 
 searchWhen
-   : WHEN condition (NEXT SENTENCE | statement*)
+   : WHEN condition (NEXT SENTENCE | imperativeStatements)
    ;
 
 // send statement
@@ -2263,55 +2287,55 @@ writeAdvancingMnemonic
    ;
 
 writeAtEndOfPagePhrase
-   : AT? (END_OF_PAGE | EOP) statement*
+   : AT? (END_OF_PAGE | EOP) imperativeStatements
    ;
 
 writeNotAtEndOfPagePhrase
-   : NOT AT? (END_OF_PAGE | EOP) statement*
+   : NOT AT? (END_OF_PAGE | EOP) imperativeStatements
    ;
 
 // statement phrases ----------------------------------
 
 atEndPhrase
-   : AT? END statement*
+   : AT? END imperativeStatements
    ;
 
 notAtEndPhrase
-   : NOT AT? END statement*
+   : NOT AT? END imperativeStatements
    ;
 
 invalidKeyPhrase
-   : INVALID KEY? statement*
+   : INVALID KEY? imperativeStatements
    ;
 
 notInvalidKeyPhrase
-   : NOT INVALID KEY? statement*
+   : NOT INVALID KEY? imperativeStatements
    ;
 
 onOverflowPhrase
-   : ON? OVERFLOW statement*
+   : ON? OVERFLOW imperativeStatements
    ;
 
 notOnOverflowPhrase
-   : NOT ON? OVERFLOW statement*
+   : NOT ON? OVERFLOW imperativeStatements
    ;
 
 onSizeErrorPhrase
-   : ON? SIZE ERROR statement*
+   : ON? SIZE ERROR imperativeStatements
    ;
 
 notOnSizeErrorPhrase
-   : NOT ON? SIZE ERROR statement*
+   : NOT ON? SIZE ERROR imperativeStatements
    ;
 
 // statement clauses ----------------------------------
 
 onExceptionClause
-   : ON? EXCEPTION statement*
+   : ON? EXCEPTION imperativeStatements
    ;
 
 notOnExceptionClause
-   : NOT ON? EXCEPTION statement*
+   : NOT ON? EXCEPTION imperativeStatements
    ;
 
 // arithmetic expression ----------------------------------
