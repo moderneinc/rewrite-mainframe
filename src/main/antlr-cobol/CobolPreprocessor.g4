@@ -252,7 +252,7 @@ execSqlImsStatement
 // copy statement
 
 copyStatement
-   : COPY copySource ((directoryPhrase | familyPhrase | replacingPhrase | SUPPRESS))* DOT
+   : COPY copySource (directoryPhrase | familyPhrase | SUPPRESS)* replacingPhrase? DOT
    ;
 
 copySource
@@ -283,7 +283,7 @@ replaceOffStatement
    ;
 
 replaceClause
-   : replaceable BY replacement subscript? (directoryPhrase)* (familyPhrase)?
+   : replaceable BY replacement
    ;
 
 directoryPhrase
@@ -295,11 +295,17 @@ familyPhrase
    ;
 
 replaceable
-   : literal | cobolWord | pseudoText | charDataLineNoDot
+   : literal | cobolWord | pseudoText | identifierWords
    ;
 
 replacement
-   : literal | cobolWord | pseudoText | charDataLineNoDot
+   : literal | cobolWord | pseudoText | identifierWords
+   ;
+
+// An identifier with qualifiers, subscripts or a reference modifier, as the text words the preprocessor replaces.
+// A word alone is a cobolWord.
+identifierWords
+   : cobolWord (((OF | IN) cobolWord)+ subscript* | subscript+)
    ;
 
 // eject statement
@@ -334,16 +340,12 @@ charDataSql
    : (charDataLine | COPY | REPLACE)+
    ;
 
-charDataLineNoDot
-   : (cobolWord | literal | filename | commentEntry | TEXT | LPARENCHAR | RPARENCHAR)+
-   ;
-
 charDataLine
    : ({!compilerOptionsAhead()}? (cobolWord | literal | filename | commentEntry | TEXT | DOT | LPARENCHAR | RPARENCHAR))+ {!continuesCharDataLine()}?
    ;
 
 subscript
-    : LPARENCHAR (literal | cobolWord) (COMMACHAR? (literal | cobolWord))* RPARENCHAR
+    : LPARENCHAR (literal | cobolWord | TEXT) (COMMACHAR? (literal | cobolWord | TEXT))* RPARENCHAR
     ;
 
 cobolWord

@@ -89,6 +89,16 @@ options { tokenVocab = CobolLexer; }
         return _input.LA(1) == first && _input.LA(2) == second;
     }
 
+    /**
+     * Whether the next word opens another ALL, LEADING or FIRST group of an INSPECT phrase. The operands of one
+     * group follow its word without repeating it, and INSPECT forbids a figurative constant beginning with ALL
+     * among them, so the word after an operand always opens a group.
+     */
+    boolean opensInspectGroup(ParserRuleContext group) {
+        int type = _input.LA(1);
+        return type == ALL || type == LEADING || type == FIRST;
+    }
+
     private int phraseWord(int i) {
         int type = _input.LA(i);
         return type == AT || type == ON ? _input.LA(i + 1) : type;
@@ -315,12 +325,14 @@ options { tokenVocab = CobolLexer; }
     }
 }
 
+// A batch is read flat and CobolParserVisitor nests its programs. Nesting them here would put a predicate on the
+// FOLLOW path of every division rule.
 compilationUnit
-   : programUnit* EOF
+   : (programUnit | endProgramStatement)* EOF
    ;
 
 programUnit
-   : identificationDivision environmentDivision? dataDivision? procedureDivision? programUnit* {!ahead($ctx, IDENTIFICATION) && !ahead($ctx, ID)}? (endProgramStatement | {!ahead($ctx, END)}?)
+   : identificationDivision environmentDivision? dataDivision? procedureDivision?
    ;
 
 endProgramStatement
@@ -1914,11 +1926,11 @@ inspectReplacingCharacters
    ;
 
 inspectAllLeadings
-   : (ALL | LEADING) inspectAllLeading+
+   : (ALL | LEADING) inspectAllLeading ({!opensInspectGroup($ctx)}? inspectAllLeading)*
    ;
 
 inspectReplacingAllLeadings
-   : (ALL | LEADING | FIRST) inspectReplacingAllLeading+
+   : (ALL | LEADING | FIRST) inspectReplacingAllLeading ({!opensInspectGroup($ctx)}? inspectReplacingAllLeading)*
    ;
 
 inspectAllLeading

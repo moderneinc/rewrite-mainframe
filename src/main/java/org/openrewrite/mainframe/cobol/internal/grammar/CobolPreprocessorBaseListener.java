@@ -284,6 +284,18 @@ public class CobolPreprocessorBaseListener implements CobolPreprocessorListener 
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterIdentifierWords(CobolPreprocessorParser.IdentifierWordsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitIdentifierWords(CobolPreprocessorParser.IdentifierWordsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterEjectStatement(CobolPreprocessorParser.EjectStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -351,18 +363,6 @@ public class CobolPreprocessorBaseListener implements CobolPreprocessorListener 
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitCharDataSql(CobolPreprocessorParser.CharDataSqlContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterCharDataLineNoDot(CobolPreprocessorParser.CharDataLineNoDotContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitCharDataLineNoDot(CobolPreprocessorParser.CharDataLineNoDotContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
