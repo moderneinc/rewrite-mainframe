@@ -34,6 +34,7 @@ import org.openrewrite.mainframe.controlcard.idcams.internal.grammar.IdcamsCardP
 import org.openrewrite.mainframe.controlcard.idcams.tree.Idcams;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -77,7 +78,7 @@ public class IdcamsParser implements Parser {
                         }
                         Idcams.CompilationUnit cu = parse(path, sourceFile.getFileAttributes(), sourceStr,
                                 is.getCharset(), is.isCharsetBomMarked(),
-                                new ForwardingErrorListener(sourceFile.getPath(), ctx));
+                                new ForwardingErrorListener(sourceFile.getPath(), ctx), ctx);
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
@@ -94,19 +95,21 @@ public class IdcamsParser implements Parser {
      * job's own LST and reaches here as the text it prints back to.
      */
     public static Idcams.CompilationUnit parse(Path sourcePath, String source) {
+        ExecutionContext ctx = new InMemoryExecutionContext();
         return parse(sourcePath, null, source, StandardCharsets.UTF_8, false,
-                new ForwardingErrorListener(sourcePath, new InMemoryExecutionContext()));
+                new ForwardingErrorListener(sourcePath, ctx), ctx);
     }
 
     private static Idcams.CompilationUnit parse(Path path, @Nullable FileAttributes fileAttributes, String source,
                                                 Charset charset, boolean charsetBomMarked,
-                                                ANTLRErrorListener errorListener) {
+                                                ANTLRErrorListener errorListener, ExecutionContext ctx) {
         CommonTokenStream tokens = new CommonTokenStream(new IdcamsCardLexer(
                 CharStreams.fromString(IdcamsLineReader.readLines(source))));
         IdcamsCardParser parser = new IdcamsCardParser(tokens);
 
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
+        PredictionListener.addTo(parser, ctx);
 
         return new IdcamsParserVisitor(
                 path,

@@ -22,6 +22,7 @@ import org.openrewrite.mainframe.controlcard.idcams.IdcamsParser;
 import org.openrewrite.mainframe.controlm.ControlMParser;
 import org.openrewrite.mainframe.controlcard.sort.SortParser;
 import org.openrewrite.mainframe.controlcard.utility.UtilityParser;
+import org.openrewrite.mainframe.db2.Db2Parser;
 import org.openrewrite.mainframe.db2.bind.BindParser;
 import org.openrewrite.mainframe.Members;
 import org.openrewrite.mainframe.ims.ImsParser;
@@ -139,6 +140,10 @@ public final class Corpus {
 
     public static List<Path> schedules(Path repository) throws IOException {
         return files(repository, ControlMParser.builder().build());
+    }
+
+    public static List<Path> sqlScripts(Path repository) throws IOException {
+        return files(repository, Db2Parser.builder().build());
     }
 
     public static List<Path> bindDecks(Path repository) throws IOException {

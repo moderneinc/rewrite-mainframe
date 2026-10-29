@@ -28,6 +28,7 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.mainframe.jcl.internal.JclParserVisitor;
 import org.openrewrite.mainframe.jcl.internal.grammar.JCLLexer;
 import org.openrewrite.mainframe.jcl.internal.grammar.JCLParser;
@@ -155,6 +156,7 @@ public class JclParser implements Parser {
 
         parser.removeErrorListeners();
         parser.addErrorListener(new ForwardingErrorListener(sourceFile.getPath(), ctx));
+        PredictionListener.addTo(parser, ctx);
 
         return new JclParserVisitor(
                 path,
