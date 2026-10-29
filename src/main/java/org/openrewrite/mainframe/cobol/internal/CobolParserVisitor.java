@@ -575,7 +575,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.AT(), ctx.END()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -1875,7 +1875,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.WHEN(), ctx.OTHER()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -1885,7 +1885,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 convertAll(ctx.evaluateWhen()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2036,7 +2036,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.LPARENCHAR()),
-                convertAllList(ctx.argument(), ctx.COMMACHAR()),
+                convertAllList(ctx.argument(), ctx.COMMACHAR(), singletonList(ctx.LEADING()), singletonList(ctx.TRAILING())),
                 (Cobol.Word) visit(ctx.RPARENCHAR())
         );
     }
@@ -2108,7 +2108,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.ELSE()),
                 wordsList(ctx.NEXT(), ctx.SENTENCE()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2132,7 +2132,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 visitNullable(ctx.THEN()),
                 wordsList(ctx.NEXT(), ctx.SENTENCE()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2426,7 +2426,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.INVALID(), ctx.KEY()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2959,7 +2959,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.NOT(), ctx.AT(), ctx.END()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2969,7 +2969,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.NOT(), ctx.INVALID(), ctx.KEY()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2979,7 +2979,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.NOT(), ctx.ON(), ctx.EXCEPTION()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2989,7 +2989,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.NOT(), ctx.ON(), ctx.OVERFLOW()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -2999,7 +2999,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.NOT(), ctx.ON(), ctx.SIZE(), ctx.ERROR()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -3035,7 +3035,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.ON(), ctx.EXCEPTION()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -3045,7 +3045,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.ON(), ctx.OVERFLOW()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -3055,7 +3055,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.ON(), ctx.SIZE(), ctx.ERROR()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -3718,7 +3718,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.NO(), ctx.DATA()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -3780,7 +3780,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.WITH(), ctx.DATA()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -4920,7 +4920,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 (Cobol.Word) visit(ctx.WHEN()),
                 (Cobol.Condition) visit(ctx.condition()),
                 wordsList(ctx.NEXT(), ctx.SENTENCE()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -5879,7 +5879,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.AT(), ctx.END_OF_PAGE(), ctx.EOP()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -5899,7 +5899,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.NOT(), ctx.AT(), ctx.END_OF_PAGE(), ctx.EOP()),
-                convertAll(ctx.statement())
+                imperativeStatements(ctx.imperativeStatements())
         );
     }
 
@@ -5991,6 +5991,10 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
             converted.add(convert.apply(tree));
         }
         return converted.isEmpty() ? emptyList() : converted;
+    }
+
+    private <C extends Cobol> List<C> imperativeStatements(CobolParser.@Nullable ImperativeStatementsContext ctx) {
+        return ctx == null ? emptyList() : convertAll(ctx.statement());
     }
 
     @SafeVarargs
