@@ -80,4 +80,38 @@ class ParseTreeAlternativeTest extends CobolTest {
             """
         )).containsExactly(Cobol.ScreenDescriptionBackgroundColorClause.class);
     }
+
+    @Test
+    void eachAllLeadingOrFirstOpensAnInspectGroup() {
+        List<String> groups = new ArrayList<>();
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
+              @Override
+              public Cobol.InspectAllLeadings visitInspectAllLeadings(Cobol.InspectAllLeadings leadings, ExecutionContext ctx) {
+                  groups.add(leadings.getWord().getWord() + " " + leadings.getLeadings().stream()
+                    .map(l -> l.getName().getClass().getSimpleName()).collect(Collectors.joining(" ")));
+                  return super.visitInspectAllLeadings(leadings, ctx);
+              }
+
+              @Override
+              public Cobol.InspectReplacingAllLeadings visitInspectReplacingAllLeadings(Cobol.InspectReplacingAllLeadings leadings, ExecutionContext ctx) {
+                  groups.add(leadings.getWord().getWord() + " " + leadings.getInspections().size());
+                  return super.visitInspectReplacingAllLeadings(leadings, ctx);
+              }
+          })),
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                        \s
+              000000 PROGRAM-ID. INSPGRP.                                            \s
+              000000 PROCEDURE DIVISION.                                             \s
+              000000     INSPECT X TALLYING C FOR ALL 'S' ALL 'U'                   \s
+              000000         LEADING SPACES LOW-VALUES                              \s
+              000000     INSPECT X REPLACING ALL 'S' BY '1' ALL 'U' BY '1' '0' BY '9'\s
+              000000         FIRST 'A' BY 'B'.                                      \s
+              """
+          )
+        );
+        assertThat(groups).containsExactly("ALL Word", "ALL Word", "LEADING FigurativeConstant FigurativeConstant",
+          "ALL 1", "ALL 2", "FIRST 1");
+    }
 }

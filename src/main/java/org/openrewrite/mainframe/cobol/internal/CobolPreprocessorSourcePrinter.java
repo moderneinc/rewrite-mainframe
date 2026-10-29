@@ -228,9 +228,6 @@ public class CobolPreprocessorSourcePrinter<P> extends CobolPreprocessorVisitor<
         visit(replaceClause.getReplaceable(), p);
         visit(replaceClause.getBy(), p);
         visit(replaceClause.getReplacement(), p);
-        visit(replaceClause.getSubscript(), p);
-        visit(replaceClause.getDirectoryPhrases(), p);
-        visit(replaceClause.getFamilyPhrase(), p);
         afterSyntax(replaceClause, p);
         return replaceClause;
     }

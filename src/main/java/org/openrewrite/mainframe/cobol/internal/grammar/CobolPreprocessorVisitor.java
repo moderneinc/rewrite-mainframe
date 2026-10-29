@@ -152,6 +152,12 @@ public interface CobolPreprocessorVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitReplacement(CobolPreprocessorParser.ReplacementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolPreprocessorParser#identifierWords}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIdentifierWords(CobolPreprocessorParser.IdentifierWordsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolPreprocessorParser#ejectStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -187,12 +193,6 @@ public interface CobolPreprocessorVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitCharDataSql(CobolPreprocessorParser.CharDataSqlContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolPreprocessorParser#charDataLineNoDot}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitCharDataLineNoDot(CobolPreprocessorParser.CharDataLineNoDotContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolPreprocessorParser#charDataLine}.
 	 * @param ctx the parse tree
