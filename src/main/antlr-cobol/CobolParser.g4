@@ -17,25 +17,11 @@
 * with the provided preprocessor, which executes COPY and REPLACE statements.
 */
 
-grammar Cobol;
+parser grammar CobolParser;
 
-options { caseInsensitive = true; }
+options { tokenVocab = CobolLexer; }
 
-@parser::members {
-    /**
-     * Whether the period at the current position belongs to a PICTURE character-string rather than
-     * ending the entry. A picture ends at a separator period, meaning one followed by a space or the
-     * end of the line; a period followed immediately by another character is the decimal point of an
-     * edited picture such as `PIC ZZ9.99`. Without this distinction `picture+` runs through the
-     * period and consumes the level number and name of the entry that follows.
-     */
-    boolean pictureDot() {
-        Token dot = _input.LT(1);
-        Token next = _input.LT(2);
-        return dot != null && next != null && next.getType() != Token.EOF &&
-               dot.getStopIndex() + 1 == next.getStartIndex();
-    }
-
+@members {
     private static IntervalSet statementStart;
 
     /**
@@ -54,6 +40,31 @@ options { caseInsensitive = true; }
 
     boolean startsWhenCondition() {
         return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
+    }
+
+    /**
+     * Whether the next token opens a subscript group. A reference modifier opens with the same parenthesis and
+     * is told apart only by the colon at its top level, so the group is scanned to its closing parenthesis.
+     * A parenthesis after a name always belongs to the name, so the only other question at that point is
+     * which of the two it opens.
+     */
+    boolean startsSubscripts() {
+        if (_input.LA(1) != LPARENCHAR) {
+            return false;
+        }
+        int depth = 0;
+        for (int i = 1; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return false;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR && --depth == 0) {
+                return true;
+            } else if (type == COLONCHAR && depth == 1) {
+                return false;
+            }
+        }
     }
 }
 
@@ -308,7 +319,7 @@ inputOutputSectionParagraph
 // - file control paragraph ----------------------------------
 
 fileControlParagraph
-   : FILE_CONTROL? (DOT_FS? fileControlEntry)* DOT_FS
+   : FILE_CONTROL (DOT_FS? fileControlEntry)* DOT_FS
    ;
 
 fileControlEntry
@@ -1068,15 +1079,7 @@ dataPictureClause
    ;
 
 pictureString
-   : picture+
-   ;
-
-picture
-   : (pictureChars+ pictureCardinality?)
-   ;
-
-pictureChars
-   : DOLLARCHAR | IDENTIFIER | NUMERICLITERAL | SLASHCHAR | COMMACHAR | {pictureDot()}? DOT_FS | COLONCHAR | ASTERISKCHAR | DOUBLEASTERISKCHAR | LPARENCHAR | RPARENCHAR | PLUSCHAR | MINUSCHAR | LESSTHANCHAR | MORETHANCHAR | integerLiteral
+   : (PICTURE_SYMBOLS | pictureCardinality)+
    ;
 
 pictureCardinality
@@ -1128,7 +1131,7 @@ dataUsingClause
    ;
 
 dataValueClause
-   : ((VALUE | VALUES) (IS | ARE)?)? (dataValueInterval COMMACHAR?)+
+   : (VALUE | VALUES) (IS | ARE)? (dataValueInterval COMMACHAR?)+
    ;
 
 dataValueInterval
@@ -1170,7 +1173,7 @@ procedureDivisionByReferencePhrase
    ;
 
 procedureDivisionByReference
-   : (OPTIONAL? (identifier | fileName)) | ANY
+   : (OPTIONAL? identifier) | ANY
    ;
 
 procedureDivisionByValuePhrase
@@ -1208,7 +1211,7 @@ paragraphs
    ;
 
 paragraph
-   : paragraphName DOT_FS? (alteredGoTo | sentence*)
+   : paragraphName DOT_FS (alteredGoTo | sentence*)
    ;
 
 sentence
@@ -1220,7 +1223,7 @@ imperativeStatements
    ;
 
 statement
-   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement
+   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement
    ;
 
 // accept statement
@@ -1306,19 +1309,23 @@ callStatement
    ;
 
 callUsingPhrase
-   : USING callUsingParameter+
+   : USING (callByReferenceBarePhrase callUsingParameter* | callUsingParameter+)
    ;
 
 callUsingParameter
    : callByReferencePhrase | callByValuePhrase | callByContentPhrase
    ;
 
+callByReferenceBarePhrase
+   : callByReference+
+   ;
+
 callByReferencePhrase
-   : (BY? REFERENCE)? callByReference+
+   : BY? REFERENCE callByReference+
    ;
 
 callByReference
-   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal | fileName) | OMITTED
+   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal) | OMITTED
    ;
 
 callByValuePhrase
@@ -1523,7 +1530,7 @@ evaluateWhenOther
    ;
 
 evaluateValue
-   : identifier | literal | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // exec cics statement
@@ -1583,15 +1590,7 @@ gobackStatement
 // goto statement
 
 goToStatement
-   : GO TO? (goToStatementSimple | goToDependingOnStatement)
-   ;
-
-goToStatementSimple
-   : procedureName
-   ;
-
-goToDependingOnStatement
-   : MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?
+   : GO TO? (MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?)
    ;
 
 // if statement
@@ -1859,11 +1858,11 @@ performAfter
    ;
 
 performFrom
-   : FROM (identifier | literal | arithmeticExpression)
+   : FROM arithmeticExpression
    ;
 
 performBy
-   : BY (identifier | literal | arithmeticExpression)
+   : BY arithmeticExpression
    ;
 
 performTestClause
@@ -2020,6 +2019,12 @@ sendAdvancingLines
 
 sendAdvancingMnemonic
    : mnemonicName
+   ;
+
+// service statement
+
+serviceStatement
+   : SERVICE (LABEL | RELOAD identifier)
    ;
 
 // set statement
@@ -2294,6 +2299,28 @@ writeNotAtEndOfPagePhrase
    : NOT AT? (END_OF_PAGE | EOP) imperativeStatements
    ;
 
+// xml parse statement
+
+xmlParseStatement
+   : XML PARSE identifier xmlEncodingPhrase? xmlReturningNationalPhrase? xmlValidatingPhrase? xmlProcessingProcedurePhrase onExceptionClause? notOnExceptionClause? END_XML?
+   ;
+
+xmlEncodingPhrase
+   : WITH? ENCODING (identifier | integerLiteral)
+   ;
+
+xmlReturningNationalPhrase
+   : RETURNING NATIONAL
+   ;
+
+xmlValidatingPhrase
+   : VALIDATING WITH? (identifier | FILE cobolWord)
+   ;
+
+xmlProcessingProcedurePhrase
+   : PROCESSING PROCEDURE IS? procedureName ((THROUGH | THRU) procedureName)?
+   ;
+
 // statement phrases ----------------------------------
 
 atEndPhrase
@@ -2391,7 +2418,7 @@ classCondition
    ;
 
 conditionNameReference
-   : conditionName (inData* inFile? conditionNameSubscriptReference* | inMnemonic*)
+   : conditionName inData* conditionNameSubscriptReference*
    ;
 
 conditionNameSubscriptReference
@@ -2431,11 +2458,7 @@ abbreviation
 // identifier ----------------------------------
 
 identifier
-   : qualifiedDataName | tableCall | functionCall | specialRegister
-   ;
-
-tableCall
-   : qualifiedDataName tableCallSubscripts* referenceModifier?
+   : qualifiedDataName tableCallSubscripts* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}? | functionCall | specialRegister
    ;
 
 tableCallSubscripts
@@ -2443,7 +2466,7 @@ tableCallSubscripts
     ;
 
 functionCall
-   : FUNCTION functionName functionCallArguments* referenceModifier?
+   : FUNCTION functionName functionCallArguments* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}?
    ;
 
 functionCallArguments
@@ -2463,29 +2486,21 @@ length
    ;
 
 subscript
-   : ALL | integerLiteral | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : ALL | integerLiteral | qualifiedDataName integerLiteral? | arithmeticExpression
    ;
 
 argument
-   : literal | identifier | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // qualified data name ----------------------------------
 
 qualifiedDataName
-   : qualifiedDataNameFormat1 | qualifiedDataNameFormat2 | qualifiedDataNameFormat3 | qualifiedDataNameFormat4
+   : qualifiedDataNameFormat1 | qualifiedDataNameFormat4
    ;
 
 qualifiedDataNameFormat1
-   : (dataName | conditionName) (qualifiedInData+ inFile? | inFile)?
-   ;
-
-qualifiedDataNameFormat2
-   : paragraphName inSection
-   ;
-
-qualifiedDataNameFormat3
-   : textName inLibrary
+   : dataName qualifiedInData*
    ;
 
 qualifiedDataNameFormat4
@@ -2493,7 +2508,7 @@ qualifiedDataNameFormat4
    ;
 
 qualifiedInData
-   : inData | inTable
+   : inData
    ;
 
 // in ----------------------------------
@@ -2512,14 +2527,6 @@ inMnemonic
 
 inSection
    : (IN | OF) sectionName
-   ;
-
-inLibrary
-   : (IN | OF) libraryName
-   ;
-
-inTable
-   : (IN | OF) tableCall
    ;
 
 // names ----------------------------------
@@ -2597,7 +2604,7 @@ paragraphName
    ;
 
 procedureName
-   : paragraphName inSection? | sectionName
+   : paragraphName inSection?
    ;
 
 programName
@@ -2629,10 +2636,6 @@ systemName
    ;
 
 symbolicCharacter
-   : cobolWord
-   ;
-
-textName
    : cobolWord
    ;
 
@@ -2674,7 +2677,7 @@ booleanLiteral
    ;
 
 numericLiteral
-   : NUMERICLITERAL | ZERO | integerLiteral
+   : NUMERICLITERAL | integerLiteral
    ;
 
 integerLiteral
@@ -2711,625 +2714,3 @@ specialRegister
 commentEntry
    : COMMENTENTRYLINE+
    ;
-
-// lexer rules --------------------------------------------------------------------------------
-
-// keywords
-ABORT : 'ABORT';
-ACCEPT : 'ACCEPT';
-ACCESS : 'ACCESS';
-ADD : 'ADD';
-ADDRESS : 'ADDRESS';
-ADVANCING : 'ADVANCING';
-AFTER : 'AFTER';
-ALIGNED : 'ALIGNED';
-ALL : 'ALL';
-ALPHABET : 'ALPHABET';
-ALPHABETIC : 'ALPHABETIC';
-ALPHABETIC_LOWER : 'ALPHABETIC-LOWER';
-ALPHABETIC_UPPER : 'ALPHABETIC-UPPER';
-ALPHANUMERIC : 'ALPHANUMERIC';
-ALPHANUMERIC_EDITED : 'ALPHANUMERIC-EDITED';
-ALSO : 'ALSO';
-ALTER : 'ALTER';
-ALTERNATE : 'ALTERNATE';
-AND : 'AND';
-ANY : 'ANY';
-ARE : 'ARE';
-AREA : 'AREA';
-AREAS : 'AREAS';
-AS : 'AS';
-ASCENDING : 'ASCENDING';
-ASCII : 'ASCII';
-ASSIGN : 'ASSIGN';
-ASSOCIATED_DATA : 'ASSOCIATED-DATA';
-ASSOCIATED_DATA_LENGTH : 'ASSOCIATED-DATA-LENGTH';
-AT : 'AT';
-ATTRIBUTE : 'ATTRIBUTE';
-AUTHOR : 'AUTHOR';
-AUTO : 'AUTO';
-AUTO_SKIP : 'AUTO-SKIP';
-BACKGROUND_COLOR : 'BACKGROUND-COLOR';
-BACKGROUND_COLOUR : 'BACKGROUND-COLOUR';
-BASIS : 'BASIS';
-BEEP : 'BEEP';
-BEFORE : 'BEFORE';
-BEGINNING : 'BEGINNING';
-BELL : 'BELL';
-BINARY : 'BINARY';
-BIT : 'BIT';
-BLANK : 'BLANK';
-BLINK : 'BLINK';
-BLOB : 'BLOB';
-BLOCK : 'BLOCK';
-BOUNDS : 'BOUNDS';
-BOTTOM : 'BOTTOM';
-BY : 'BY';
-BYFUNCTION : 'BYFUNCTION';
-BYTITLE : 'BYTITLE';
-CALL : 'CALL';
-CANCEL : 'CANCEL';
-CAPABLE : 'CAPABLE';
-CCSVERSION : 'CCSVERSION';
-CD : 'CD';
-CF : 'CF';
-CH : 'CH';
-CHAINING : 'CHAINING';
-CHANGED : 'CHANGED';
-CHANNEL : 'CHANNEL';
-CHARACTER : 'CHARACTER';
-CHARACTERS : 'CHARACTERS';
-CLASS : 'CLASS';
-CLASS_ID : 'CLASS-ID';
-CLOB : 'CLOB';
-CLOCK_UNITS : 'CLOCK-UNITS';
-CLOSE : 'CLOSE';
-CLOSE_DISPOSITION : 'CLOSE-DISPOSITION';
-COBOL : 'COBOL';
-CODE : 'CODE';
-CODE_SET : 'CODE-SET';
-COLLATING : 'COLLATING';
-COL : 'COL';
-COLUMN : 'COLUMN';
-COM_REG : 'COM-REG';
-COMMA : 'COMMA';
-COMMITMENT : 'COMMITMENT';
-COMMON : 'COMMON';
-COMMUNICATION : 'COMMUNICATION';
-COMP : 'COMP';
-COMP_1 : 'COMP-1';
-COMP_2 : 'COMP-2';
-COMP_3 : 'COMP-3';
-COMP_4 : 'COMP-4';
-COMP_5 : 'COMP-5';
-COMPUTATIONAL : 'COMPUTATIONAL';
-COMPUTATIONAL_1 : 'COMPUTATIONAL-1';
-COMPUTATIONAL_2 : 'COMPUTATIONAL-2';
-COMPUTATIONAL_3 : 'COMPUTATIONAL-3';
-COMPUTATIONAL_4 : 'COMPUTATIONAL-4';
-COMPUTATIONAL_5 : 'COMPUTATIONAL-5';
-COMPUTE : 'COMPUTE';
-CONFIGURATION : 'CONFIGURATION';
-CONTAINS : 'CONTAINS';
-CONTENT : 'CONTENT';
-CONTINUE : 'CONTINUE';
-CONTROL : 'CONTROL';
-CONTROL_POINT : 'CONTROL-POINT';
-CONTROLS : 'CONTROLS';
-CONVENTION : 'CONVENTION';
-CONVERTING : 'CONVERTING';
-COPY : 'COPY';
-CORR : 'CORR';
-CORRESPONDING : 'CORRESPONDING';
-COUNT : 'COUNT';
-CRUNCH : 'CRUNCH';
-CURRENCY : 'CURRENCY';
-CURSOR : 'CURSOR';
-CYCLE : 'CYCLE';
-DATA : 'DATA';
-DATA_BASE : 'DATA-BASE';
-DATE : 'DATE';
-DATE_COMPILED : 'DATE-COMPILED';
-DATE_WRITTEN : 'DATE-WRITTEN';
-DAY : 'DAY';
-DAY_OF_WEEK : 'DAY-OF-WEEK';
-DBCS : 'DBCS';
-DBCLOB : 'DBCLOB';
-DE : 'DE';
-DEBUG_CONTENTS : 'DEBUG-CONTENTS';
-DEBUG_ITEM : 'DEBUG-ITEM';
-DEBUG_LINE : 'DEBUG-LINE';
-DEBUG_NAME : 'DEBUG-NAME';
-DEBUG_SUB_1 : 'DEBUG-SUB-1';
-DEBUG_SUB_2 : 'DEBUG-SUB-2';
-DEBUG_SUB_3 : 'DEBUG-SUB-3';
-DEBUGGING : 'DEBUGGING';
-DECIMAL_POINT : 'DECIMAL-POINT';
-DECLARATIVES : 'DECLARATIVES';
-DEFAULT : 'DEFAULT';
-DEFAULT_DISPLAY : 'DEFAULT-DISPLAY';
-DEFINITION : 'DEFINITION';
-DELETE : 'DELETE';
-DELIMITED : 'DELIMITED';
-DELIMITER : 'DELIMITER';
-DEPENDING : 'DEPENDING';
-DESCENDING : 'DESCENDING';
-DESTINATION : 'DESTINATION';
-DETAIL : 'DETAIL';
-DFHRESP : 'DFHRESP';
-DFHVALUE : 'DFHVALUE';
-DISABLE : 'DISABLE';
-DISK : 'DISK';
-DISPLAY : 'DISPLAY';
-DISPLAY_1 : 'DISPLAY-1';
-DIVIDE : 'DIVIDE';
-DIVISION : 'DIVISION';
-DONTCARE : 'DONTCARE';
-DOUBLE : 'DOUBLE';
-DOWN : 'DOWN';
-DUPLICATES : 'DUPLICATES';
-DYNAMIC : 'DYNAMIC';
-EBCDIC : 'EBCDIC';
-EGCS : 'EGCS'; // EXTENSION
-EGI : 'EGI';
-ELSE : 'ELSE';
-EMI : 'EMI';
-EMPTY_CHECK : 'EMPTY-CHECK';
-ENABLE : 'ENABLE';
-END : 'END';
-END_ACCEPT : 'END-ACCEPT';
-END_ADD : 'END-ADD';
-END_CALL : 'END-CALL';
-END_COMPUTE : 'END-COMPUTE';
-END_DELETE : 'END-DELETE';
-END_DISPLAY : 'END-DISPLAY';
-END_DIVIDE : 'END-DIVIDE';
-END_EVALUATE : 'END-EVALUATE';
-END_IF : 'END-IF';
-END_MULTIPLY : 'END-MULTIPLY';
-END_OF_PAGE : 'END-OF-PAGE';
-END_PERFORM : 'END-PERFORM';
-END_READ : 'END-READ';
-END_RECEIVE : 'END-RECEIVE';
-END_REMARKS : 'END-REMARKS';
-END_RETURN : 'END-RETURN';
-END_REWRITE : 'END-REWRITE';
-END_SEARCH : 'END-SEARCH';
-END_START : 'END-START';
-END_STRING : 'END-STRING';
-END_SUBTRACT : 'END-SUBTRACT';
-END_UNSTRING : 'END-UNSTRING';
-END_WRITE : 'END-WRITE';
-ENDING : 'ENDING';
-ENTER : 'ENTER';
-ENTRY : 'ENTRY';
-ENTRY_PROCEDURE : 'ENTRY-PROCEDURE';
-ENVIRONMENT : 'ENVIRONMENT';
-EOP : 'EOP';
-EQUAL : 'EQUAL';
-ERASE : 'ERASE';
-ERROR : 'ERROR';
-EOL : 'EOL';
-EOS : 'EOS';
-ESCAPE : 'ESCAPE';
-ESI : 'ESI';
-EVALUATE : 'EVALUATE';
-EVENT : 'EVENT';
-EVERY : 'EVERY';
-EXCEPTION : 'EXCEPTION';
-EXCLUSIVE : 'EXCLUSIVE';
-EXHIBIT : 'EXHIBIT';
-EXIT : 'EXIT';
-EXPORT : 'EXPORT';
-EXTEND : 'EXTEND';
-EXTENDED : 'EXTENDED';
-EXTERNAL : 'EXTERNAL';
-FALSE : 'FALSE';
-FD : 'FD';
-FILE : 'FILE';
-FILE_CONTROL : 'FILE-CONTROL';
-FILLER : 'FILLER';
-FINAL : 'FINAL';
-FIRST : 'FIRST';
-FOOTING : 'FOOTING';
-FOR : 'FOR';
-FOREGROUND_COLOR : 'FOREGROUND-COLOR';
-FOREGROUND_COLOUR : 'FOREGROUND-COLOUR';
-FROM : 'FROM';
-FULL : 'FULL';
-FUNCTION : 'FUNCTION';
-FUNCTIONNAME : 'FUNCTIONNAME';
-FUNCTION_POINTER : 'FUNCTION-POINTER';
-GENERATE : 'GENERATE';
-GOBACK : 'GOBACK';
-GIVING : 'GIVING';
-GLOBAL : 'GLOBAL';
-GO : 'GO';
-GREATER : 'GREATER';
-GRID : 'GRID';
-GROUP : 'GROUP';
-HEADING : 'HEADING';
-HIGHLIGHT : 'HIGHLIGHT';
-HIGH_VALUE : 'HIGH-VALUE';
-HIGH_VALUES : 'HIGH-VALUES';
-I_O : 'I-O';
-I_O_CONTROL : 'I-O-CONTROL';
-ID : 'ID';
-IDENTIFICATION : 'IDENTIFICATION';
-IF : 'IF';
-IMPLICIT : 'IMPLICIT';
-IMPORT : 'IMPORT';
-IN : 'IN';
-INDEX : 'INDEX';
-INDEXED : 'INDEXED';
-INDICATE : 'INDICATE';
-INITIAL : 'INITIAL';
-INITIALIZE : 'INITIALIZE';
-INITIATE : 'INITIATE';
-INPUT : 'INPUT';
-INPUT_OUTPUT : 'INPUT-OUTPUT';
-INSPECT : 'INSPECT';
-INSTALLATION : 'INSTALLATION';
-INTEGER : 'INTEGER';
-INTERFACE : 'INTERFACE';
-INTO : 'INTO';
-INTRINSIC : 'INTRINSIC';
-INVALID : 'INVALID';
-INVOKE : 'INVOKE';
-IS : 'IS';
-JUST : 'JUST';
-JUSTIFIED : 'JUSTIFIED';
-KANJI : 'KANJI';
-KEPT : 'KEPT';
-KEY : 'KEY';
-KEYBOARD : 'KEYBOARD';
-LABEL : 'LABEL';
-LANGUAGE : 'LANGUAGE';
-LAST : 'LAST';
-LB : 'LB';
-LD : 'LD';
-LEADING : 'LEADING';
-LEFT : 'LEFT';
-LEFTLINE : 'LEFTLINE';
-LENGTH : 'LENGTH';
-LENGTH_CHECK : 'LENGTH-CHECK';
-LESS : 'LESS';
-LIBACCESS : 'LIBACCESS';
-LIBPARAMETER : 'LIBPARAMETER';
-LIBRARY : 'LIBRARY';
-LIMIT : 'LIMIT';
-LIMITS : 'LIMITS';
-LINAGE : 'LINAGE';
-LINAGE_COUNTER : 'LINAGE-COUNTER';
-LINE : 'LINE';
-LINES : 'LINES';
-LINE_COUNTER : 'LINE-COUNTER';
-LINKAGE : 'LINKAGE';
-LIST : 'LIST';
-LOCAL : 'LOCAL';
-LOCAL_STORAGE : 'LOCAL-STORAGE';
-LOCK : 'LOCK';
-LONG_DATE : 'LONG-DATE';
-LONG_TIME : 'LONG-TIME';
-LOWER : 'LOWER';
-LOWLIGHT : 'LOWLIGHT';
-LOW_VALUE : 'LOW-VALUE';
-LOW_VALUES : 'LOW-VALUES';
-MEMORY : 'MEMORY';
-MERGE : 'MERGE';
-MESSAGE : 'MESSAGE';
-METHOD : 'METHOD';
-MMDDYYYY : 'MMDDYYYY';
-MODE : 'MODE';
-MODULES : 'MODULES';
-MORE_LABELS : 'MORE-LABELS';
-MOVE : 'MOVE';
-MULTIPLE : 'MULTIPLE';
-MULTIPLY : 'MULTIPLY';
-NAMED : 'NAMED';
-NATIONAL : 'NATIONAL';
-NATIONAL_EDITED : 'NATIONAL-EDITED';
-NATIVE : 'NATIVE';
-NEGATIVE : 'NEGATIVE';
-NETWORK : 'NETWORK';
-NEXT : 'NEXT';
-NO : 'NO';
-NO_ECHO : 'NO-ECHO';
-NOT : 'NOT';
-NULL : 'NULL';
-NULLS : 'NULLS';
-NUMBER : 'NUMBER';
-NUMERIC : 'NUMERIC';
-NUMERIC_DATE : 'NUMERIC-DATE';
-NUMERIC_EDITED : 'NUMERIC-EDITED';
-NUMERIC_TIME : 'NUMERIC-TIME';
-OBJECT_COMPUTER : 'OBJECT-COMPUTER';
-OCCURS : 'OCCURS';
-ODT : 'ODT';
-OF : 'OF';
-OFF : 'OFF';
-OMITTED : 'OMITTED';
-ON : 'ON';
-OPEN : 'OPEN';
-OPTIONAL : 'OPTIONAL';
-OR : 'OR';
-ORDER : 'ORDER';
-ORDERLY : 'ORDERLY';
-ORGANIZATION : 'ORGANIZATION';
-OTHER : 'OTHER';
-OUTPUT : 'OUTPUT';
-OVERFLOW : 'OVERFLOW';
-OVERLINE : 'OVERLINE';
-OWN : 'OWN';
-PACKED_DECIMAL : 'PACKED-DECIMAL';
-PADDING : 'PADDING';
-PAGE : 'PAGE';
-PAGE_COUNTER : 'PAGE-COUNTER';
-PARAGRAPH : 'PARAGRAPH';
-PASSWORD : 'PASSWORD';
-PERFORM : 'PERFORM';
-PF : 'PF';
-PH : 'PH';
-PIC : 'PIC';
-PICTURE : 'PICTURE';
-PLUS : 'PLUS';
-POINTER : 'POINTER';
-POSITION : 'POSITION';
-POSITIVE : 'POSITIVE';
-PORT : 'PORT';
-PRINTER : 'PRINTER';
-PRINTING : 'PRINTING';
-PRIVATE : 'PRIVATE';
-PROCEDURE : 'PROCEDURE';
-PROCEDURE_POINTER : 'PROCEDURE-POINTER';
-PROCEDURES : 'PROCEDURES';
-PROCEED : 'PROCEED';
-PROCESS : 'PROCESS';
-PROGRAM : 'PROGRAM';
-PROGRAM_ID : 'PROGRAM-ID';
-PROGRAM_LIBRARY : 'PROGRAM-LIBRARY';
-PROMPT : 'PROMPT';
-PURGE : 'PURGE';
-QUEUE : 'QUEUE';
-QUOTE : 'QUOTE';
-QUOTES : 'QUOTES';
-RANDOM : 'RANDOM';
-READER : 'READER';
-REMOTE : 'REMOTE';
-RD : 'RD';
-REAL : 'REAL';
-READ : 'READ';
-RECEIVE : 'RECEIVE';
-RECEIVED : 'RECEIVED';
-RECORD : 'RECORD';
-RECORDING : 'RECORDING';
-RECORDS : 'RECORDS';
-RECURSIVE : 'RECURSIVE';
-REDEFINES : 'REDEFINES';
-REEL : 'REEL';
-REF : 'REF';
-REFERENCE : 'REFERENCE';
-REFERENCES : 'REFERENCES';
-RELATIVE : 'RELATIVE';
-RELEASE : 'RELEASE';
-REMAINDER : 'REMAINDER';
-REMARKS : 'REMARKS';
-REMOVAL : 'REMOVAL';
-REMOVE : 'REMOVE';
-RENAMES : 'RENAMES';
-REPLACE : 'REPLACE';
-REPLACING : 'REPLACING';
-REPORT : 'REPORT';
-REPORTING : 'REPORTING';
-REPORTS : 'REPORTS';
-REPOSITORY : 'REPOSITORY';
-REQUIRED : 'REQUIRED';
-RERUN : 'RERUN';
-RESERVE : 'RESERVE';
-REVERSE_VIDEO : 'RESERVE-VIDEO';
-RESET : 'RESET';
-RETURN : 'RETURN';
-RETURN_CODE : 'RETURN-CODE';
-RETURNING : 'RETURNING';
-REVERSED : 'REVERSED';
-REWIND : 'REWIND';
-REWRITE : 'REWRITE';
-RF : 'RF';
-RH : 'RH';
-RIGHT : 'RIGHT';
-ROUNDED : 'ROUNDED';
-RUN : 'RUN';
-SAME : 'SAME';
-SAVE : 'SAVE';
-SCREEN : 'SCREEN';
-SD : 'SD';
-SEARCH : 'SEARCH';
-SECTION : 'SECTION';
-SECURE : 'SECURE';
-SECURITY : 'SECURITY';
-SEGMENT : 'SEGMENT';
-SEGMENT_LIMIT : 'SEGMENT-LIMIT';
-SELECT : 'SELECT';
-SEND : 'SEND';
-SENTENCE : 'SENTENCE';
-SEPARATE : 'SEPARATE';
-SEQUENCE : 'SEQUENCE';
-SEQUENTIAL : 'SEQUENTIAL';
-SET : 'SET';
-SHARED : 'SHARED';
-SHAREDBYALL : 'SHAREDBYALL';
-SHAREDBYRUNUNIT : 'SHAREDBYRUNUNIT';
-SHARING : 'SHARING';
-SHIFT_IN : 'SHIFT-IN';
-SHIFT_OUT : 'SHIFT-OUT';
-SHORT_DATE : 'SHORT-DATE';
-SIGN : 'SIGN';
-SIZE : 'SIZE';
-SORT : 'SORT';
-SORT_CONTROL : 'SORT-CONTROL';
-SORT_CORE_SIZE : 'SORT-CORE-SIZE';
-SORT_FILE_SIZE : 'SORT-FILE-SIZE';
-SORT_MERGE : 'SORT-MERGE';
-SORT_MESSAGE : 'SORT-MESSAGE';
-SORT_MODE_SIZE : 'SORT-MODE-SIZE';
-SORT_RETURN : 'SORT-RETURN';
-SOURCE : 'SOURCE';
-SOURCE_COMPUTER : 'SOURCE-COMPUTER';
-SPACE : 'SPACE';
-SPACES : 'SPACES';
-SPECIAL_NAMES : 'SPECIAL-NAMES';
-SQL : 'SQL';
-STANDARD : 'STANDARD';
-STANDARD_1 : 'STANDARD-1';
-STANDARD_2 : 'STANDARD-2';
-START : 'START';
-STATUS : 'STATUS';
-STOP : 'STOP';
-STRING : 'STRING';
-SUB_QUEUE_1 : 'SUB-QUEUE-1';
-SUB_QUEUE_2 : 'SUB-QUEUE-2';
-SUB_QUEUE_3 : 'SUB-QUEUE-3';
-SUBTRACT : 'SUBTRACT';
-SUM : 'SUM';
-SUPPRESS : 'SUPPRESS';
-SYMBOL : 'SYMBOL';
-SYMBOLIC : 'SYMBOLIC';
-SYNC : 'SYNC';
-SYNCHRONIZED : 'SYNCHRONIZED';
-TABLE : 'TABLE';
-TALLY : 'TALLY';
-TALLYING : 'TALLYING';
-TASK : 'TASK';
-TAPE : 'TAPE';
-TERMINAL : 'TERMINAL';
-TERMINATE : 'TERMINATE';
-TEST : 'TEST';
-TEXT : 'TEXT';
-THAN : 'THAN';
-THEN : 'THEN';
-THREAD : 'THREAD';
-THREAD_LOCAL : 'THREAD-LOCAL';
-THROUGH : 'THROUGH';
-THRU : 'THRU';
-TIME : 'TIME';
-TIMER : 'TIMER';
-TIMES : 'TIMES';
-TITLE : 'TITLE';
-TO : 'TO';
-TODAYS_DATE : 'TODAYS-DATE';
-TODAYS_NAME : 'TODAYS-NAME';
-TOP : 'TOP';
-TRAILING : 'TRAILING';
-TRUE : 'TRUE';
-TRUNCATED : 'TRUNCATED';
-TYPE : 'TYPE';
-TYPEDEF : 'TYPEDEF';
-UNDERLINE : 'UNDERLINE';
-UNIT : 'UNIT';
-UNSTRING : 'UNSTRING';
-UNTIL : 'UNTIL';
-UP : 'UP';
-UPON : 'UPON';
-USAGE : 'USAGE';
-USE : 'USE';
-USING : 'USING';
-VALUE : 'VALUE';
-VALUES : 'VALUES';
-VARYING : 'VARYING';
-VIRTUAL : 'VIRTUAL';
-WAIT : 'WAIT';
-WHEN : 'WHEN';
-WHEN_COMPILED : 'WHEN-COMPILED';
-WITH : 'WITH';
-WORDS : 'WORDS';
-WORKING_STORAGE : 'WORKING-STORAGE';
-WRITE : 'WRITE';
-YEAR : 'YEAR';
-YYYYMMDD : 'YYYYMMDD';
-YYYYDDD : 'YYYYDDD';
-ZERO : 'ZERO';
-ZERO_FILL : 'ZERO-FILL';
-ZEROS : 'ZEROS';
-ZEROES : 'ZEROES';
-
-// symbols
-AMPCHAR : '&';
-ASTERISKCHAR : '*';
-DOUBLEASTERISKCHAR : '**';
-COLONCHAR : ':';
-COMMACHAR : ',';
-COMMENTENTRYTAG : '*>CE';
-COMMENTTAG : '*>';
-DOLLARCHAR : '$';
-DOUBLEQUOTE : '"';
-// period full stop
-DOT_FS : '.' | '.' EOF;
-EQUALCHAR : '=';
-EXECCICSTAG : '*>EXECCICS';
-EXECDLITAG : '*>EXECDLI';
-EXECSQLTAG : '*>EXECSQL';
-EXECSQLIMSTAG : '*>EXECSQLIMS';
-LESSTHANCHAR : '<';
-LESSTHANOREQUAL : '<=';
-LPARENCHAR : '(';
-MINUSCHAR : '-';
-MORETHANCHAR : '>';
-MORETHANOREQUAL : '>=';
-NOTEQUALCHAR : '<>';
-PLUSCHAR : '+';
-SINGLEQUOTE : '\'';
-RPARENCHAR : ')';
-SLASHCHAR : '/';
-
-// literals
-NONNUMERICLITERAL : STRINGLITERAL | DBCSLITERAL | HEXNUMBER  | NULLTERMINATED;
-
-fragment HEXNUMBER
-    : 'X' '"' [0-9A-F]+ '"'
-    | 'X' '\'' [0-9A-F]+ '\''
-    ;
-
-fragment NULLTERMINATED
-    : 'Z' '"' (~["\n\r] | '""' | '\'')* '"'
-    | 'Z' '\'' (~['\n\r] | '\'\'' | '"')* '\''
-    ;
-
-fragment STRINGLITERAL
-    : '"' (~["\n\r] | '""' | '\'')* '"'
-    | '\'' (~['\n\r] | '\'\'' | '"')* '\''
-    ;
-
-fragment DBCSLITERAL
-    : [GN] '"' (~["\n\r] | '""' | '\'')* '"'
-    | [GN] '\'' (~['\n\r] | '\'\'' | '"')* '\''
-    ;
-
-LEVEL_NUMBER_66 : '66';
-LEVEL_NUMBER_77 : '77';
-LEVEL_NUMBER_88 : '88';
-
-INTEGERLITERAL : (PLUSCHAR | MINUSCHAR)? [0-9]+;
-
-NUMERICLITERAL : (PLUSCHAR | MINUSCHAR)? [0-9]* ('.' | COMMACHAR) [0-9]+ ('E' (PLUSCHAR | MINUSCHAR)? [0-9]+)?;
-
-// A :TAG: placeholder is part of a word; the colon of a reference modifier is not.
-IDENTIFIER : ([A-Z0-9]+ | COLONCHAR [A-Z0-9]+ COLONCHAR) ([-_]+ ([A-Z0-9]+ | COLONCHAR [A-Z0-9]+ COLONCHAR))*;
-
-// whitespace, line breaks, comments, ...
-
-/* Note:
- * The IBM-ANSI-85 spec defines a whitespace character as ' ', ', ', or `; `.
- * However, client code contains custom whitespace rules that do not match the language spec.
- * The customized whitespace allows for new lines to exist anywhere in the source code.
- *
- * SEPARATOR rule skips over the customized whitespace.
- */
-SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> skip;
-NEWLINE : '\r'? '\n' -> channel(HIDDEN);
-EXECCICSLINE : EXECCICSTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-EXECDLILINE : EXECDLITAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-EXECSQLIMSLINE : EXECSQLIMSTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-EXECSQLLINE : EXECSQLTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-COMMENTENTRYLINE : COMMENTENTRYTAG WS ~('\n' | '\r')*;
-COMMENTLINE : COMMENTTAG WS ~('\n' | '\r')* -> channel(HIDDEN);
-WS : [ \t\f;]+ -> channel(HIDDEN);
