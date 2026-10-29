@@ -61,6 +61,14 @@ options { caseInsensitive = true; }
     private static IntervalSet charDataLineStart;
 
     /**
+     * Whether a compiler option's parenthesized value follows on the same line.
+     */
+    boolean parenAhead(ParserRuleContext option) {
+        return _input.LA(1) == LPARENCHAR && _input.LT(1).getLine() == _input.LT(-1).getLine();
+    }
+
+
+    /**
      * Whether the next token continues the charDataLine. A charDataLine takes every token it can. The rules that
      * loop over charDataLine accept the same tokens, and this predicate on the line's exit is what lets SLL
      * prediction settle where the line ends.
@@ -94,14 +102,14 @@ compilerOption
    | BLOCK0
    | (BUFSIZE | BUF) LPARENCHAR literal RPARENCHAR
    | CBLCARD
-   | CICS (LPARENCHAR literal RPARENCHAR)?
+   | CICS (LPARENCHAR literal RPARENCHAR | {!parenAhead($ctx)}?)
    | COBOL2 | COBOL3
    | (CODEPAGE | CP) LPARENCHAR literal RPARENCHAR
    | (COMPILE | C_CHAR)
    | CPP | CPSM
    | (CURRENCY | CURR) LPARENCHAR literal RPARENCHAR
    | DATA LPARENCHAR literal RPARENCHAR
-   | (DATEPROC | DP) (LPARENCHAR (FLAG | NOFLAG)? COMMACHAR? (TRIG | NOTRIG)? RPARENCHAR)?
+   | (DATEPROC | DP) (LPARENCHAR (FLAG | NOFLAG)? COMMACHAR? (TRIG | NOTRIG)? RPARENCHAR | {!parenAhead($ctx)}?)
    | DBCS
    | (DECK | D_CHAR)
    | DEBUG
@@ -124,13 +132,13 @@ compilerOption
    | LINKAGE | LIST
    | MAP
    | MARGINS LPARENCHAR literal COMMACHAR literal (COMMACHAR literal)? RPARENCHAR
-   | (MDECK | MD) (LPARENCHAR (C_CHAR | COMPILE | NOC | NOCOMPILE) RPARENCHAR)?
-   | NAME (LPARENCHAR (ALIAS | NOALIAS) RPARENCHAR)?
+   | (MDECK | MD) (LPARENCHAR (C_CHAR | COMPILE | NOC | NOCOMPILE) RPARENCHAR | {!parenAhead($ctx)}?)
+   | NAME (LPARENCHAR (ALIAS | NOALIAS) RPARENCHAR | {!parenAhead($ctx)}?)
    | NATLANG LPARENCHAR (CS | EN | KA) RPARENCHAR
    | NOADATA | NOADV | NOAWO
    | NOBLOCK0
    | NOCBLCARD | NOCICS | NOCMPR2
-   | (NOCOMPILE | NOC) (LPARENCHAR (S_CHAR | E_CHAR | W_CHAR) RPARENCHAR)?
+   | (NOCOMPILE | NOC) (LPARENCHAR (S_CHAR | E_CHAR | W_CHAR) RPARENCHAR | {!parenAhead($ctx)}?)
    | NOCPSM
    | (NOCURRENCY | NOCURR)
    | (NODATEPROC | NODP)
@@ -179,7 +187,7 @@ compilerOption
    | (OFFSET | OFF)
    | OPMARGINS LPARENCHAR literal COMMACHAR literal (COMMACHAR literal)? RPARENCHAR
    | OPSEQUENCE LPARENCHAR literal COMMACHAR literal RPARENCHAR
-   | (OPTIMIZE | OPT) (LPARENCHAR (FULL | STD) RPARENCHAR)?
+   | (OPTIMIZE | OPT) (LPARENCHAR (FULL | STD) RPARENCHAR | {!parenAhead($ctx)}?)
    | OPTFILE | OPTIONS | OP
    | (OUTDD | OUT) LPARENCHAR cobolWord RPARENCHAR
    | (PGMNAME | PGMN) LPARENCHAR (CO | COMPAT | LM | LONGMIXED | LONGUPPER | LU | M_CHAR | MIXED | U_CHAR | UPPER) RPARENCHAR
@@ -187,24 +195,24 @@ compilerOption
    | (QUOTE | Q_CHAR)
    | RENT
    | RMODE LPARENCHAR (ANY | AUTO | literal) RPARENCHAR
-   | (SEQUENCE | SEQ) (LPARENCHAR literal COMMACHAR literal RPARENCHAR)?
+   | (SEQUENCE | SEQ) (LPARENCHAR literal COMMACHAR literal RPARENCHAR | {!parenAhead($ctx)}?)
    | (SIZE | SZ) LPARENCHAR (MAX | literal) RPARENCHAR
    | (SOURCE | S_CHAR)
    | SP
    | SPACE LPARENCHAR literal RPARENCHAR
    | SPIE
-   | SQL (LPARENCHAR literal RPARENCHAR)?
+   | SQL (LPARENCHAR literal RPARENCHAR | {!parenAhead($ctx)}?)
    | (SQLCCSID | SQLC)
    | (SSRANGE | SSR)
    | SYSEIB
    | (TERMINAL | TERM)
-   | TEST (LPARENCHAR (HOOK | NOHOOK)? COMMACHAR? (SEP | SEPARATE | NOSEP | NOSEPARATE)? COMMACHAR? (EJPD | NOEJPD)? RPARENCHAR)?
+   | TEST (LPARENCHAR (HOOK | NOHOOK)? COMMACHAR? (SEP | SEPARATE | NOSEP | NOSEPARATE)? COMMACHAR? (EJPD | NOEJPD)? RPARENCHAR | {!parenAhead($ctx)}?)
    | THREAD
    | TRUNC LPARENCHAR (BIN | OPT | STD) RPARENCHAR
    | VBREF
    | (WORD | WD) LPARENCHAR cobolWord RPARENCHAR
    | (XMLPARSE | XP) LPARENCHAR (COMPAT | C_CHAR | XMLSS | X_CHAR) RPARENCHAR
-   | (XREF | X_CHAR) (LPARENCHAR (FULL | SHORT)? RPARENCHAR)?
+   | (XREF | X_CHAR) (LPARENCHAR (FULL | SHORT)? RPARENCHAR | {!parenAhead($ctx)}?)
    | (YEARWINDOW | YW) LPARENCHAR literal RPARENCHAR
    | ZWB
    ;
