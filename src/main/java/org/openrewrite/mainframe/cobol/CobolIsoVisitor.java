@@ -1970,6 +1970,11 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.Service visitService(Cobol.Service service, P p) {
+        return (Cobol.Service) super.visitService(service, p);
+    }
+
+    @Override
     public Cobol.Set visitSet(Cobol.Set set, P p) {
         return (Cobol.Set) super.visitSet(set, p);
     }
@@ -2297,5 +2302,20 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     @Override
     public Cobol.WriteFromPhrase visitWriteFromPhrase(Cobol.WriteFromPhrase writeFromPhrase, P p) {
         return (Cobol.WriteFromPhrase) super.visitWriteFromPhrase(writeFromPhrase, p);
+    }
+
+    @Override
+    public Cobol.XmlParse visitXmlParse(Cobol.XmlParse xmlParse, P p) {
+        return (Cobol.XmlParse) super.visitXmlParse(xmlParse, p);
+    }
+
+    @Override
+    public Cobol.XmlParsePhrase visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, P p) {
+        return (Cobol.XmlParsePhrase) super.visitXmlParsePhrase(xmlParsePhrase, p);
+    }
+
+    @Override
+    public Cobol.XmlParseProcessingProcedure visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, P p) {
+        return (Cobol.XmlParseProcessingProcedure) super.visitXmlParseProcessingProcedure(xmlParseProcessingProcedure, p);
     }
 }
