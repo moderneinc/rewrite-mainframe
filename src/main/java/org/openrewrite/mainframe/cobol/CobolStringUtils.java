@@ -137,6 +137,19 @@ public class CobolStringUtils {
     }
 
     public static boolean isSubstituteCharacter(String text) {
-        return text.length() == 1 && '\u001A' == text.charAt(0);
+        return text.length() == 1 && isSubstituteCharacter(text.charAt(0));
+    }
+
+    public static boolean isSubstituteCharacter(char c) {
+        return c == '\u001A';
+    }
+
+    /**
+     * Whether the text is a DOS end-of-file mark and nothing else: a substitute character with only whitespace
+     * after it.
+     */
+    public static boolean isEndOfFileMark(String text) {
+        return !text.isEmpty() && isSubstituteCharacter(text.charAt(0)) && text.substring(1).trim().isEmpty() &&
+                text.indexOf('\u001A', 1) < 0;
     }
 }

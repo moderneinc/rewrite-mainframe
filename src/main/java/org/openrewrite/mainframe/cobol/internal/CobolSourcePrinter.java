@@ -4372,12 +4372,6 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
                 if (!preprocessorStatement.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
                     copybookSource = (CopybookSource) preprocessorStatement;
                     getCobolPreprocessorVisitor().visit((CobolPreprocessor) copybookSource, p);
-                    // Printing the copybook covers this word only when the word came from it. A copybook that
-                    // contributes no words is carried by a word of the program's own, which still has itself to print.
-                    if (!((CobolPreprocessor) copybookSource).getMarkers().findFirst(MissingCopybook.class).isPresent() &&
-                            word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
-                        return word;
-                    }
                 }
             } else if (preprocessorStatement instanceof CobolPreprocessor.CopyStatement) {
                 if (!preprocessorStatement.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
@@ -4390,6 +4384,13 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
             } else {
                 getCobolPreprocessorVisitor().visit(preprocessorStatement, p);
             }
+        }
+
+        // A copied word came from the last copybook it carries, and the copybook has already printed it. Every
+        // copybook before that one contributed no words, and a word of the program's own still has itself to print.
+        if (copybookSource != null && word.getMarkers().findFirst(CopiedWord.class).isPresent() &&
+                !((CobolPreprocessor) copybookSource).getMarkers().findFirst(MissingCopybook.class).isPresent()) {
+            return word;
         }
 
         if (copyStatement == null && copybookSource == null && word.getMarkers().findFirst(CopiedWord.class).isPresent()) {

@@ -46,6 +46,8 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.DEBUGGING_INDICATORS;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.indexOfFloatingComment;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.isDebuggingModeEnabled;
+import static org.openrewrite.mainframe.cobol.CobolStringUtils.isEndOfFileMark;
+import static org.openrewrite.mainframe.cobol.CobolStringUtils.isSubstituteCharacter;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.COMMENT_ENTRY;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.END_OF_FILE;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.EXEC_TAG;
@@ -170,6 +172,11 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 if (cleanedPart.isEmpty()) {
                     // Increment the pos passed the new line characters.
                     pos += isCRLF ? 2 : 1;
+                    continue;
+                }
+
+                if (isEndOfFileMark(cleanedPart)) {
+                    pos += part.length() + 1;
                     continue;
                 }
 
@@ -6185,8 +6192,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 		if (delimiter != null && isContinued) {
 			return processLiteral(text, objects, delimiter);
 		}
-		if (END_OF_FILE.equals(text) && cursor >= source.length()) {
-			return EMPTY;
+		if (END_OF_FILE.equals(text)) {
+			if (cursor >= source.length()) {
+				return EMPTY;
+			}
+			// A DOS end-of-file mark is not a word of the program, so it rides on the end-of-file word.
+			if (isEndOfFileMark(source.substring(cursor))) {
+				Space mark = Space.build(source, cursor, source.length());
+				cursor = source.length();
+				return mark;
+			}
 		}
 
 		return processText(text, objects, isContinued);
@@ -6240,8 +6255,9 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             int iterations = 0;
             int max = 10000;
             while (iterations < max) {
-                // Stop after all the trailing comments have been parsed.
-                if (cursor >= source.length()) {
+                // Stop after all the trailing comments have been parsed. The blank-line test below would take a DOS
+                // end-of-file mark too, since trim() counts it as blank, so the mark stops the scan first.
+                if (cursor >= source.length() || isSubstituteCharacter(source.charAt(cursor))) {
                     break;
                 }
 
