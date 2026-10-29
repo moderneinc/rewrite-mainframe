@@ -4528,6 +4528,42 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
         return writeFromPhrase;
     }
 
+    @Override
+    public Cobol visitXmlParse(Cobol.XmlParse xmlParse, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlParse, Space.Location.XML_PARSE_PREFIX, p);
+        visit(xmlParse.getWords(), p);
+        visit(xmlParse.getIdentifier(), p);
+        visit(xmlParse.getEncoding(), p);
+        visit(xmlParse.getReturningNational(), p);
+        visit(xmlParse.getValidating(), p);
+        visit(xmlParse.getProcessingProcedure(), p);
+        visit(xmlParse.getOnExceptionClause(), p);
+        visit(xmlParse.getNotOnExceptionClause(), p);
+        visit(xmlParse.getEndXml(), p);
+        afterSyntax(xmlParse, p);
+        return xmlParse;
+    }
+
+    @Override
+    public Cobol visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlParsePhrase, Space.Location.XML_PARSE_PHRASE_PREFIX, p);
+        visit(xmlParsePhrase.getWords(), p);
+        visit(xmlParsePhrase.getValue(), p);
+        afterSyntax(xmlParsePhrase, p);
+        return xmlParsePhrase;
+    }
+
+    @Override
+    public Cobol visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlParseProcessingProcedure, Space.Location.XML_PARSE_PROCESSING_PROCEDURE_PREFIX, p);
+        visit(xmlParseProcessingProcedure.getWords(), p);
+        visit(xmlParseProcessingProcedure.getProcedureName(), p);
+        visit(xmlParseProcessingProcedure.getThrough(), p);
+        visit(xmlParseProcessingProcedure.getThroughProcedure(), p);
+        afterSyntax(xmlParseProcessingProcedure, p);
+        return xmlParseProcessingProcedure;
+    }
+
     /**
      * Appends a word's own characters, reporting where they landed.
      */

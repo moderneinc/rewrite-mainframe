@@ -2921,4 +2921,28 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
         Cobol.WriteAdvancingLines w = writeAdvancingLines;
         return w.withName(visitAndCast(w.getName(), p));
     }
+
+    @Override
+    public Cobol.XmlParse visitXmlParse(Cobol.XmlParse xmlParse, P p) {
+        Cobol.XmlParse x = xmlParse;
+        x = x.withIdentifier(visitAndCast(x.getIdentifier(), p));
+        x = x.withEncoding(visitAndCast(x.getEncoding(), p));
+        x = x.withValidating(visitAndCast(x.getValidating(), p));
+        x = x.withProcessingProcedure(visitAndCast(x.getProcessingProcedure(), p));
+        x = x.withOnExceptionClause(visitAndCast(x.getOnExceptionClause(), p));
+        return x.withNotOnExceptionClause(visitAndCast(x.getNotOnExceptionClause(), p));
+    }
+
+    @Override
+    public Cobol.XmlParsePhrase visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, P p) {
+        Cobol.XmlParsePhrase x = xmlParsePhrase;
+        return x.withValue(visitAndCast(x.getValue(), p));
+    }
+
+    @Override
+    public Cobol.XmlParseProcessingProcedure visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, P p) {
+        Cobol.XmlParseProcessingProcedure x = xmlParseProcessingProcedure;
+        x = x.withProcedureName(visitAndCast(x.getProcedureName(), p));
+        return x.withThroughProcedure(visitAndCast(x.getThroughProcedure(), p));
+    }
 }

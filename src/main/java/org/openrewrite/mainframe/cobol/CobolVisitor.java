@@ -3966,6 +3966,39 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return w.withName((Name) visit(w.getName(), p));
     }
 
+    public Cobol visitXmlParse(Cobol.XmlParse xmlParse, P p) {
+        Cobol.XmlParse x = xmlParse;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.XML_PARSE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withWords(ListUtils.map(x.getWords(), it -> (Cobol.Word) visit(it, p)));
+        x = x.withIdentifier((Name) visit(x.getIdentifier(), p));
+        x = x.withEncoding((Cobol.XmlParsePhrase) visit(x.getEncoding(), p));
+        x = x.withReturningNational((Cobol.XmlParsePhrase) visit(x.getReturningNational(), p));
+        x = x.withValidating((Cobol.XmlParsePhrase) visit(x.getValidating(), p));
+        x = x.withProcessingProcedure((Cobol.XmlParseProcessingProcedure) visit(x.getProcessingProcedure(), p));
+        x = x.withOnExceptionClause((Cobol.StatementPhrase) visit(x.getOnExceptionClause(), p));
+        x = x.withNotOnExceptionClause((Cobol.StatementPhrase) visit(x.getNotOnExceptionClause(), p));
+        return x.withEndXml((Cobol.Word) visit(x.getEndXml(), p));
+    }
+
+    public Cobol visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, P p) {
+        Cobol.XmlParsePhrase x = xmlParsePhrase;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.XML_PARSE_PHRASE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withWords(ListUtils.map(x.getWords(), it -> (Cobol.Word) visit(it, p)));
+        return x.withValue((Name) visit(x.getValue(), p));
+    }
+
+    public Cobol visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, P p) {
+        Cobol.XmlParseProcessingProcedure x = xmlParseProcessingProcedure;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.XML_PARSE_PROCESSING_PROCEDURE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withWords(ListUtils.map(x.getWords(), it -> (Cobol.Word) visit(it, p)));
+        x = x.withProcedureName((Cobol.ProcedureName) visit(x.getProcedureName(), p));
+        x = x.withThrough((Cobol.Word) visit(x.getThrough(), p));
+        return x.withThroughProcedure((Cobol.ProcedureName) visit(x.getThroughProcedure(), p));
+    }
+
     public CobolLine visitLine(CobolLine line, P p) {
         CobolLine l = line;
         l = l.withMarkers(visitMarkers(l.getMarkers(), p));
