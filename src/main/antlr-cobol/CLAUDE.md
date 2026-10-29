@@ -10,7 +10,7 @@ COBOL_CORPUS=/path/to/corpus ./gradlew test --tests '*ParseCostTest' --rerun
 
 Run it on main and on the branch, alternating, three times each, under an exclusive CPU claim. Compare in this order:
 
-- **The prediction cache's configurations, and how many differ only in predicate order.** Both are deterministic, so any difference is real.
+- **The prediction cache's configurations, and how many differ only in predicate order.** Both are deterministic, so any difference is real. The parser sorts the operands of every predicate it combines, so the second number is 0, and anything else means some prediction path combines predicates without going through that sort.
 - **Building the cache, pass 4 minus warm.** This is what a change to prediction costs. A single pass's excess over a warm one is this plus JIT warm-up, so comparing single passes compares warm-up.
 - **The warm passes.** They are what a long run over many programs sees, for time and allocation alike.
 

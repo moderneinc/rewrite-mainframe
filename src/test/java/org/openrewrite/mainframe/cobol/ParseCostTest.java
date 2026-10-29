@@ -15,8 +15,6 @@
  */
 package org.openrewrite.mainframe.cobol;
 
-import org.antlr.v4.runtime.atn.ATNConfig;
-import org.antlr.v4.runtime.atn.SemanticContext;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.dfa.DFAState;
 import org.junit.jupiter.api.Test;
@@ -30,13 +28,10 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>
  * The corpus is parsed four times in one JVM. The last pass follows a cleared prediction cache, so its excess over the
  * warm passes is what building the cache costs. The cache's size is deterministic, and so is the count of its
- * configurations that differ only in predicate order, which ANTLR compares in the hash-set order it stored them in.
+ * configurations that differ only in predicate order.
  * <p>
  * Run with {@code COBOL_CORPUS=/path/to/corpus}.
  */
@@ -67,15 +62,13 @@ class ParseCostTest {
         }
         assertThat(programs.stream().mapToInt(List::size).sum()).as("programs under %s", root).isPositive();
 
-        DFA[] cache = new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(null).getInterpreter().decisionToDFA;
+        DFA[] cache = PredictionCache.shared();
         long[] nanos = new long[4];
         long[] bytes = new long[4];
         String cacheReport = "";
         for (int pass = 0; pass < 4; pass++) {
             if (pass == 3) {
-                for (int d = 0; d < cache.length; d++) {
-                    cache[d] = new DFA(cache[d].atnStartState, d);
-                }
+                PredictionCache.clear();
             }
             long allocatedBefore = allocated();
             long start = System.nanoTime();
@@ -109,11 +102,7 @@ class ParseCostTest {
             for (DFAState state : dfa.states.keySet()) {
                 states++;
                 configs += state.configs.size();
-                Set<String> distinct = new HashSet<>();
-                for (ATNConfig config : state.configs) {
-                    distinct.add(config.state.stateNumber + "/" + config.alt + "/" + unordered(config.semanticContext));
-                }
-                orderOnly += state.configs.size() - distinct.size();
+                orderOnly += PredictionCache.orderOnlyDuplicates(state);
                 long[] counts = byRule.computeIfAbsent(rule, r -> new long[2]);
                 counts[0]++;
                 counts[1] += state.configs.size();
@@ -128,16 +117,6 @@ class ParseCostTest {
           .forEach(e -> report.append(String.format(Locale.ROOT, "  %,9d configurations in %,5d states  %s%n",
             e.getValue()[1], e.getValue()[0], e.getKey())));
         return report.toString();
-    }
-
-    private static String unordered(SemanticContext context) {
-        SemanticContext[] operands = context instanceof SemanticContext.AND ? ((SemanticContext.AND) context).opnds :
-          context instanceof SemanticContext.OR ? ((SemanticContext.OR) context).opnds : null;
-        if (operands == null) {
-            return context.toString();
-        }
-        return (context instanceof SemanticContext.AND ? "&&" : "||") +
-               Arrays.toString(Arrays.stream(operands).map(ParseCostTest::unordered).sorted().toArray());
     }
 
     private static long allocated() {
