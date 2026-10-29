@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from src/main/antlr-cobol/Cobol.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-cobol/CobolParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.cobol.internal.grammar;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -21,12 +21,12 @@ import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 /**
- * This class provides an empty implementation of {@link CobolListener},
+ * This class provides an empty implementation of {@link CobolParserListener},
  * which can be extended to create a listener which only needs to handle a subset
  * of the available methods.
  */
 @SuppressWarnings("CheckReturnValue")
-public class CobolBaseListener implements CobolListener {
+public class CobolParserBaseListener implements CobolParserListener {
 	/**
 	 * {@inheritDoc}
 	 *
@@ -2883,18 +2883,6 @@ public class CobolBaseListener implements CobolListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitPictureString(CobolParser.PictureStringContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterPictureChars(CobolParser.PictureCharsContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitPictureChars(CobolParser.PictureCharsContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

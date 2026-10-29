@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from src/main/antlr-cobol/Cobol.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-cobol/CobolParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.cobol.internal.grammar;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
 /**
- * This class provides an empty implementation of {@link CobolVisitor},
+ * This class provides an empty implementation of {@link CobolParserVisitor},
  * which can be extended to create a visitor which only needs to handle a subset
  * of the available methods.
  *
@@ -26,7 +26,7 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
  * operations with no return type.
  */
 @SuppressWarnings("CheckReturnValue")
-public class CobolBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements CobolVisitor<T> {
+public class CobolParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements CobolParserVisitor<T> {
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1693,13 +1693,6 @@ public class CobolBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitPictureString(CobolParser.PictureStringContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitPictureChars(CobolParser.PictureCharsContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

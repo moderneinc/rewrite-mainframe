@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.mainframe.cobol.CobolParsingTimeoutException;
-import org.openrewrite.mainframe.cobol.internal.grammar.CobolBaseVisitor;
+import org.openrewrite.mainframe.cobol.internal.grammar.CobolParserBaseVisitor;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
@@ -51,7 +51,7 @@ import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.EXEC_TA
 import static org.openrewrite.mainframe.cobol.tree.Space.EMPTY;
 
 @RequiredArgsConstructor
-public class CobolParserVisitor extends CobolBaseVisitor<Object> {
+public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     private final Path path;
 
