@@ -29,6 +29,7 @@ import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
 import org.openrewrite.mainframe.cobol.tree.*;
+import org.openrewrite.mainframe.internal.StringRange;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.marker.Markers;
 
@@ -6209,10 +6210,12 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
                 int newLinePos = source.indexOf('\n', cursor) == -1 ? source.length() : source.indexOf('\n', cursor);
                 int endOfContentArea = endOfContentArea();
-                String contentArea = source.substring(cursor, Math.min(newLinePos, endOfContentArea));
-                if (!(isCommentIndicator(indicatorArea) || contentArea.trim().isEmpty() || templateKeys.contains(contentArea))) {
+                int contentEnd = Math.min(newLinePos, endOfContentArea);
+                if (!(isCommentIndicator(indicatorArea) || isBlank(cursor, contentEnd) ||
+                      StringRange.contains(templateKeys, source, cursor, contentEnd))) {
                     break;
                 }
+                String contentArea = source.substring(cursor, contentEnd);
 
                 if (templateKeys.contains(contentArea)) {
                     if (replaceStartComment.equals(contentArea)) {

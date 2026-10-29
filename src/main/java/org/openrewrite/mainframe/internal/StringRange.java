@@ -18,6 +18,7 @@ package org.openrewrite.mainframe.internal;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A range of a string that a map keyed by strings finds as if it were the string itself, so a lookup copies nothing.
@@ -37,6 +38,10 @@ public final class StringRange {
 
     public static <V> @Nullable V get(Map<String, V> map, String source, int beginIndex, int endIndex) {
         return map.get(new StringRange(source, beginIndex, endIndex));
+    }
+
+    public static boolean contains(Set<String> set, String source, int beginIndex, int endIndex) {
+        return set.contains(new StringRange(source, beginIndex, endIndex));
     }
 
     @Override
