@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/openrewrite/rewrite-cobol/.claude/worktrees/ims-or-cics/src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.db2.internal.grammar;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -392,6 +392,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterNamedIndexOption(DB2Parser.NamedIndexOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNamedIndexOption(DB2Parser.NamedIndexOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCreateTablespace(DB2Parser.CreateTablespaceContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -411,6 +423,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitTablespaceOption(DB2Parser.TablespaceOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNamedTablespaceOption(DB2Parser.NamedTablespaceOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNamedTablespaceOption(DB2Parser.NamedTablespaceOptionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

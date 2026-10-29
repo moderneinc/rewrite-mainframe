@@ -75,9 +75,19 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
 
     @Override
     public Db2.Ddl visitCompilationUnit(DB2Parser.CompilationUnitContext ctx) {
-        List<Db2RightPadded<Statement>> statements = new ArrayList<>(ctx.statement().size());
+        List<Db2RightPadded<Statement>> statements = new ArrayList<>(ctx.getChildCount());
+        for (DB2Parser.TerminatorContext terminator : ctx.terminator()) {
+            statements.add(terminated((Statement) visit(terminator)));
+        }
         for (DB2Parser.StatementContext statement : ctx.statement()) {
             statements.add(terminated((Statement) visit(statement.getChild(0))));
+            // A statement's end holds every semicolon up to the next statement, and each after the first is a
+            // statement of its own.
+            List<TerminalNode> semicolons = semicolons(statement);
+            for (int i = 1; i < semicolons.size(); i++) {
+                Space prefix = prefix(semicolons.get(i).getSymbol());
+                statements.add(terminated(new Db2.Empty(randomId(), prefix, Markers.EMPTY)));
+            }
         }
         return new Db2.Ddl(randomId(), path, fileAttributes, EMPTY, Markers.EMPTY,
                 charset.name(), charsetBomMarked, null, statements,
@@ -1159,12 +1169,27 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         return new Db2.Word(randomId(), prefix, Markers.EMPTY, token.getText());
     }
 
+    private static List<TerminalNode> semicolons(DB2Parser.StatementContext statement) {
+        ParseTree last = statement;
+        while (!(last instanceof DB2Parser.EndContext)) {
+            if (last.getChildCount() == 0) {
+                return emptyList();
+            }
+            last = last.getChild(last.getChildCount() - 1);
+        }
+        return ((DB2Parser.EndContext) last).SEMI();
+    }
+
     /**
      * The white space and comments in front of a rule, without taking its first token, so the node
      * carries the indentation and its first child carries nothing.
      */
     private Space prefix(ParserRuleContext ctx) {
-        int start = ctx.getStart().getStartIndex();
+        return prefix(ctx.getStart());
+    }
+
+    private Space prefix(Token token) {
+        int start = token.getStartIndex();
         Space prefix = Space.build(source, cursor, start);
         cursor = start;
         return prefix;
