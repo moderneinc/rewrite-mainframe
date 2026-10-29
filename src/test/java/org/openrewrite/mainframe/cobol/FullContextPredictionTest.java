@@ -139,6 +139,25 @@ class FullContextPredictionTest {
         assertThat(fullContextFallbacks(program, "identifier", "qualifiedInData")).isZero();
     }
 
+    @Test
+    void pictureStrings() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. PICS.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  A   PIC X(10).
+          01  B   PIC S9(5)V99.
+          01  C   PIC ZZ,ZZ9.99-.
+          01  D   PIC 9(3)V9(2) VALUE 1.5.
+          01  E   PIC XX OCCURS 3 TIMES.
+          01  F   PICTURE IS $$$9 COMP-3.
+          PROCEDURE DIVISION.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "pictureString", "picture", "pictureChars", "pictureCardinality")).isZero();
+    }
+
     /**
      * How often prediction in the decisions of the given rules retried with full context, over one parse of the
      * program. The program is the text the preprocessor hands the grammar, so it carries no sequence numbers.

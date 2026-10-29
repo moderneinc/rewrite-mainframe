@@ -2888,18 +2888,6 @@ public class CobolBaseListener implements CobolListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterPicture(CobolParser.PictureContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitPicture(CobolParser.PictureContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterPictureChars(CobolParser.PictureCharsContext ctx) { }
 	/**
 	 * {@inheritDoc}

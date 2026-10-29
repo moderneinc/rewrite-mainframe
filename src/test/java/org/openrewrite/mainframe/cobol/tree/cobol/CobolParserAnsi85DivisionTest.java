@@ -1577,6 +1577,39 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void pictureShapes() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. PICS.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  A   PIC X(10).
+              000006 01  B   PIC S9(5)V99.
+              000007 01  C   PIC ZZ,ZZ9.99-.
+              000008 01  D   PIC 9(3)V9(2).
+              000009 01  E   PIC XX.
+              000010 01  F   PICTURE IS $$$9 VALUE 0.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> pictures = new CobolIsoVisitor<List<String>>() {
+                    @Override
+                    public Cobol.PictureString visitPictureString(Cobol.PictureString pictureString, List<String> found) {
+                        found.add(pictureString.getPictures().stream().map(picture ->
+                          picture.getWords().stream().map(Cobol.Word::getWord).collect(joining()) +
+                          (picture.getParenthesized() == null ? "" : picture.getParenthesized().printTrimmed(getCursor()))
+                        ).collect(joining(" ")));
+                        return super.visitPictureString(pictureString, found);
+                    }
+                }.reduce(cu, new ArrayList<>());
+                assertThat(pictures).containsExactly("X(10)", "S9(5) V99", "ZZ,ZZ9.99-", "9(3) V9(2)", "XX", "$$$9");
+            })
+          )
+        );
+    }
+
+    @Test
     void relationConditions() {
         rewriteRun(
           cobol(

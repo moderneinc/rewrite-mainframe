@@ -3293,16 +3293,6 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     @Override
-    public Cobol.Picture visitPicture(CobolParser.PictureContext ctx) {
-        return new Cobol.Picture(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                convertAll(ctx.pictureChars()),
-                visitNullable(ctx.pictureCardinality())
-        );
-    }
-
-    @Override
     public Object visitPictureCardinality(CobolParser.PictureCardinalityContext ctx) {
         return new Cobol.Parenthesized(randomId(),
                 EMPTY,
@@ -3313,12 +3303,29 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         );
     }
 
+    /**
+     * A cardinality closes the picture of the characters before it, and characters after the last cardinality
+     * form a picture of their own.
+     */
     @Override
     public Object visitPictureString(CobolParser.PictureStringContext ctx) {
+        List<Cobol.Picture> pictures = new ArrayList<>();
+        List<Cobol.Word> words = new ArrayList<>();
+        for (ParseTree child : ctx.children) {
+            if (child instanceof CobolParser.PictureCardinalityContext) {
+                pictures.add(new Cobol.Picture(randomId(), EMPTY, Markers.EMPTY, words, (Cobol.Parenthesized) visit(child)));
+                words = new ArrayList<>();
+            } else {
+                words.add((Cobol.Word) visit(child));
+            }
+        }
+        if (!words.isEmpty()) {
+            pictures.add(new Cobol.Picture(randomId(), EMPTY, Markers.EMPTY, words, null));
+        }
         return new Cobol.PictureString(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.picture())
+                pictures
         );
     }
 
