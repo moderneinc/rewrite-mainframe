@@ -5936,7 +5936,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             if (!Character.isWhitespace(c) || isColumnArea) {
                 if (c == ',' || c == ';' && delimIndex + 1 < source.length() - 1) {
                     char next = source.charAt(delimIndex + 1);
-                    if (next == ' ' || next == '\r' || next == '\n') {
+                    if (next == ' ' || next == '\r' || next == '\n' || commentAreas.containsKey(delimIndex + 1)) {
                         continue;
                     }
                 }
