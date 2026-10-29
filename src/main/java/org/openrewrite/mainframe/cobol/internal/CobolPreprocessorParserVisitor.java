@@ -821,10 +821,11 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
 
     @Override
     public Object visitTerminal(TerminalNode node) {
+        String nodeText = node.getText();
         List<Object> objects = new ArrayList<>();
-        Space prefix = processTokenText(node.getText(), objects);
-        String text = END_OF_FILE.equals(node.getText()) ? "" :
-                node.getText().startsWith(COMMENT_ENTRY) ? node.getText().substring(COMMENT_ENTRY.length()) : node.getText();
+        Space prefix = processTokenText(nodeText, objects);
+        String text = END_OF_FILE.equals(nodeText) ? "" :
+                nodeText.startsWith(COMMENT_ENTRY) ? nodeText.substring(COMMENT_ENTRY.length()) : nodeText;
 
         List<CobolLine> cobolLines = null;
         Continuation continuation = null;
