@@ -81,7 +81,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         }
         return new Db2.Ddl(randomId(), path, fileAttributes, EMPTY, Markers.EMPTY,
                 charset.name(), charsetBomMarked, null, statements,
-                Space.build(source.substring(cursor)));
+                Space.build(source, cursor, source.length()));
     }
 
     /**
@@ -713,7 +713,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             } else if (child instanceof TerminalNode) {
                 Token token = ((TerminalNode) child).getSymbol();
                 if (token.getType() == DB2Parser.LPAREN) {
-                    beforeParameters = Space.build(source.substring(cursor, token.getStartIndex()));
+                    beforeParameters = Space.build(source, cursor, token.getStartIndex());
                     cursor = token.getStopIndex() + 1;
                 } else if (token.getType() == DB2Parser.COMMA || token.getType() == DB2Parser.RPAREN) {
                     skip(token.getText());
@@ -950,7 +950,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         if (operator == null) {
             return Db2LeftPadded.build(element.get());
         }
-        Space before = Space.build(source.substring(cursor, operator.getSymbol().getStartIndex()));
+        Space before = Space.build(source, cursor, operator.getSymbol().getStartIndex());
         cursor = operator.getSymbol().getStopIndex() + 1;
         return new Db2LeftPadded<>(before, element.get(), Markers.EMPTY);
     }
@@ -1103,7 +1103,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     }
 
     private Db2.Keyword keyword(Token token) {
-        Space prefix = Space.build(source.substring(cursor, token.getStartIndex()));
+        Space prefix = Space.build(source, cursor, token.getStartIndex());
         cursor = token.getStopIndex() + 1;
         return new Db2.Keyword(randomId(), prefix, Markers.EMPTY, typeOf(token), token.getText());
     }
@@ -1154,7 +1154,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     }
 
     private Db2.Word word(Token token) {
-        Space prefix = Space.build(source.substring(cursor, token.getStartIndex()));
+        Space prefix = Space.build(source, cursor, token.getStartIndex());
         cursor = token.getStopIndex() + 1;
         return new Db2.Word(randomId(), prefix, Markers.EMPTY, token.getText());
     }
@@ -1165,7 +1165,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
      */
     private Space prefix(ParserRuleContext ctx) {
         int start = ctx.getStart().getStartIndex();
-        Space prefix = Space.build(source.substring(cursor, start));
+        Space prefix = Space.build(source, cursor, start);
         cursor = start;
         return prefix;
     }
@@ -1175,7 +1175,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         while (end < source.length() && Character.isWhitespace(source.charAt(end))) {
             end++;
         }
-        Space space = Space.build(source.substring(cursor, end));
+        Space space = Space.build(source, cursor, end);
         cursor = end;
         return space;
     }

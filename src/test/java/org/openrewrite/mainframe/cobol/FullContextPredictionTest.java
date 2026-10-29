@@ -1,0 +1,295 @@
+/*
+ * Copyright 2025 the original author or authors.
+ * <p>
+ * Licensed under the Moderne Source Available License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://docs.moderne.io/licensing/moderne-source-available-license
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.openrewrite.mainframe.cobol;
+
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.atn.DecisionInfo;
+import org.junit.jupiter.api.Test;
+import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
+import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
+import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorLexer;
+import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorParser;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Pins the decisions where SLL prediction never retries with full context. The statement-list predicates are
+ * explained at {@code startsStatement} in the grammar, and the identifier rule at {@code visitIdentifier}.
+ */
+class FullContextPredictionTest {
+
+    @Test
+    void nestedIfsWithoutEndIf() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. NESTIF.
+          PROCEDURE DIVISION.
+              IF A = 1
+                 IF B = 2
+                    MOVE 1 TO C
+                    IF D = 3
+                       MOVE 2 TO E
+                       DISPLAY 'X'
+                    ELSE
+                       MOVE 3 TO F
+                 ELSE
+                    MOVE 4 TO G
+              END-IF
+              MOVE 5 TO H.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "ifStatement", "ifThen", "ifElse")).isZero();
+    }
+
+    @Test
+    void nestedEvaluateAndSearchWithoutTerminators() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. NESTEVAL.
+          PROCEDURE DIVISION.
+              EVALUATE A
+                WHEN 1
+                  EVALUATE B
+                    WHEN 2 MOVE 1 TO C
+                    WHEN 3 WHEN 4 MOVE 2 TO C
+                    WHEN OTHER MOVE 3 TO C
+                WHEN OTHER
+                  MOVE 4 TO C
+              END-EVALUATE
+              SEARCH T AT END MOVE 1 TO X
+                WHEN T-K(I) = 1 MOVE 2 TO X
+                WHEN T-K(I) = 2 SEARCH U WHEN U-K(J) = 1 MOVE 3 TO X
+              END-SEARCH.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "evaluateStatement", "evaluateWhenPhrase", "evaluateWhenOther",
+          "searchStatement", "searchWhen")).isZero();
+    }
+
+    @Test
+    void nestedConditionalPhrases() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. NESTPHR.
+          PROCEDURE DIVISION.
+              READ F AT END
+                 ADD 1 TO X ON SIZE ERROR
+                    STRING A DELIMITED BY SIZE INTO B ON OVERFLOW
+                       CALL 'P' ON EXCEPTION
+                          WRITE R INVALID KEY
+                             MOVE 1 TO Y
+                          NOT INVALID KEY
+                             MOVE 2 TO Y
+                       NOT ON EXCEPTION
+                          MOVE 3 TO Y
+                    NOT ON OVERFLOW
+                       MOVE 4 TO Y
+                 NOT ON SIZE ERROR
+                    MOVE 5 TO Y
+              NOT AT END
+                 WRITE R AT END-OF-PAGE
+                    MOVE 6 TO Y
+                 NOT AT EOP
+                    RECEIVE CD-IN MESSAGE INTO M NO DATA
+                       MOVE 7 TO Y
+                    WITH DATA
+                       MOVE 8 TO Y
+              END-READ.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "atEndPhrase", "notAtEndPhrase", "onSizeErrorPhrase",
+          "notOnSizeErrorPhrase", "onOverflowPhrase", "notOnOverflowPhrase", "onExceptionClause",
+          "notOnExceptionClause", "invalidKeyPhrase", "notInvalidKeyPhrase", "writeAtEndOfPagePhrase",
+          "writeNotAtEndOfPagePhrase", "receiveNoData", "receiveWithData")).isZero();
+    }
+
+    @Test
+    void subscriptedAndReferenceModifiedNames() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. SUBSCR.
+          PROCEDURE DIVISION.
+              MOVE A (1) TO B (I, J).
+              MOVE WS-DATE (1:8) TO C (K) (3:2).
+              IF D (I) = E (1:2) DISPLAY F (I) G.
+              MOVE H IN T (I) TO C OF R OF T (I, J) (1:2).
+              MOVE T (A (1)) TO W.
+              MOVE FUNCTION MAX(A (1) B) TO W (1:2).
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "identifier", "qualifiedInData")).isZero();
+    }
+
+    @Test
+    void pictureStrings() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. PICS.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  A   PIC X(10).
+          01  B   PIC S9(5)V99.
+          01  C   PIC ZZ,ZZ9.99-.
+          01  D   PIC 9(3)V9(2) VALUE 1.5.
+          01  E   PIC XX OCCURS 3 TIMES.
+          01  F   PICTURE IS $$$9 COMP-3.
+          PROCEDURE DIVISION.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "pictureString", "pictureCardinality")).isZero();
+    }
+
+    @Test
+    void dataDescriptionEntriesAndQualifiedNames() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENTRIES.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  WS-REC.
+              05  WS-A        PIC X(4) VALUE 'ABCD'.
+              05  FILLER      PIC X VALUE SPACE.
+              05  WS-N        PIC 9(3) COMP VALUE 7.
+                  88  WS-N-SET    VALUE 1 THRU 9.
+              05  WS-T OCCURS 3 TIMES INDEXED BY WS-I.
+                  10  WS-E    PIC X.
+          01  WS-OLD REDEFINES WS-REC PIC X(20).
+          01  WS-BIN          BINARY PIC 9(4).
+          PROCEDURE DIVISION.
+              MOVE WS-A OF WS-REC TO WS-E OF WS-T IN WS-REC (1).
+              IF WS-N-SET MOVE 1 TO WS-N.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "qualifiedDataName", "qualifiedDataNameFormat1",
+          "dataDescriptionEntryFormat1", "dataValueClause")).isZero();
+    }
+
+    @Test
+    void foldedAlternatives() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. FOLDS.
+          ENVIRONMENT DIVISION.
+          INPUT-OUTPUT SECTION.
+          FILE-CONTROL.
+              SELECT IN-FILE ASSIGN TO INDD.
+              SELECT OUT-FILE ASSIGN TO OUTDD.
+          DATA DIVISION.
+          FILE SECTION.
+          FD  IN-FILE.
+          01  IN-REC   PIC X(80).
+          FD  OUT-FILE.
+          01  OUT-REC  PIC X(80).
+          WORKING-STORAGE SECTION.
+          01  I        PIC 9.
+          01  J        PIC 9.
+          01  T.
+              05  E OCCURS 3 TIMES PIC X.
+          01  FLAGS    PIC X.
+              88  DONE  VALUE 'Y'.
+          PROCEDURE DIVISION USING IN-REC OUT-REC.
+          MAIN SECTION.
+          START-PARA.
+              PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3
+                 MOVE E (I) TO OUT-REC
+              END-PERFORM.
+              PERFORM VARYING I FROM J BY I UNTIL DONE
+                 CONTINUE
+              END-PERFORM.
+              EVALUATE I
+                WHEN 1 CONTINUE
+                WHEN J CONTINUE
+                WHEN ZERO CONTINUE
+                WHEN J + 1 CONTINUE
+              END-EVALUATE.
+              CALL 'SUB' USING IN-REC OUT-REC BY VALUE I BY REFERENCE J.
+              CALL 'SUB' USING BY REFERENCE I J.
+              MOVE FUNCTION MAX(I J) (1:1) TO FLAGS.
+              IF DONE OF FLAGS GO TO END-PARA IN MAIN.
+              GO TO START-PARA END-PARA DEPENDING ON I.
+              GO TO END-PARA.
+          END-PARA.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "procedureName", "paragraph", "goToStatement", "callByReference",
+          "callByReferencePhrase", "callUsingPhrase", "procedureDivisionByReference", "conditionNameReference",
+          "literal", "numericLiteral", "argument", "evaluateValue", "performBy", "performFrom", "functionCall",
+          "fileControlParagraph")).isZero();
+    }
+
+    /**
+     * How often prediction in the decisions of the given rules retried with full context, over one parse of the
+     * program. The program is the text the preprocessor hands the grammar, so it carries no sequence numbers.
+     */
+    @Test
+    void preprocessorCharDataLines() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. CHARDATA.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  A   PIC X(10) VALUE 'ABC'.
+          PROCEDURE DIVISION.
+              MOVE A TO B.
+              DISPLAY 'X' A (1:2).
+              STOP RUN.
+          """;
+        assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "charData", "charDataLine")).isZero();
+    }
+
+    private static long fullContextFallbacks(String program, String... rules) {
+        CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
+        return fullContextFallbacks(parser, parser::compilationUnit, rules);
+    }
+
+    private static long preprocessorFullContextFallbacks(String program, String... rules) {
+        CobolPreprocessorParser parser = new CobolPreprocessorParser(
+          new CommonTokenStream(new CobolPreprocessorLexer(CharStreams.fromString(program))));
+        return fullContextFallbacks(parser, parser::compilationUnit, rules);
+    }
+
+    private static long fullContextFallbacks(Parser parser, Runnable parse, String... rules) {
+        parser.removeErrorListeners();
+        parser.addErrorListener(new BaseErrorListener() {
+            @Override
+            public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
+                                    int charPositionInLine, String msg, RecognitionException e) {
+                throw new IllegalStateException(line + ":" + charPositionInLine + " " + msg);
+            }
+        });
+        parser.setProfile(true);
+        parse.run();
+
+        Set<String> ruleSet = new HashSet<>(Arrays.asList(rules));
+        long fallbacks = 0;
+        for (DecisionInfo decision : parser.getParseInfo().getDecisionInfo()) {
+            String rule = parser.getRuleNames()[parser.getATN().getDecisionState(decision.decision).ruleIndex];
+            if (ruleSet.contains(rule)) {
+                fallbacks += decision.LL_Fallback;
+            }
+        }
+        return fallbacks;
+    }
+}

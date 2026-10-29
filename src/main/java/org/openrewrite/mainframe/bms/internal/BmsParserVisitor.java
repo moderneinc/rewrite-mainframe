@@ -96,7 +96,7 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
                 charsetBomMarked,
                 null,
                 statements,
-                Space.build(source.substring(cursor))
+                Space.build(source, cursor, source.length())
         );
     }
 
@@ -405,9 +405,9 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
 
     private Space whitespace() {
         int endIndex = indexOfNextNonWhitespace(cursor, source);
-        String prefix = source.substring(cursor, endIndex);
-        cursor += prefix.length();
-        return Space.build(prefix);
+        Space prefix = Space.build(source, cursor, endIndex);
+        cursor = endIndex;
+        return prefix;
     }
 
     private Space sourceBefore(String untilDelim) {

@@ -38,4 +38,15 @@ class SpaceTest {
 
         assertThat(Space.build(new String(whitespace))).isSameAs(first);
     }
+
+    @Test
+    void buildsARangeOfASourceAsTheSpaceOfItsText() {
+        String source = "MOVE  A   TO B";
+        Space interned = Space.build("  ");
+
+        assertThat(Space.build(source, 4, 6)).isSameAs(interned);
+
+        assertThat(Space.build(source, 7, 10).getWhitespace()).isEqualTo("   ");
+        assertThat(Space.build(source, 4, 4)).isSameAs(Space.EMPTY);
+    }
 }

@@ -87,7 +87,7 @@ public class UtilityParserVisitor extends UtilityCardParserBaseVisitor<Utility> 
                 charsetBomMarked,
                 null,
                 statements,
-                Space.build(source.substring(cursor))
+                Space.build(source, cursor, source.length())
         );
     }
 
@@ -279,7 +279,7 @@ public class UtilityParserVisitor extends UtilityCardParserBaseVisitor<Utility> 
                 break;
             }
         }
-        return Space.build(source.substring(start, cursor));
+        return Space.build(source, start, cursor);
     }
 
     private Space sourceBefore(String untilDelim) {
