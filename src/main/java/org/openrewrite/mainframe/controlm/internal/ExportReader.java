@@ -207,7 +207,7 @@ public class ExportReader {
 
     private Space whitespace() {
         int end = indexOfNextNonWhitespace(cursor, source);
-        Space space = Space.build(source.substring(cursor, end));
+        Space space = Space.build(source, cursor, end);
         cursor = end;
         return space;
     }

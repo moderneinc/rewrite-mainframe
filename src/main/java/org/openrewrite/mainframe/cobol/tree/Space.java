@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.EqualsAndHashCode;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.mainframe.internal.StringRange;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -45,6 +46,22 @@ public class Space {
         this.whitespace = whitespace == null || whitespace.isEmpty() ? null : whitespace;
     }
 
+    /**
+     * The space for a range of a source string. An interned space is found without copying the range.
+     */
+    public static Space build(String source, int beginIndex, int endIndex) {
+        if (beginIndex == endIndex) {
+            return Space.EMPTY;
+        }
+        if (endIndex - beginIndex <= 100) {
+            Space existing = StringRange.get(flyweights, source, beginIndex, endIndex);
+            if (existing != null) {
+                return existing;
+            }
+        }
+        return build(source.substring(beginIndex, endIndex));
+    }
+
     @JsonCreator
     public static Space build(@Nullable String whitespace) {
 		if (whitespace == null || whitespace.isEmpty()) {
@@ -56,6 +73,7 @@ public class Space {
 		}
 		return new Space(whitespace);
 	}
+
 
     public String getIndent() {
         return getWhitespaceIndent(whitespace);
@@ -552,6 +570,7 @@ public class Space {
         SEND_STATEMENT_SYNC_PREFIX,
         SENTENCE_PREFIX,
         SEQUENCE_AREA_PREFIX,
+        SERVICE_PREFIX,
         SET_PREFIX,
         SET_TO_PREFIX,
         SET_UP_DOWN_PREFIX,
@@ -618,5 +637,8 @@ public class Space {
         WRITE_ADVANCING_PAGE_PREFIX,
         WRITE_ADVANCING_PHRASE_PREFIX,
         WRITE_FROM_PHRASE_PREFIX,
+        XML_PARSE_PREFIX,
+        XML_PARSE_PHRASE_PREFIX,
+        XML_PARSE_PROCESSING_PROCEDURE_PREFIX,
     }
 }

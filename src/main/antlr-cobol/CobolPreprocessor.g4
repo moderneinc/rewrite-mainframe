@@ -18,6 +18,47 @@ grammar CobolPreprocessor;
 
 options { caseInsensitive = true; }
 
+@parser::members {
+    /**
+     * Whether the next token opens a CBL or PROCESS statement. The word is the first on its line,
+     * and a compiler option follows it on the same line. Both words are also ordinary COBOL words,
+     * so charDataLine ends before a statement that follows program text.
+     */
+    boolean compilerOptionsAhead() {
+        Token word = _input.LT(1);
+        if (word.getType() != PROCESS && word.getType() != CBL) {
+            return false;
+        }
+        for (int i = word.getTokenIndex() - 1; i >= 0; i--) {
+            int type = _input.get(i).getType();
+            if (type == NEWLINE) {
+                break;
+            }
+            if (type != WS) {
+                return false;
+            }
+        }
+        Token option = _input.LT(2);
+        return option.getLine() == word.getLine() &&
+                (option.getType() == COMMACHAR || option.getType() == XOPTS ||
+                        _ATN.nextTokens(_ATN.ruleToStartState[RULE_compilerOption]).contains(option.getType()));
+    }
+
+    private static IntervalSet charDataLineStart;
+
+    /**
+     * Whether the next token continues the charDataLine. A charDataLine takes every token it can. The rules that
+     * loop over charDataLine accept the same tokens, and this predicate on the line's exit is what lets SLL
+     * prediction settle where the line ends.
+     */
+    boolean continuesCharDataLine() {
+        if (charDataLineStart == null) {
+            charDataLineStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_charDataLine]);
+        }
+        return charDataLineStart.contains(_input.LA(1)) && !compilerOptionsAhead();
+    }
+}
+
 compilationUnit
    : (compilerOptions | copyStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlIncludeStatement | execSqlImsStatement | replaceOffStatement | replaceArea | ejectStatement | skipStatement | titleStatement | charDataLine)* EOF
    ;
@@ -271,7 +312,7 @@ charDataLineNoDot
    ;
 
 charDataLine
-   : (cobolWord | literal | filename | commentEntry | TEXT | DOT | LPARENCHAR | RPARENCHAR)+
+   : ({!compilerOptionsAhead()}? (cobolWord | literal | filename | commentEntry | TEXT | DOT | LPARENCHAR | RPARENCHAR))+ {!continuesCharDataLine()}?
    ;
 
 subscript

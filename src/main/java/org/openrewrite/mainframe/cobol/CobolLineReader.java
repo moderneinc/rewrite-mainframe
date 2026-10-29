@@ -149,8 +149,8 @@ public class CobolLineReader {
 
             cursor += line.length();
             trailingWhitespaceLength = contentArea.length() - trimTrailingWhitespace(contentArea).length();
-            String endOfLine = source.substring(cursor).startsWith("\r\n") ? "\r\n" :
-                    source.substring(cursor).startsWith("\n") ? "\n" : null;
+            String endOfLine = source.startsWith("\r\n", cursor) ? "\r\n" :
+                    source.startsWith("\n", cursor) ? "\n" : null;
             previousNewLineLength = endOfLine == null ? 0 : endOfLine.length();
 
             if (endOfLine != null) {
