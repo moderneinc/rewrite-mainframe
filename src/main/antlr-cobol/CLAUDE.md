@@ -13,6 +13,7 @@ Run it on main and on the branch, alternating, three times each, under an exclus
 - **The prediction cache's configurations, and how many differ only in predicate order.** Both are deterministic, so any difference is real. The parser sorts the operands of every predicate it combines, so the second number is 0, and anything else means some prediction path combines predicates without going through that sort.
 - **Building the cache, pass 4 minus warm.** This is what a change to prediction costs. A single pass's excess over a warm one is this plus JIT warm-up, so comparing single passes compares warm-up.
 - **The warm passes.** They are what a long run over many programs sees, for time and allocation alike.
+- **The full-context predictions in pass 1**, by rule, and the longest span one scanned. Each is an ambiguity SLL could not settle, and costs a second prediction every time the parser meets it. The test fails when one prediction scans more than 50 tokens, the shape of a change that makes parsing quadratic. A rule that appears here for the first time has an exit or an alternative that needs a predicate stating the answer, as `imperativeStatements` and the statement phrases have.
 
 ## What went wrong before
 

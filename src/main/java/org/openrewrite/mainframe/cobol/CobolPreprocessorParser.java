@@ -85,6 +85,7 @@ public class CobolPreprocessorParser implements Parser {
                                 new org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorParser(new CommonTokenStream(lexer));
                         parser.removeErrorListeners();
                         parser.addErrorListener(new ForwardingErrorListener(sourceFile.getPath()));
+                        CobolParser.addPredictionListener(parser, ctx);
 
                         CobolPreprocessorParserVisitor parserVisitor = new CobolPreprocessorParserVisitor(
                                 sourceFile.getRelativePath(relativeTo),
