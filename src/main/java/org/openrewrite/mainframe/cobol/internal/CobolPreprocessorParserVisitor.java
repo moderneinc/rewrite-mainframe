@@ -37,6 +37,7 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.DEBUGGING_INDICATORS;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.compilerOptionsStart;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.indexOfFloatingComment;
+import static org.openrewrite.mainframe.cobol.CobolStringUtils.isEndOfFileMark;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.isSubstituteCharacter;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.COMMENT_ENTRY;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.END_OF_FILE;
@@ -98,7 +99,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
                     continue;
                 }
 
-                if (isSubstituteCharacter(cleanedPart)) {
+                if (isEndOfFileMark(cleanedPart)) {
                     pos += part.length() + 1;
                     continue;
                 }
@@ -1039,7 +1040,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
             int iterations = 0;
             while (iterations < 10000) {
                 // Stop after all the trailing comments have been parsed.
-                if (cursor >= source.length() || isSubstituteCharacter(String.valueOf(source.charAt(cursor)))) {
+                if (cursor >= source.length() || isSubstituteCharacter(source.charAt(cursor))) {
                     break;
                 }
 

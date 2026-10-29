@@ -45,6 +45,7 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.DEBUGGING_INDICATORS;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.indexOfFloatingComment;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.isDebuggingModeEnabled;
+import static org.openrewrite.mainframe.cobol.CobolStringUtils.isEndOfFileMark;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.isSubstituteCharacter;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.COMMENT_ENTRY;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.END_OF_FILE;
@@ -169,7 +170,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                     continue;
                 }
 
-                if (isSubstituteCharacter(cleanedPart)) {
+                if (isEndOfFileMark(cleanedPart)) {
                     pos += part.length() + 1;
                     continue;
                 }
@@ -6045,10 +6046,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
             // Do not consume whitespace in blank column areas.
             isColumnArea = sequenceAreas.containsKey(delimIndex) || indicatorAreas.containsKey(delimIndex) || commentAreas.containsKey(delimIndex);
-            // A DOS end-of-file mark is not a word, so it belongs to the prefix of the word after it, which
-            // for the mark that closes a file is the end-of-file word.
-            boolean isWhitespace = Character.isWhitespace(c) || isSubstituteCharacter(String.valueOf(c));
-            if (!isWhitespace || isColumnArea) {
+            if (!Character.isWhitespace(c) || isColumnArea) {
                 if (c == ',' || c == ';' && delimIndex + 1 < source.length() - 1) {
                     char next = source.charAt(delimIndex + 1);
                     if (next == ' ' || next == '\r' || next == '\n' || commentAreas.containsKey(delimIndex + 1)) {
@@ -6184,8 +6182,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 		if (delimiter != null && isContinued) {
 			return processLiteral(text, objects, delimiter);
 		}
-		if (END_OF_FILE.equals(text) && cursor >= source.length()) {
-			return EMPTY;
+		if (END_OF_FILE.equals(text)) {
+			if (cursor >= source.length()) {
+				return EMPTY;
+			}
+			// A DOS end-of-file mark is not a word of the program, so it rides on the end-of-file word.
+			if (isEndOfFileMark(source.substring(cursor))) {
+				Space mark = Space.build(source, cursor, source.length());
+				cursor = source.length();
+				return mark;
+			}
 		}
 
 		return processText(text, objects, isContinued);
@@ -6239,8 +6245,9 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             int iterations = 0;
             int max = 10000;
             while (iterations < max) {
-                // Stop after all the trailing comments have been parsed.
-                if (cursor >= source.length() || isSubstituteCharacter(String.valueOf(source.charAt(cursor)))) {
+                // Stop after all the trailing comments have been parsed. The blank-line test below would take a DOS
+                // end-of-file mark too, since trim() counts it as blank, so the mark stops the scan first.
+                if (cursor >= source.length() || isSubstituteCharacter(source.charAt(cursor))) {
                     break;
                 }
 

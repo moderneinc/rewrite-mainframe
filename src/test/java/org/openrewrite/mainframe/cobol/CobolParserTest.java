@@ -108,11 +108,17 @@ class CobolParserTest {
 
     @Test
     void aDosEndOfFileMarkPrintsBack() {
-        String source = "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. HELLO.\n\032";
+        assertEndOfFileMarkRidesOnEof("\n", "\032");
+
+        assertEndOfFileMarkRidesOnEof("\r\n", "\032\r\n");
+    }
+
+    private void assertEndOfFileMarkRidesOnEof(String lineEnding, String mark) {
+        String source = "       IDENTIFICATION DIVISION." + lineEnding + "       PROGRAM-ID. HELLO." + lineEnding + mark;
 
         Cobol.CompilationUnit cu = (Cobol.CompilationUnit) parse("HELLO.cbl", source);
 
-        assertThat(cu.getEof().getPrefix().getWhitespace()).isEqualTo("\n\032");
+        assertThat(cu.getEof().getPrefix().getWhitespace()).isEqualTo(mark);
         assertThat(cu.printAll()).isEqualTo(source);
     }
 

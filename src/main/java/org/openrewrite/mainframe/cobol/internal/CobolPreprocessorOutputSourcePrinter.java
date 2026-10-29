@@ -367,6 +367,12 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         }
         previousWord = currentWord;
 
+        if (inCopybook && isSubstituteCharacter(currentWord)) {
+            // A copied word prints from the copybook's own tree, so its end-of-file mark stays out of the source
+            // the COBOL parser reads. The program's own mark has no other tree to print from.
+            return word;
+        }
+
         if (!printColumns) {
             // Do not print words on lines with an unknown indicator until we know how to handle them.
             // Note: Unknown indicators are treated as comments via source code in CobolParserVisitor#isCommentIndicator.
@@ -429,9 +435,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         } else if (replacement != null && replacement.getType() == Replacement.Type.ADDITIVE) {
             replaceAdditiveTemplate(replacement, p);
             super.visitWord(word, p);
-        } else if (!(inCopybook && isSubstituteCharacter(word.getCobolWord().getWord()))) {
-            // A copied word prints from the copybook's own tree, so its end-of-file mark stays out of the source
-            // the COBOL parser walks. The program's own mark has no other tree to print from.
+        } else {
             super.visitWord(word, p);
         }
         return word;
