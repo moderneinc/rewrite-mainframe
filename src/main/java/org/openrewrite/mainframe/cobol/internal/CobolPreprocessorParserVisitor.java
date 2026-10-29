@@ -98,8 +98,8 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
                     continue;
                 }
 
-                if (isSubstituteCharacter(part)) {
-                    pos += part.length();
+                if (isSubstituteCharacter(cleanedPart)) {
+                    pos += part.length() + 1;
                     continue;
                 }
 

@@ -110,6 +110,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     private final CobolSourcePrinter<ExecutionContext> cobolStatementPrinter = new CobolSourcePrinter<>(false);
 
     private boolean inUnknownIndicator = false;
+    private boolean inCopybook = false;
 
     private final Set<UUID> elidedExecs = new LinkedHashSet<>();
     private boolean inProcedureDivision = false;
@@ -155,6 +156,8 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     public CobolPreprocessor visitCopybook(CobolPreprocessor.Copybook copybook, PrintOutputCapture<P> p) {
         visitSpace(copybook.getPrefix(), Space.Location.COPY_BOOK_PREFIX, p);
         visitMarkers(copybook.getMarkers(), p);
+        boolean enclosing = inCopybook;
+        inCopybook = true;
         for (CobolPreprocessor cobolPreprocessor : copybook.getLst()) {
             if (!(cobolPreprocessor instanceof CobolPreprocessor.CompilerOptions ||
                     cobolPreprocessor instanceof CobolPreprocessor.EjectStatement ||
@@ -166,6 +169,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         }
 
         visit(copybook.getEof(), p);
+        inCopybook = enclosing;
         return copybook;
     }
 
@@ -425,7 +429,9 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         } else if (replacement != null && replacement.getType() == Replacement.Type.ADDITIVE) {
             replaceAdditiveTemplate(replacement, p);
             super.visitWord(word, p);
-        } else if (!isSubstituteCharacter(word.getCobolWord().getWord())) {
+        } else if (!(inCopybook && isSubstituteCharacter(word.getCobolWord().getWord()))) {
+            // A copied word prints from the copybook's own tree, so its end-of-file mark stays out of the source
+            // the COBOL parser walks. The program's own mark has no other tree to print from.
             super.visitWord(word, p);
         }
         return word;

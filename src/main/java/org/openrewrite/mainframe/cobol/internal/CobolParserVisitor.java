@@ -45,6 +45,7 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.DEBUGGING_INDICATORS;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.indexOfFloatingComment;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.isDebuggingModeEnabled;
+import static org.openrewrite.mainframe.cobol.CobolStringUtils.isSubstituteCharacter;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.COMMENT_ENTRY;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.END_OF_FILE;
 import static org.openrewrite.mainframe.cobol.internal.CobolGrammarToken.EXEC_TAG;
@@ -165,6 +166,11 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 if (cleanedPart.isEmpty()) {
                     // Increment the pos passed the new line characters.
                     pos += isCRLF ? 2 : 1;
+                    continue;
+                }
+
+                if (isSubstituteCharacter(cleanedPart)) {
+                    pos += part.length() + 1;
                     continue;
                 }
 
@@ -5929,7 +5935,10 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
 
             // Do not consume whitespace in blank column areas.
             isColumnArea = sequenceAreas.containsKey(delimIndex) || indicatorAreas.containsKey(delimIndex) || commentAreas.containsKey(delimIndex);
-            if (!Character.isWhitespace(c) || isColumnArea) {
+            // A DOS end-of-file mark is not a word, so it belongs to the prefix of the word after it, which
+            // for the mark that closes a file is the end-of-file word.
+            boolean isWhitespace = Character.isWhitespace(c) || isSubstituteCharacter(String.valueOf(c));
+            if (!isWhitespace || isColumnArea) {
                 if (c == ',' || c == ';' && delimIndex + 1 < source.length() - 1) {
                     char next = source.charAt(delimIndex + 1);
                     if (next == ' ' || next == '\r' || next == '\n') {
@@ -6087,7 +6096,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
             int max = 10000;
             while (iterations < max) {
                 // Stop after all the trailing comments have been parsed.
-                if (source.substring(cursor).isEmpty()) {
+                if (source.substring(cursor).isEmpty() || isSubstituteCharacter(String.valueOf(source.charAt(cursor)))) {
                     break;
                 }
 
