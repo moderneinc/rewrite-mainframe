@@ -1664,6 +1664,12 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSentence(CobolParser.SentenceContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#imperativeStatements}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImperativeStatements(CobolParser.ImperativeStatementsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#statement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
