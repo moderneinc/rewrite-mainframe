@@ -396,6 +396,41 @@ class FullContextPredictionTest {
         assertThat(preprocessorFullContextFallbacks(program, "compilerOptions", "compilerOption", "copySource")).isZero();
     }
 
+    @Test
+    void inspectGroups() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. INSPGRP.
+          PROCEDURE DIVISION.
+              INSPECT X TALLYING C FOR ALL 'S' ALL 'U' LEADING SPACES LOW-VALUES
+                 D FOR CHARACTERS BEFORE 'A' ALL 'V' BEFORE INITIAL 'B'
+              INSPECT X REPLACING ALL 'S' BY '1' ALL 'U' BY '1' '0' BY '9' '2' BY '9'
+                 LEADING 'A' BY 'B' FIRST 'C' BY 'D' AFTER 'E' CHARACTERS BY '0'
+              INSPECT X TALLYING C FOR ALL 'S' ALL 'U' REPLACING ALL 'S' BY '1' ALL 'U' BY '1'.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "inspectAllLeadings", "inspectReplacingAllLeadings", "inspectFor",
+          "inspectTallyingPhrase", "inspectReplacingPhrase", "inspectTallyingReplacingPhrase")).isZero();
+    }
+
+    @Test
+    void preprocessorReplaceOperands() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. REPLOPS.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          REPLACE ==A== BY B C BY 'D' 1 BY +2.5 E OF F BY G IN H (1) ==I== BY ====.
+          COPY K REPLACING J BY ==K L== M BY N OF O IN P (1, Q) R BY S (2) (1:2) T BY U (I + 1).
+          COPY K OF LIB SUPPRESS REPLACING ==V== BY W.
+          REPLACE OFF.
+          PROCEDURE DIVISION.
+              STOP RUN.
+          """;
+        assertThat(preprocessorFullContextFallbacks(program, "replaceable", "replacement", "replaceClause",
+          "replacingPhrase", "replaceByStatement", "copyStatement", "identifierWords")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
         return fullContextFallbacks(parser, parser::compilationUnit, rules);

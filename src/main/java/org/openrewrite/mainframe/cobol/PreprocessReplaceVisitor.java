@@ -611,7 +611,7 @@ public class PreprocessReplaceVisitor<P> extends CobolPreprocessorIsoVisitor<P> 
         Map<List<CobolPreprocessor.Word>, List<CobolPreprocessor.Word>> replacements = new LinkedHashMap<>();
         for (CobolPreprocessor.ReplaceClause clause : replacingPhrase.getClauses()) {
             List<CobolPreprocessor.Word> replaceable = resolveReplacementRule(clause.getReplaceable());
-            List<CobolPreprocessor.Word> replacement = resolveReplacement(clause);
+            List<CobolPreprocessor.Word> replacement = resolveReplacementRule(clause.getReplacement());
             if (!replaceable.isEmpty()) {
                 replacements.put(replaceable, replacement);
             }
@@ -625,32 +625,12 @@ public class PreprocessReplaceVisitor<P> extends CobolPreprocessorIsoVisitor<P> 
         Map<List<CobolPreprocessor.Word>, List<CobolPreprocessor.Word>> replacements = new LinkedHashMap<>();
         for (CobolPreprocessor.ReplaceClause clause : replaceByStatement.getClauses()) {
             List<CobolPreprocessor.Word> replaceable = resolveReplacementRule(clause.getReplaceable());
-            List<CobolPreprocessor.Word> replacement = resolveReplacement(clause);
+            List<CobolPreprocessor.Word> replacement = resolveReplacementRule(clause.getReplacement());
             if (!replaceable.isEmpty()) {
                 replacements.put(replaceable, replacement);
             }
         }
         return replacements;
-    }
-
-    /**
-     * A replacement in a {@link org.openrewrite.mainframe.cobol.tree.CobolPreprocessor.ReplaceClause} contains trailing elements
-     * that need to be a part of the replacement.
-     *
-     * @param replaceClause The original ReplaceClause.
-     */
-    private List<CobolPreprocessor.Word> resolveReplacement(CobolPreprocessor.ReplaceClause replaceClause) {
-        List<CobolPreprocessor.Word> words = new ArrayList<>(resolveReplacementRule(replaceClause.getReplacement()));
-        if (replaceClause.getSubscript() != null) {
-            replaceClause.getSubscript().forEach(s -> words.addAll(resolveReplacementRule(s)));
-        }
-        if (replaceClause.getDirectoryPhrases() != null) {
-            replaceClause.getDirectoryPhrases().forEach(s -> words.addAll(resolveReplacementRule(s)));
-        }
-        if (replaceClause.getFamilyPhrase() != null) {
-            words.addAll(resolveReplacementRule(replaceClause.getFamilyPhrase()));
-        }
-        return words;
     }
 
     /**
@@ -688,12 +668,6 @@ public class PreprocessReplaceVisitor<P> extends CobolPreprocessorIsoVisitor<P> 
         } else if (cobolPreprocessor instanceof CobolPreprocessor.Word) {
             CobolPreprocessor.Word word = (CobolPreprocessor.Word) cobolPreprocessor;
             wordVisitor.visit(word, words);
-        } else if (cobolPreprocessor instanceof CobolPreprocessor.DirectoryPhrase) {
-            CobolPreprocessor.DirectoryPhrase directoryPhrase = (CobolPreprocessor.DirectoryPhrase) cobolPreprocessor;
-            wordVisitor.visit(directoryPhrase, words);
-        } else if (cobolPreprocessor instanceof CobolPreprocessor.FamilyPhrase) {
-            CobolPreprocessor.FamilyPhrase familyPhrase = (CobolPreprocessor.FamilyPhrase) cobolPreprocessor;
-            wordVisitor.visit(familyPhrase, words);
         } else {
             throw new UnsupportedOperationException("Implement me.");
         }
