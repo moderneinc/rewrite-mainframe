@@ -57,8 +57,8 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
     private final boolean debuggingLinesAreComments;
 
     private final Map<Integer, String> sequenceAreas = new HashMap<>();
-    // A LinkedHash map is used to collect information about the next line of code. I.E. continuation indicators.
-    private final Map<Integer, String> indicatorAreas = new LinkedHashMap<>();
+    // Ordered by position, so the next line's indicator, a continuation say, is the next higher key.
+    private final NavigableMap<Integer, String> indicatorAreas = new TreeMap<>();
     private final NavigableMap<Integer, String> commentAreas = new TreeMap<>();
 
     private final Set<Character> commentIndicators = new HashSet<>();
@@ -871,6 +871,19 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
         );
     }
 
+    /**
+     * Whether the range of the source, trimmed as {@link String#trim()} would trim it, starts with the text.
+     */
+    private boolean trimmedStartsWith(int beginIndex, int endIndex, String text) {
+        while (beginIndex < endIndex && source.charAt(beginIndex) <= ' ') {
+            beginIndex++;
+        }
+        while (endIndex > beginIndex && source.charAt(endIndex - 1) <= ' ') {
+            endIndex--;
+        }
+        return endIndex - beginIndex >= text.length() && source.startsWith(text, beginIndex);
+    }
+
     private Space whitespace() {
         String prefix = source.substring(cursor, indexOfNextNonWhitespace(cursor, source));
         cursor += prefix.length();
@@ -969,13 +982,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
 		sequenceArea();
 		indicatorArea();
 
-		Integer nextIndicator = null;
-		for (Integer integer : indicatorAreas.keySet()) {
-			if (integer > cursor) {
-				nextIndicator = integer;
-				break;
-			}
-		}
+		Integer nextIndicator = indicatorAreas.higherKey(cursor);
 		boolean isContinued = nextIndicator != null && "-".equals(indicatorAreas.get(nextIndicator));
 
 		Character delimiter = null;
@@ -987,13 +994,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
 		// Detect a continued keyword or identifier.
 		if (isContinued && delimiter == null) {
 			// CommentAreas are optional text that will precede the end of line.
-			Integer nextCommentArea = null;
-			for (Integer it : commentAreas.keySet()) {
-				if (it > cursor) {
-					nextCommentArea = it;
-					break;
-				}
-			}
+			Integer nextCommentArea = commentAreas.higherKey(cursor);
 
 			int newline = source.indexOf('\n', cursor);
 			int newLinePos = newline == -1 ? -1 : newline - cursor;
@@ -1002,8 +1003,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
 			}
 			int endPos = nextCommentArea != null && nextCommentArea < (newLinePos + cursor) ? nextCommentArea : (newLinePos + cursor);
 
-			String current = source.substring(cursor, endPos).trim();
-			isContinued = !current.startsWith(text);
+			isContinued = !trimmedStartsWith(cursor, endPos, text);
 		}
 		cursor = saveCursor;
 

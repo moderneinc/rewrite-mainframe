@@ -6141,6 +6141,28 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     /**
      * The index just past the next line break, or the cursor itself when no line break follows it.
      */
+    private boolean isBlank(int beginIndex, int endIndex) {
+        for (int i = beginIndex; i < endIndex; i++) {
+            if (source.charAt(i) > ' ') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether the range of the source, trimmed as {@link String#trim()} would trim it, starts with the text.
+     */
+    private boolean trimmedStartsWith(int beginIndex, int endIndex, String text) {
+        while (beginIndex < endIndex && source.charAt(beginIndex) <= ' ') {
+            beginIndex++;
+        }
+        while (endIndex > beginIndex && source.charAt(endIndex - 1) <= ' ') {
+            endIndex--;
+        }
+        return endIndex - beginIndex >= text.length() && source.startsWith(text, beginIndex);
+    }
+
     private int afterNextNewline() {
         int newline = source.indexOf('\n', cursor);
         return newline == -1 ? cursor : newline + 1;
@@ -6335,23 +6357,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         boolean isContinued = false;
         if (checkContinuation) {
             // CommentAreas are optional text that will precede the end of line.
-            Integer nextCommentArea = null;
-            for (Integer it : commentAreas.keySet()) {
-                if (it > cursor) {
-                    nextCommentArea = it;
-                    break;
-                }
-            }
+            Integer nextCommentArea = commentAreas.higherKey(cursor);
 
             int newline = source.indexOf('\n', cursor);
             int newLinePos = newline == -1 ? -1 : newline - cursor;
             int endPos = nextCommentArea != null && nextCommentArea < (newLinePos + cursor) ? nextCommentArea : (newLinePos + cursor);
 
-            String current = source.substring(cursor, endPos).trim();
             // There are two types of continuations.
             // 1. The text is a grammar token followed by a new line, which is handled by normal markers.
             // 2. The text is a combination of two tokens, which has been parsed as a single word and requires continuation markers.
-            if (!current.startsWith(text)) {
+            if (!trimmedStartsWith(cursor, endPos, text)) {
                 Map<Integer, List<ColumnArea>> continuations = new HashMap<>();
                 List<ColumnArea> continuation = new ArrayList<>(2);
 
@@ -6483,9 +6498,9 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         // there is nothing left to align, and keeping it would print whitespace the source never had.
         if (nextIndex > 0) {
             int endOfLine = source.indexOf("\n", cursor);
-            String alignment = source.substring(cursor, endOfLine == -1 ? source.length() : endOfLine);
-            if (alignment.trim().isEmpty()) {
-                cursor += alignment.length();
+            int end = endOfLine == -1 ? source.length() : endOfLine;
+            if (isBlank(cursor, end)) {
+                cursor = end;
                 nextIndex = null;
             }
         }
@@ -6656,14 +6671,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
             sequenceArea();
             indicatorArea();
-            cursor += source.substring(cursor, afterNextNewline()).length();
+            cursor = afterNextNewline();
 
             parseComment(uuidComment);
             String uuid = getUuid().trim();
             parseComment(compileOptionStopComment);
             sequenceArea();
             indicatorArea();
-            cursor += source.substring(cursor, afterNextNewline()).length();
+            cursor = afterNextNewline();
 
             CobolPreprocessor.CompilerOptions co = (CobolPreprocessor.CompilerOptions) preprocessorMap.get(uuid);
             if (co != null) {
