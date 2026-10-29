@@ -18,8 +18,12 @@ package org.openrewrite.mainframe.assembler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Parser;
+import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.assembler.marker.SequenceArea;
 import org.openrewrite.mainframe.assembler.tree.Assembler;
+import org.openrewrite.mainframe.cobol.CopybookParser;
 import org.openrewrite.test.RewriteTest;
 
 import java.io.IOException;
@@ -30,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.assembler.Assertions.assembler;
@@ -298,6 +303,35 @@ class AssemblerParserTest implements RewriteTest {
         assertThat(AssemblerParser.builder().build().accept(program)).isTrue();
         assertThat(AssemblerParser.builder().build().accept(Paths.get("CLMDBD01.dbd"))).isFalse();
         assertThat(AssemblerParser.builder().build().accept(Paths.get("CLMSAVE.mac"))).isTrue();
+    }
+
+    @Test
+    void claimsACopybookWhoseFirstStatementIsAssembler(@TempDir Path dir) throws IOException {
+        Path copyMember = Files.write(dir.resolve("EXECDATA.copy"), """
+          * EXEC PARAMETER AREA DEFINITION
+                   EJECT
+          EXECDATA DSECT                 PARAMETER AREA  DEFINITION
+          EXECVERS DS    FL04            LOGIC     TABLE VERSION NO
+          """.getBytes(StandardCharsets.UTF_8));
+        Path copybook = Files.write(dir.resolve("ACCTREC.copy"), """
+                * ACCOUNT RECORD
+                 01  ACCT-REC.
+                     05  ACCT-ID       PIC X(10).
+          """.getBytes(StandardCharsets.UTF_8));
+
+        AssemblerParser assembler = AssemblerParser.builder().build();
+        CopybookParser cobol = CopybookParser.builder().build();
+        assertThat(assembler.accept(copyMember)).isTrue();
+        assertThat(cobol.accept(copyMember)).isFalse();
+        assertThat(assembler.accept(copybook)).isFalse();
+        assertThat(cobol.accept(copybook)).isTrue();
+        assertThat(AssemblerParser.isMacroLibraryMember(copyMember)).isTrue();
+
+        SourceFile parsed = assembler.parseInputs(singletonList(Parser.Input.fromFile(copyMember)), dir,
+          new InMemoryExecutionContext()).findFirst().orElseThrow();
+        assertThat(parsed).isInstanceOfSatisfying(Assembler.CompilationUnit.class, cu ->
+          assertThat(instructions(cu)).extracting(i -> i.getOperation().getText())
+            .containsExactly("EJECT", "DSECT", "DS"));
     }
 
     private static List<Assembler.Instruction> instructions(Assembler.CompilationUnit cu) {

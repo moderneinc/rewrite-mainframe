@@ -24,6 +24,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.cobol.MacroLines;
 import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.mainframe.ims.internal.ImsParserVisitor;
@@ -87,7 +88,7 @@ public class ImsParser implements Parser {
                         // The grammar reads any assembler-shaped text, so a member that gens nothing
                         // has to be refused before it.
                         if (!sourceFile.isSynthetic() &&
-                            !GEN_OPERATIONS.contains(ImsLineReader.firstOperation(sourceStr))) {
+                            !GEN_OPERATIONS.contains(MacroLines.firstOperation(sourceStr))) {
                             throw new WrongLanguageException(sourceFile.getPath(),
                                     sourceFile.getPath() + " is not an IMS gen member: it opens with no gen macro.", null);
                         }
@@ -134,7 +135,7 @@ public class ImsParser implements Parser {
                 return true;
             }
         }
-        return name.endsWith(".asm") && GEN_OPERATIONS.contains(ImsLineReader.firstOperation(ControlCards.head(path)));
+        return name.endsWith(".asm") && GEN_OPERATIONS.contains(MacroLines.firstOperation(ControlCards.head(path)));
     }
 
     @Override
