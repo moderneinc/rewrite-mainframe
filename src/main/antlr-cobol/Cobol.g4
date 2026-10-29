@@ -1196,7 +1196,7 @@ sentence
    ;
 
 statement
-   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement
+   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement
    ;
 
 // accept statement
@@ -2270,6 +2270,28 @@ writeNotAtEndOfPagePhrase
    : NOT AT? (END_OF_PAGE | EOP) statement*
    ;
 
+// xml parse statement
+
+xmlParseStatement
+   : XML PARSE identifier xmlEncodingPhrase? xmlReturningNationalPhrase? xmlValidatingPhrase? xmlProcessingProcedurePhrase onExceptionClause? notOnExceptionClause? END_XML?
+   ;
+
+xmlEncodingPhrase
+   : WITH? ENCODING (identifier | integerLiteral)
+   ;
+
+xmlReturningNationalPhrase
+   : RETURNING NATIONAL
+   ;
+
+xmlValidatingPhrase
+   : VALIDATING WITH? (identifier | FILE cobolWord)
+   ;
+
+xmlProcessingProcedurePhrase
+   : PROCESSING PROCEDURE IS? procedureName ((THROUGH | THRU) procedureName)?
+   ;
+
 // statement phrases ----------------------------------
 
 atEndPhrase
@@ -2852,6 +2874,7 @@ ELSE : 'ELSE';
 EMI : 'EMI';
 EMPTY_CHECK : 'EMPTY-CHECK';
 ENABLE : 'ENABLE';
+ENCODING : 'ENCODING';
 END : 'END';
 END_ACCEPT : 'END-ACCEPT';
 END_ADD : 'END-ADD';
@@ -2876,6 +2899,7 @@ END_STRING : 'END-STRING';
 END_SUBTRACT : 'END-SUBTRACT';
 END_UNSTRING : 'END-UNSTRING';
 END_WRITE : 'END-WRITE';
+END_XML : 'END-XML';
 ENDING : 'ENDING';
 ENTER : 'ENTER';
 ENTRY : 'ENTRY';
@@ -3042,6 +3066,7 @@ PADDING : 'PADDING';
 PAGE : 'PAGE';
 PAGE_COUNTER : 'PAGE-COUNTER';
 PARAGRAPH : 'PARAGRAPH';
+PARSE : 'PARSE';
 PASSWORD : 'PASSWORD';
 PERFORM : 'PERFORM';
 PF : 'PF';
@@ -3059,6 +3084,7 @@ PRIVATE : 'PRIVATE';
 PROCEDURE : 'PROCEDURE';
 PROCEDURE_POINTER : 'PROCEDURE-POINTER';
 PROCEDURES : 'PROCEDURES';
+PROCESSING : 'PROCESSING';
 PROCEED : 'PROCEED';
 PROCESS : 'PROCESS';
 PROGRAM : 'PROGRAM';
@@ -3209,6 +3235,7 @@ UPON : 'UPON';
 USAGE : 'USAGE';
 USE : 'USE';
 USING : 'USING';
+VALIDATING : 'VALIDATING';
 VALUE : 'VALUE';
 VALUES : 'VALUES';
 VARYING : 'VARYING';
@@ -3220,6 +3247,7 @@ WITH : 'WITH';
 WORDS : 'WORDS';
 WORKING_STORAGE : 'WORKING-STORAGE';
 WRITE : 'WRITE';
+XML : 'XML';
 YEAR : 'YEAR';
 YYYYMMDD : 'YYYYMMDD';
 YYYYDDD : 'YYYYDDD';

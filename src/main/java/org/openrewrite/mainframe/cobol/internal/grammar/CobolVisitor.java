@@ -3116,6 +3116,36 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitWriteNotAtEndOfPagePhrase(CobolParser.WriteNotAtEndOfPagePhraseContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#xmlParseStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitXmlParseStatement(CobolParser.XmlParseStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#xmlEncodingPhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitXmlEncodingPhrase(CobolParser.XmlEncodingPhraseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#xmlReturningNationalPhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitXmlReturningNationalPhrase(CobolParser.XmlReturningNationalPhraseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#xmlValidatingPhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitXmlValidatingPhrase(CobolParser.XmlValidatingPhraseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#xmlProcessingProcedurePhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitXmlProcessingProcedurePhrase(CobolParser.XmlProcessingProcedurePhraseContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#atEndPhrase}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

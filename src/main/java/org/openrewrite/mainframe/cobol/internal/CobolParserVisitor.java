@@ -5914,6 +5914,65 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         );
     }
 
+    @Override
+    public Cobol.XmlParse visitXmlParseStatement(CobolParser.XmlParseStatementContext ctx) {
+        return new Cobol.XmlParse(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.XML(), ctx.PARSE()),
+                (Name) visit(ctx.identifier()),
+                visitNullable(ctx.xmlEncodingPhrase()),
+                visitNullable(ctx.xmlReturningNationalPhrase()),
+                visitNullable(ctx.xmlValidatingPhrase()),
+                (Cobol.XmlParseProcessingProcedure) visit(ctx.xmlProcessingProcedurePhrase()),
+                visitNullable(ctx.onExceptionClause()),
+                visitNullable(ctx.notOnExceptionClause()),
+                visitNullable(ctx.END_XML())
+        );
+    }
+
+    @Override
+    public Cobol.XmlParsePhrase visitXmlEncodingPhrase(CobolParser.XmlEncodingPhraseContext ctx) {
+        return new Cobol.XmlParsePhrase(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.WITH(), ctx.ENCODING()),
+                visit(ctx.identifier(), ctx.integerLiteral())
+        );
+    }
+
+    @Override
+    public Cobol.XmlParsePhrase visitXmlReturningNationalPhrase(CobolParser.XmlReturningNationalPhraseContext ctx) {
+        return new Cobol.XmlParsePhrase(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.RETURNING(), ctx.NATIONAL()),
+                null
+        );
+    }
+
+    @Override
+    public Cobol.XmlParsePhrase visitXmlValidatingPhrase(CobolParser.XmlValidatingPhraseContext ctx) {
+        return new Cobol.XmlParsePhrase(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.VALIDATING(), ctx.WITH(), ctx.FILE()),
+                visit(ctx.identifier(), ctx.cobolWord())
+        );
+    }
+
+    @Override
+    public Cobol.XmlParseProcessingProcedure visitXmlProcessingProcedurePhrase(CobolParser.XmlProcessingProcedurePhraseContext ctx) {
+        return new Cobol.XmlParseProcessingProcedure(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.PROCESSING(), ctx.PROCEDURE(), ctx.IS()),
+                (Cobol.ProcedureName) visit(ctx.procedureName(0)),
+                visitNullable(ctx.THROUGH() != null ? ctx.THROUGH() : ctx.THRU()),
+                ctx.procedureName().size() > 1 ? (Cobol.ProcedureName) visit(ctx.procedureName(1)) : null
+        );
+    }
+
     private Space whitespace() {
         int endIndex = indexOfNextNonWhitespace(cursor, source);
         String prefix = source.substring(cursor, endIndex);
