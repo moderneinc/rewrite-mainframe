@@ -2423,7 +2423,7 @@ functionCall
    ;
 
 functionCallArguments
-    : LPARENCHAR (argument COMMACHAR?)+ RPARENCHAR
+    : LPARENCHAR (argument COMMACHAR?)+ (LEADING | TRAILING)? RPARENCHAR
     ;
 
 referenceModifier
