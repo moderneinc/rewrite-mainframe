@@ -304,7 +304,7 @@ compilationUnit
    ;
 
 programUnit
-   : identificationDivision environmentDivision? dataDivision? procedureDivision? programUnit* endProgramStatement?
+   : identificationDivision environmentDivision? dataDivision? procedureDivision? programUnit* {!ahead($ctx, IDENTIFICATION) && !ahead($ctx, ID)}? (endProgramStatement | {!ahead($ctx, END)}?)
    ;
 
 endProgramStatement

@@ -357,7 +357,7 @@ class FullContextPredictionTest {
     }
 
     @Test
-    void lineLoopsAndUsingParameters() {
+    void lineLoopsAndNestedPrograms() {
         String program = """
           IDENTIFICATION DIVISION.
           PROGRAM-ID. OUTER.
@@ -372,7 +372,8 @@ class FullContextPredictionTest {
           END PROGRAM INNER.
           END PROGRAM OUTER.
           """;
-        assertThat(fullContextFallbacks(program, "procedureDivisionByReferencePhrase", "execCicsStatement")).isZero();
+        assertThat(fullContextFallbacks(program, "programUnit", "procedureDivisionByReferencePhrase",
+          "execCicsStatement")).isZero();
     }
 
     @Test
