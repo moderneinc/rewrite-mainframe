@@ -2,6 +2,115 @@ parser grammar DB2Parser;
 
 options { caseInsensitive = true; tokenVocab=DB2Lexer; }
 
+@members {
+    private static IntervalSet identifierStart;
+
+    /**
+     * The predicates that take a rule's context are ones ANTLR treats as context-dependent. SLL prediction
+     * evaluates each only in its own rule's decisions, so the predicates of nested rules never combine.
+     */
+    boolean ahead(ParserRuleContext rule, int type) {
+        return _input.LA(1) == type;
+    }
+
+    private boolean startsIdentifier(int type) {
+        if (identifierStart == null) {
+            identifierStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_identifier]);
+        }
+        return identifierStart.contains(type);
+    }
+
+    /**
+     * Whether the END ahead closes the compound statement, rather than a control flow statement in its body.
+     */
+    boolean closesBlock(ParserRuleContext block) {
+        if (_input.LA(1) != END) {
+            return false;
+        }
+        switch (_input.LA(2)) {
+            case IF: case WHILE: case FOR: case CASE: case LOOP: case REPEAT:
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    /**
+     * Whether a dot and another part continue the qualified name. The table of a COMMENT ON COLUMN or LABEL ON
+     * COLUMN target leaves its last part to the column, and a dot before a star belongs to the select item.
+     */
+    boolean continuesName(ParserRuleContext name) {
+        if (_input.LA(1) != DOT || !startsIdentifier(_input.LA(2))) {
+            return false;
+        }
+        ParserRuleContext target = name.getParent();
+        boolean columnTable = (target instanceof CommentTargetContext || target instanceof LabelTargetContext) &&
+                target.getStart().getType() == COLUMN;
+        return !columnTable || _input.LA(3) == DOT;
+    }
+
+    private static IntervalSet[] namedOptionStart;
+
+    /**
+     * Whether the word ahead starts one of the option rule's named alternatives, all but its last. The last
+     * alternative takes any word, so that an unknown option still parses, and a named option's value word would
+     * otherwise read as an unknown option of its own.
+     */
+    boolean startsNamedOption(ParserRuleContext option) {
+        if (namedOptionStart == null) {
+            namedOptionStart = new IntervalSet[ruleNames.length];
+        }
+        int rule = option.getRuleIndex();
+        if (namedOptionStart[rule] == null) {
+            ATNState block = _ATN.ruleToStartState[rule].transition(0).target;
+            IntervalSet start = new IntervalSet();
+            for (int alt = 0; alt < block.getNumberOfTransitions() - 1; alt++) {
+                start.addAll(_ATN.nextTokens(block.transition(alt).target));
+            }
+            namedOptionStart[rule] = start;
+        }
+        return namedOptionStart[rule].contains(_input.LA(1));
+    }
+
+    /**
+     * Whether a column's default value follows. A name only starts one as a function call, and anything else
+     * that could also be the next column attribute is taken as the value.
+     */
+    boolean startsDefaultValue(ParserRuleContext attribute) {
+        int type = _input.LA(1);
+        switch (type) {
+            case NUMBER: case PLUS: case MINUS: case STRING: case HEX_STRING: case PLACEHOLDER: case USER: case NULL:
+                return true;
+            case CURRENT:
+                return _input.LA(2) == SQLID;
+            default:
+                if (!startsIdentifier(type)) {
+                    return false;
+                }
+                int i = 2;
+                while (_input.LA(i) == DOT && startsIdentifier(_input.LA(i + 1))) {
+                    i += 2;
+                }
+                return _input.LA(i) == LPAREN;
+        }
+    }
+
+    /**
+     * Whether the index key ahead is a column name alone, which the key's expression alternative also matches.
+     */
+    boolean columnKeyAhead(ParserRuleContext key) {
+        if (!startsIdentifier(_input.LA(1))) {
+            return false;
+        }
+        switch (_input.LA(2)) {
+            case COMMA: case RPAREN: case ASC: case DESC: case RANDOM:
+                return true;
+            default:
+                return false;
+        }
+    }
+}
+
 // DB2 for z/OS DDL. Every statement is modelled: there is no catch-all, so a statement this grammar
 // cannot read is a syntax error rather than a node that says nothing.
 
@@ -104,8 +213,8 @@ columnDefinition
 columnAttribute
     : NOT NULL
     | NULL
-    | DEFAULT defaultValue?
-    | WITH DEFAULT defaultValue?
+    | DEFAULT (defaultValue | {!startsDefaultValue($ctx)}?)
+    | WITH DEFAULT (defaultValue | {!startsDefaultValue($ctx)}?)
     | GENERATED (ALWAYS | BY DEFAULT) generatedAs?
     | (CONSTRAINT identifier)? PRIMARY KEY
     | (CONSTRAINT identifier)? UNIQUE
@@ -243,7 +352,7 @@ indexModifier
     ;
 
 indexKey
-    : (identifier | expression) (ASC | DESC | RANDOM)?
+    : ({columnKeyAhead($ctx)}? identifier | {!columnKeyAhead($ctx)}? expression) (ASC | DESC | RANDOM)?
     ;
 
 indexOption
@@ -262,7 +371,7 @@ indexOption
     | COMPRESS (YES | NO)
     | PIECESIZE NUMBER identifier?
     | storageOption
-    | nonReserved
+    | {!startsNamedOption($ctx)}? nonReserved
     ;
 
 //
@@ -291,8 +400,8 @@ tablespaceOption
     | MEMBER CLUSTER
     | PAGENUM (ABSOLUTE | RELATIVE)
     | MAXROWS NUMBER
-    | storageOption
-    | nonReserved
+    | {!ahead($ctx, USING)}? storageOption
+    | {!startsNamedOption($ctx)}? nonReserved
     ;
 
 createDatabase
@@ -481,7 +590,7 @@ routineClause
 // nested BEGIN, or an END that closes a control flow statement rather than the block, does not end
 // the routine early; the statements inside it are not.
 compoundStatement
-    : BEGIN ATOMIC? bodyItem* END identifier?
+    : BEGIN ATOMIC? bodyItem* {closesBlock($ctx)}? END identifier?
     ;
 
 bodyItem
@@ -692,7 +801,6 @@ setStatement
 
 specialRegister
     : CURRENT? nonReserved+
-    | CURRENT SQLID
     | CURRENT SCHEMA
     | CURRENT PATH
     | PATH
@@ -848,7 +956,7 @@ signedNumber
 //
 
 qualifiedName
-    : identifier (DOT identifier)*
+    : identifier ({continuesName($ctx)}? DOT identifier)* {!continuesName($ctx)}?
     ;
 
 identifier
