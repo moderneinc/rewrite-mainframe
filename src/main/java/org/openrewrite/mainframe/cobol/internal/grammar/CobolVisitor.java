@@ -1454,12 +1454,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitPictureString(CobolParser.PictureStringContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link CobolParser#picture}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitPicture(CobolParser.PictureContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link CobolParser#pictureChars}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

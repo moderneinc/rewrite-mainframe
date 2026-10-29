@@ -23,17 +23,23 @@ options { caseInsensitive = true; }
 
 @parser::members {
     /**
-     * Whether the period at the current position belongs to a PICTURE character-string rather than
-     * ending the entry. A picture ends at a separator period, meaning one followed by a space or the
-     * end of the line; a period followed immediately by another character is the decimal point of an
-     * edited picture such as `PIC ZZ9.99`. Without this distinction `picture+` runs through the
-     * period and consumes the level number and name of the entry that follows.
+     * Whether the next token continues the PICTURE character-string. A picture contains no spaces, so it ends
+     * at the first token that does not touch the one before it. A touching period is the decimal point of an
+     * edited picture such as `PIC ZZ9.99` only while a character touches it in turn; one followed by a space
+     * or the end of the line is the separator period that ends the entry.
      */
-    boolean pictureDot() {
-        Token dot = _input.LT(1);
-        Token next = _input.LT(2);
-        return dot != null && next != null && next.getType() != Token.EOF &&
-               dot.getStopIndex() + 1 == next.getStartIndex();
+    boolean continuesPicture() {
+        Token previous = _input.LT(-1);
+        Token next = _input.LT(1);
+        if (!touches(previous, next)) {
+            return false;
+        }
+        return next.getType() != DOT_FS || touches(next, _input.LT(2));
+    }
+
+    private static boolean touches(Token first, Token second) {
+        return first != null && second != null && second.getType() != Token.EOF &&
+               first.getStopIndex() + 1 == second.getStartIndex();
     }
 
     private static IntervalSet statementStart;
@@ -1093,15 +1099,11 @@ dataPictureClause
    ;
 
 pictureString
-   : picture+
-   ;
-
-picture
-   : (pictureChars+ pictureCardinality?)
+   : (pictureChars | pictureCardinality) ({continuesPicture()}? (pictureChars | pictureCardinality))* {!continuesPicture()}?
    ;
 
 pictureChars
-   : DOLLARCHAR | IDENTIFIER | NUMERICLITERAL | SLASHCHAR | COMMACHAR | {pictureDot()}? DOT_FS | COLONCHAR | ASTERISKCHAR | DOUBLEASTERISKCHAR | LPARENCHAR | RPARENCHAR | PLUSCHAR | MINUSCHAR | LESSTHANCHAR | MORETHANCHAR | integerLiteral
+   : DOLLARCHAR | IDENTIFIER | NUMERICLITERAL | SLASHCHAR | COMMACHAR | DOT_FS | COLONCHAR | ASTERISKCHAR | DOUBLEASTERISKCHAR | PLUSCHAR | MINUSCHAR | LESSTHANCHAR | MORETHANCHAR | integerLiteral
    ;
 
 pictureCardinality

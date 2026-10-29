@@ -2403,16 +2403,6 @@ public interface CobolListener extends ParseTreeListener {
 	 */
 	void exitPictureString(CobolParser.PictureStringContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link CobolParser#picture}.
-	 * @param ctx the parse tree
-	 */
-	void enterPicture(CobolParser.PictureContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#picture}.
-	 * @param ctx the parse tree
-	 */
-	void exitPicture(CobolParser.PictureContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link CobolParser#pictureChars}.
 	 * @param ctx the parse tree
 	 */
