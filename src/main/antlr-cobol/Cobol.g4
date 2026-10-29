@@ -55,6 +55,31 @@ options { caseInsensitive = true; }
     boolean startsWhenCondition() {
         return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
     }
+
+    /**
+     * Whether the next token opens a subscript group. A reference modifier opens with the same parenthesis and
+     * is told apart only by the colon at its top level, so the group is scanned to its closing parenthesis.
+     * A parenthesis after a name always belongs to the name, so the only other question at that point is
+     * which of the two it opens.
+     */
+    boolean startsSubscripts() {
+        if (_input.LA(1) != LPARENCHAR) {
+            return false;
+        }
+        int depth = 0;
+        for (int i = 1; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return false;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR && --depth == 0) {
+                return true;
+            } else if (type == COLONCHAR && depth == 1) {
+                return false;
+            }
+        }
+    }
 }
 
 compilationUnit
@@ -2431,11 +2456,7 @@ abbreviation
 // identifier ----------------------------------
 
 identifier
-   : tableCall | functionCall | specialRegister
-   ;
-
-tableCall
-   : qualifiedDataName tableCallSubscripts* referenceModifier?
+   : qualifiedDataName tableCallSubscripts* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}? | functionCall | specialRegister
    ;
 
 tableCallSubscripts

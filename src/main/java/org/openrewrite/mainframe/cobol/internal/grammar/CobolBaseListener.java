@@ -6608,18 +6608,6 @@ public class CobolBaseListener implements CobolListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterTableCall(CobolParser.TableCallContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitTableCall(CobolParser.TableCallContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterTableCallSubscripts(CobolParser.TableCallSubscriptsContext ctx) { }
 	/**
 	 * {@inheritDoc}

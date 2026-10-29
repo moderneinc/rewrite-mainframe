@@ -132,6 +132,8 @@ class FullContextPredictionTest {
               MOVE WS-DATE (1:8) TO C (K) (3:2).
               IF D (I) = E (1:2) DISPLAY F (I) G.
               MOVE H IN T (I) TO C OF R OF T (I, J) (1:2).
+              MOVE T (A (1)) TO W.
+              MOVE FUNCTION MAX(A (1) B) TO W (1:2).
               STOP RUN.
           """;
         assertThat(fullContextFallbacks(program, "identifier", "qualifiedInData")).isZero();
