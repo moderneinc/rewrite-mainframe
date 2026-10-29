@@ -5703,16 +5703,6 @@ public interface CobolListener extends ParseTreeListener {
 	 */
 	void exitInLibrary(CobolParser.InLibraryContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link CobolParser#inTable}.
-	 * @param ctx the parse tree
-	 */
-	void enterInTable(CobolParser.InTableContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#inTable}.
-	 * @param ctx the parse tree
-	 */
-	void exitInTable(CobolParser.InTableContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link CobolParser#alphabetName}.
 	 * @param ctx the parse tree
 	 */

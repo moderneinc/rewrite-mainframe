@@ -1510,6 +1510,112 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void subscriptsAndReferenceModifiersMakeATableCall() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. IDSHAPE.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  T.
+              000006     05  R OCCURS 3 TIMES.
+              000007         10  E   PIC X(8).
+              000008 01  A   PIC X(8).
+              000009 01  I   PIC 9.
+              000010 PROCEDURE DIVISION.
+              000011     MOVE A TO E (I).
+              000012     MOVE A (1:2) TO E (I) (3:2).
+              000013     MOVE E OF R (I) TO A.
+              000014     MOVE E OF R TO A.
+              000015     STOP RUN.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> tableCalls = new CobolIsoVisitor<List<String>>() {
+                    @Override
+                    public Cobol.TableCall visitTableCall(Cobol.TableCall tableCall, List<String> found) {
+                        found.add(tableCall.getQualifiedDataName().printTrimmed(getCursor()) +
+                                  "(".repeat(tableCall.getSubscripts().size()) +
+                                  (tableCall.getReferenceModifier() == null ? "" : ":"));
+                        return super.visitTableCall(tableCall, found);
+                    }
+                }.reduce(cu, new ArrayList<>());
+                // A bare name, qualified or not, is a QualifiedDataName, so neither A nor the last E OF R appears.
+                // A subscript after a qualified name belongs to the whole reference, not to the qualifier.
+                assertThat(tableCalls).containsExactly("E(", "A:", "E(:", "E OF R(");
+            })
+          )
+        );
+    }
+
+    @Test
+    void identifierShapes() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. IDENT.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  T.
+              000006     05  R OCCURS 3 TIMES.
+              000007         10  C   PIC X(4).
+              000008 01  W   PIC X(8).
+              000009 PROCEDURE DIVISION.
+              000010     MOVE W TO C (1).
+              000011     MOVE W (1:2) TO C IN R (2) (3:1).
+              000012     MOVE C OF R IN T TO W.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> shapes = new ArrayList<>();
+                List<String> qualifiers = new ArrayList<>();
+                new CobolIsoVisitor<Integer>() {
+                    @Override
+                    public Cobol.MoveToStatement visitMoveToStatement(Cobol.MoveToStatement move, Integer p) {
+                        shapes.add(shape(move.getFrom()));
+                        move.getNames().forEach(name -> shapes.add(shape(name)));
+                        return super.visitMoveToStatement(move, p);
+                    }
+
+                    @Override
+                    public Cobol.InData visitInData(Cobol.InData inData, Integer p) {
+                        qualifiers.add("InData " + inData.getName().printTrimmed(getCursor()));
+                        return super.visitInData(inData, p);
+                    }
+
+                    @Override
+                    public Cobol.InTable visitInTable(Cobol.InTable inTable, Integer p) {
+                        qualifiers.add("InTable " + inTable.getTableCall().printTrimmed(getCursor()));
+                        return super.visitInTable(inTable, p);
+                    }
+
+                    @Override
+                    public Cobol.InLibrary visitInLibrary(Cobol.InLibrary inLibrary, Integer p) {
+                        qualifiers.add("InLibrary " + inLibrary.getName().printTrimmed(getCursor()));
+                        return super.visitInLibrary(inLibrary, p);
+                    }
+
+                    private String shape(Cobol name) {
+                        if (name instanceof Cobol.TableCall) {
+                            Cobol.TableCall t = (Cobol.TableCall) name;
+                            return "TableCall " + t.getQualifiedDataName().printTrimmed(getCursor()) +
+                                   " subscripts=" + t.getSubscripts().size() +
+                                   " refmod=" + (t.getReferenceModifier() != null);
+                        }
+                        return name.getClass().getSimpleName() + " " + name.printTrimmed(getCursor());
+                    }
+                }.visit(cu, 0);
+                assertThat(shapes).containsExactly(
+                  "QualifiedDataName W", "TableCall C subscripts=1 refmod=false",
+                  "TableCall W subscripts=0 refmod=true", "TableCall C IN R subscripts=1 refmod=true",
+                  "QualifiedDataName C OF R IN T", "QualifiedDataName W");
+                assertThat(qualifiers).containsExactly("InData R", "InData R", "InData T");
+            })
+          )
+        );
+    }
+
+    @Test
     void relationConditions() {
         rewriteRun(
           cobol(

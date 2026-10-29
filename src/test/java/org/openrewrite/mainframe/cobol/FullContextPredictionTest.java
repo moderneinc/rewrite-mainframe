@@ -32,10 +32,10 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Pins that the predicates on optional statement-list endings keep SLL prediction from retrying with full context.
- * The rationale sits with {@code startsStatement} in the grammar.
+ * Pins the decisions where SLL prediction never retries with full context. The statement-list predicates are
+ * explained at {@code startsStatement} in the grammar, and the identifier rule at {@code visitIdentifier}.
  */
-class StatementListPredictionTest {
+class FullContextPredictionTest {
 
     @Test
     void nestedIfsWithoutEndIf() {
@@ -120,6 +120,21 @@ class StatementListPredictionTest {
           "notOnSizeErrorPhrase", "onOverflowPhrase", "notOnOverflowPhrase", "onExceptionClause",
           "notOnExceptionClause", "invalidKeyPhrase", "notInvalidKeyPhrase", "writeAtEndOfPagePhrase",
           "writeNotAtEndOfPagePhrase", "receiveNoData", "receiveWithData")).isZero();
+    }
+
+    @Test
+    void subscriptedAndReferenceModifiedNames() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. SUBSCR.
+          PROCEDURE DIVISION.
+              MOVE A (1) TO B (I, J).
+              MOVE WS-DATE (1:8) TO C (K) (3:2).
+              IF D (I) = E (1:2) DISPLAY F (I) G.
+              MOVE H IN T (I) TO C OF R OF T (I, J) (1:2).
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "identifier", "qualifiedInData")).isZero();
     }
 
     /**
