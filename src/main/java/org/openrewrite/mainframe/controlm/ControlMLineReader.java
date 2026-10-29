@@ -81,11 +81,10 @@ public class ControlMLineReader {
 
             cursor += prefix.length();
             cursor += line.length();
-            String endOfLine = source.substring(cursor);
-            if (endOfLine.startsWith("\r\n")) {
+            if (source.startsWith("\r\n", cursor)) {
                 p.append("\r\n");
                 cursor += 2;
-            } else if (endOfLine.startsWith("\n")) {
+            } else if (source.startsWith("\n", cursor)) {
                 p.append("\n");
                 cursor += 1;
             }
