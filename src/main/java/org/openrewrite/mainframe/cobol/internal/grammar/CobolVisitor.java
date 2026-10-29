@@ -3368,18 +3368,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitQualifiedDataNameFormat1(CobolParser.QualifiedDataNameFormat1Context ctx);
 	/**
-	 * Visit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat2}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat3}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx);
-	/**
 	 * Visit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat4}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -3415,12 +3403,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitInSection(CobolParser.InSectionContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#inLibrary}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitInLibrary(CobolParser.InLibraryContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#alphabetName}.
 	 * @param ctx the parse tree
@@ -3583,12 +3565,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSymbolicCharacter(CobolParser.SymbolicCharacterContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#textName}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTextName(CobolParser.TextNameContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#cobolWord}.
 	 * @param ctx the parse tree

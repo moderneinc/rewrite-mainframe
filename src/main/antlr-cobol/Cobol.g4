@@ -1155,7 +1155,7 @@ dataUsingClause
    ;
 
 dataValueClause
-   : ((VALUE | VALUES) (IS | ARE)?)? (dataValueInterval COMMACHAR?)+
+   : (VALUE | VALUES) (IS | ARE)? (dataValueInterval COMMACHAR?)+
    ;
 
 dataValueInterval
@@ -2496,19 +2496,11 @@ argument
 // qualified data name ----------------------------------
 
 qualifiedDataName
-   : qualifiedDataNameFormat1 | qualifiedDataNameFormat2 | qualifiedDataNameFormat3 | qualifiedDataNameFormat4
+   : qualifiedDataNameFormat1 | qualifiedDataNameFormat4
    ;
 
 qualifiedDataNameFormat1
-   : (dataName | conditionName) (qualifiedInData+ inFile? | inFile)?
-   ;
-
-qualifiedDataNameFormat2
-   : paragraphName inSection
-   ;
-
-qualifiedDataNameFormat3
-   : textName inLibrary
+   : dataName qualifiedInData*
    ;
 
 qualifiedDataNameFormat4
@@ -2535,10 +2527,6 @@ inMnemonic
 
 inSection
    : (IN | OF) sectionName
-   ;
-
-inLibrary
-   : (IN | OF) libraryName
    ;
 
 // names ----------------------------------
@@ -2648,10 +2636,6 @@ systemName
    ;
 
 symbolicCharacter
-   : cobolWord
-   ;
-
-textName
    : cobolWord
    ;
 

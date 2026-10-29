@@ -2151,16 +2151,6 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitInLibrary(CobolParser.InLibraryContext ctx) {
-        return new Cobol.InLibrary(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                visit(ctx.IN(), ctx.OF()),
-                (Name) visit(ctx.libraryName())
-        );
-    }
-
-    @Override
     public Object visitInMnemonic(CobolParser.InMnemonicContext ctx) {
         return new Cobol.InMnemonic(randomId(),
                 EMPTY,
@@ -3556,7 +3546,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.QualifiedDataName(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat2(), ctx.qualifiedDataNameFormat3(), ctx.qualifiedDataNameFormat4())
+                visit(ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat4())
         );
     }
 
@@ -3565,29 +3555,9 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.QualifiedDataNameFormat1(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.dataName(), ctx.conditionName()),
+                (Name) visit(ctx.dataName()),
                 convertAll(ctx.qualifiedInData()),
-                visitNullable(ctx.inFile())
-        );
-    }
-
-    @Override
-    public Object visitQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx) {
-        return new Cobol.QualifiedDataNameFormat2(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                (Name) visit(ctx.paragraphName()),
-                (Cobol.InSection) visit(ctx.inSection())
-        );
-    }
-
-    @Override
-    public Object visitQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx) {
-        return new Cobol.QualifiedDataNameFormat3(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                (Name) visit(ctx.textName()),
-                (Cobol.InLibrary) visit(ctx.inLibrary())
+                null
         );
     }
 
