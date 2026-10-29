@@ -5583,12 +5583,13 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Cobol.Word visitTerminal(TerminalNode node) {
+        String nodeText = node.getText();
         List<Object> objects = new ArrayList<>();
-        Space prefix = processTokenText(node.getText(), objects);
+        Space prefix = processTokenText(nodeText, objects);
         Markers markers = Markers.EMPTY;
         // The tag stands in for an EXEC block that the grammar was never handed, so the word has no text of its own.
-        String text = END_OF_FILE.equals(node.getText()) || node.getText().startsWith(EXEC_TAG) ? "" :
-                node.getText().startsWith(COMMENT_ENTRY) ? node.getText().substring(COMMENT_ENTRY.length()) : node.getText();
+        String text = END_OF_FILE.equals(nodeText) || nodeText.startsWith(EXEC_TAG) ? "" :
+                nodeText.startsWith(COMMENT_ENTRY) ? nodeText.substring(COMMENT_ENTRY.length()) : nodeText;
 
         List<CobolLine> cobolLines = null;
         Continuation continuation = null;
