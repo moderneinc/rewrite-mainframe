@@ -284,7 +284,6 @@ class FullContextPredictionTest {
     @Test
     void preprocessorStatementEndings() {
         String program = """
-          CBL APOST,MAP,XREF,FLAG(I)
           IDENTIFICATION DIVISION.
           PROGRAM-ID. ENDINGS.
           AUTHOR. *>CE A. PERSON.
@@ -300,7 +299,94 @@ class FullContextPredictionTest {
 
         assertThat(preprocessorFullContextFallbacks(program, "execCicsStatement", "execSqlStatement",
           "execSqlIncludeStatement")).isZero();
+    }
 
+    @Test
+    void overlappingAlternatives() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. OVERLAP.
+          PROCEDURE DIVISION.
+              MOVE E (I) TO X
+              MOVE E (I J) TO X
+              MOVE E (1) TO X
+              MOVE E (I + 1) TO X
+              MOVE E (I +1) TO X
+              MOVE E (I OF T) TO X
+              MOVE E (F (1)) TO X
+              MOVE DFHVALUE(NOUCTRAN) TO X
+              IF A = 1 AND B = 2 OR C = 3 MOVE 1 TO Y END-IF
+              IF A = 1 AND 2 OR NOT 3 MOVE 1 TO Y END-IF
+              IF A = 1 AND B NOT = 2 MOVE 1 TO Y END-IF
+              IF A = 1 AND (B = 2 OR C = 3) MOVE 1 TO Y END-IF
+              IF FLAG-ON AND NOT FLAG-OFF MOVE 1 TO Y END-IF
+              COMPUTE X = (A + B) * C - 1
+              COMPUTE X = A - WS-LEN + 1
+              COMPUTE X = DFHRESP(NORMAL)
+              EVALUATE A
+                 WHEN 1 MOVE 1 TO Y
+                 WHEN 'X' MOVE 2 TO Y
+                 WHEN B MOVE 3 TO Y
+                 WHEN A + 1 MOVE 5 TO Y
+                 WHEN NOT 2 MOVE 6 TO Y
+                 WHEN 1 THRU 5 MOVE 7 TO Y
+                 WHEN OTHER MOVE 8 TO Y
+              END-EVALUATE
+              EVALUATE TRUE ALSO A
+                 WHEN A = 1 ALSO ANY MOVE 1 TO Y
+              END-EVALUATE
+              EVALUATE 'A' WHEN 'A' MOVE 1 TO Y END-EVALUATE
+              EVALUATE A + 1 WHEN 2 MOVE 1 TO Y END-EVALUATE
+              EVALUATE A = B WHEN TRUE MOVE 1 TO Y END-EVALUATE
+              EVALUATE (A = 1) WHEN TRUE MOVE 1 TO Y END-EVALUATE
+              EVALUATE TRUE
+                 WHEN PFK07 AND FIRST-PAGE MOVE 1 TO Y
+                 WHEN PFK07 AND NOT FIRST-PAGE MOVE 2 TO Y
+              END-EVALUATE
+              IF (PGM-ENTER AND FROM-PROGRAM NOT EQUAL THIS-PGM) MOVE 1 TO Y END-IF
+              IF A = 1 AND 2 AND 3 MOVE 1 TO Y END-IF
+              SET PGM-ENTER TO TRUE
+              CALL 'P' USING BY CONTENT LENGTH OF A BY VALUE B BY REFERENCE C
+              DIVIDE A INTO B GIVING C
+              DIVIDE A INTO B C ROUNDED
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "subscript", "andOrCondition", "basis", "arithmeticExpression",
+          "evaluateSelect", "evaluateCondition", "moveToSendingArea", "callByContent", "callByValue",
+          "callByReference", "divideStatement")).isZero();
+    }
+
+    @Test
+    void lineLoopsAndUsingParameters() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. OUTER.
+          PROCEDURE DIVISION USING A B BY VALUE C.
+          *>EXECCICS EXEC CICS SEND MAP('M')
+          *>EXECCICS END-EXEC
+              STOP RUN.
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. INNER.
+          PROCEDURE DIVISION.
+              STOP RUN.
+          END PROGRAM INNER.
+          END PROGRAM OUTER.
+          """;
+        assertThat(fullContextFallbacks(program, "procedureDivisionByReferencePhrase", "execCicsStatement")).isZero();
+    }
+
+    @Test
+    void preprocessorCompilerOptions() {
+        String program = """
+          CBL CICS,DATEPROC,TEST,XREF(FULL),SQL('X'),NAME,OPT
+          CBL CICS('SP'),DATEPROC(FLAG,TRIG),TEST(HOOK,SEP),MDECK(C)
+          PROCESS ADATA,DBCS
+          *> a comment line
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. OPTS.
+          PROCEDURE DIVISION.
+              STOP RUN.
+          """;
         assertThat(preprocessorFullContextFallbacks(program, "compilerOptions", "compilerOption")).isZero();
     }
 

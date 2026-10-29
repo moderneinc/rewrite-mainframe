@@ -1871,7 +1871,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.ANY(), ctx.NOT()),
-                ctx.ANY() != null ? null : visit(ctx.evaluateValue(), ctx.condition(), ctx.booleanLiteral()),
+                ctx.ANY() != null ? null : visit(ctx.evaluateValue(), ctx.condition()),
                 visitNullable(ctx.evaluateThrough())
         );
     }

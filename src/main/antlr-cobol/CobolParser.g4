@@ -68,11 +68,10 @@ options { tokenVocab = CobolLexer; }
     }
 
     /**
-     * Whether the conditional phrase that the word names starts here, past an optional AT or ON, as in AT END or
-     * ON SIZE ERROR. A statement takes the phrases and the END- terminator that follow it before an enclosing
-     * statement can, as statement lists do at startsStatement. Naming the statement's context makes ANTLR treat
-     * these predicates as context-dependent. SLL prediction then weighs each one only in its own statement's
-     * decisions, and the predicates of nested statements do not combine.
+     * Whether the conditional phrase the word names starts here, past an optional AT or ON. A statement takes the
+     * phrases and the END- terminator that follow it before an enclosing statement can, as statement lists do at
+     * startsStatement. The context parameter, unused, makes ANTLR treat these predicates as context-dependent, so
+     * SLL evaluates each only in its own statement's decisions and the predicates of nested statements never combine.
      */
     boolean startsPhrase(ParserRuleContext statement, int word) {
         return phraseWord(1) == word;
@@ -93,6 +92,210 @@ options { tokenVocab = CobolLexer; }
     private int phraseWord(int i) {
         int type = _input.LA(i);
         return type == AT || type == ON ? _input.LA(i + 1) : type;
+    }
+
+    static final int OPERAND = 1, EXPRESSION = 2, CONDITION = 3;
+    private static IntervalSet operandStart, cobolWordStart, integerLiteralStart, byReferenceStart;
+
+    private IntervalSet firstOf(int rule) {
+        return _ATN.nextTokens(_ATN.ruleToStartState[rule]);
+    }
+
+    /**
+     * What the tokens from LT(i) form before the construct around them goes on: a single operand, an identifier or
+     * a literal, an arithmetic expression of several operands, or a condition, which a comparison, class or sign
+     * word follows. The rules whose alternatives are one of these each (evaluateSelect, evaluateCondition, the
+     * abbreviated combined condition) take the alternative this names.
+     */
+    int operandKind(ParserRuleContext rule, int i) {
+        if (_input.LA(i) == LPARENCHAR && conditionInside(i)) {
+            return CONDITION;
+        }
+        int end = afterExpression(i);
+        if (end == i) {
+            return 0;
+        }
+        int next = _input.LA(end);
+        if (conditionFollows(next)) {
+            return CONDITION;
+        }
+        boolean operand = afterOperand(i) == end;
+        if ((next == AND || next == OR) && operand && cobolWordStart().contains(_input.LA(i))) {
+            return CONDITION;
+        }
+        return operand ? OPERAND : EXPRESSION;
+    }
+
+    private IntervalSet cobolWordStart() {
+        if (cobolWordStart == null) {
+            cobolWordStart = firstOf(RULE_cobolWord);
+        }
+        return cobolWordStart;
+    }
+
+    private int afterExpression(int i) {
+        int end = i;
+        while (true) {
+            int j = i;
+            if (_input.LA(j) == PLUSCHAR || _input.LA(j) == MINUSCHAR) {
+                j++;
+            }
+            if (_input.LA(j) == LPARENCHAR) {
+                j = afterParens(j);
+            } else {
+                int k = afterOperand(j);
+                if (k == j) {
+                    return end;
+                }
+                j = k;
+            }
+            end = j;
+            if (!isArithmeticOperator(_input.LA(j))) {
+                return end;
+            }
+            i = j + 1;
+        }
+    }
+
+    private int afterOperand(int i) {
+        if (operandStart == null) {
+            operandStart = firstOf(RULE_identifier).or(firstOf(RULE_literal));
+        }
+        int type = _input.LA(i);
+        if (type == FUNCTION) {
+            i += 2;
+        } else if ((type == LENGTH || type == ADDRESS) && _input.LA(i + 1) == OF) {
+            return afterOperand(i + 2);
+        } else if (type == ALL) {
+            return afterOperand(i + 1);
+        } else if (operandStart.contains(type)) {
+            i++;
+        } else {
+            return i;
+        }
+        while (true) {
+            type = _input.LA(i);
+            if (type == IN || type == OF) {
+                i += 2;
+            } else if (type == LPARENCHAR) {
+                i = afterParens(i);
+            } else {
+                return i;
+            }
+        }
+    }
+
+    private int afterParens(int i) {
+        for (int depth = 0; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return i;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR && --depth == 0) {
+                return i + 1;
+            }
+        }
+    }
+
+    private boolean conditionInside(int i) {
+        for (int depth = 0; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return false;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR) {
+                if (--depth == 0) {
+                    return false;
+                }
+            } else if (type == AND || type == OR || isComparison(type)) {
+                return true;
+            }
+        }
+    }
+
+    private boolean conditionFollows(int type) {
+        return isComparison(type) || type == POSITIVE || type == NEGATIVE || type == ZERO;
+    }
+
+    private static boolean isComparison(int type) {
+        switch (type) {
+            case IS: case ARE: case NOT: case GREATER: case LESS: case EQUAL: case MORETHANCHAR: case LESSTHANCHAR:
+            case EQUALCHAR: case NOTEQUALCHAR: case MORETHANOREQUAL: case LESSTHANOREQUAL:
+            case NUMERIC: case ALPHABETIC: case ALPHABETIC_LOWER: case ALPHABETIC_UPPER: case DBCS: case KANJI:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static boolean isArithmeticOperator(int type) {
+        return type == PLUSCHAR || type == MINUSCHAR || type == ASTERISKCHAR || type == SLASHCHAR || type == DOUBLEASTERISKCHAR;
+    }
+
+    boolean signAhead(ParserRuleContext rule) {
+        return _input.LA(1) == PLUSCHAR || _input.LA(1) == MINUSCHAR;
+    }
+
+    boolean startsIntegerLiteral(ParserRuleContext rule) {
+        if (integerLiteralStart == null) {
+            integerLiteralStart = firstOf(RULE_integerLiteral);
+        }
+        return integerLiteralStart.contains(_input.LA(1));
+    }
+
+    /**
+     * Whether the subscript ahead is a name, with qualifiers and a trailing signed integer, or an integer, and
+     * then the subscript list goes on. Such a subscript is not an arithmetic expression.
+     */
+    boolean plainSubscriptAhead(ParserRuleContext subscript) {
+        int i = 1;
+        if (startsIntegerLiteral(subscript)) {
+            i = 2;
+        } else if (cobolWordStart().contains(_input.LA(1))) {
+            i = 2;
+            while (_input.LA(i) == IN || _input.LA(i) == OF) {
+                i += 2;
+            }
+            if (integerLiteralStart.contains(_input.LA(i))) {
+                i++;
+            }
+        } else {
+            return false;
+        }
+        int next = _input.LA(i);
+        return next == RPARENCHAR || next == COMMACHAR || next == ALL || cobolWordStart().contains(next) ||
+               integerLiteralStart.contains(next);
+    }
+
+    /**
+     * Whether AND or OR is followed by a full condition, which the condition takes before an abbreviation can.
+     */
+    boolean combinableAhead(ParserRuleContext andOr) {
+        int i = _input.LA(1) == NOT ? 2 : 1;
+        int kind = operandKind(andOr, i);
+        return kind == CONDITION || kind == OPERAND && cobolWordStart().contains(_input.LA(i));
+    }
+
+    /**
+     * Whether GIVING follows the operand after INTO, which makes a DIVIDE INTO GIVING rather than a DIVIDE INTO
+     * with that operand as its first quotient.
+     */
+    boolean givingAhead(ParserRuleContext divide) {
+        return _input.LA(afterOperand(2)) == GIVING;
+    }
+
+    boolean prefixAhead(ParserRuleContext parameter) {
+        int type = _input.LA(1);
+        return type == ADDRESS && _input.LA(2) == OF || type == LENGTH || type == INTEGER || type == STRING;
+    }
+
+    boolean startsByReference(ParserRuleContext phrase) {
+        if (byReferenceStart == null) {
+            byReferenceStart = firstOf(RULE_procedureDivisionByReference);
+        }
+        return byReferenceStart.contains(_input.LA(1));
     }
 }
 
@@ -1197,7 +1400,7 @@ procedureDivisionUsingParameter
    ;
 
 procedureDivisionByReferencePhrase
-   : (BY? REFERENCE)? procedureDivisionByReference+
+   : (BY? REFERENCE)? procedureDivisionByReference+ {!startsByReference($ctx)}?
    ;
 
 procedureDivisionByReference
@@ -1353,7 +1556,7 @@ callByReferencePhrase
    ;
 
 callByReference
-   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal) | OMITTED
+   : ((ADDRESS OF | INTEGER | STRING | {!prefixAhead($ctx)}?) identifier | literal) | OMITTED
    ;
 
 callByValuePhrase
@@ -1361,7 +1564,7 @@ callByValuePhrase
    ;
 
 callByValue
-   : (ADDRESS OF | LENGTH OF?)? (identifier | literal)
+   : (ADDRESS OF | LENGTH OF? | {!prefixAhead($ctx)}?) (identifier | literal)
    ;
 
 callByContentPhrase
@@ -1369,7 +1572,7 @@ callByContentPhrase
    ;
 
 callByContent
-   : (ADDRESS OF | LENGTH OF?)? identifier | literal | OMITTED
+   : (ADDRESS OF | LENGTH OF? | {!prefixAhead($ctx)}?) identifier | literal | OMITTED
    ;
 
 callGivingPhrase
@@ -1484,7 +1687,7 @@ divideIntoStatement
    ;
 
 divideIntoGivingStatement
-   : INTO (identifier | literal) divideGivingPhrase?
+   : {givingAhead($ctx)}? INTO (identifier | literal) divideGivingPhrase?
    ;
 
 divideByGivingStatement
@@ -1526,7 +1729,10 @@ evaluateStatement
    ;
 
 evaluateSelect
-   : identifier | literal | arithmeticExpression | condition
+   : {operandKind($ctx, 1) == OPERAND}? identifier
+   | {operandKind($ctx, 1) == OPERAND}? literal
+   | {operandKind($ctx, 1) == EXPRESSION}? arithmeticExpression
+   | {operandKind($ctx, 1) != OPERAND && operandKind($ctx, 1) != EXPRESSION}? condition
    ;
 
 evaluateAlsoSelect
@@ -1542,7 +1748,9 @@ evaluateWhen
    ;
 
 evaluateCondition
-   : ANY | NOT? evaluateValue evaluateThrough? | condition | booleanLiteral
+   : ANY
+   | {operandKind($ctx, _input.LA(1) == NOT ? 2 : 1) != CONDITION}? NOT? evaluateValue evaluateThrough?
+   | {operandKind($ctx, _input.LA(1) == NOT ? 2 : 1) == CONDITION}? condition
    ;
 
 evaluateThrough
@@ -1564,25 +1772,25 @@ evaluateValue
 // exec cics statement
 
 execCicsStatement
-   : EXECCICSLINE+
+   : EXECCICSLINE+ {!ahead($ctx, EXECCICSLINE)}?
    ;
 
 // exec dli statement
 
 execDliStatement
-   : EXECDLILINE+
+   : EXECDLILINE+ {!ahead($ctx, EXECDLILINE)}?
    ;
 
 // exec sql statement
 
 execSqlStatement
-   : EXECSQLLINE+
+   : EXECSQLLINE+ {!ahead($ctx, EXECSQLLINE)}?
    ;
 
 // exec sql ims statement
 
 execSqlImsStatement
-   : EXECSQLIMSLINE+
+   : EXECSQLIMSLINE+ {!ahead($ctx, EXECSQLIMSLINE)}?
    ;
 
 // exhibit statement
@@ -2396,7 +2604,7 @@ notOnExceptionClause
 // arithmetic expression ----------------------------------
 
 arithmeticExpression
-   : multDivs plusMinus*
+   : multDivs plusMinus* {!signAhead($ctx)}?
    ;
 
 plusMinus
@@ -2430,7 +2638,7 @@ condition
    ;
 
 andOrCondition
-   : (AND | OR) (combinableCondition | abbreviation+)
+   : (AND | OR) (combinableCondition | {!combinableAhead($ctx)}? abbreviation+)
    ;
 
 combinableCondition
@@ -2514,7 +2722,10 @@ length
    ;
 
 subscript
-   : ALL | integerLiteral | qualifiedDataName integerLiteral? | arithmeticExpression
+   : ALL
+   | {plainSubscriptAhead($ctx)}? integerLiteral
+   | {plainSubscriptAhead($ctx)}? qualifiedDataName (integerLiteral | {!startsIntegerLiteral($ctx)}?)
+   | {!plainSubscriptAhead($ctx)}? arithmeticExpression
    ;
 
 argument
@@ -2674,7 +2885,7 @@ cobolWord
    | ABORT | AS | ASCII | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH | ATTRIBUTE | AUTO | AUTO_SKIP
    | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BINARY | BIT | BLINK | BLOB | BOUNDS
    | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CLOB | CLOSE_DISPOSITION | COBOL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR
-   | DBCLOB | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DFHRESP | DFHVALUE | DISK | DONTCARE | DOUBLE
+   | DBCLOB | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DISK | DONTCARE | DOUBLE
    | EBCDIC | EMPTY_CHECK | ENTER | ENTRY_PROCEDURE | EOL | EOS | ERASE | ESCAPE | EVENT | EXCLUSIVE | EXPORT | EXTENDED
    | FOREGROUND_COLOR | FOREGROUND_COLOUR | FULL | FUNCTIONNAME | FUNCTION_POINTER
    | GRID
