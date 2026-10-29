@@ -3559,7 +3559,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.QualifiedDataName(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat3(), ctx.qualifiedDataNameFormat4())
+                visit(ctx.qualifiedDataNameFormat1(), ctx.qualifiedDataNameFormat2(), ctx.qualifiedDataNameFormat3(), ctx.qualifiedDataNameFormat4())
         );
     }
 
@@ -4560,7 +4560,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 Markers.EMPTY,
                 visit(ctx.BACKGROUND_COLOR(), ctx.BACKGROUND_COLOUR()),
                 visitNullable(ctx.IS()),
-                visit(ctx.identifier(), ctx.identifier())
+                visit(ctx.identifier(), ctx.integerLiteral())
         );
     }
 
