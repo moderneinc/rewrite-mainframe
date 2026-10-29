@@ -18,12 +18,15 @@ package org.openrewrite.mainframe.cobol;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.DecisionInfo;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
+import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorLexer;
+import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorParser;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -240,9 +243,34 @@ class FullContextPredictionTest {
      * How often prediction in the decisions of the given rules retried with full context, over one parse of the
      * program. The program is the text the preprocessor hands the grammar, so it carries no sequence numbers.
      */
+    @Test
+    void preprocessorCharDataLines() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. CHARDATA.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  A   PIC X(10) VALUE 'ABC'.
+          PROCEDURE DIVISION.
+              MOVE A TO B.
+              DISPLAY 'X' A (1:2).
+              STOP RUN.
+          """;
+        assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "charData", "charDataLine")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
-        CobolLexer lexer = new CobolLexer(CharStreams.fromString(program));
-        CobolParser parser = new CobolParser(new CommonTokenStream(lexer));
+        CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
+        return fullContextFallbacks(parser, parser::compilationUnit, rules);
+    }
+
+    private static long preprocessorFullContextFallbacks(String program, String... rules) {
+        CobolPreprocessorParser parser = new CobolPreprocessorParser(
+          new CommonTokenStream(new CobolPreprocessorLexer(CharStreams.fromString(program))));
+        return fullContextFallbacks(parser, parser::compilationUnit, rules);
+    }
+
+    private static long fullContextFallbacks(Parser parser, Runnable parse, String... rules) {
         parser.removeErrorListeners();
         parser.addErrorListener(new BaseErrorListener() {
             @Override
@@ -252,7 +280,7 @@ class FullContextPredictionTest {
             }
         });
         parser.setProfile(true);
-        parser.compilationUnit();
+        parse.run();
 
         Set<String> ruleSet = new HashSet<>(Arrays.asList(rules));
         long fallbacks = 0;

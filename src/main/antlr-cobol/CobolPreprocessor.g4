@@ -43,6 +43,20 @@ options { caseInsensitive = true; }
                 (option.getType() == COMMACHAR || option.getType() == XOPTS ||
                         _ATN.nextTokens(_ATN.ruleToStartState[RULE_compilerOption]).contains(option.getType()));
     }
+
+    private static IntervalSet charDataLineStart;
+
+    /**
+     * Whether the next token continues the charDataLine. A charDataLine takes every token it can. The rules that
+     * loop over charDataLine accept the same tokens, and this predicate on the line's exit is what lets SLL
+     * prediction settle where the line ends.
+     */
+    boolean continuesCharDataLine() {
+        if (charDataLineStart == null) {
+            charDataLineStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_charDataLine]);
+        }
+        return charDataLineStart.contains(_input.LA(1)) && !compilerOptionsAhead();
+    }
 }
 
 compilationUnit
@@ -298,7 +312,7 @@ charDataLineNoDot
    ;
 
 charDataLine
-   : ({!compilerOptionsAhead()}? (cobolWord | literal | filename | commentEntry | TEXT | DOT | LPARENCHAR | RPARENCHAR))+
+   : ({!compilerOptionsAhead()}? (cobolWord | literal | filename | commentEntry | TEXT | DOT | LPARENCHAR | RPARENCHAR))+ {!continuesCharDataLine()}?
    ;
 
 subscript
