@@ -116,6 +116,51 @@ class CopybookWithoutWordsTest extends CobolTest {
         );
     }
 
+    @Test
+    void wordlessIncludeBeforeAnIncludeWithWords() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. INCL2.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005     EXEC SQL
+              000006         INCLUDE DECLONLY
+              000007     END-EXEC.
+              000008
+              000009     EXEC SQL
+              000010         INCLUDE MGSACATG
+              000011     END-EXEC.
+              000012 01  WS-A   PIC X.
+              000013 PROCEDURE DIVISION.
+              000014     STOP RUN.
+              """
+          ),
+
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. INCL2C.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005     EXEC SQL
+              000006         INCLUDE DECLONLY
+              000007     END-EXEC.
+              000008*----------------------------------------------------------------
+              000009* The second table
+              000010*----------------------------------------------------------------
+              000011     EXEC SQL
+              000012         INCLUDE MGSACATG
+              000013     END-EXEC.
+              000014 01  WS-A   PIC X.
+              000015 PROCEDURE DIVISION.
+              000016     STOP RUN.
+              """
+          )
+        );
+    }
+
     /**
      * A copybook that does contribute words takes the other path, where the word carrying the copybook is the first
      * copied one and the copybook has already printed it.
