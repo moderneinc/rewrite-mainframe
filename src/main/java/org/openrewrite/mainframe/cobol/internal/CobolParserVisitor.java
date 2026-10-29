@@ -6138,7 +6138,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 		if (delimiter != null && isContinued) {
 			return processLiteral(text, objects, delimiter);
 		}
-		if (END_OF_FILE.equals(text) && source.substring(cursor).isEmpty()) {
+		if (END_OF_FILE.equals(text) && cursor >= source.length()) {
 			return EMPTY;
 		}
 
@@ -6148,6 +6148,36 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     /**
      * Parse the comments and empty lines that precede the COBOL word.
      */
+    /**
+     * The index just past the next line break, or the cursor itself when no line break follows it.
+     */
+    private boolean isBlank(int beginIndex, int endIndex) {
+        for (int i = beginIndex; i < endIndex; i++) {
+            if (source.charAt(i) > ' ') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether the range of the source, trimmed as {@link String#trim()} would trim it, starts with the text.
+     */
+    private boolean trimmedStartsWith(int beginIndex, int endIndex, String text) {
+        while (beginIndex < endIndex && source.charAt(beginIndex) <= ' ') {
+            beginIndex++;
+        }
+        while (endIndex > beginIndex && source.charAt(endIndex - 1) <= ' ') {
+            endIndex--;
+        }
+        return endIndex - beginIndex >= text.length() && source.startsWith(text, beginIndex);
+    }
+
+    private int afterNextNewline() {
+        int newline = source.indexOf('\n', cursor);
+        return newline == -1 ? cursor : newline + 1;
+    }
+
     private void parseCommentsAndEmptyLines(String text, List<Object> objects) {
         int saveCursor = cursor;
         SequenceArea sequenceArea = sequenceArea();
@@ -6164,11 +6194,11 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             int max = 10000;
             while (iterations < max) {
                 // Stop after all the trailing comments have been parsed.
-                if (source.substring(cursor).isEmpty()) {
+                if (cursor >= source.length()) {
                     break;
                 }
 
-                int newLinePos = cursor + (source.substring(cursor).contains("\n") ? source.substring(cursor).indexOf("\n") : source.substring(cursor).length());
+                int newLinePos = source.indexOf('\n', cursor) == -1 ? source.length() : source.indexOf('\n', cursor);
                 int endOfContentArea = endOfContentArea();
                 String contentArea = source.substring(cursor, Math.min(newLinePos, endOfContentArea));
                 if (!(isCommentIndicator(indicatorArea) || contentArea.trim().isEmpty() || templateKeys.contains(contentArea))) {
@@ -6200,7 +6230,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         int savedCursor = cursor;
                         sequenceArea();
                         indicatorArea();
-                        newLinePos = cursor + (source.substring(cursor).contains("\n") ? source.substring(cursor).indexOf("\n") : source.substring(cursor).length());
+                        newLinePos = source.indexOf('\n', cursor) == -1 ? source.length() : source.indexOf('\n', cursor);
                         endOfContentArea = endOfContentArea();
                         contentArea = source.substring(cursor, Math.min(newLinePos, endOfContentArea));
                         if (copybookNotFoundComment.equals(contentArea)) {
@@ -6278,20 +6308,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         while (matchedCount < text.length() && iterations < 250) {
             continuation = new ArrayList<>(3);
 
-            String current = source.substring(cursor);
-            char[] charArray = text.substring(matchedCount).toCharArray();
-            char[] sourceArray = current.toCharArray();
-
             int end = 0;
-            for (; end < charArray.length; end++) {
-                if (charArray[end] != sourceArray[end] || commentAreas.containsKey(cursor)) {
+            for (; matchedCount + end < text.length(); end++) {
+                if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreas.containsKey(cursor)) {
                     break;
                 }
                 cursor++;
             }
-
-            String matchedText = current.substring(0, end);
-            matchedCount += matchedText.length();
+            matchedCount += end;
 
             CommentArea commentArea = commentArea();
             if (commentArea != null) {
@@ -6343,23 +6367,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         boolean isContinued = false;
         if (checkContinuation) {
             // CommentAreas are optional text that will precede the end of line.
-            Integer nextCommentArea = null;
-            for (Integer it : commentAreas.keySet()) {
-                if (it > cursor) {
-                    nextCommentArea = it;
-                    break;
-                }
-            }
+            Integer nextCommentArea = commentAreas.higherKey(cursor);
 
-            String current = source.substring(cursor);
-            int newLinePos = current.indexOf("\n");
+            int newline = source.indexOf('\n', cursor);
+            int newLinePos = newline == -1 ? -1 : newline - cursor;
             int endPos = nextCommentArea != null && nextCommentArea < (newLinePos + cursor) ? nextCommentArea : (newLinePos + cursor);
 
-            current = source.substring(cursor, endPos).trim();
             // There are two types of continuations.
             // 1. The text is a grammar token followed by a new line, which is handled by normal markers.
             // 2. The text is a combination of two tokens, which has been parsed as a single word and requires continuation markers.
-            if (!current.startsWith(text)) {
+            if (!trimmedStartsWith(cursor, endPos, text)) {
                 Map<Integer, List<ColumnArea>> continuations = new HashMap<>();
                 List<ColumnArea> continuation = new ArrayList<>(2);
 
@@ -6380,20 +6397,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 while (iterations < 250) {
                     continuation = new ArrayList<>(3);
 
-                    current = source.substring(cursor);
-                    char[] charArray = text.substring(matchedCount).toCharArray();
-                    char[] sourceArray = current.toCharArray();
-
                     int end = 0;
-                    for (; end < charArray.length; end++) {
-                        if (charArray[end] != sourceArray[end] || commentAreas.containsKey(cursor)) {
+                    for (; matchedCount + end < text.length(); end++) {
+                        if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreas.containsKey(cursor)) {
                             break;
                         }
                         cursor++;
                     }
-
-                    String matchedText = current.substring(0, end);
-                    matchedCount += matchedText.length();
+                    matchedCount += end;
 
                     CommentArea commentArea = commentArea();
                     if (commentArea != null) {
@@ -6435,7 +6446,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             objects.add(replaceAdditiveType);
 
             cursor += text.length();
-            int end = source.substring(cursor).indexOf("\n") + 1;
+            int end = afterNextNewline() - cursor;
             cursor += end;
         } else if (!isContinued) {
             if (removeColumnMarkers) {
@@ -6489,7 +6500,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         sequenceArea();
         indicatorArea();
 
-        String numberOfSpaces = source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1);
+        String numberOfSpaces = source.substring(cursor, afterNextNewline());
         cursor += numberOfSpaces.length();
         nextIndex = Integer.valueOf(numberOfSpaces.trim());
 
@@ -6497,9 +6508,9 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         // there is nothing left to align, and keeping it would print whitespace the source never had.
         if (nextIndex > 0) {
             int endOfLine = source.indexOf("\n", cursor);
-            String alignment = endOfLine == -1 ? source.substring(cursor) : source.substring(cursor, endOfLine);
-            if (alignment.trim().isEmpty()) {
-                cursor += alignment.length();
+            int end = endOfLine == -1 ? source.length() : endOfLine;
+            if (isBlank(cursor, end)) {
+                cursor = end;
                 nextIndex = null;
             }
         }
@@ -6574,9 +6585,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     private void replaceAdditiveStartComment() {
         parseComment(replaceAdditiveTypeStartComment);
 
-        String current = source.substring(cursor);
-        current = current.substring(0, current.indexOf("\n") + 1);
-        cursor += current.length();
+        cursor = afterNextNewline();
 
         parseComment(uuidComment);
 
@@ -6593,7 +6602,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         sequenceArea();
         indicatorArea();
 
-        String numberOfSpaces = source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1);
+        String numberOfSpaces = source.substring(cursor, afterNextNewline());
         cursor += numberOfSpaces.length();
         nextIndex = Integer.valueOf(numberOfSpaces.trim());
 
@@ -6603,9 +6612,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     private void parseFully(String comment) {
         parseComment(comment);
 
-        String current = source.substring(cursor);
-        current = current.substring(0, current.indexOf("\n") + 1);
-        cursor += current.length();
+        cursor = afterNextNewline();
     }
 
     private Replacement getReplace() {
@@ -6625,7 +6632,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             sequenceArea();
             indicatorArea();
 
-            String numberOfSpaces = source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1);
+            String numberOfSpaces = source.substring(cursor, afterNextNewline());
             cursor += numberOfSpaces.length();
             nextIndex = Integer.valueOf(numberOfSpaces.trim());
         }
@@ -6649,7 +6656,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         sequenceArea();
         indicatorArea();
 
-        String numberOfSpaces = source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1);
+        String numberOfSpaces = source.substring(cursor, afterNextNewline());
         cursor += numberOfSpaces.length();
         nextIndex = Integer.valueOf(numberOfSpaces.trim());
 
@@ -6665,7 +6672,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             int start = cursor;
             sequenceArea();
             indicatorArea();
-            if (!source.substring(cursor).startsWith(compileOptionStartComment)) {
+            if (!source.startsWith(compileOptionStartComment, cursor)) {
                 cursor = start;
                 break;
             }
@@ -6674,14 +6681,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
             sequenceArea();
             indicatorArea();
-            cursor += source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1).length();
+            cursor = afterNextNewline();
 
             parseComment(uuidComment);
             String uuid = getUuid().trim();
             parseComment(compileOptionStopComment);
             sequenceArea();
             indicatorArea();
-            cursor += source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1).length();
+            cursor = afterNextNewline();
 
             CobolPreprocessor.CompilerOptions co = (CobolPreprocessor.CompilerOptions) preprocessorMap.get(uuid);
             if (co != null) {
@@ -6706,7 +6713,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         indicatorArea();
 
         // Unknown; this might contend with other methods that set nextIndex.
-        String numberOfSpaces = source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1);
+        String numberOfSpaces = source.substring(cursor, afterNextNewline());
         cursor += numberOfSpaces.length();
         nextIndex = Integer.valueOf(numberOfSpaces.trim());
 
@@ -6729,7 +6736,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     private String getUuid() {
         sequenceArea();
         indicatorArea();
-        String uuid = source.substring(cursor, cursor + source.substring(cursor).indexOf("\n") + 1);
+        String uuid = source.substring(cursor, afterNextNewline());
         cursor += uuid.length();
         return uuid;
     }
@@ -6781,12 +6788,11 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
             String continuationText = null;
             if (continuationDelimiter != null) {
-                String current = source.substring(cursor);
-                int pos = current.indexOf(continuationDelimiter);
+                int pos = source.indexOf(continuationDelimiter, cursor);
                 if (pos != -1) {
-                    int endPos = (isStringLiteral ? 1 : 0) + current.indexOf(continuationDelimiter);
-                    continuationText = current.substring(0, endPos);
-                    cursor += continuationText.length();
+                    int endPos = (isStringLiteral ? 1 : 0) + pos;
+                    continuationText = source.substring(cursor, endPos);
+                    cursor = endPos;
                 }
             }
 
