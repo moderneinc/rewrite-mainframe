@@ -3367,6 +3367,14 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return s.withDot((Cobol.Word) visit(s.getDot(), p));
     }
 
+    public Cobol visitService(Cobol.Service service, P p) {
+        Cobol.Service s = service;
+        s = s.withPrefix(visitSpace(s.getPrefix(), Space.Location.SERVICE_PREFIX, p));
+        s = s.withMarkers(visitMarkers(s.getMarkers(), p));
+        s = s.withWords(ListUtils.map(s.getWords(), it -> (Cobol.Word) visit(it, p)));
+        return s.withIdentifier((Name) visit(s.getIdentifier(), p));
+    }
+
     public Cobol visitSet(Cobol.Set set, P p) {
         Cobol.Set s = set;
         s = s.withPrefix(visitSpace(s.getPrefix(), Space.Location.SET_PREFIX, p));

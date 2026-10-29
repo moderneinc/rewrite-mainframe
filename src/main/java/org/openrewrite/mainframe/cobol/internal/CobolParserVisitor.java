@@ -5031,6 +5031,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     @Override
+    public Cobol.Service visitServiceStatement(CobolParser.ServiceStatementContext ctx) {
+        return new Cobol.Service(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.SERVICE(), ctx.LABEL(), ctx.RELOAD()),
+                visitNullable(ctx.identifier())
+        );
+    }
+
+    @Override
     public Cobol.Set visitSetStatement(CobolParser.SetStatementContext ctx) {
         return new Cobol.Set(randomId(),
                 EMPTY,
