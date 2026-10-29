@@ -343,6 +343,29 @@ class DataNameTest implements RewriteTest {
     }
 
     @Test
+    void readsACicsResponseValueAsALiteral() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. RESPPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-RESP   PIC S9(8) COMP.                                   \s
+            000000     88  RESP-NORMAL  VALUE DFHRESP(NORMAL).                     \s
+            000000 01  BUSY      PIC X.                                            \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE DFHRESP(NORMAL) TO WS-RESP.                            \s
+            000000     IF WS-RESP = DFHVALUE(BUSY) CONTINUE.                       \s
+            """
+        );
+
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("WS-RESP", "WS-RESP");
+        // The condition in the parentheses names nothing, so an item spelled the same is not credited.
+        assertThat(definitionOf(names, "BUSY").isReferenced()).isFalse();
+    }
+
+    @Test
     void keepsANestedProgramsNamesApart() {
         List<DataName> names = names(
           """

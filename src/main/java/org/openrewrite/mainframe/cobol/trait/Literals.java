@@ -18,6 +18,7 @@ package org.openrewrite.mainframe.cobol.trait;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.mainframe.cobol.tree.Cobol;
 
 /**
  * Telling a quoted literal from a data name.
@@ -36,6 +37,16 @@ public class Literals {
         return word.length() >= 2 &&
                (word.charAt(0) == '\'' || word.charAt(0) == '"') &&
                word.charAt(word.length() - 1) == word.charAt(0);
+    }
+
+    /**
+     * Whether the call is {@code DFHRESP(NORMAL)} or {@code DFHVALUE(BUSY)}: a literal the CICS
+     * translator replaces with a number, parsed as the keyword subscripted by the condition.
+     */
+    public static boolean isCicsLiteral(Cobol.TableCall call) {
+        String keyword = Names.upperOf(call.getQualifiedDataName());
+        return ("DFHRESP".equals(keyword) || "DFHVALUE".equals(keyword)) &&
+               call.getSubscripts().size() == 1 && call.getReferenceModifier() == null;
     }
 
     /**

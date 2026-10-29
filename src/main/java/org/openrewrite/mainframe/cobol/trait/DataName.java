@@ -51,7 +51,8 @@ import static java.util.Collections.emptyList;
  * <p>
  * Within an {@code EXEC} block only a name the program declares is an occurrence — a {@code :HOST}
  * variable, an operand in a CICS or DLI option — because the block's words are not parsed, and an
- * option name or a segment field is written the same way as a data name.
+ * option name or a segment field is written the same way as a data name. {@code DFHRESP(NORMAL)} is
+ * a literal, and neither word of it is an occurrence.
  */
 @Value
 public class DataName implements Trait<Cobol.Word> {
@@ -302,7 +303,8 @@ public class DataName implements Trait<Cobol.Word> {
         Cobol.Word word = at.getValue();
         Object parent = at.getParentTreeCursor().getValue();
         if (parent instanceof Cobol.QualifiedDataNameFormat1) {
-            return is(((Cobol.QualifiedDataNameFormat1) parent).getName(), word);
+            return is(((Cobol.QualifiedDataNameFormat1) parent).getName(), word) &&
+                   !inCicsLiteral(at.getParentTreeCursor());
         }
         if (parent instanceof Cobol.ConditionNameReference) {
             return is(((Cobol.ConditionNameReference) parent).getName(), word);
@@ -321,6 +323,22 @@ public class DataName implements Trait<Cobol.Word> {
             return exec != null && isOperand(exec, word);
         }
         return false;
+    }
+
+    /**
+     * Whether the qualified name at {@code format1} is the keyword of {@code DFHRESP(NORMAL)} or the
+     * condition in its parentheses.
+     */
+    private static boolean inCicsLiteral(Cursor format1) {
+        Cursor qualified = format1.getParentTreeCursor();
+        if (!(qualified.getValue() instanceof Cobol.QualifiedDataName)) {
+            return false;
+        }
+        Cursor above = qualified.getParentTreeCursor();
+        if (above.getValue() instanceof Cobol.Subscript) {
+            above = above.getParentTreeCursor().getParentTreeCursor();
+        }
+        return above.getValue() instanceof Cobol.TableCall && Literals.isCicsLiteral(above.getValue());
     }
 
     /**
