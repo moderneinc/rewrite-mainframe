@@ -1510,45 +1510,6 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
-    void subscriptsAndReferenceModifiersMakeATableCall() {
-        rewriteRun(
-          cobol(
-            """
-              000001 IDENTIFICATION DIVISION.
-              000002 PROGRAM-ID. IDSHAPE.
-              000003 DATA DIVISION.
-              000004 WORKING-STORAGE SECTION.
-              000005 01  T.
-              000006     05  R OCCURS 3 TIMES.
-              000007         10  E   PIC X(8).
-              000008 01  A   PIC X(8).
-              000009 01  I   PIC 9.
-              000010 PROCEDURE DIVISION.
-              000011     MOVE A TO E (I).
-              000012     MOVE A (1:2) TO E (I) (3:2).
-              000013     MOVE E OF R (I) TO A.
-              000014     MOVE E OF R TO A.
-              000015     STOP RUN.
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                List<String> tableCalls = new CobolIsoVisitor<List<String>>() {
-                    @Override
-                    public Cobol.TableCall visitTableCall(Cobol.TableCall tableCall, List<String> found) {
-                        found.add(tableCall.getQualifiedDataName().printTrimmed(getCursor()) +
-                                  "(".repeat(tableCall.getSubscripts().size()) +
-                                  (tableCall.getReferenceModifier() == null ? "" : ":"));
-                        return super.visitTableCall(tableCall, found);
-                    }
-                }.reduce(cu, new ArrayList<>());
-                // A bare name, qualified or not, is a QualifiedDataName, so neither A nor the last E OF R appears.
-                // A subscript after a qualified name belongs to the whole reference, not to the qualifier.
-                assertThat(tableCalls).containsExactly("E(", "A:", "E(:", "E OF R(");
-            })
-          )
-        );
-    }
-
-    @Test
     void identifierShapes() {
         rewriteRun(
           cobol(

@@ -5528,22 +5528,18 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     /**
-     * A bare name is a {@code QualifiedDataName}, and subscripts or a reference modifier make it a {@code TableCall}.
-     * The grammar reads both through {@code tableCall}, whose subscripts and modifier are optional, so that
-     * prediction has no choice to make between them.
+     * A bare name is a {@code QualifiedDataName}; subscripts or a reference modifier make it a {@code TableCall}.
+     * The grammar reads both as one identifier with optional subscripts and modifier, so that prediction has no
+     * choice to make between them.
      */
     @Override
     public Object visitIdentifier(CobolParser.IdentifierContext ctx) {
-        if (ctx.tableCall() == null) {
+        if (ctx.qualifiedDataName() == null) {
             return visit(ctx.functionCall(), ctx.specialRegister());
         }
-        Cobol.TableCall tableCall = visitTableCall(ctx.tableCall());
-        return tableCall.getSubscripts().isEmpty() && tableCall.getReferenceModifier() == null ?
-                tableCall.getQualifiedDataName() : tableCall;
-    }
-
-    @Override
-    public Cobol.TableCall visitTableCall(CobolParser.TableCallContext ctx) {
+        if (ctx.tableCallSubscripts().isEmpty() && ctx.referenceModifier() == null) {
+            return visit(ctx.qualifiedDataName());
+        }
         return new Cobol.TableCall(randomId(),
                 EMPTY,
                 Markers.EMPTY,

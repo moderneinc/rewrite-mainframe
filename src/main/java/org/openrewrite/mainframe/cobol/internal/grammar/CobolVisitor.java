@@ -3314,12 +3314,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIdentifier(CobolParser.IdentifierContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link CobolParser#tableCall}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTableCall(CobolParser.TableCallContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link CobolParser#tableCallSubscripts}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
