@@ -44,6 +44,20 @@ options { caseInsensitive = true; }
                         _ATN.nextTokens(_ATN.ruleToStartState[RULE_compilerOption]).contains(option.getType()));
     }
 
+    /**
+     * Whether the next token continues the CBL or PROCESS statement, as an option or a comma before one. The
+     * statement's options share its line, and a comma-led option could otherwise also start a charDataLine.
+     */
+    boolean continuesCompilerOptions() {
+        Token next = _input.LT(1);
+        if (next.getType() == EOF || next.getLine() != _input.LT(-1).getLine()) {
+            return false;
+        }
+        IntervalSet optionStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_compilerOption]);
+        return next.getType() == COMMACHAR ? optionStart.contains(_input.LA(2)) :
+                next.getType() == XOPTS || optionStart.contains(next.getType());
+    }
+
     private static IntervalSet charDataLineStart;
 
     /**
@@ -66,7 +80,7 @@ compilationUnit
 // compiler options
 
 compilerOptions
-   : (PROCESS | CBL) (COMMACHAR? compilerOption | compilerXOpts)+
+   : (PROCESS | CBL) (COMMACHAR? compilerOption | compilerXOpts)+ {!continuesCompilerOptions()}?
    ;
 
 compilerXOpts
@@ -198,29 +212,29 @@ compilerOption
 // exec cics statement
 
 execCicsStatement
-   : EXEC CICS charData END_EXEC DOT?
+   : EXEC CICS charData END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // exec dli statement
 
 execDliStatement
-   : EXEC DLI charData END_EXEC DOT?
+   : EXEC DLI charData END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // exec sql statement
 
 execSqlStatement
-   : EXEC SQL charDataSql END_EXEC DOT?
+   : EXEC SQL charDataSql END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 execSqlIncludeStatement
-   : EXEC SQL INCLUDE (literal | cobolWord | filename) END_EXEC DOT?
+   : EXEC SQL INCLUDE (literal | cobolWord | filename) END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // exec sql ims statement
 
 execSqlImsStatement
-   : EXEC SQLIMS charData END_EXEC DOT?
+   : EXEC SQLIMS charData END_EXEC (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // copy statement
@@ -244,7 +258,8 @@ replacingPhrase
 // replace statement
 
 replaceArea
-   : replaceByStatement (copyStatement | charData)* replaceOffStatement?
+   : replaceByStatement (copyStatement | charData)* {_input.LA(1) != COPY && !continuesCharDataLine()}?
+     (replaceOffStatement | {_input.LA(1) != REPLACE || _input.LA(2) != OFF}?)
    ;
 
 replaceByStatement
@@ -278,19 +293,19 @@ replacement
 // eject statement
 
 ejectStatement
-   : EJECT DOT?
+   : EJECT (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // skip statement
 
 skipStatement
-   : (SKIP1 | SKIP2 | SKIP3) DOT?
+   : (SKIP1 | SKIP2 | SKIP3) (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // title statement
 
 titleStatement
-   : TITLE literal DOT?
+   : TITLE literal (DOT | {_input.LA(1) != DOT}?)
    ;
 
 // literal ----------------------------------
@@ -332,7 +347,7 @@ filename
    ;
 
 commentEntry
-   : COMMENTENTRYLINE+
+   : COMMENTENTRYLINE+ {_input.LA(1) != COMMENTENTRYLINE}?
    ;
 
 // lexer rules --------------------------------------------------------------------------------

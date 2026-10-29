@@ -259,6 +259,29 @@ class FullContextPredictionTest {
         assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "charData", "charDataLine")).isZero();
     }
 
+    @Test
+    void preprocessorStatementEndings() {
+        String program = """
+          CBL APOST,MAP,XREF,FLAG(I)
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENDINGS.
+          AUTHOR. *>CE A. PERSON.
+          *>CE SECOND LINE OF THE ENTRY.
+          INSTALLATION. *>CE SOMEWHERE.
+          PROCEDURE DIVISION.
+              EXEC CICS RETURN END-EXEC.
+              EXEC SQL SELECT A INTO :B FROM T END-EXEC.
+              EXEC SQL INCLUDE SQLCA END-EXEC.
+              STOP RUN.
+          """;
+        assertThat(preprocessorFullContextFallbacks(program, "commentEntry")).isZero();
+
+        assertThat(preprocessorFullContextFallbacks(program, "execCicsStatement", "execSqlStatement",
+          "execSqlIncludeStatement")).isZero();
+
+        assertThat(preprocessorFullContextFallbacks(program, "compilerOptions", "compilerOption")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
         return fullContextFallbacks(parser, parser::compilationUnit, rules);
