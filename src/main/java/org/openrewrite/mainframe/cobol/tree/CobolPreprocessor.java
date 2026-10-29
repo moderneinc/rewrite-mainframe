@@ -560,15 +560,6 @@ public interface CobolPreprocessor extends Tree {
         Word by;
         CobolPreprocessor replacement;
 
-        @Nullable
-        List<CobolPreprocessor> subscript;
-
-        @Nullable
-        List<DirectoryPhrase> directoryPhrases;
-
-        @Nullable
-        FamilyPhrase familyPhrase;
-
         @Override
         public <P> CobolPreprocessor acceptCobolPreprocessor(CobolPreprocessorVisitor<P> v, P p) {
             return v.visitReplaceClause(this, p);

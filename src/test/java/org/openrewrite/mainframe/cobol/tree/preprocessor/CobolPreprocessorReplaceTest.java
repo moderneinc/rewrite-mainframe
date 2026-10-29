@@ -75,6 +75,41 @@ class CobolPreprocessorReplaceTest extends CobolTest {
     }
 
     @Test
+    void aQualifiedOrSubscriptedOperandIsOneRunOfWords() {
+        rewriteRun(
+          cobolPreprocessorCopy(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. REPLOPS.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 REPLACE ==A== BY B OF C ==D== BY E (1) ==F== BY G.
+              000006 01  A PIC X.
+              000007 REPLACE OFF.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<CobolPreprocessor.ReplaceClause> clauses = cu.getCobols().stream()
+                  .filter(CobolPreprocessor.ReplaceArea.class::isInstance)
+                  .map(CobolPreprocessor.ReplaceArea.class::cast)
+                  .flatMap(area -> area.getReplaceByStatement().getClauses().stream())
+                  .toList();
+                assertThat(clauses).hasSize(3);
+                assertThat(clauses.get(0).getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
+                assertThat(words(clauses.get(0).getReplacement())).containsExactly("B", "OF", "C");
+                assertThat(clauses.get(1).getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
+                assertThat(words(clauses.get(1).getReplacement())).containsExactly("E", "(", "1", ")");
+                assertThat(clauses.get(2).getReplacement()).isInstanceOf(CobolPreprocessor.Word.class);
+            })
+          )
+        );
+    }
+
+    private static List<String> words(CobolPreprocessor operand) {
+        List<CobolPreprocessor> words = operand instanceof CobolPreprocessor.CharDataLine line ? line.getWords() : List.of(operand);
+        return words.stream().map(w -> ((CobolPreprocessor.Word) w).getCobolWord().getWord()).toList();
+    }
+
+    @Test
     void sm201A() {
         rewriteRun(
           cobolPreprocessorCopy(
