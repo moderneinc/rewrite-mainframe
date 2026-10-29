@@ -324,7 +324,23 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                      SET ROUTINE TO ENTRY 'EPSCSMRF'.
                      SET ROUTINE TO ENTRY PGM-NAME.
                      STOP RUN.
-              """
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> values = new ArrayList<>();
+                new CobolIsoVisitor<Integer>() {
+                    @Override
+                    public Cobol.SetTo visitSetTo(Cobol.SetTo setTo, Integer p) {
+                        StringBuilder shape = new StringBuilder();
+                        for (Cobol value : setTo.getValues()) {
+                            shape.append(value.getClass().getSimpleName()).append(' ')
+                                    .append(value.printTrimmed(getCursor())).append(' ');
+                        }
+                        values.add(shape.toString().trim());
+                        return super.visitSetTo(setTo, p);
+                    }
+                }.visit(cu, 0);
+                assertThat(values).containsExactly("Word ENTRY Word 'EPSCSMRF'", "Word ENTRY QualifiedDataName PGM-NAME");
+            })
           )
         );
     }

@@ -5085,7 +5085,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     public Cobol.SetTo visitSetToStatement(CobolParser.SetToStatementContext ctx) {
         List<Cobol> identifiers = convertAllList(ctx.setTo());
         Cobol.Word to = (Cobol.Word) visit(ctx.TO());
-        // ENTRY and the name it qualifies are two tokens of one value, so each value is converted token by token.
+        // ENTRY and its operand are two tokens of one value, so each value is converted token by token.
         List<Cobol> values = new ArrayList<>();
         for (CobolParser.SetToValueContext value : ctx.setToValue()) {
             values.addAll(convertAllList(value.children));
