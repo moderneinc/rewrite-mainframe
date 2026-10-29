@@ -2888,18 +2888,6 @@ public class CobolBaseListener implements CobolListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterPicture(CobolParser.PictureContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitPicture(CobolParser.PictureContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterPictureChars(CobolParser.PictureCharsContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -3567,6 +3555,18 @@ public class CobolBaseListener implements CobolListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitCallUsingParameter(CobolParser.CallUsingParameterContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -4263,30 +4263,6 @@ public class CobolBaseListener implements CobolListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitGoToStatement(CobolParser.GoToStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -6668,18 +6644,6 @@ public class CobolBaseListener implements CobolListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterTableCall(CobolParser.TableCallContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitTableCall(CobolParser.TableCallContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterTableCallSubscripts(CobolParser.TableCallSubscriptsContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -6800,30 +6764,6 @@ public class CobolBaseListener implements CobolListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterQualifiedDataNameFormat4(CobolParser.QualifiedDataNameFormat4Context ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -6891,30 +6831,6 @@ public class CobolBaseListener implements CobolListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitInSection(CobolParser.InSectionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterInLibrary(CobolParser.InLibraryContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitInLibrary(CobolParser.InLibraryContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterInTable(CobolParser.InTableContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitInTable(CobolParser.InTableContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -7239,18 +7155,6 @@ public class CobolBaseListener implements CobolListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSymbolicCharacter(CobolParser.SymbolicCharacterContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterTextName(CobolParser.TextNameContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitTextName(CobolParser.TextNameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

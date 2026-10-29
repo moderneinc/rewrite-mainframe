@@ -1454,12 +1454,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitPictureString(CobolParser.PictureStringContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link CobolParser#picture}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitPicture(CobolParser.PictureContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link CobolParser#pictureChars}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -1795,6 +1789,12 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitCallUsingParameter(CobolParser.CallUsingParameterContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#callByReferenceBarePhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCallByReferenceBarePhrase(CobolParser.CallByReferenceBarePhraseContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#callByReferencePhrase}.
 	 * @param ctx the parse tree
@@ -2143,18 +2143,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitGoToStatement(CobolParser.GoToStatementContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#goToStatementSimple}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGoToStatementSimple(CobolParser.GoToStatementSimpleContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#goToDependingOnStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGoToDependingOnStatement(CobolParser.GoToDependingOnStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#ifStatement}.
 	 * @param ctx the parse tree
@@ -3344,12 +3332,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIdentifier(CobolParser.IdentifierContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link CobolParser#tableCall}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTableCall(CobolParser.TableCallContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link CobolParser#tableCallSubscripts}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -3410,18 +3392,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitQualifiedDataNameFormat1(CobolParser.QualifiedDataNameFormat1Context ctx);
 	/**
-	 * Visit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat2}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitQualifiedDataNameFormat2(CobolParser.QualifiedDataNameFormat2Context ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat3}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitQualifiedDataNameFormat3(CobolParser.QualifiedDataNameFormat3Context ctx);
-	/**
 	 * Visit a parse tree produced by {@link CobolParser#qualifiedDataNameFormat4}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -3457,18 +3427,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitInSection(CobolParser.InSectionContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#inLibrary}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitInLibrary(CobolParser.InLibraryContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#inTable}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitInTable(CobolParser.InTableContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#alphabetName}.
 	 * @param ctx the parse tree
@@ -3631,12 +3589,6 @@ public interface CobolVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSymbolicCharacter(CobolParser.SymbolicCharacterContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link CobolParser#textName}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTextName(CobolParser.TextNameContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#cobolWord}.
 	 * @param ctx the parse tree
