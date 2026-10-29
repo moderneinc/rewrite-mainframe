@@ -195,6 +195,52 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void endProgramClosesTheInnermostOpenProgram() {
+        rewriteRun(
+          cobol(
+            """
+              000100 IDENTIFICATION DIVISION.
+              000200 PROGRAM-ID. OUTER.
+              000300 PROCEDURE DIVISION.
+              000400     STOP RUN.
+              000500 IDENTIFICATION DIVISION.
+              000600 PROGRAM-ID. INNER1.
+              000700 PROCEDURE DIVISION.
+              000800     STOP RUN.
+              000900 END PROGRAM INNER1.
+              001000 IDENTIFICATION DIVISION.
+              001100 PROGRAM-ID. INNER2.
+              001200 PROCEDURE DIVISION.
+              001300     STOP RUN.
+              001400 END PROGRAM INNER2.
+              001500 END PROGRAM OUTER.
+              001600 IDENTIFICATION DIVISION.
+              001700 PROGRAM-ID. SECOND.
+              001800 PROCEDURE DIVISION.
+              001900     STOP RUN.
+              002000 IDENTIFICATION DIVISION.
+              002100 PROGRAM-ID. THIRD.
+              002200 PROCEDURE DIVISION.
+              002300     STOP RUN.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(programTree(cu.getProgramUnits()))
+              .isEqualTo("OUTER[INNER1. INNER2.]. SECOND[THIRD]"))
+          )
+        );
+    }
+
+    /**
+     * Each program as its name, its nested programs in brackets, and a dot when an {@code END PROGRAM} closes it.
+     */
+    private static String programTree(List<Cobol.ProgramUnit> programUnits) {
+        return programUnits.stream()
+          .map(pu -> ((Cobol.Word) pu.getIdentificationDivision().getProgramIdParagraph().getProgramName()).getWord() +
+                     (pu.getProgramUnits().isEmpty() ? "" : "[" + programTree(pu.getProgramUnits()) + "]") +
+                     (pu.getEndProgram() == null ? "" : "."))
+          .collect(joining(" "));
+    }
+
+    @Test
     void compilerOptionsBeforeEachProgramOfABatch() {
         rewriteRun(
           cobol(

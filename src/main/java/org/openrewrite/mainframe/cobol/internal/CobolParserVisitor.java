@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
+import org.openrewrite.mainframe.cobol.CobolParsingException;
 import org.openrewrite.mainframe.cobol.CobolParsingTimeoutException;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParserBaseVisitor;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
@@ -292,10 +293,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         init();
 
         Space prefix = whitespace();
-        List<Cobol.ProgramUnit> programUnits = new ArrayList<>(ctx.programUnit().size());
-        for (CobolParser.ProgramUnitContext pu : ctx.programUnit()) {
-            programUnits.add(visitProgramUnit(pu));
-        }
+        List<Cobol.ProgramUnit> programUnits = nestProgramUnits(ctx);
         return new Cobol.CompilationUnit(randomId(),
                 path,
                 fileAttributes,
@@ -307,6 +305,42 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 programUnits,
                 (Cobol.Word) visit(ctx.EOF())
         );
+    }
+
+    /**
+     * Each program nests in the innermost program still open before it, and each END PROGRAM closes the innermost
+     * open program, so a program without one holds every program that follows it.
+     */
+    private List<Cobol.ProgramUnit> nestProgramUnits(CobolParser.CompilationUnitContext ctx) {
+        // Each list holds the programs nested in the last program of the list below it. The bottom list is the batch.
+        Deque<List<Cobol.ProgramUnit>> nested = new ArrayDeque<>();
+        nested.push(new ArrayList<>());
+        for (ParseTree child : ctx.children) {
+            if (child instanceof CobolParser.ProgramUnitContext) {
+                nested.peek().add(visitProgramUnit((CobolParser.ProgramUnitContext) child));
+                nested.push(new ArrayList<>());
+            } else if (child instanceof CobolParser.EndProgramStatementContext) {
+                CobolParser.EndProgramStatementContext end = (CobolParser.EndProgramStatementContext) child;
+                if (nested.size() == 1) {
+                    throw new CobolParsingException(path, "END PROGRAM " + end.programName().getText() +
+                                                          " closes no program", null);
+                }
+                closeProgramUnit(nested, visitEndProgramStatement(end));
+            }
+        }
+        while (nested.size() > 1) {
+            closeProgramUnit(nested, null);
+        }
+        return nested.pop();
+    }
+
+    private void closeProgramUnit(Deque<List<Cobol.ProgramUnit>> nested, Cobol.@Nullable EndProgram endProgram) {
+        List<Cobol.ProgramUnit> children = nested.pop();
+        List<Cobol.ProgramUnit> siblings = nested.peek();
+        int last = siblings.size() - 1;
+        siblings.set(last, siblings.get(last)
+                .withProgramUnits(children.isEmpty() ? emptyList() : children)
+                .withEndProgram(endProgram));
     }
 
     @Override
@@ -3599,8 +3633,8 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 visitNullable(ctx.environmentDivision()),
                 visitNullable(ctx.dataDivision()),
                 visitNullable(ctx.procedureDivision()),
-                convertAll(ctx.programUnit()),
-                visitNullable(ctx.endProgramStatement())
+                emptyList(),
+                null
         );
     }
 

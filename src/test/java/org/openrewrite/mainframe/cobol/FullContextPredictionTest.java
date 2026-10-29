@@ -375,7 +375,7 @@ class FullContextPredictionTest {
           END PROGRAM INNER.
           END PROGRAM OUTER.
           """;
-        assertThat(fullContextFallbacks(program, "programUnit", "procedureDivisionByReferencePhrase",
+        assertThat(fullContextFallbacks(program, "compilationUnit", "programUnit", "procedureDivisionByReferencePhrase",
           "procedureDivisionByValuePhrase", "execCicsStatement")).isZero();
     }
 
