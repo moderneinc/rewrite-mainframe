@@ -348,7 +348,7 @@ public final class AssemblerLineReader {
     }
 
     private Space space(int to) {
-        Space prefix = Space.build(source.substring(cursor, to));
+        Space prefix = Space.build(source, cursor, to);
         cursor = to;
         return prefix;
     }
