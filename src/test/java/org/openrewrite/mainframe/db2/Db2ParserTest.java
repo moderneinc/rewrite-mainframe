@@ -462,6 +462,29 @@ class Db2ParserTest {
             .containsExactly(Db2.Keyword.Type.With, Db2.Keyword.Type.Comparisons));
     }
 
+    @Test
+    void aCaseExpressionsEndDoesNotCloseTheBlock() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE PROCEDURE CLM.RATE (INOUT X INT) LANGUAGE SQL
+            BEGIN
+              SET X = CASE WHEN X = 1 THEN 2 ELSE 3 END;
+              SET X = CASE X WHEN 1 THEN CASE WHEN X > 0 THEN 1 END ELSE 0 END;
+              CASE X
+                WHEN 1 THEN SET X = CASE WHEN X = 1 THEN 2 END;
+                ELSE SET X = 0;
+              END CASE;
+              RETURN X;
+            END;
+            """);
+
+        assertThat(ddl.getStatements()).hasSize(1);
+        Db2.CreateProcedure procedure = (Db2.CreateProcedure) ddl.getStatements().get(0);
+        assertThat(procedure.getBody().getEnd()).isNotNull();
+        assertThat(procedure.getBody().getBody()).extracting(word -> ((Db2.Word) word).getText())
+          .endsWith("END", "CASE", ";", "RETURN", "X", ";");
+    }
+
     /**
      * Every statement DB2 documents is a node of its own. None of these says anything the
      * relationship graph joins on, and all of them are still read as what they are rather than
