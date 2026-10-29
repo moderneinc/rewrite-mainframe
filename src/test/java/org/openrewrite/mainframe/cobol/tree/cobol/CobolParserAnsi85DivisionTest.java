@@ -247,6 +247,22 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void setToEntry() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+                     PROGRAM-ID. HELLO.
+                     PROCEDURE DIVISION.
+                     SET ROUTINE TO ENTRY 'EPSCSMRF'.
+                     SET ROUTINE TO ENTRY PGM-NAME.
+                     STOP RUN.
+              """
+          )
+        );
+    }
+
+    @Test
     void helloWorld() {
         rewriteRun(
           cobol(
