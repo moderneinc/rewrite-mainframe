@@ -325,12 +325,14 @@ options { tokenVocab = CobolLexer; }
     }
 }
 
+// A batch is read flat and CobolParserVisitor nests its programs. Nesting them here would put a predicate on the
+// FOLLOW path of every division rule.
 compilationUnit
-   : programUnit* EOF
+   : (programUnit | endProgramStatement)* EOF
    ;
 
 programUnit
-   : identificationDivision environmentDivision? dataDivision? procedureDivision? programUnit* {!ahead($ctx, IDENTIFICATION) && !ahead($ctx, ID)}? (endProgramStatement | {!ahead($ctx, END)}?)
+   : identificationDivision environmentDivision? dataDivision? procedureDivision?
    ;
 
 endProgramStatement
