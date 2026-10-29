@@ -2181,16 +2181,6 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitInTable(CobolParser.InTableContext ctx) {
-        return new Cobol.InLibrary(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                visit(ctx.IN(), ctx.OF()),
-                (Name) visit(ctx.tableCall())
-        );
-    }
-
-    @Override
     public Object visitInstallationParagraph(CobolParser.InstallationParagraphContext ctx) {
         return new Cobol.IdentificationDivisionParagraph(randomId(),
                 EMPTY,
@@ -3609,7 +3599,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
         return new Cobol.QualifiedDataName(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                visit(ctx.inData(), ctx.inTable())
+                (Cobol) visit(ctx.inData())
         );
     }
 
@@ -5535,6 +5525,21 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 wordsList(ctx.SYMBOLIC(), ctx.TERMINAL(), ctx.IS()),
                 (Cobol.Word) visit(ctx.dataDescName())
         );
+    }
+
+    /**
+     * A bare name is a {@code QualifiedDataName}, and subscripts or a reference modifier make it a {@code TableCall}.
+     * The grammar reads both through {@code tableCall}, whose subscripts and modifier are optional, so that
+     * prediction has no choice to make between them.
+     */
+    @Override
+    public Object visitIdentifier(CobolParser.IdentifierContext ctx) {
+        if (ctx.tableCall() == null) {
+            return visit(ctx.functionCall(), ctx.specialRegister());
+        }
+        Cobol.TableCall tableCall = visitTableCall(ctx.tableCall());
+        return tableCall.getSubscripts().isEmpty() && tableCall.getReferenceModifier() == null ?
+                tableCall.getQualifiedDataName() : tableCall;
     }
 
     @Override

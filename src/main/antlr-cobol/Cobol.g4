@@ -2431,7 +2431,7 @@ abbreviation
 // identifier ----------------------------------
 
 identifier
-   : qualifiedDataName | tableCall | functionCall | specialRegister
+   : tableCall | functionCall | specialRegister
    ;
 
 tableCall
@@ -2493,7 +2493,7 @@ qualifiedDataNameFormat4
    ;
 
 qualifiedInData
-   : inData | inTable
+   : inData
    ;
 
 // in ----------------------------------
@@ -2516,10 +2516,6 @@ inSection
 
 inLibrary
    : (IN | OF) libraryName
-   ;
-
-inTable
-   : (IN | OF) tableCall
    ;
 
 // names ----------------------------------
