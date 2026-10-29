@@ -1057,6 +1057,36 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitCicsDfhRespLiteral(CobolParser.CicsDfhRespLiteralContext ctx) {
+        return cicsLiteral(ctx.DFHRESP(), ctx.LPARENCHAR(), ctx.cobolWord(), ctx.literal(), ctx.RPARENCHAR());
+    }
+
+    @Override
+    public Object visitCicsDfhValueLiteral(CobolParser.CicsDfhValueLiteralContext ctx) {
+        return cicsLiteral(ctx.DFHVALUE(), ctx.LPARENCHAR(), ctx.cobolWord(), ctx.literal(), ctx.RPARENCHAR());
+    }
+
+    /**
+     * {@code DFHRESP(NORMAL)} is the same tree whether the grammar read it as a literal or as a subscripted
+     * identifier. The keyword is a qualified data name, and what is in the parentheses is its one subscript.
+     */
+    private Cobol.TableCall cicsLiteral(TerminalNode keyword, TerminalNode leftParen, @Nullable ParseTree word,
+                                        @Nullable ParseTree literal, TerminalNode rightParen) {
+        Cobol.QualifiedDataName name = qualifiedDataName((Name) visit(keyword));
+        Cobol.Word open = (Cobol.Word) visit(leftParen);
+        Cobol argument = word != null ? qualifiedDataName((Name) visit(word)) : (Cobol) visit(literal);
+        Cobol.Subscript subscript = new Cobol.Subscript(randomId(), EMPTY, Markers.EMPTY, argument, null);
+        Cobol.Parenthesized subscripts = new Cobol.Parenthesized(randomId(), EMPTY, Markers.EMPTY,
+                open, singletonList(subscript), (Cobol.Word) visit(rightParen));
+        return new Cobol.TableCall(randomId(), EMPTY, Markers.EMPTY, name, singletonList(subscripts), null);
+    }
+
+    private Cobol.QualifiedDataName qualifiedDataName(Name name) {
+        return new Cobol.QualifiedDataName(randomId(), EMPTY, Markers.EMPTY,
+                new Cobol.QualifiedDataNameFormat1(randomId(), EMPTY, Markers.EMPTY, name, emptyList(), null));
+    }
+
+    @Override
     public Object visitCondition(CobolParser.ConditionContext ctx) {
         return new Cobol.Condition(randomId(),
                 EMPTY,
@@ -5062,12 +5092,19 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Cobol.SetTo visitSetToStatement(CobolParser.SetToStatementContext ctx) {
+        List<Cobol> identifiers = convertAllList(ctx.setTo());
+        Cobol.Word to = (Cobol.Word) visit(ctx.TO());
+        // ENTRY and its operand are two tokens of one value, so each value is converted token by token.
+        List<Cobol> values = new ArrayList<>();
+        for (CobolParser.SetToValueContext value : ctx.setToValue()) {
+            values.addAll(convertAllList(value.children));
+        }
         return new Cobol.SetTo(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAllList(ctx.setTo()),
-                (Cobol.Word) visit(ctx.TO()),
-                convertAll(ctx.setToValue())
+                identifiers,
+                to,
+                values
         );
     }
 
