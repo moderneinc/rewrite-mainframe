@@ -2030,7 +2030,7 @@ public class CobolParserVisitor extends CobolBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.LPARENCHAR()),
-                convertAllList(ctx.argument(), ctx.COMMACHAR()),
+                convertAllList(ctx.argument(), ctx.COMMACHAR(), singletonList(ctx.LEADING()), singletonList(ctx.TRAILING())),
                 (Cobol.Word) visit(ctx.RPARENCHAR())
         );
     }
