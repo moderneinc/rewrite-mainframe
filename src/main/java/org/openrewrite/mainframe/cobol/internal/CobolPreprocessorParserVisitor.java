@@ -880,6 +880,15 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
         );
     }
 
+    private boolean isBlank(int beginIndex, int endIndex) {
+        for (int i = beginIndex; i < endIndex; i++) {
+            if (source.charAt(i) > ' ') {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Whether the range of the source, trimmed as {@link String#trim()} would trim it, starts with the text.
      */
@@ -1057,10 +1066,11 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
                     newLinePos--;
                 }
                 int endOfContentArea = endOfContentArea();
-                String contentArea = source.substring(cursor, Math.min(newLinePos, endOfContentArea));
-                if (!(isCommentIndicator(indicatorArea) || contentArea.trim().isEmpty())) {
+                int contentEnd = Math.min(newLinePos, endOfContentArea);
+                if (!(isCommentIndicator(indicatorArea) || isBlank(cursor, contentEnd))) {
                     break;
                 }
+                String contentArea = source.substring(cursor, contentEnd);
 
                 cursor += contentArea.length();
                 CommentArea commentArea = commentArea();
