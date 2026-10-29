@@ -74,6 +74,17 @@ class Db2FullContextPredictionTest {
           "specialRegister", "defaultValue")).isZero();
     }
 
+    @Test
+    void aSemicolonAfterAStatementIsItsEnd() {
+        String ddl = """
+          ;
+          COMMENT ON TABLE T IS 'x';;
+            ;
+          COMMENT ON TABLE U IS 'y';
+          """;
+        assertThat(fallbacks(ddl, "end", "compilationUnit", "statement")).isZero();
+    }
+
     private static long fallbacks(String ddl, String... rules) {
         DB2Parser parser = new DB2Parser(new CommonTokenStream(new DB2Lexer(CharStreams.fromString(ddl))));
         return FullContextPredictions.fallbacks(parser, parser::compilationUnit, rules);

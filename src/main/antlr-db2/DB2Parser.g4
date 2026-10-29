@@ -115,7 +115,7 @@ options { caseInsensitive = true; tokenVocab=DB2Lexer; }
 // cannot read is a syntax error rather than a node that says nothing.
 
 compilationUnit
-    : statement* EOF
+    : terminator* statement* EOF
     ;
 
 statement
@@ -166,7 +166,6 @@ statement
     | lockStatement
     | insertStatement
     | queryStatement
-    | terminator
     ;
 
 // A query standing on its own. The .sql files next to a schema are usually catalog queries.
@@ -174,7 +173,7 @@ queryStatement
     : queryExpression end
     ;
 
-// A semicolon of its own. DDL scripts written by a generator often end with one.
+// A semicolon before the first statement. Every later one ends the statement before it.
 terminator
     : SEMI
     ;
@@ -997,7 +996,7 @@ storageOption
     ;
 
 end
-    : SEMI?
+    : SEMI*
     ;
 
 // DB2's non-reserved keywords. A word here is a keyword in the statements that use it and an
