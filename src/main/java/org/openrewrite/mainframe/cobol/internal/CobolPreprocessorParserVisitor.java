@@ -995,14 +995,14 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
 				}
 			}
 
-			String current = source.substring(cursor);
-			int newLinePos = current.indexOf("\n");
-			if (newLinePos > 0 && current.charAt(newLinePos - 1) == '\r') {
+			int newline = source.indexOf('\n', cursor);
+			int newLinePos = newline == -1 ? -1 : newline - cursor;
+			if (newLinePos > 0 && source.charAt(cursor + newLinePos - 1) == '\r') {
 				newLinePos--;
 			}
 			int endPos = nextCommentArea != null && nextCommentArea < (newLinePos + cursor) ? nextCommentArea : (newLinePos + cursor);
 
-			current = source.substring(cursor, endPos).trim();
+			String current = source.substring(cursor, endPos).trim();
 			isContinued = !current.startsWith(text);
 		}
 		cursor = saveCursor;
@@ -1013,7 +1013,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
 				processContinuedText(text, objects) :
 				processLiteral(text, objects, delimiter);
 		}
-		if (END_OF_FILE.equals(text) && source.substring(cursor).isEmpty()) {
+		if (END_OF_FILE.equals(text) && cursor >= source.length()) {
 			return EMPTY;
 		}
 
@@ -1038,11 +1038,11 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
             int iterations = 0;
             while (iterations < 10000) {
                 // Stop after all the trailing comments have been parsed.
-                if (source.substring(cursor).isEmpty() || isSubstituteCharacter(String.valueOf(source.substring(cursor).charAt(0)))) {
+                if (cursor >= source.length() || isSubstituteCharacter(String.valueOf(source.charAt(cursor)))) {
                     break;
                 }
 
-                int newLinePos = cursor + (source.substring(cursor).contains("\n") ? source.substring(cursor).indexOf("\n") : source.substring(cursor).length());
+                int newLinePos = source.indexOf('\n', cursor) == -1 ? source.length() : source.indexOf('\n', cursor);
                 if (newLinePos > cursor && source.charAt(newLinePos - 1) == '\r') {
                     newLinePos--;
                 }
@@ -1100,20 +1100,14 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
         while (iterations < 250) {
             continuation = new ArrayList<>(3);
 
-            String current = source.substring(cursor);
-            char[] charArray = text.substring(matchedCount).toCharArray();
-            char[] sourceArray = current.toCharArray();
-
             int end = 0;
-            for (; end < charArray.length; end++) {
-                if (charArray[end] != sourceArray[end] || commentAreas.containsKey(cursor)) {
+            for (; matchedCount + end < text.length(); end++) {
+                if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreas.containsKey(cursor)) {
                     break;
                 }
                 cursor++;
             }
-
-            String matchedText = current.substring(0, end);
-            matchedCount += matchedText.length();
+            matchedCount += end;
 
             CommentArea commentArea = commentArea();
             if (commentArea != null) {
@@ -1210,26 +1204,19 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
             continuations.put(0, continuation);
         }
 
-        String current;
         int matchedCount = 0;
         int iterations = 0;
         while (iterations < 250) {
             continuation = new ArrayList<>(3);
 
-            current = source.substring(cursor);
-            char[] charArray = text.substring(matchedCount).toCharArray();
-            char[] sourceArray = current.toCharArray();
-
             int end = 0;
-            for (; end < charArray.length; end++) {
-                if (charArray[end] != sourceArray[end] || commentAreas.containsKey(cursor)) {
+            for (; matchedCount + end < text.length(); end++) {
+                if (text.charAt(matchedCount + end) != source.charAt(cursor) || commentAreas.containsKey(cursor)) {
                     break;
                 }
                 cursor++;
             }
-
-            String matchedText = current.substring(0, end);
-            matchedCount += matchedText.length();
+            matchedCount += end;
 
             CommentArea commentArea = commentArea();
             if (commentArea != null) {
@@ -1312,12 +1299,11 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
 
             String continuationText = null;
             if (continuationDelimiter != null) {
-                String current = source.substring(cursor);
-                int pos = current.indexOf(continuationDelimiter);
+                int pos = source.indexOf(continuationDelimiter, cursor);
                 if (pos != -1) {
-                    int endPos = (isStringLiteral ? 1 : 0) + current.indexOf(continuationDelimiter);
-                    continuationText = current.substring(0, endPos);
-                    cursor += continuationText.length();
+                    int endPos = (isStringLiteral ? 1 : 0) + pos;
+                    continuationText = source.substring(cursor, endPos);
+                    cursor = endPos;
                 }
             }
 
