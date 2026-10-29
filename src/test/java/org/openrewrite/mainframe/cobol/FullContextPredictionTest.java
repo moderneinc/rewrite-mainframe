@@ -15,24 +15,16 @@
  */
 package org.openrewrite.mainframe.cobol;
 
-import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.Parser;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.atn.DecisionInfo;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorLexer;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorParser;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.mainframe.FullContextPredictions.fallbacks;
 
 /**
  * Pins the decisions where SLL prediction never retries with full context. The statement-list predicates are
@@ -276,6 +268,8 @@ class FullContextPredictionTest {
           PROCEDURE DIVISION.
               MOVE A TO B.
               DISPLAY 'X' A (1:2).
+              EXEC CICS RETURN TRANSID('T1')
+              END-EXEC.
               STOP RUN.
           """;
         assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "charData", "charDataLine")).isZero();
@@ -433,35 +427,12 @@ class FullContextPredictionTest {
 
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
-        return fullContextFallbacks(parser, parser::compilationUnit, rules);
+        return fallbacks(parser, parser::compilationUnit, rules);
     }
 
     private static long preprocessorFullContextFallbacks(String program, String... rules) {
         CobolPreprocessorParser parser = new CobolPreprocessorParser(
           new CommonTokenStream(new CobolPreprocessorLexer(CharStreams.fromString(program))));
-        return fullContextFallbacks(parser, parser::compilationUnit, rules);
-    }
-
-    private static long fullContextFallbacks(Parser parser, Runnable parse, String... rules) {
-        parser.removeErrorListeners();
-        parser.addErrorListener(new BaseErrorListener() {
-            @Override
-            public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
-                                    int charPositionInLine, String msg, RecognitionException e) {
-                throw new IllegalStateException(line + ":" + charPositionInLine + " " + msg);
-            }
-        });
-        parser.setProfile(true);
-        parse.run();
-
-        Set<String> ruleSet = new HashSet<>(Arrays.asList(rules));
-        long fallbacks = 0;
-        for (DecisionInfo decision : parser.getParseInfo().getDecisionInfo()) {
-            String rule = parser.getRuleNames()[parser.getATN().getDecisionState(decision.decision).ruleIndex];
-            if (ruleSet.contains(rule)) {
-                fallbacks += decision.LL_Fallback;
-            }
-        }
-        return fallbacks;
+        return fallbacks(parser, parser::compilationUnit, rules);
     }
 }

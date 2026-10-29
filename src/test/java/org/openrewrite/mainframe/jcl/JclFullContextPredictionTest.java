@@ -32,11 +32,17 @@ class JclFullContextPredictionTest {
           //JOB1     JOB (ACCT),'NAME',CLASS=A,                                   00010000
           //             MSGLEVEL=(1,1)                                           00020000
           /*JOBPARM  SYSAFF=*                                                     00030000
-          //* A COMMENT LINE                                                      00040000
-          //STEP1    EXEC PGM=IEFBR14                                             00050000
-          //DD1      DD DSN=A.B.C,DISP=SHR                                        00060000
-                                                                                  00070000
-          //STEP2    EXEC PGM=IEFBR14                                             00080000
+          //*MAIN CLASS=A                                                         00040000
+          //* A COMMENT LINE                                                      00050000
+          //STEP1    EXEC PGM=IEFBR14                                             00060000
+          //DD1      DD DSN=A.B.C,DISP=SHR                                        00070000
+          //SYSIN    DD *  ** THE CARDS                                           00080000
+            SORT FIELDS=COPY                                                      00090000
+          /*                                                                      00100000
+          %%SET %%A=1                                                             00110000
+            OPTION COPY                                                           00115000
+                                                                                  00120000
+          //STEP2    EXEC PGM=IEFBR14                                             00130000
           """;
         JCLParser parser = new JCLParser(new CommonTokenStream(new JCLLexer(CharStreams.fromString(JclLineReader.readLines(jcl)))));
         assertThat(FullContextPredictions.fallbacks(parser, parser::compilationUnit, "jclWord", "jclTrailingComment",
