@@ -33,6 +33,7 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -85,7 +86,7 @@ public class CobolPreprocessorParser implements Parser {
                                 new org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorParser(new CommonTokenStream(lexer));
                         parser.removeErrorListeners();
                         parser.addErrorListener(new ForwardingErrorListener(sourceFile.getPath()));
-                        CobolParser.addPredictionListener(parser, ctx);
+                        PredictionListener.addTo(parser, ctx);
 
                         CobolPreprocessorParserVisitor parserVisitor = new CobolPreprocessorParserVisitor(
                                 sourceFile.getRelativePath(relativeTo),

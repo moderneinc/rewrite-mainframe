@@ -31,6 +31,7 @@ import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -104,6 +105,7 @@ public class Db2Parser implements Parser {
 
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
+        PredictionListener.addTo(parser, ctx);
 
         DB2Parser.CompilationUnitContext cu = parser.compilationUnit();
         for (Db2ParsingException error : errorListener.errors) {
