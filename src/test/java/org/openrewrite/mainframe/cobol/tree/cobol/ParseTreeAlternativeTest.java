@@ -17,12 +17,16 @@ package org.openrewrite.mainframe.cobol.tree.cobol;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
+import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
+import org.openrewrite.tree.ParseError;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
@@ -39,13 +43,6 @@ class ParseTreeAlternativeTest extends CobolTest {
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
-              public Cobol.QualifiedDataNameFormat2 visitQualifiedDataNameFormat2(Cobol.QualifiedDataNameFormat2 q,
-                                                                                  ExecutionContext ctx) {
-                  nodes.add(q.getClass());
-                  return super.visitQualifiedDataNameFormat2(q, ctx);
-              }
-
-              @Override
               public Cobol.ScreenDescriptionBackgroundColorClause visitScreenDescriptionBackgroundColorClause(
                 Cobol.ScreenDescriptionBackgroundColorClause clause, ExecutionContext ctx) {
                   nodes.add(clause.getClass());
@@ -58,16 +55,17 @@ class ParseTreeAlternativeTest extends CobolTest {
     }
 
     @Test
-    void aParagraphQualifiedByItsSection() {
-        // A data name cannot be an integer but a paragraph name can, so 100 IN S1 is not format 1.
-        assertThat(nodesIn(
+    void aDataReferenceIsNotAParagraphQualifiedByItsSection() {
+        // A paragraph name can be an integer and a data name cannot, so this is not a data reference at all.
+        List<SourceFile> parsed = CobolParser.builder().build().parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. QDN2.                                               \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     MOVE 1 TO 100 IN S1.                                        \s
             """
-        )).containsExactly(Cobol.QualifiedDataNameFormat2.class);
+        ).collect(Collectors.toList());
+        assertThat(parsed).singleElement().isInstanceOf(ParseError.class);
     }
 
     @Test

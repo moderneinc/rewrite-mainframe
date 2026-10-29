@@ -158,6 +158,31 @@ class FullContextPredictionTest {
         assertThat(fullContextFallbacks(program, "pictureString", "picture", "pictureChars", "pictureCardinality")).isZero();
     }
 
+    @Test
+    void dataDescriptionEntriesAndQualifiedNames() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENTRIES.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  WS-REC.
+              05  WS-A        PIC X(4) VALUE 'ABCD'.
+              05  FILLER      PIC X VALUE SPACE.
+              05  WS-N        PIC 9(3) COMP VALUE 7.
+                  88  WS-N-SET    VALUE 1 THRU 9.
+              05  WS-T OCCURS 3 TIMES INDEXED BY WS-I.
+                  10  WS-E    PIC X.
+          01  WS-OLD REDEFINES WS-REC PIC X(20).
+          01  WS-BIN          BINARY PIC 9(4).
+          PROCEDURE DIVISION.
+              MOVE WS-A OF WS-REC TO WS-E OF WS-T IN WS-REC (1).
+              IF WS-N-SET MOVE 1 TO WS-N.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "qualifiedDataName", "qualifiedDataNameFormat1",
+          "dataDescriptionEntryFormat1", "dataValueClause")).isZero();
+    }
+
     /**
      * How often prediction in the decisions of the given rules retried with full context, over one parse of the
      * program. The program is the text the preprocessor hands the grammar, so it carries no sequence numbers.
