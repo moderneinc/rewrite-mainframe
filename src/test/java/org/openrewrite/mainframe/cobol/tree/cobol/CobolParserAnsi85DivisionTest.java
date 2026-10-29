@@ -330,6 +330,42 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void cicsLiteralAsValue() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+                     PROGRAM-ID. HELLO.
+                     DATA DIVISION.
+                     WORKING-STORAGE SECTION.
+                     01 WS-RESP PIC S9(8) COMP.
+                        88 RESP-NORMAL VALUE DFHRESP(NORMAL).
+                        88 RESP-BUSY VALUE DFHVALUE(BUSY).
+                     PROCEDURE DIVISION.
+                     MOVE DFHRESP(NORMAL) TO WS-RESP.
+                     STOP RUN.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> shapes = new ArrayList<>();
+                new CobolIsoVisitor<Integer>() {
+                    @Override
+                    public Cobol.TableCall visitTableCall(Cobol.TableCall tableCall, Integer p) {
+                        Cobol.Subscript subscript = (Cobol.Subscript) tableCall.getSubscripts().get(0).getContents().get(0);
+                        shapes.add(tableCall.getQualifiedDataName().printTrimmed(getCursor()) + " " +
+                                   subscript.getFirst().getClass().getSimpleName() + " " +
+                                   subscript.getFirst().printTrimmed(getCursor()));
+                        return super.visitTableCall(tableCall, p);
+                    }
+                }.visit(cu, 0);
+                assertThat(shapes).containsExactly(
+                  "DFHRESP QualifiedDataName NORMAL", "DFHVALUE QualifiedDataName BUSY",
+                  "DFHRESP QualifiedDataName NORMAL");
+            })
+          )
+        );
+    }
+
+    @Test
     void helloWorld() {
         rewriteRun(
           cobol(
