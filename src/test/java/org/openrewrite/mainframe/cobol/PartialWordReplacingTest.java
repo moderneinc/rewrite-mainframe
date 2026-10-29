@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol;
 
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.openrewrite.mainframe.cobol.Assertions.cobolPostProcess;
 
 class PartialWordReplacingTest extends CobolTest {
@@ -101,5 +102,45 @@ class PartialWordReplacingTest extends CobolTest {
               """
           )
         );
+    }
+
+    @Test
+    void replacesSeveralMatchesInOneWord() {
+        rewriteRun(
+          // Adjacent matches of one rule, and a second rule matching beside the first rule's replacement.
+          cobolPostProcess(
+            """
+              000001 IDENTIFICATION DIVISION.                                         000000000
+              000002 PROGRAM-ID. TAGWRD2.                                             000000000
+              000003 DATA DIVISION.                                                   000000000
+              000004 WORKING-STORAGE SECTION.                                         000000000
+              000005 REPLACE ==:TAG:== BY ==CUST== ==(N)== BY ==1==.                  000000000
+              000006 01  :TAG:-:TAG:-ID          PIC X.                               000000000
+              000007 01  :TAG:-FLD-(N)           PIC X.                               000000000
+              000008 REPLACE OFF.                                                     000000000""",
+            """
+              IDENTIFICATION DIVISION.
+              PROGRAM-ID. TAGWRD2.
+              DATA DIVISION.
+              WORKING-STORAGE SECTION.
+              01    CUST-CUST-ID          PIC X.
+              01     CUST-FLD-1           PIC X.
+              """
+          )
+        );
+    }
+
+    @Test
+    void refusesReplacingPartOfAWordWithSeveralWords() {
+        assertThatThrownBy(() -> rewriteRun(
+          cobolPostProcess(
+            """
+              000001 IDENTIFICATION DIVISION.                                         000000000
+              000002 PROGRAM-ID. PARTWRD.                                             000000000
+              000003 PROCEDURE DIVISION.                                              000000000
+              000004     COPY PARTWRD REPLACING ==(TESTVAR1)== BY ==A B== .           000000000""",
+            null
+          )
+        )).hasRootCauseMessage("Replacing part of a text word with anything but a single word is not supported: ==(TESTVAR1)== BY ==A B==.");
     }
 }
