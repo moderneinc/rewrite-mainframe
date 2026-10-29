@@ -189,6 +189,47 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
+    @Test
+    void compilerOptionsBeforeEachProgramOfABatch() {
+        rewriteRun(
+          cobol(
+            """
+                     PROCESS NODYNAM,CODEPAGE(1140),NSYMBOL(NATIONAL)
+                     PROCESS ARITH(EXTEND),OPT,CICS
+              000001 IDENTIFICATION DIVISION.
+              000002  PROGRAM-ID. 'EPSCSMRD'.
+              000003 PROCEDURE DIVISION.
+              000004     STOP RUN.
+              000005 END PROGRAM 'EPSCSMRD'.
+              000006*                       Exception Handler
+                     PROCESS NODYNAM,CODEPAGE(1140),NSYMBOL(NATIONAL)
+                     PROCESS ARITH(EXTEND),OPT,NOCICS
+              000007 IDENTIFICATION DIVISION.
+              000008  PROGRAM-ID. 'EPSCSMRF'.
+              000009 PROCEDURE DIVISION.
+              000010     STOP RUN.
+              000011 END PROGRAM 'EPSCSMRF'.
+              """
+          )
+        );
+    }
+
+    @Test
+    void processAndCblAsUserWords() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. HELLO.
+              000003 PROCEDURE DIVISION.
+              000004 CBL SECTION.
+              000005 PROCESS.
+              000006     STOP RUN.
+              """
+          )
+        );
+    }
+
     /**
      * A paragraph header belongs in area A, and generated code begins it at column 9 rather than 8;
      * the comment entry after it was being read as code. Only area A, though: a comment entry's text
