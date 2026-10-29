@@ -106,6 +106,22 @@ class CobolParserTest {
         assertThat(parsed).isInstanceOf(Cobol.CompilationUnit.class);
     }
 
+    @Test
+    void aDosEndOfFileMarkPrintsBack() {
+        assertEndOfFileMarkRidesOnEof("\n", "\032");
+
+        assertEndOfFileMarkRidesOnEof("\r\n", "\032\r\n");
+    }
+
+    private void assertEndOfFileMarkRidesOnEof(String lineEnding, String mark) {
+        String source = "       IDENTIFICATION DIVISION." + lineEnding + "       PROGRAM-ID. HELLO." + lineEnding + mark;
+
+        Cobol.CompilationUnit cu = (Cobol.CompilationUnit) parse("HELLO.cbl", source);
+
+        assertThat(cu.getEof().getPrefix().getWhitespace()).isEqualTo(mark);
+        assertThat(cu.printAll()).isEqualTo(source);
+    }
+
     /**
      * A string has no name to have promised anything, so a failure to read one is a grammar
      * failure whatever it holds.
