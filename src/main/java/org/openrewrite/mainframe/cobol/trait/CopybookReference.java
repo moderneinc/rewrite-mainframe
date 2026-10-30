@@ -23,6 +23,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
 import org.openrewrite.mainframe.cobol.marker.MissingCopybook;
+import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.internal.ListUtils;
@@ -89,11 +90,20 @@ public class CopybookReference implements Trait<CobolPreprocessor> {
     /**
      * The file the copybook was read from, or null when it resolved to none. A program whose
      * copybooks are missing parses, and reads as though the fields it uses were never declared, so
-     * this is the difference between an analysis that is complete and one that only looks it.
+     * this is the difference between an analysis that is complete and one that only looks it. A
+     * system-supplied copybook is resolved and has no file.
      */
     public @Nullable Path getSourcePath() {
         CobolPreprocessor.Copybook copybook = getCopybook();
-        return isResolved() && copybook != null ? copybook.getSourcePath() : null;
+        return isResolved() && !isSystemSupplied() && copybook != null ? copybook.getSourcePath() : null;
+    }
+
+    /**
+     * Whether this resolved to the member the CICS translator or the Db2 precompiler supplies.
+     */
+    public boolean isSystemSupplied() {
+        CobolPreprocessor.Copybook copybook = getCopybook();
+        return isResolved() && copybook != null && copybook.getMarkers().findFirst(SystemCopybook.class).isPresent();
     }
 
     /**

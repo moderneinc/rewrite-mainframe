@@ -29,6 +29,7 @@ import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
+import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.*;
 import org.openrewrite.mainframe.internal.StringRange;
 import org.openrewrite.internal.ListUtils;
@@ -6462,8 +6463,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         // contributing no words is still closed by its own stop comment.
                         // Pushed rather than appended: a copybook that copies another has to close
                         // before the one that copied it, and peek and pop both read the head.
-                        copiedWordMarkers.push(Markers.build(singletonList(new CopiedWord(randomId(),
-                                CopybookReference.nameOf(copybookSource)))));
+                        copiedWordMarkers.push(copiedWordMarkers(copybookSource));
                         objects.add(copybookSource);
                     } else if (copyStopComment.equals(contentArea)) {
                         copyStopComment();
@@ -6733,6 +6733,15 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 nextIndex = null;
             }
         }
+    }
+
+    private static Markers copiedWordMarkers(CobolPreprocessor copybookSource) {
+        CopiedWord copied = new CopiedWord(randomId(), CopybookReference.nameOf(copybookSource));
+        CobolPreprocessor.Copybook copybook = copybookSource instanceof CopybookSource ?
+                ((CopybookSource) copybookSource).getCopybook() : null;
+        return copybook != null && copybook.getMarkers().findFirst(SystemCopybook.class).isPresent() ?
+                Markers.build(Arrays.asList(copied, new SystemCopybook(randomId()))) :
+                Markers.build(singletonList(copied));
     }
 
     private CobolPreprocessor copyUuidComment() {

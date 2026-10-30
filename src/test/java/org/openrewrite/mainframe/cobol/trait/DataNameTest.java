@@ -308,6 +308,66 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "FLTCMT-COMMAREA").isReferenced()).isFalse();
     }
 
+    @Test
+    void resolvesANameTheTranslatorOrThePrecompilerDeclares() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. SUPPLIED.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000     EXEC SQL INCLUDE SQLCA END-EXEC.                            \s
+            000000 01  WS-LEN         PIC S9(4) COMP.                              \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE EIBCALEN TO WS-LEN.                                    \s
+            000000     MOVE SQLCODE TO WS-LEN.                                     \s
+            """
+        );
+
+        assertThat(names).filteredOn(DataName::isDefinition).extracting(DataNameTest::describe)
+          .doesNotContain("2 EIBCALEN", "2 DFHEIBLK");
+        assertThat(usagesOf(names, "EIBCALEN")).singleElement().satisfies(usage -> {
+            assertThat(usage.getDefinition()).isNotNull().satisfies(definition -> {
+                assertThat(definition.getCopybook()).isEqualTo("DFHEIBLK");
+                assertThat(definition.isSystemSupplied()).isTrue();
+            });
+            assertThat(usage.getLevel()).isEqualTo(2);
+            assertThat(usage.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("DFHEIBLK");
+        });
+        assertThat(usagesOf(names, "SQLCODE")).singleElement().satisfies(usage -> {
+            assertThat(usage.getDefinition()).isNotNull().satisfies(definition -> {
+                assertThat(definition.getCopybook()).isEqualTo("SQLCA");
+                assertThat(definition.isSystemSupplied()).isTrue();
+            });
+            assertThat(usage.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("SQLCA");
+        });
+        assertThat(usagesOf(names, "WS-LEN").get(0).getDefinition()).isNotNull()
+          .extracting(DataName::isSystemSupplied).isEqualTo(false);
+    }
+
+    @Test
+    void prefersTheProgramsOwnDeclarationOfAnEibField() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OWNEIB.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-LEN         PIC S9(4) COMP.                              \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01  DFHEIBLK.                                                   \s
+            000000     05  EIBCALEN   PIC S9(4) COMP.                              \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE EIBCALEN TO WS-LEN.                                    \s
+            """
+        );
+
+        assertThat(usagesOf(names, "EIBCALEN")).singleElement().satisfies(usage -> {
+            assertThat(usage.getLevel()).isEqualTo(5);
+            assertThat(usage.getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(false);
+        });
+    }
+
     /**
      * The words of an {@code EXEC} block are not parsed, so a data name in one is known by where it
      * sits: after a colon in SQL, inside an option's parentheses in CICS. {@code NAME} is a column
@@ -483,9 +543,8 @@ class DataNameTest implements RewriteTest {
             assertThat(field.getCopybook()).isEqualTo("LGCMAREA");
             assertThat(field.isReferenced()).isTrue();
         });
-        // Every name the program uses and does not declare is one CICS supplies.
-        assertThat(unresolvedIn.getOrDefault("lgacus01.cbl", new ArrayList<>()))
-          .allSatisfy(n -> assertThat(n).startsWith("EIB"));
+        // Every name the program uses is declared by the program, its copybooks or the CICS translator.
+        assertThat(unresolvedIn.get("lgacus01.cbl")).isNull();
 
         // CardDemo: the commarea's condition names are the copybook's, and are set and tested here.
         List<DataName> cosgn00c = programs.get("COSGN00C.cbl");

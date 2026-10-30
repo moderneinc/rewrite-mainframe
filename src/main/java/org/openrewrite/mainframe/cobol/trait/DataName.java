@@ -20,7 +20,9 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
+import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.trait.SimpleTraitMatcher;
@@ -85,6 +87,14 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
+     * Whether the word was copied from a member the CICS translator or the Db2 precompiler supplies.
+     * Read it on a usage's definition to ask where the usage's declaration came from.
+     */
+    public boolean isSystemSupplied() {
+        return getTree().getMarkers().findFirst(SystemCopybook.class).isPresent();
+    }
+
+    /**
      * The level number of the definition, or of the definition a usage resolves to; 0 where it
      * resolves to none.
      */
@@ -98,9 +108,10 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * The definition this occurrence resolves to; a definition answers itself. Null where the name
-     * is declared nowhere the program can see — a copybook that was not found, a field CICS
-     * supplies — or where qualification leaves more than one declaration.
+     * The definition this occurrence resolves to; a definition answers itself. A name the program
+     * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
+     * inserts. Null where the name is declared nowhere the program can see, such as a copybook that
+     * was not found, or where qualification leaves more than one declaration.
      */
     public @Nullable DataName getDefinition() {
         if (isDefinition()) {
@@ -440,6 +451,33 @@ public class DataName implements Trait<Cobol.Word> {
 
         static Index of(Cursor program) {
             Index index = new Index();
+            List<Cursor> usages = index.walk(program);
+
+            // A program's own declaration of a name hides the one the translator inserts.
+            Index translated = new Index();
+            translated.walk(Translated.program());
+            translated.byName.forEach(index.byName::putIfAbsent);
+
+            // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
+            for (Cursor at : usages) {
+                DataName usage = new DataName(at);
+                for (Definition definition : usage.candidates(index)) {
+                    index.reference(definition);
+                    // A condition name reads its item where it is tested and assigns it where it is SET.
+                    // A FILLER item has no name to be credited by, so the group above it is not.
+                    if (definition.getLevel() == 88) {
+                        index.reference(definition.getParent());
+                    }
+                }
+            }
+            return index;
+        }
+
+        /**
+         * Defines every entry of the program and returns the words written where a data name is used.
+         */
+        private List<Cursor> walk(Cursor program) {
+            Index index = this;
             List<Cursor> usages = new ArrayList<>();
             new CopybookSkippingVisitor<Deque<Definition>>() {
                 @Override
@@ -466,20 +504,7 @@ public class DataName implements Trait<Cobol.Word> {
                     return visited;
                 }
             }.visit(program.getValue(), new ArrayDeque<>(), program.getParentOrThrow());
-
-            // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
-            for (Cursor at : usages) {
-                DataName usage = new DataName(at);
-                for (Definition definition : usage.candidates(index)) {
-                    index.reference(definition);
-                    // A condition name reads its item where it is tested and assigns it where it is SET.
-                    // A FILLER item has no name to be credited by, so the group above it is not.
-                    if (definition.getLevel() == 88) {
-                        index.reference(definition.getParent());
-                    }
-                }
-            }
-            return index;
+            return usages;
         }
 
         private void reference(@Nullable Definition definition) {
@@ -527,6 +552,28 @@ public class DataName implements Trait<Cobol.Word> {
             } catch (NumberFormatException e) {
                 return 0;
             }
+        }
+    }
+
+    /**
+     * A program holding only the DFHEIBLK the CICS translator inserts into the LINKAGE SECTION of each
+     * program it translates. No program's source contains it, so it is parsed here once.
+     */
+    private static final class Translated {
+
+        private static final Cobol.CompilationUnit PROGRAM = (Cobol.CompilationUnit) CobolParser.builder().build().parse(
+                "       IDENTIFICATION DIVISION.\n" +
+                "       PROGRAM-ID. DFHEIBLK.\n" +
+                "       DATA DIVISION.\n" +
+                "       LINKAGE SECTION.\n" +
+                "       COPY DFHEIBLK.\n"
+        ).findFirst().orElseThrow(IllegalStateException::new);
+
+        /**
+         * The program on a cursor chain of its own, since an index is kept on the root it is reached from.
+         */
+        static Cursor program() {
+            return new Cursor(new Cursor(new Cursor(null, Cursor.ROOT_VALUE), PROGRAM), PROGRAM.getProgramUnits().get(0));
         }
     }
 
