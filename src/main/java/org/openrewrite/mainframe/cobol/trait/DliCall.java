@@ -239,7 +239,7 @@ public class DliCall implements Trait<Cobol> {
      * interface that names a PCB rather than taking it positionally, {@code CEETDLI} the Language
      * Environment interface, and {@code PLITDLI} appears in COBOL that calls shared PL/I modules.
      */
-    private static final Set<String> INTERFACES = new HashSet<>(Arrays.asList(
+    static final Set<String> INTERFACES = new HashSet<>(Arrays.asList(
             "CBLTDLI", "AIBTDLI", "CEETDLI", "PLITDLI"));
 
     /**
@@ -367,7 +367,7 @@ public class DliCall implements Trait<Cobol> {
      * second {@code CallPhrase} and wraps each argument in a {@code CallBy}, so the names are read
      * back by walking for those.
      */
-    private static List<String> arguments(Cobol.Call call) {
+    static List<String> arguments(Cobol.Call call) {
         if (call.getCallUsingPhrase() == null) {
             return emptyList();
         }
@@ -522,7 +522,7 @@ public class DliCall implements Trait<Cobol> {
         });
     }
 
-    private static int levelOf(Cobol.DataDescriptionEntry entry) {
+    static int levelOf(Cobol.DataDescriptionEntry entry) {
         try {
             return entry.getWords().isEmpty() ? 0 : Integer.parseInt(entry.getWords().get(0).getWord());
         } catch (NumberFormatException e) {
