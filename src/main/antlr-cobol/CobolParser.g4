@@ -340,9 +340,9 @@ options { tokenVocab = CobolLexer; }
     }
 
     /**
-     * Whether LT(i) is an integer written with its sign, which the lexer folds into the token, and no comma separates
-     * it from the token before. Only such an integer makes the name before it a relative subscript. Any other integer
-     * is the next subscript.
+     * Whether LT(i) is an integer written with its sign, which the lexer folds into the token, and no separator comma
+     * or semicolon comes between it and the token before. Only such an integer makes the name before it a relative
+     * subscript. Any other integer is the next subscript.
      */
     private boolean signedIntegerAt(int i) {
         if (_input.LA(i) != INTEGERLITERAL) {
@@ -354,8 +354,8 @@ options { tokenVocab = CobolLexer; }
             return false;
         }
         Token before = _input.LT(i == 1 ? -1 : i - 1);
-        return integer.getInputStream().getText(Interval.of(before.getStopIndex() + 1, integer.getStartIndex() - 1))
-                .indexOf(',') < 0;
+        String gap = integer.getInputStream().getText(Interval.of(before.getStopIndex() + 1, integer.getStartIndex() - 1));
+        return gap.indexOf(',') < 0 && gap.indexOf(';') < 0;
     }
 
     /**
@@ -3064,7 +3064,7 @@ cobolWord
    | LANGUAGE | LARGE | LB | LD | LEFTLINE | LENGTH_CHECK | LIBACCESS | LIBPARAMETER | LIBRARY | LIKE | LIST | LOCAL | LOCATOR | LONG_DATE | LONG_TIME | LOWER | LOWLIGHT
    | MMDDYYYY
    | NAMED | NATIONAL | NATIONAL_EDITED | NETWORK | NO_ECHO | NUMERIC_DATE | NUMERIC_TIME
-   | ODT | ORDERLY | OVERLINE | OWN
+   | OBJECT | ODT | ORDERLY | OVERLINE | OWN
    | PASSWORD | PORT | PRINTER | PRIVATE | PROCESS | PROGRAM | PROMPT
    | READER | REAL | RECEIVED | RECURSIVE | REF | REMOTE | REMOVE | REQUIRED | RESULT_SET_LOCATOR | REVERSE_VIDEO | ROWID
    | SAVE | SECURE | SHARED | SHAREDBYALL | SHAREDBYRUNUNIT | SHARING | SHORT_DATE | SQL | SYMBOL

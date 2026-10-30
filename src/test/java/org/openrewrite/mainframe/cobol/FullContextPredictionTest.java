@@ -487,6 +487,7 @@ class FullContextPredictionTest {
           01  B2  SQL TYPE IS BINARY VARYING(8).
           01  B3  SQL TYPE IS BINARY LARGE OBJECT(1M).
           01  R1  SQL TYPE IS RESULT-SET-LOCATOR VARYING.
+          01  T1  SQL TYPE IS TABLE LIKE DSN8C10.EMP AS LOCATOR.
           PROCEDURE DIVISION.
               STOP RUN.
           """;

@@ -102,11 +102,12 @@ class ParseTreeAlternativeTest extends CobolTest {
               000000     MOVE C (R1 R2 3) TO X                                       \s
               000000     MOVE C (R1 +1) TO X                                         \s
               000000     MOVE C (R1, +2) TO X                                        \s
+              000000     MOVE C (R1; -2) TO X                                        \s
               000000     MOVE C (R1 - 1) TO X.                                       \s
               """
           )
         );
-        assertThat(dimensions).containsExactly(2L, 3L, 1L, 2L, 1L);
+        assertThat(dimensions).containsExactly(2L, 3L, 1L, 2L, 2L, 1L);
     }
 
     @Test
