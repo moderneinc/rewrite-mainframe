@@ -239,7 +239,7 @@ public class DliCall implements Trait<Cobol> {
      * interface that names a PCB rather than taking it positionally, {@code CEETDLI} the Language
      * Environment interface, and {@code PLITDLI} appears in COBOL that calls shared PL/I modules.
      */
-    private static final Set<String> INTERFACES = new HashSet<>(Arrays.asList(
+    static final Set<String> INTERFACES = new HashSet<>(Arrays.asList(
             "CBLTDLI", "AIBTDLI", "CEETDLI", "PLITDLI"));
 
     /**
