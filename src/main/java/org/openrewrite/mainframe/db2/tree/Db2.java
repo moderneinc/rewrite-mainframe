@@ -39,8 +39,9 @@ import java.util.UUID;
  * nothing.
  * <p>
  * No node holds a delimiter, a separator or a terminator. Brackets and commas belong to
- * {@link Db2Container}, an operator's space to {@link Db2LeftPadded}, and a semicolon to the
- * {@code Semicolon} marker on a statement's padding — so a recipe adding a column adds a column.
+ * {@link Db2Container}, an operator's space to {@link Db2LeftPadded}, and a terminator to the
+ * {@code Semicolon} or {@code AtSign} marker on a statement's padding — so a recipe adding a column
+ * adds a column.
  */
 public interface Db2 extends Tree {
 
@@ -126,7 +127,8 @@ public interface Db2 extends Tree {
 
         /**
          * Each statement with the space before its terminator. Whether it has one at all is the
-         * {@code Semicolon} marker on the padding, the way Groovy records an optional semicolon.
+         * {@code Semicolon} or {@code AtSign} marker on the padding, the way Groovy records an optional
+         * semicolon.
          */
         List<Db2RightPadded<Statement>> statements;
 
@@ -1390,7 +1392,7 @@ public interface Db2 extends Tree {
     }
 
     /**
-     * A statement with nothing in it. The semicolon is the marker on its padding, so a bare terminator has no field at all.
+     * A statement with nothing in it. The terminator is the marker on its padding, so a bare terminator has no field at all.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)

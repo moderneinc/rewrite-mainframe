@@ -24,6 +24,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
+import org.openrewrite.mainframe.db2.marker.AtSign;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.mainframe.db2.tree.Db2Container;
@@ -1022,6 +1023,28 @@ class Db2ParserTest {
         Db2.Ddl bare = parse("COMMIT\n");
         assertThat(bare.getPadding().getStatements().get(0).getMarkers()
           .findFirst(Semicolon.class)).isEmpty();
+    }
+
+    @Test
+    void anAtSignEndsAStatementInAScriptThatSetsItAsTheTerminator() {
+        Db2.Ddl ddl = parse(
+          """
+            --#SET TERMINATOR @
+            CREATE VARIABLE CLM.C_TABLE VARCHAR(10) DEFAULT 'table'@
+            COMMIT @
+            CREATE TRIGGER CLM.RATED AFTER UPDATE ON CLM.POLICY
+              FOR EACH ROW UPDATE CLM.CLAIM SET STATUS = 'A' @
+            CREATE PROCEDURE CLM.PURGE (INOUT X INT)
+            BEGIN
+              SET X = 1;
+            END @ @
+            """);
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("CreateVariable", "Commit", "CreateTrigger", "CreateProcedure", "Empty");
+        assertThat(ddl.getPadding().getStatements())
+          .allSatisfy(s -> assertThat(s.getMarkers().findFirst(AtSign.class)).isPresent());
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(3)).getBody().getLabel()).isNull();
     }
 
     @Test

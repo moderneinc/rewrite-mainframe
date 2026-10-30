@@ -24,8 +24,10 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2ParserBaseVisitor;
+import org.openrewrite.mainframe.db2.marker.AtSign;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.*;
+import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
 import java.nio.charset.Charset;
@@ -81,11 +83,11 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         }
         for (DB2Parser.StatementContext statement : ctx.statement()) {
             statements.add(terminated((Statement) visit(statement.getChild(0))));
-            // A statement's end holds every semicolon up to the next statement, and each after the first is a
+            // A statement's end holds every terminator up to the next statement, and each after the first is a
             // statement of its own.
-            List<TerminalNode> semicolons = semicolons(statement);
-            for (int i = 1; i < semicolons.size(); i++) {
-                Space prefix = prefix(semicolons.get(i).getSymbol());
+            List<TerminalNode> terminators = terminators(statement);
+            for (int i = 1; i < terminators.size(); i++) {
+                Space prefix = prefix(terminators.get(i).getSymbol());
                 statements.add(terminated(new Db2.Empty(randomId(), prefix, Markers.EMPTY)));
             }
         }
@@ -95,18 +97,19 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     }
 
     /**
-     * A statement with the space before its terminator, and a {@link Semicolon} marker when it has
-     * one. Where it does not, the cursor goes back so the white space flows to the next statement's
-     * prefix instead of being eaten here.
+     * A statement with the space before its terminator, and a {@link Semicolon} or {@link AtSign}
+     * marker when it has one. Where it does not, the cursor goes back so the white space flows to the
+     * next statement's prefix instead of being eaten here.
      */
     private Db2RightPadded<Statement> terminated(Statement statement) {
         Db2RightPadded<Statement> padded = Db2RightPadded.build(statement);
         int saveCursor = cursor;
         Space before = whitespace();
-        if (cursor < source.length() && source.charAt(cursor) == ';') {
+        char next = cursor < source.length() ? source.charAt(cursor) : 0;
+        if (next == ';' || next == '@') {
             cursor++;
-            return padded.withAfter(before)
-                    .withMarkers(padded.getMarkers().add(new Semicolon(randomId())));
+            Marker terminator = next == ';' ? new Semicolon(randomId()) : new AtSign(randomId());
+            return padded.withAfter(before).withMarkers(padded.getMarkers().add(terminator));
         }
         cursor = saveCursor;
         return padded;
@@ -1188,7 +1191,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         return new Db2.Word(randomId(), prefix, Markers.EMPTY, token.getText());
     }
 
-    private static List<TerminalNode> semicolons(DB2Parser.StatementContext statement) {
+    private static List<TerminalNode> terminators(DB2Parser.StatementContext statement) {
         ParseTree last = statement;
         while (!(last instanceof DB2Parser.EndContext)) {
             if (last.getChildCount() == 0) {
@@ -1196,7 +1199,11 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             }
             last = last.getChild(last.getChildCount() - 1);
         }
-        return ((DB2Parser.EndContext) last).SEMI();
+        List<TerminalNode> terminators = new ArrayList<>(last.getChildCount());
+        for (int i = 0; i < last.getChildCount(); i++) {
+            terminators.add((TerminalNode) last.getChild(i));
+        }
+        return terminators;
     }
 
     /**
