@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/moderneinc/moderne-cli/.claude/worktrees/mainframe-trigrep/working-oraweb-plan/rewrite-mainframe-dsn/src/main/antlr-bind/BindParser.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-bind/BindParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.db2.bind.internal.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 

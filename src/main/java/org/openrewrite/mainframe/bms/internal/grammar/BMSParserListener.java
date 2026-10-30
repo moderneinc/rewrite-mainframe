@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/openrewrite/rewrite-cobol/.claude/worktrees/ims-or-cics/src/main/antlr-bms/BMSParser.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-bms/BMSParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.bms.internal.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
