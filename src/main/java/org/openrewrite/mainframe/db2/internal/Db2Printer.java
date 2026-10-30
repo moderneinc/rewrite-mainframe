@@ -276,9 +276,14 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateTrigger(Db2.CreateTrigger createTrigger, PrintOutputCapture<P> p) {
         beforeSyntax(createTrigger, Space.Location.CREATE_TRIGGER_PREFIX, p);
-        visit(createTrigger.getKeywords(), p);
+        List<Db2.Keyword> keywords = createTrigger.getKeywords();
+        int timing = indexOf(keywords, Db2.Keyword.Type.Trigger) + 1;
+        int on = indexOf(keywords, Db2.Keyword.Type.On);
+        visit(keywords.subList(0, timing), p);
         visit(createTrigger.getName(), p);
+        visit(keywords.subList(timing, on), p);
         visit(createTrigger.getEvents(), p);
+        visit(keywords.subList(on, keywords.size()), p);
         visit(createTrigger.getTable(), p);
         visit(createTrigger.getOptions(), p);
         visit(createTrigger.getBody(), p);

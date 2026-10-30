@@ -383,6 +383,56 @@ class Db2ParserTest {
             tuple("CLM.CLAIM_NOTE_AUX", List.of("CLM.CLAIM", "NOTE")));
     }
 
+    @Test
+    void aTriggerPrintsEachKeywordBesideWhatItIntroduces() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TRIGGER CLM.STAMP NO CASCADE BEFORE INSERT OR UPDATE OF STATUS ON CLM.CLAIM
+              REFERENCING NEW AS N
+              FOR EACH ROW MODE DB2SQL
+              BEGIN ATOMIC
+                SET N.CHANGED = CURRENT TIMESTAMP;
+              END;
+            """);
+
+        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().get(0);
+        assertThat(trigger.getName().getFullName()).isEqualTo("CLM.STAMP");
+        assertThat(trigger.getTable().getFullName()).isEqualTo("CLM.CLAIM");
+        assertThat(trigger.getKeywords()).extracting(Db2.Keyword::getType)
+          .contains(Db2.Keyword.Type.No, Db2.Keyword.Type.Cascade, Db2.Keyword.Type.Before);
+        assertThat(Db2.elementsOf(trigger.getEvents(), Db2.Option.class))
+          .extracting(event -> Db2.has(event.getKeywords(), Db2.Keyword.Type.Insert),
+            event -> Db2.has(event.getKeywords(), Db2.Keyword.Type.Update))
+          .containsExactly(tuple(true, false), tuple(false, true));
+        assertThat(trigger.getBody()).isNotNull();
+        assertThat(trigger.getBody().getKeywords()).extracting(Db2.Keyword::getType)
+          .containsExactly(Db2.Keyword.Type.Begin, Db2.Keyword.Type.Atomic);
+        assertThat(trigger.getBody().getEnd()).isNotNull();
+    }
+
+    @Test
+    void aSingleStatementTriggerEndsAtItsSemicolon() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TRIGGER CLM.RATED AFTER UPDATE ON CLM.POLICY
+              FOR EACH ROW UPDATE CLM.CLAIM SET STATUS = CASE WHEN STATUS = 'O' THEN 'A' ELSE 'P' END;
+            COMMIT;
+            """);
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("CreateTrigger", "Commit");
+        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().get(0);
+        assertThat(trigger.getName().getFullName()).isEqualTo("CLM.RATED");
+        assertThat(trigger.getTable().getFullName()).isEqualTo("CLM.POLICY");
+        assertThat(Db2.elementsOf(trigger.getEvents(), Db2.Option.class)).singleElement()
+          .satisfies(event -> assertThat(event.getKeywords()).extracting(Db2.Keyword::getType)
+            .containsExactly(Db2.Keyword.Type.Update));
+        assertThat(trigger.getBody()).isNotNull();
+        assertThat(trigger.getBody().getBody()).extracting(word -> ((Db2.Word) word).getText())
+          .startsWith("UPDATE", "CLM", ".", "CLAIM", "SET").endsWith("ELSE", "'P'", "END");
+        assertThat(trigger.getBody().getEnd()).isNull();
+    }
+
     /**
      * Each of these writes keywords after the name it acts on — the {@code TO} of a rename, the mode
      * a table is locked in, the rule a drop is made under, what an {@code ALTER VIEW} does — and each
@@ -514,6 +564,29 @@ class Db2ParserTest {
         assertThat(money.getOptions()).singleElement().isInstanceOfSatisfying(Db2.Option.class, option ->
           assertThat(option.getKeywords()).extracting(Db2.Keyword::getType)
             .containsExactly(Db2.Keyword.Type.With, Db2.Keyword.Type.Comparisons));
+    }
+
+    @Test
+    void aCaseExpressionsEndDoesNotCloseTheBlock() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE PROCEDURE CLM.RATE (INOUT X INT) LANGUAGE SQL
+            BEGIN
+              SET X = CASE WHEN X = 1 THEN 2 ELSE 3 END;
+              SET X = CASE X WHEN 1 THEN CASE WHEN X > 0 THEN 1 END END;
+              CASE X
+                WHEN 1 THEN SET X = CASE WHEN X = 1 THEN 2 END;
+                ELSE SET X = 0;
+              END CASE;
+              RETURN X;
+            END;
+            """);
+
+        assertThat(ddl.getStatements()).hasSize(1);
+        Db2.CreateProcedure procedure = (Db2.CreateProcedure) ddl.getStatements().get(0);
+        assertThat(procedure.getBody().getEnd()).isNotNull();
+        assertThat(procedure.getBody().getBody()).extracting(word -> ((Db2.Word) word).getText())
+          .endsWith("END", "CASE", ";", "RETURN", "X", ";");
     }
 
     /**
