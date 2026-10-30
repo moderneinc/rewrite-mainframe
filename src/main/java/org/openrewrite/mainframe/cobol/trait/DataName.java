@@ -20,7 +20,6 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
@@ -40,7 +39,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
-import static java.util.Objects.requireNonNull;
 
 /**
  * A data name where it is written: as its definition, the data description entry in the program or
@@ -292,7 +290,7 @@ public class DataName implements Trait<Cobol.Word> {
         UUID id = program.getTree().getId();
         Index index = byProgram.get(id);
         if (index == null) {
-            index = Index.of(program.getCursor());
+            index = Index.of(program);
             byProgram.put(id, index);
         }
         return index;
@@ -450,12 +448,13 @@ public class DataName implements Trait<Cobol.Word> {
         final Map<UUID, Definition> byWord = new HashMap<>();
         final Set<UUID> referenced = new HashSet<>();
 
-        static Index of(Cursor program) {
+        static Index of(Program program) {
             Index index = new Index();
-            List<Cursor> usages = index.walk(program);
+            List<Cursor> usages = index.walk(program.getCursor());
 
-            if (!index.byName.containsKey("DFHEIBLK")) {
-                index.walk(Translated.dataDivisionIn(program));
+            Cursor block = program.getExecInterfaceBlock();
+            if (block != null) {
+                index.walk(block);
             }
 
             // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
@@ -552,34 +551,6 @@ public class DataName implements Trait<Cobol.Word> {
             } catch (NumberFormatException e) {
                 return 0;
             }
-        }
-    }
-
-    /**
-     * The DFHEIBLK the CICS translator inserts into the LINKAGE SECTION of each program it translates,
-     * unless the program declares one itself. No program's source contains it, so it is parsed here once.
-     */
-    private static final class Translated {
-
-        private static final Cobol.DataDivision DATA_DIVISION = parse(
-                "       IDENTIFICATION DIVISION.\n" +
-                "       PROGRAM-ID. DFHEIBLK.\n" +
-                "       DATA DIVISION.\n" +
-                "       LINKAGE SECTION.\n" +
-                "       COPY DFHEIBLK.\n");
-
-        private static Cobol.DataDivision parse(String source) {
-            Cobol.CompilationUnit unit = (Cobol.CompilationUnit) CobolParser.builder().build().parse(source)
-                    .findFirst().orElseThrow(IllegalStateException::new);
-            return requireNonNull(unit.getProgramUnits().get(0).getDataDivision());
-        }
-
-        /**
-         * The block's entries as though declared in {@code program}, so that a definition among them
-         * reads the program's own index.
-         */
-        static Cursor dataDivisionIn(Cursor program) {
-            return new Cursor(program, DATA_DIVISION);
         }
     }
 

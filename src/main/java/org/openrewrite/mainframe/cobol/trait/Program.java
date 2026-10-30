@@ -18,12 +18,16 @@ package org.openrewrite.mainframe.cobol.trait;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
+import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The program a statement belongs to.
@@ -44,6 +48,34 @@ public class Program implements Trait<Cobol.ProgramUnit> {
     public String getName() {
         String name = Names.of(getTree().getIdentificationDivision().getProgramIdParagraph().getProgramName());
         return name == null ? "" : name;
+    }
+
+    /**
+     * The EXEC interface block the CICS translator inserts into a program it translates, as a DATA
+     * DIVISION whose LINKAGE SECTION declares DFHEIBLK. Null where this program declares a DFHEIBLK
+     * itself, since the translator then inserts none. The division hangs under this program's cursor,
+     * so a definition in it belongs to this program.
+     */
+    public @Nullable Cursor getExecInterfaceBlock() {
+        return declaresExecInterfaceBlock() ? null : new Cursor(cursor, Translated.DATA_DIVISION);
+    }
+
+    private boolean declaresExecInterfaceBlock() {
+        Cobol.DataDivision division = getTree().getDataDivision();
+        if (division == null) {
+            return false;
+        }
+        AtomicBoolean declared = new AtomicBoolean();
+        new CopybookSkippingVisitor<AtomicBoolean>() {
+            @Override
+            public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry, AtomicBoolean found) {
+                if ("DFHEIBLK".equals(Names.upperOf(entry.getName()))) {
+                    found.set(true);
+                }
+                return entry;
+            }
+        }.visit(division, declared, cursor);
+        return declared.get();
     }
 
     public static class Matcher extends SimpleTraitMatcher<Program> {
@@ -100,6 +132,25 @@ public class Program implements Trait<Cobol.ProgramUnit> {
         }
         String name = program.getName();
         return name.isEmpty() ? "UNKNOWN" : name;
+    }
+
+    /**
+     * No program's source contains the translator's DFHEIBLK, so it is parsed once.
+     */
+    private static final class Translated {
+
+        private static final Cobol.DataDivision DATA_DIVISION = parse(
+                "       IDENTIFICATION DIVISION.\n" +
+                "       PROGRAM-ID. DFHEIBLK.\n" +
+                "       DATA DIVISION.\n" +
+                "       LINKAGE SECTION.\n" +
+                "       COPY DFHEIBLK.\n");
+
+        private static Cobol.DataDivision parse(String source) {
+            Cobol.CompilationUnit unit = (Cobol.CompilationUnit) CobolParser.builder().build().parse(source)
+                    .findFirst().orElseThrow(IllegalStateException::new);
+            return requireNonNull(unit.getProgramUnits().get(0).getDataDivision());
+        }
     }
 
     @Override
