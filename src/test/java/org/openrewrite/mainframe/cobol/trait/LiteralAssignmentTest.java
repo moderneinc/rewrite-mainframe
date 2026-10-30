@@ -191,21 +191,26 @@ class LiteralAssignmentTest implements RewriteTest {
             000000 ENVIRONMENT DIVISION.
             000000 INPUT-OUTPUT SECTION.
             000000 FILE-CONTROL.
-            000000     SELECT PGMFILE ASSIGN TO PGMFILE.
+            000000     SELECT PGMFILE ASSIGN TO PGMFILE
+            000000         FILE STATUS IS WS-STATUS.
             000000 DATA DIVISION.
             000000 FILE SECTION.
             000000 FD PGMFILE.
             000000 01 PGM-REC PIC X(8).
             000000 WORKING-STORAGE SECTION.
             000000 77 WS-READ PIC X(8) VALUE 'PGMA'.
+            000000 77 WS-STATUS PIC X(8) VALUE 'PGMB'.
             000000 PROCEDURE DIVISION.
             000000     READ PGMFILE INTO WS-READ.
             000000     EXEC CICS XCTL PROGRAM(WS-READ) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-STATUS) END-EXEC.
             000000     GOBACK.
             """
         );
 
         assertThat(found).containsEntry("WS-READ", null);
+        // Every operation on the file sets its status.
+        assertThat(found).containsEntry("WS-STATUS", null);
     }
 
     @Test
@@ -217,16 +222,19 @@ class LiteralAssignmentTest implements RewriteTest {
             000000 DATA DIVISION.
             000000 WORKING-STORAGE SECTION.
             000000 77 WS-RETRIEVED PIC X(8) VALUE 'PGMA'.
+            000000 77 WS-QUEUE PIC X(8) VALUE 'PGMD'.
             000000 77 WS-KEY PIC X(8) VALUE 'PGMB'.
             000000 77 WS-LINKED PIC X(8) VALUE 'PGMC'.
             000000 77 WS-REC PIC X(80).
             000000 PROCEDURE DIVISION.
-            000000     EXEC CICS RETRIEVE INTO(WS-RETRIEVED) END-EXEC.
+            000000     EXEC CICS RETRIEVE INTO(WS-RETRIEVED) QUEUE(WS-QUEUE)
+            000000     END-EXEC.
             000000     EXEC CICS READNEXT FILE('PGMS') INTO(WS-REC)
             000000          RIDFLD(WS-KEY) END-EXEC.
             000000     EXEC CICS LINK PROGRAM('LOOKUP') COMMAREA(WS-LINKED)
             000000     END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-RETRIEVED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-QUEUE) END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-KEY) END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-LINKED) END-EXEC.
             000000     GOBACK.
@@ -234,6 +242,8 @@ class LiteralAssignmentTest implements RewriteTest {
         );
 
         assertThat(found).containsEntry("WS-RETRIEVED", null);
+        // RETRIEVE returns the queue the starting transaction named.
+        assertThat(found).containsEntry("WS-QUEUE", null);
         // READNEXT returns the key of the record it read.
         assertThat(found).containsEntry("WS-KEY", null);
         // The linked program can change the commarea it is handed.
@@ -264,7 +274,7 @@ class LiteralAssignmentTest implements RewriteTest {
     }
 
     @Test
-    void callByReferenceMakesTheSetIncomplete() {
+    void handingOutAReferenceMakesTheSetIncomplete() {
         Map<String, @Nullable Set<String>> found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
@@ -274,17 +284,26 @@ class LiteralAssignmentTest implements RewriteTest {
             000000 77 WS-DEFAULT PIC X(8) VALUE 'PGMA'.
             000000 77 WS-EXPLICIT PIC X(8) VALUE 'PGMB'.
             000000 77 WS-CONTENT PIC X(8) VALUE 'PGMC'.
+            000000 77 WS-ADDRESSED PIC X(8) VALUE 'PGMD'.
+            000000 77 WS-POINTED PIC X(8) VALUE 'PGME'.
+            000000 77 WS-PTR USAGE POINTER.
             000000 PROCEDURE DIVISION.
             000000     CALL 'ROUTER' USING WS-DEFAULT BY CONTENT WS-CONTENT
             000000                         BY REFERENCE WS-EXPLICIT.
+            000000     CALL 'ROUTER' USING BY CONTENT ADDRESS OF WS-ADDRESSED.
+            000000     MOVE ADDRESS OF WS-POINTED TO WS-PTR.
             000000     EXEC CICS XCTL PROGRAM(WS-DEFAULT) END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-EXPLICIT) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-ADDRESSED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-POINTED) END-EXEC.
             000000     GOBACK.
             """
         );
 
         assertThat(found).containsEntry("WS-DEFAULT", null);
         assertThat(found).containsEntry("WS-EXPLICIT", null);
+        assertThat(found).containsEntry("WS-ADDRESSED", null);
+        assertThat(found).containsEntry("WS-POINTED", null);
     }
 
     @Test
@@ -300,13 +319,18 @@ class LiteralAssignmentTest implements RewriteTest {
             000000 77 WS-SSA PIC X(9) VALUE 'ACCOUNT '.
             000000 77 WS-IO PIC X(8) VALUE 'PGMA'.
             000000 77 WS-SAVED PIC X(8) VALUE 'PGMB'.
+            000000 77 PARM-CT PIC S9(9) COMP VALUE 3.
+            000000 77 GN-FUNC PIC X(4) VALUE 'GN  '.
+            000000 77 WS-COUNTED PIC X(8) VALUE 'PGMC'.
             000000 PROCEDURE DIVISION.
             000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB WS-IO WS-SSA.
             000000     CALL 'CBLTDLI' USING XRST-FUNC IO-PCB WS-IO WS-SAVED.
+            000000     CALL 'CBLTDLI' USING PARM-CT GN-FUNC DB-PCB WS-COUNTED.
             000000     EXEC CICS XCTL PROGRAM(GU-FUNC) END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-SSA) END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-IO) END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-SAVED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-COUNTED) END-EXEC.
             000000     GOBACK.
             """
         );
@@ -314,8 +338,8 @@ class LiteralAssignmentTest implements RewriteTest {
         assertThat(found.get("GU-FUNC")).containsExactly("GU");
         assertThat(found.get("WS-SSA")).containsExactly("ACCOUNT");
         assertThat(found).containsEntry("WS-IO", null);
-        // A restart writes the areas after the I/O area.
         assertThat(found).containsEntry("WS-SAVED", null);
+        assertThat(found).containsEntry("WS-COUNTED", null);
     }
 
     @Test

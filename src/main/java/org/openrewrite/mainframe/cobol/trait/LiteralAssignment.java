@@ -185,7 +185,7 @@ public class LiteralAssignment implements Trait<Cobol> {
                 "READ", "WRITE", "DELETE", "STARTBR", "RESETBR"));
 
         private static final Set<String> RETURNING_COMMANDS = new HashSet<>(Arrays.asList(
-                "ASSIGN", "INQUIRE", "EXTRACT", "ADDRESS"));
+                "ASSIGN", "INQUIRE", "EXTRACT", "ADDRESS", "RETRIEVE", "GETNEXT"));
 
         final Map<String, Set<String>> literals = new HashMap<>();
         final Map<String, List<Item>> items = new HashMap<>();
@@ -193,9 +193,8 @@ public class LiteralAssignment implements Trait<Cobol> {
         final Set<Item> open = newSetFromMap(new IdentityHashMap<>());
 
         /**
-         * Kept on the program's cursor rather than gathered again for each question. Every call site
-         * in a program resolves its operands, and a program is large enough that walking it once per
-         * operand is the difference between a portfolio scan finishing and not.
+         * Kept on the program's cursor, so that the program is walked once for every operand any
+         * call site in it resolves.
          */
         static Storage of(Cursor program) {
             return program.computeMessageIfAbsent("cobol.literalAssignments", k -> {
@@ -247,7 +246,7 @@ public class LiteralAssignment implements Trait<Cobol> {
         }
 
         private void declare(Cobol.DataDescriptionEntry entry, boolean owned, Deque<Item> nesting) {
-            int level = levelOf(entry);
+            int level = DliCall.levelOf(entry);
             Item parent;
             if (level == 88) {
                 parent = nesting.peek();
@@ -263,11 +262,15 @@ public class LiteralAssignment implements Trait<Cobol> {
                 parent = nesting.peek();
             }
             List<Item> siblings = parent == null ? records : parent.children;
-            Item item = new Item(level, parent, siblings);
+            Item item = new Item(level, parent);
             boolean external = false;
             for (Cobol clause : entry.getClauses() == null ? Collections.<Cobol>emptyList() : entry.getClauses()) {
                 if (clause instanceof Cobol.DataRedefinesClause) {
-                    item.redefines = last(siblings, Names.upperOf(((Cobol.DataRedefinesClause) clause).getDataName()));
+                    Item redefined = last(siblings, Names.upperOf(((Cobol.DataRedefinesClause) clause).getDataName()));
+                    if (redefined != null) {
+                        item.aliases = redefined.aliases;
+                        item.aliases.add(item);
+                    }
                 } else if (clause instanceof Cobol.DataExternalClause) {
                     external = true;
                 }
@@ -295,21 +298,11 @@ public class LiteralAssignment implements Trait<Cobol> {
             return null;
         }
 
-        private static int levelOf(Cobol.DataDescriptionEntry entry) {
-            try {
-                return entry.getWords().isEmpty() ? 0 : Integer.parseInt(entry.getWords().get(0).getWord());
-            } catch (NumberFormatException e) {
-                return 0;
-            }
-        }
-
         /**
-         * Opens every item a statement other than a literal {@code MOVE} writes, and every item
-         * sharing storage with one any statement writes.
-         * <p>
-         * A restart call writes the areas after its I/O area, so those count as written when the
-         * function code passed could be {@code XRST}. Writing them can open another call's function
-         * code in turn, hence the loop.
+         * A restart call writes the areas after its I/O area. They count as written unless the first
+         * argument holds a function code other than {@code XRST}, since one holding no literal may be
+         * the optional parameter count that moves the I/O area along. Writing them can open another
+         * call's function code in turn, hence the loop.
          */
         private void write(Cursor program) {
             Map<String, List<String>> restorable = new HashMap<>();
@@ -327,7 +320,7 @@ public class LiteralAssignment implements Trait<Cobol> {
                         break;
                     case RESTORED:
                         Cobol.Call call = usage.getCursor().firstEnclosing(Cobol.Call.class);
-                        restorable.computeIfAbsent(arguments(call).get(0), k -> new ArrayList<>()).add(name);
+                        restorable.computeIfAbsent(DliCall.arguments(call).get(0), k -> new ArrayList<>()).add(name);
                         break;
                     default:
                 }
@@ -351,7 +344,7 @@ public class LiteralAssignment implements Trait<Cobol> {
                 return "XRST".equalsIgnoreCase(literal);
             }
             Set<String> candidates = candidates(function);
-            return candidates == null || candidates.contains("XRST");
+            return candidates == null || candidates.isEmpty() || candidates.contains("XRST");
         }
 
         /**
@@ -388,8 +381,11 @@ public class LiteralAssignment implements Trait<Cobol> {
         private static Access accessOf(DataName usage) {
             Cursor at = usage.getCursor();
             Object parent = at.getParentTreeCursor().getValue();
-            if (parent instanceof Cobol.InData || at.firstEnclosing(Cobol.ProcedureDivision.class) == null) {
+            if (parent instanceof Cobol.InData || at.firstEnclosing(Cobol.DataDivision.class) != null) {
                 return Access.READ;
+            }
+            if (at.firstEnclosing(Cobol.ProcedureDivision.class) == null) {
+                return Access.WRITE;
             }
             if (parent instanceof Cobol.Word) {
                 CobolPreprocessor.ExecStatement exec = Execs.blockOn((Cobol.Word) parent);
@@ -398,6 +394,9 @@ public class LiteralAssignment implements Trait<Cobol> {
             Object child = at.getValue();
             for (Cursor up = at.getParentTreeCursor(); ; child = up.getValue(), up = up.getParentTreeCursor()) {
                 Object value = up.getValue();
+                if (value instanceof Cobol.SpecialRegister && isAddress((Cobol.SpecialRegister) value)) {
+                    return Access.WRITE;
+                }
                 if (value instanceof Cobol.TableCall && child != ((Cobol.TableCall) value).getQualifiedDataName() ||
                     value instanceof Cobol.ConditionNameReference && child != ((Cobol.ConditionNameReference) value).getName() ||
                     value instanceof Cobol.Condition || value instanceof Cobol.Display ||
@@ -428,6 +427,18 @@ public class LiteralAssignment implements Trait<Cobol> {
             }
         }
 
+        /**
+         * Whoever holds an item's address can write it.
+         */
+        private static boolean isAddress(Cobol.SpecialRegister register) {
+            for (Cobol word : register.getWords()) {
+                if (word instanceof Cobol.Word && "ADDRESS".equalsIgnoreCase(((Cobol.Word) word).getWord())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private static Access moved(Cobol.MoveToStatement move, Object child) {
             if (child == move.getFrom()) {
                 return Access.READ;
@@ -447,6 +458,13 @@ public class LiteralAssignment implements Trait<Cobol> {
          * and writes the PCB and the I/O area. What follows is {@link Access#RESTORED}.
          */
         private static Access passed(Cursor at, Cobol.CallBy callBy) {
+            if (callBy.getWords() != null) {
+                for (Cobol.Word word : callBy.getWords()) {
+                    if ("ADDRESS".equalsIgnoreCase(word.getWord())) {
+                        return Access.WRITE;
+                    }
+                }
+            }
             Object phrase = at.getParentTreeCursor().getValue();
             if (phrase instanceof Cobol.CallPhrase && ((Cobol.CallPhrase) phrase).getWords() != null) {
                 for (Cobol.Word word : ((Cobol.CallPhrase) phrase).getWords()) {
@@ -461,25 +479,8 @@ public class LiteralAssignment implements Trait<Cobol> {
             if (iface == null || !DliCall.INTERFACES.contains(iface.toUpperCase(Locale.ROOT))) {
                 return Access.WRITE;
             }
-            int position = arguments(call).indexOf(Names.upperOf(callBy.getIdentifier()));
+            int position = DliCall.arguments(call).indexOf(Names.upperOf(callBy.getIdentifier()));
             return position == 0 ? Access.READ : position <= 2 ? Access.WRITE : Access.RESTORED;
-        }
-
-        private static List<String> arguments(Cobol.@Nullable Call call) {
-            List<String> arguments = new ArrayList<>(4);
-            if (call != null) {
-                new CobolIsoVisitor<List<String>>() {
-                    @Override
-                    public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<String> acc) {
-                        String name = Names.upperOf(callBy.getIdentifier());
-                        if (name != null) {
-                            acc.add(name);
-                        }
-                        return callBy;
-                    }
-                }.visit(call.getCallUsingPhrase(), arguments);
-            }
-            return arguments;
         }
 
         /**
@@ -565,27 +566,19 @@ public class LiteralAssignment implements Trait<Cobol> {
 
         final @Nullable Item parent;
 
-        /**
-         * The items under the same group, or the program's records for a level 01 or 77.
-         */
-        final List<Item> siblings;
-
         final List<Item> children = new ArrayList<>();
+
+        /**
+         * This item and every item redefining the same storage, shared among all of them.
+         */
+        List<Item> aliases = new ArrayList<>(singletonList(this));
 
         @Nullable
         String name;
 
-        @Nullable
-        Item redefines;
-
-        Item(int level, @Nullable Item parent, List<Item> siblings) {
+        Item(int level, @Nullable Item parent) {
             this.level = level;
             this.parent = parent;
-            this.siblings = siblings;
-        }
-
-        Item base() {
-            return redefines == null ? this : redefines.base();
         }
 
         /**
@@ -598,9 +591,9 @@ public class LiteralAssignment implements Trait<Cobol> {
             addTree(overlapping);
             for (Item above = this; above != null; above = above.parent) {
                 overlapping.add(above);
-                for (Item sibling : above.siblings) {
-                    if (sibling != above && sibling.base() == above.base()) {
-                        sibling.addTree(overlapping);
+                for (Item alias : above.aliases) {
+                    if (alias != above) {
+                        alias.addTree(overlapping);
                     }
                 }
             }
