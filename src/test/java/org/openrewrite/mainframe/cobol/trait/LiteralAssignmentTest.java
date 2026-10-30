@@ -183,7 +183,7 @@ class LiteralAssignmentTest implements RewriteTest {
     }
 
     @Test
-    void anyOtherStatementNamingTheItemMakesTheSetIncomplete() {
+    void anythingElseNamingTheItemMakesTheSetIncomplete() {
         Map<String, @Nullable Set<String>> found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
