@@ -79,6 +79,10 @@ public class IdcamsLineReader {
     private static boolean opensDeck(String command) {
         String[] words = command.toUpperCase(Locale.ROOT).split("[\\s(]+", 3);
         String verb = words[0];
+        if ("DELETE".equals(verb) && words.length > 1 && "FROM".equals(words[1])) {
+            // A Db2 DELETE names its table after FROM, which an IDCAMS DELETE never writes.
+            return false;
+        }
         if (VERBS.contains(verb)) {
             return true;
         }

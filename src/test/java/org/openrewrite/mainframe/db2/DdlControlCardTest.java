@@ -104,6 +104,9 @@ class DdlControlCardTest {
        COMMIT;
       """;
 
+    private static final String CLMRELOD =
+      "  DELETE FROM CLM.POLICY;\n  INSERT INTO CLM.POLICY SELECT * FROM CLM.POLICY_STAGE;\n";
+
     private static final String DB2LTTYP = """
       /* Copyright Amazon.com, Inc. or its affiliates.                   */
       /* All Rights Reserved.                                            */
@@ -131,8 +134,7 @@ class DdlControlCardTest {
 
         assertThat(parser.accept(write(directory, "DB2LTCAT.ctl", DB2LTCAT))).isTrue();
         assertThat(parser.accept(write(directory, "DB2LTTYP.ctl", DB2LTTYP))).isTrue();
-        assertThat(parser.accept(write(directory, "CLMRELOD.ctl",
-          "  DELETE FROM CLM.POLICY;\n  INSERT INTO CLM.POLICY SELECT * FROM CLM.POLICY_STAGE;\n"))).isTrue();
+        assertThat(parser.accept(write(directory, "CLMRELOD.ctl", CLMRELOD))).isTrue();
         assertThat(parser.accept(write(directory, "CLMCLOSE.ctl",
           "  UPDATE CLM.POLICY SET STATUS = 'C' WHERE EXPIRY < '2026-01-01';\n"))).isTrue();
         assertThat(parser.accept(write(directory, "CLMTABS",
@@ -164,7 +166,8 @@ class DdlControlCardTest {
      */
     @Test
     void theOtherControlCardReadersLeaveDb2SqlToThisOne(@TempDir Path directory) throws IOException {
-        for (Path sql : asList(write(directory, "DB2CREAT.ctl", DB2CREAT), write(directory, "DB2LTCAT.ctl", DB2LTCAT))) {
+        for (Path sql : asList(write(directory, "DB2CREAT.ctl", DB2CREAT), write(directory, "DB2LTCAT.ctl", DB2LTCAT),
+          write(directory, "CLMRELOD.ctl", CLMRELOD))) {
             assertThat(SortParser.builder().build().accept(sql)).as(sql.toString()).isFalse();
             assertThat(IdcamsParser.builder().build().accept(sql)).as(sql.toString()).isFalse();
             assertThat(UtilityParser.builder().build().accept(sql)).as(sql.toString()).isFalse();
