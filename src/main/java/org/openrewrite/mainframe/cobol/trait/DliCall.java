@@ -471,10 +471,9 @@ public class DliCall implements Trait<Cobol> {
             Deque<String> groups = new ArrayDeque<>();
             new CopybookSkippingVisitor<Integer>() {
                 @Override
-                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit nested, Integer p) {
+                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit programUnit, Integer p) {
                     // A nested program's data is its own, read from its own cursor.
-                    return getCursor().getParentTreeCursor().getValue() instanceof Cobol.ProgramUnit ?
-                            nested : super.visitProgramUnit(nested, p);
+                    return programUnit == unit.getValue() ? super.visitProgramUnit(programUnit, p) : programUnit;
                 }
 
                 @Override
