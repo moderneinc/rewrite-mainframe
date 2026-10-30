@@ -31,6 +31,11 @@ import static org.openrewrite.Tree.randomId;
  * The members the CICS translator and the Db2 precompiler supply, declared with the layout IBM
  * documents for them. Each holds the fields and constants programs commonly name, not every one a
  * release has added.
+ * <p>
+ * Package-private because a caller reads a member's declarations where a program copies it, or
+ * through {@code Program#getExecInterfaceBlock()} for the DFHEIBLK the translator inserts. A caller
+ * needing a member some other way, or a program naming a member missing here, is reason to extend
+ * this class.
  */
 final class SystemCopybooks {
 
