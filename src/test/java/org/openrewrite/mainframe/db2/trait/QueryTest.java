@@ -103,6 +103,71 @@ class QueryTest implements RewriteTest {
         );
     }
 
+    @Test
+    void eachQueryInAProcedureBodyReadsItsOwnTables() {
+        rewriteRun(
+          db2(
+            """
+              CREATE PROCEDURE CLM.LOADCLAIM (IN DOC CLOB, IN IMPORT SMALLINT)
+                RESULT SETS 1
+                LANGUAGE SQL
+              BEGIN
+                DECLARE RET INT DEFAULT 0;
+                DECLARE PDOC XML;
+                DECLARE C1 CURSOR WITH RETURN FOR SELECT * FROM VIEW V, SESSION.TMPCLAIM ORDER BY UPPER(TYPE_CD);
+                SET PDOC = XMLPARSE(DOCUMENT DOC PRESERVE WHITESPACE);
+                IF EXISTS (SELECT 1 FROM CLM.POLICY P WHERE P.STATUS IN (SELECT CODE FROM CLM.STATUS)) THEN
+                  DELETE FROM CLM.QUEUE;
+                END IF;
+                FOR OP AS SELECT X.* FROM XMLTABLE('$doc/Root/Record' passing PDOC as "doc"
+                    COLUMNS "CLAIM_NO" INT PATH 'CLAIM_NO') AS X DO
+                  DELETE FROM CLM.CLAIM WHERE CLAIM_NO = OP.CLAIM_NO;
+                END FOR;
+                INSERT INTO CLM.CLAIM (CLAIM_NO, AMT)
+                  SELECT H.CLAIM_NO, H.AMT FROM CLM.CLAIM_HIST H;
+                SELECT COUNT(*) INTO RET FROM CLM.CLAIM;
+                SET RET = (SELECT ID FROM FINAL TABLE (INSERT INTO CLM.LOG (NOTE) VALUES ('LOADED')));
+                SET RET=(SELECT IDENTITY_VAL_LOCAL() AS IDENTITY FROM SYSIBM.SYSDUMMY1);
+                RETURN RET;
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(tablesByQuery(cu)).containsExactly(
+              // FROM VIEW V, SESSION.TMPCLAIM
+              List.of("SESSION.TMPCLAIM"),
+              // IF EXISTS (...) THEN DELETE FROM CLM.QUEUE
+              List.of("CLM.POLICY", "CLM.STATUS"),
+              // FROM XMLTABLE(...) AS X DO DELETE FROM CLM.CLAIM
+              List.of(),
+              List.of("CLM.CLAIM_HIST"),
+              List.of("CLM.CLAIM"),
+              // FROM FINAL TABLE (INSERT INTO CLM.LOG ...)
+              List.of(),
+              List.of("SYSIBM.SYSDUMMY1")))
+          )
+        );
+    }
+
+    @Test
+    void aTriggersSingleStatementReadsTheTablesOfItsQuery() {
+        rewriteRun(
+          db2(
+            """
+              CREATE TRIGGER CLM.AUDIT_POLICY AFTER UPDATE ON CLM.POLICY
+                REFERENCING NEW AS N
+                FOR EACH ROW MODE DB2SQL
+                INSERT INTO CLM.AUDIT SELECT N.POLICY_NO, S.NAME FROM CLM.STATUS S WHERE S.CODE = N.STATUS;
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(tables(cu)).containsExactly("CLM.STATUS"))
+          )
+        );
+    }
+
+    private static List<List<String>> tablesByQuery(Db2.Ddl cu) {
+        return new Query.Matcher().lower(cu)
+          .map(query -> query.getTables().stream().map(Db2.Name::getFullName).collect(toList()))
+          .collect(toList());
+    }
+
     private static List<String> tables(Db2.Ddl cu) {
         return new Query.Matcher().lower(cu)
           .flatMap(query -> query.getTables().stream())

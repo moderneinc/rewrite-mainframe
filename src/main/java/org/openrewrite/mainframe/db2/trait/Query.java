@@ -32,8 +32,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * A query, and the tables it reads: what a view or a materialized query table is built from, and
- * what an {@code INSERT ... SELECT} copies.
+ * A query, and the tables it reads. A view or a materialized query table is built from one, an
+ * {@code INSERT ... SELECT} copies what one reads, and a SQL PL body holds any number.
  * <p>
  * The tree keeps a query as its words, with every qualified name in it a {@link Db2.Name}, so a
  * table, a column and a function are each a name. Which one a name is depends on where it stands:
@@ -53,9 +53,9 @@ public class Query implements Trait<Db2.Query> {
 
     /**
      * The names the query reads as tables, in the order written, a subquery's included: each name
-     * after {@code FROM} or {@code JOIN}, or after a comma that separates a FROM list. A name in the
-     * select list, a join's {@code ON} or a {@code WHERE} is a column or a function, and an alias is
-     * no name at all.
+     * after {@code FROM} or {@code JOIN}, or after a comma that separates a FROM list, unless it is
+     * called like a function. A name in the select list, a join's {@code ON} or a {@code WHERE} is a
+     * column or a function, and an alias is no table.
      */
     public List<Db2.Name> getTables() {
         List<Db2.Name> tables = new ArrayList<>();
@@ -69,7 +69,10 @@ public class Query implements Trait<Db2.Query> {
             Level level = levels.peek();
             if (part instanceof Db2.Name) {
                 if (level.table && depth == level.depth) {
-                    tables.add((Db2.Name) part);
+                    // A name called like a function, XMLTABLE say, is a table function.
+                    if (!isWord(parts, i + 1, "(")) {
+                        tables.add((Db2.Name) part);
+                    }
                     // What follows is its alias, or the end of the table's reference.
                     level.table = false;
                 }
@@ -78,8 +81,7 @@ public class Query implements Trait<Db2.Query> {
             String word = part instanceof Db2.Word ? ((Db2.Word) part).getText().toUpperCase(Locale.ROOT) : "";
             if ("(".equals(word)) {
                 depth++;
-                if (i + 1 < parts.size() && parts.get(i + 1) instanceof Db2.Word &&
-                    "SELECT".equalsIgnoreCase(((Db2.Word) parts.get(i + 1)).getText())) {
+                if (isWord(parts, i + 1, "SELECT")) {
                     // A subquery in a FROM list is that table reference itself, with tables of its own.
                     level.table = false;
                     levels.push(new Level(depth));
@@ -95,15 +97,23 @@ public class Query implements Trait<Db2.Query> {
                     level.table = true;
                 } else if ("JOIN".equals(word) || ",".equals(word)) {
                     level.table = level.from;
-                } else if ("ON".equals(word)) {
-                    level.table = false;
                 } else if (AFTER_FROM.contains(word)) {
                     level.from = false;
+                    level.table = false;
+                } else {
+                    // Every other word ends a table position. ON starts a join condition. A
+                    // reference that starts with a word, such as TABLE (...) or a table named by the
+                    // reserved word VIEW, names no table, and the alias after it names none either.
                     level.table = false;
                 }
             }
         }
         return tables;
+    }
+
+    private static boolean isWord(List<Db2> parts, int i, String text) {
+        return i < parts.size() && parts.get(i) instanceof Db2.Word &&
+               text.equalsIgnoreCase(((Db2.Word) parts.get(i)).getText());
     }
 
     /**
