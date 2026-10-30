@@ -1093,6 +1093,66 @@ public interface DB2ParserListener extends ParseTreeListener {
 	 */
 	void exitValuesRow(DB2Parser.ValuesRowContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DB2Parser#updateStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterUpdateStatement(DB2Parser.UpdateStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#updateStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitUpdateStatement(DB2Parser.UpdateStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#updateClauses}.
+	 * @param ctx the parse tree
+	 */
+	void enterUpdateClauses(DB2Parser.UpdateClausesContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#updateClauses}.
+	 * @param ctx the parse tree
+	 */
+	void exitUpdateClauses(DB2Parser.UpdateClausesContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#assignment}.
+	 * @param ctx the parse tree
+	 */
+	void enterAssignment(DB2Parser.AssignmentContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#assignment}.
+	 * @param ctx the parse tree
+	 */
+	void exitAssignment(DB2Parser.AssignmentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#deleteStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterDeleteStatement(DB2Parser.DeleteStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#deleteStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitDeleteStatement(DB2Parser.DeleteStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#deleteClauses}.
+	 * @param ctx the parse tree
+	 */
+	void enterDeleteClauses(DB2Parser.DeleteClausesContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#deleteClauses}.
+	 * @param ctx the parse tree
+	 */
+	void exitDeleteClauses(DB2Parser.DeleteClausesContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#selectStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterSelectStatement(DB2Parser.SelectStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#selectStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitSelectStatement(DB2Parser.SelectStatementContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DB2Parser#queryExpression}.
 	 * @param ctx the parse tree
 	 */
@@ -1102,6 +1162,16 @@ public interface DB2ParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitQueryExpression(DB2Parser.QueryExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#commonTableExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterCommonTableExpression(DB2Parser.CommonTableExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#commonTableExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitCommonTableExpression(DB2Parser.CommonTableExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link DB2Parser#setOperator}.
 	 * @param ctx the parse tree

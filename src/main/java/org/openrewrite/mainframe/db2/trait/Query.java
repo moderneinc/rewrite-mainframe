@@ -32,8 +32,9 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * A query, and the tables it reads: what a view or a materialized query table is built from, and
- * what an {@code INSERT ... SELECT} copies.
+ * A query, and the tables it reads: what a view or a materialized query table is built from, what
+ * an {@code INSERT ... SELECT} copies, and what the subqueries of an {@code UPDATE} or a
+ * {@code DELETE} read.
  * <p>
  * The tree keeps a query as its words, with every qualified name in it a {@link Db2.Name}, so a
  * table, a column and a function are each a name. Which one a name is depends on where it stands:
@@ -55,7 +56,8 @@ public class Query implements Trait<Db2.Query> {
      * The names the query reads as tables, in the order written, a subquery's included: each name
      * after {@code FROM} or {@code JOIN}, or after a comma that separates a FROM list. A name in the
      * select list, a join's {@code ON} or a {@code WHERE} is a column or a function, and an alias is
-     * no name at all.
+     * no name at all. Nor is a name the {@code WITH} clause gives a common table expression, whose
+     * query's tables are read instead.
      */
     public List<Db2.Name> getTables() {
         List<Db2.Name> tables = new ArrayList<>();
@@ -64,6 +66,9 @@ public class Query implements Trait<Db2.Query> {
         levels.push(new Level(0));
         int depth = 0;
         List<Db2> parts = getTree().getParts();
+        Set<String> commonTables = new HashSet<>();
+        boolean defining = false;
+        String previous = "";
         for (int i = 0; i < parts.size(); i++) {
             Db2 part = parts.get(i);
             Level level = levels.peek();
@@ -73,9 +78,21 @@ public class Query implements Trait<Db2.Query> {
                     // What follows is its alias, or the end of the table's reference.
                     level.table = false;
                 }
+                previous = "";
                 continue;
             }
             String word = part instanceof Db2.Word ? ((Db2.Word) part).getText().toUpperCase(Locale.ROOT) : "";
+            if (depth == 0) {
+                // A WITH clause opens the query, and its commas separate the expressions it defines.
+                if (i == 0 && "WITH".equals(word)) {
+                    defining = true;
+                } else if ("SELECT".equals(word)) {
+                    defining = false;
+                } else if (defining && ("WITH".equals(previous) || ",".equals(previous))) {
+                    commonTables.add(word);
+                }
+            }
+            previous = word;
             if ("(".equals(word)) {
                 depth++;
                 if (i + 1 < parts.size() && parts.get(i + 1) instanceof Db2.Word &&
@@ -103,6 +120,8 @@ public class Query implements Trait<Db2.Query> {
                 }
             }
         }
+        tables.removeIf(table -> table.getQualifier() == null &&
+                                 commonTables.contains(table.getSimpleName().toUpperCase(Locale.ROOT)));
         return tables;
     }
 

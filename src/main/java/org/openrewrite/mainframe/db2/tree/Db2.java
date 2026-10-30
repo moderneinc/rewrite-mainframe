@@ -1396,6 +1396,62 @@ public interface Db2 extends Tree {
     }
 
     /**
+     * A searched {@code UPDATE}. What follows the table, its correlation name, {@code SET} and
+     * {@code WHERE}, is kept as a query's words, so the tables its subqueries read are found as a
+     * query's are.
+     */
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class Update implements Db2, Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        List<Keyword> keywords;
+
+        Name table;
+
+        Query clauses;
+
+        @Override
+        public <P> Db2 acceptDb2(Db2Visitor<P> v, P p) {
+            return v.visitUpdate(this, p);
+        }
+    }
+
+    /**
+     * A searched {@code DELETE}, whose correlation name and {@code WHERE} are kept as an
+     * {@code UPDATE}'s clauses are.
+     */
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class Delete implements Db2, Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        List<Keyword> keywords;
+
+        Name table;
+
+        @Nullable
+        Query clauses;
+
+        @Override
+        public <P> Db2 acceptDb2(Db2Visitor<P> v, P p) {
+            return v.visitDelete(this, p);
+        }
+    }
+
+    /**
      * A statement with nothing in it. The terminator is the marker on its padding, so a bare terminator has no field at all.
      */
     @Value

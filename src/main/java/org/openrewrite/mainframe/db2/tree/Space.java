@@ -163,6 +163,7 @@ public class Space {
         DDL_EOF,
         DDL_PREFIX,
         DECLARE_GLOBAL_TEMPORARY_TABLE_PREFIX,
+        DELETE_PREFIX,
         DROP_PREFIX,
         EMPTY_PREFIX,
         GRANT_PREFIX,
@@ -186,6 +187,7 @@ public class Space {
         TABLE_AS_QUERY_PREFIX,
         TABLE_ELEMENTS_PREFIX,
         TABLE_LIKE_PREFIX,
+        UPDATE_PREFIX,
         WORD_PREFIX
     }
 }

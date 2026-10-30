@@ -255,6 +255,16 @@ public class Db2IsoVisitor<P> extends Db2Visitor<P> {
     }
 
     @Override
+    public Db2.Update visitUpdate(Db2.Update update, P p) {
+        return (Db2.Update) super.visitUpdate(update, p);
+    }
+
+    @Override
+    public Db2.Delete visitDelete(Db2.Delete delete, P p) {
+        return (Db2.Delete) super.visitDelete(delete, p);
+    }
+
+    @Override
     public Db2.Empty visitEmpty(Db2.Empty empty, P p) {
         return (Db2.Empty) super.visitEmpty(empty, p);
     }

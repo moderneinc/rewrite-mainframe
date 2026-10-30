@@ -631,6 +631,26 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public Db2 visitUpdate(Db2.Update update, PrintOutputCapture<P> p) {
+        beforeSyntax(update, Space.Location.UPDATE_PREFIX, p);
+        visit(update.getKeywords(), p);
+        visit(update.getTable(), p);
+        visit(update.getClauses(), p);
+        afterSyntax(update, p);
+        return update;
+    }
+
+    @Override
+    public Db2 visitDelete(Db2.Delete delete, PrintOutputCapture<P> p) {
+        beforeSyntax(delete, Space.Location.DELETE_PREFIX, p);
+        visit(delete.getKeywords(), p);
+        visit(delete.getTable(), p);
+        visit(delete.getClauses(), p);
+        afterSyntax(delete, p);
+        return delete;
+    }
+
+    @Override
     public Db2 visitEmpty(Db2.Empty empty, PrintOutputCapture<P> p) {
         beforeSyntax(empty, Space.Location.EMPTY_PREFIX, p);
         afterSyntax(empty, p);
