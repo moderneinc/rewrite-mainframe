@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol.trait;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.Name;
@@ -43,36 +44,58 @@ public class Literals {
     }
 
     /**
-     * Whether {@code reference} is {@code DFHRESP(NORMAL)} or {@code DFHVALUE(BUSY)}: a literal the
-     * CICS translator replaces with a number, parsed as the keyword subscripted by the condition. That
-     * is a {@code TableCall}, or a {@code ConditionNameReference} after {@code OR} in an abbreviated
-     * condition, where a condition name is written the same way.
+     * Whether {@code reference} is a {@link CicsLiteral}.
      */
     public static boolean isCicsLiteral(@Nullable Object reference) {
-        Name name;
+        return cicsLiteralOf(reference) != null;
+    }
+
+    /**
+     * {@code reference} read as {@code DFHRESP(NORMAL)} or {@code DFHVALUE(BUSY)}, or null for anything
+     * else. Either parses as the keyword subscripted by the name, which is a {@code TableCall}, or a
+     * {@code ConditionNameReference} after {@code OR} in an abbreviated condition.
+     */
+    public static @Nullable CicsLiteral cicsLiteralOf(@Nullable Object reference) {
+        Name keyword;
         List<Cobol.Parenthesized> subscripts;
         if (reference instanceof Cobol.TableCall) {
             Cobol.TableCall call = (Cobol.TableCall) reference;
             if (call.getReferenceModifier() != null) {
-                return false;
+                return null;
             }
             Cobol qualified = call.getQualifiedDataName().getDataName();
-            name = qualified instanceof Cobol.QualifiedDataNameFormat1 ?
+            keyword = qualified instanceof Cobol.QualifiedDataNameFormat1 ?
                     ((Cobol.QualifiedDataNameFormat1) qualified).getName() : null;
             subscripts = call.getSubscripts();
         } else if (reference instanceof Cobol.ConditionNameReference) {
             Cobol.ConditionNameReference condition = (Cobol.ConditionNameReference) reference;
             if (condition.getInDatas() != null && !condition.getInDatas().isEmpty()) {
-                return false;
+                return null;
             }
-            name = condition.getName();
+            keyword = condition.getName();
             subscripts = condition.getReferences();
         } else {
-            return false;
+            return null;
         }
-        String keyword = name instanceof Cobol.Word ? ((Cobol.Word) name).getWord() : "";
-        return (keyword.equalsIgnoreCase("DFHRESP") || keyword.equalsIgnoreCase("DFHVALUE")) &&
-               subscripts != null && subscripts.size() == 1;
+        String word = keyword instanceof Cobol.Word ? ((Cobol.Word) keyword).getWord() : "";
+        String upper = word.equalsIgnoreCase("DFHRESP") ? "DFHRESP" :
+                word.equalsIgnoreCase("DFHVALUE") ? "DFHVALUE" : null;
+        if (upper == null || subscripts == null || subscripts.size() != 1 ||
+            subscripts.get(0).getContents().isEmpty()) {
+            return null;
+        }
+        String name = Names.upperOf(subscripts.get(0).getContents().get(0));
+        return name == null ? null : new CicsLiteral(upper, name);
+    }
+
+    /**
+     * A literal the CICS translator replaces with a number, its keyword and name upper cased. A
+     * response condition is {@code DFHRESP} and a CVDA is {@code DFHVALUE}, and both have a {@code NORMAL}.
+     */
+    @Value
+    public static class CicsLiteral {
+        String keyword;
+        String name;
     }
 
     /**
