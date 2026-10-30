@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.mainframe.db2.Db2Visitor;
+import org.openrewrite.mainframe.db2.marker.AtSign;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.*;
 import org.openrewrite.marker.Marker;
@@ -29,8 +30,8 @@ import java.util.function.UnaryOperator;
 
 /**
  * Writes back what the tree does not carry: the brackets and commas around a
- * {@link Db2Container}, the keyword a {@link Db2.Keyword} names, and the semicolon a statement's
- * {@link Semicolon} marker says it had.
+ * {@link Db2Container}, the keyword a {@link Db2.Keyword} names, and the terminator a statement's
+ * {@link Semicolon} or {@link AtSign} marker says it had.
  */
 public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     public static final UnaryOperator<String> DB2_MARKER_WRAPPER =
@@ -821,6 +822,8 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<P> p) {
         if (marker instanceof Semicolon) {
             p.append(';');
+        } else if (marker instanceof AtSign) {
+            p.append('@');
         }
         return super.visitMarker(marker, p);
     }
