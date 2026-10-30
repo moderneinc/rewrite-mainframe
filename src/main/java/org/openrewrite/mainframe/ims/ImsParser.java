@@ -32,6 +32,7 @@ import org.openrewrite.mainframe.ims.internal.grammar.IMSParser;
 import org.openrewrite.mainframe.ims.tree.Ims;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -98,6 +99,7 @@ public class ImsParser implements Parser {
 
                         parser.removeErrorListeners();
                         parser.addErrorListener(new ForwardingErrorListener(sourceFile.getPath(), ctx));
+                        PredictionListener.addTo(parser, ctx);
 
                         Ims.CompilationUnit cu = new ImsParserVisitor(
                                 path,

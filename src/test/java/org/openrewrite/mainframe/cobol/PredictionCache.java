@@ -15,6 +15,7 @@
  */
 package org.openrewrite.mainframe.cobol;
 
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.atn.ATNConfig;
 import org.antlr.v4.runtime.atn.SemanticContext;
 import org.antlr.v4.runtime.dfa.DFA;
@@ -25,19 +26,19 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * The prediction cache that every instance of the generated COBOL parser shares.
+ * The prediction cache that every instance of a generated parser shares.
  */
 final class PredictionCache {
 
     private PredictionCache() {
     }
 
-    static DFA[] shared() {
-        return new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(null).getInterpreter().decisionToDFA;
+    static DFA[] shared(Parser grammar) {
+        return grammar.getInterpreter().decisionToDFA;
     }
 
-    static void clear() {
-        DFA[] cache = shared();
+    static void clear(Parser grammar) {
+        DFA[] cache = shared(grammar);
         for (int d = 0; d < cache.length; d++) {
             cache[d] = new DFA(cache[d].atnStartState, d);
         }

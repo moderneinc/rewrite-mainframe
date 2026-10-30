@@ -625,8 +625,9 @@ bodyItem
     | ~BEGIN
     ;
 
+// A trigger's single statement has no block for an END to close, and its semicolon ends the trigger.
 triggeredStatement
-    : bodyItem+
+    : ~(BEGIN | SEMI)+
     ;
 
 //

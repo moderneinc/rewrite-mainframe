@@ -30,7 +30,8 @@ class PredicateOrderTest {
     @Test
     void predicatesCollectedInAnotherOrderMakeNoSecondConfiguration() {
         // The cache is shared with every parser in the JVM, including ones built on ANTLR's own simulator.
-        PredictionCache.clear();
+        org.antlr.v4.runtime.Parser grammar = new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(null);
+        PredictionCache.clear(grammar);
 
         List<SourceFile> parsed = CobolParser.builder().build().parse(
           """
@@ -65,7 +66,7 @@ class PredicateOrderTest {
         ).collect(toList());
 
         assertThat(parsed).singleElement().isInstanceOf(Cobol.CompilationUnit.class);
-        assertThat(Arrays.stream(PredictionCache.shared())
+        assertThat(Arrays.stream(PredictionCache.shared(grammar))
           .flatMap(dfa -> dfa.states.keySet().stream())
           .mapToInt(PredictionCache::orderOnlyDuplicates)
           .sum()).isZero();
