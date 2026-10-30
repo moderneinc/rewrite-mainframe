@@ -431,6 +431,19 @@ class Db2ParserTest {
         assertThat(revoke.getGrantees().getElements()).hasSize(1);
     }
 
+    @Test
+    void aTrustedContextAltersAddsOrDropsAttributesNamedByOrdinaryWords() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TRUSTED CONTEXT CLMCTX ALTER ATTRIBUTES (ADDRESS '10.0.0.1', ENCRYPTION 'LOW');
+            ALTER TRUSTED CONTEXT CLMCTX ADD ATTRIBUTES (SERVAUTH 'EZB.NETACCESS.ZOS1.TCPIP.CLMZONE', JOBNAME 'CLMBAT*');
+            ALTER TRUSTED CONTEXT CLMCTX DROP ATTRIBUTES (ADDRESS '10.0.0.1');
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class))
+          .extracting(alter -> alter.getName().getFullName()).containsExactly("CLMCTX", "CLMCTX", "CLMCTX");
+    }
+
     /**
      * The {@code AS} of a view, a sequence or a type and the {@code IS} of a comment or a label are
      * keywords, so they print in the case the file wrote them in, as every other keyword does.

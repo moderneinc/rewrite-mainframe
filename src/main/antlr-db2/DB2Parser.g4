@@ -480,15 +480,19 @@ createTrustedContext
     ;
 
 trustedContextOption
-    : ATTRIBUTES LPAREN trustedAttribute (COMMA trustedAttribute)* RPAREN
+    : namedTrustedContextOption
+    | {!starts($ctx, RULE_namedTrustedContextOption)}? nonReserved
+    ;
+
+namedTrustedContextOption
+    : (ALTER | ADD | DROP)? ATTRIBUTES LPAREN trustedAttribute (COMMA trustedAttribute)* RPAREN
     | (ENABLE | DISABLE)
     | NO? DEFAULT ROLE identifier?
     | WITH USE FOR trustedUser (COMMA trustedUser)*
-    | nonReserved
     ;
 
 trustedAttribute
-    : nonReserved (EQ | ) STRING
+    : identifier (EQ | ) STRING
     ;
 
 trustedUser

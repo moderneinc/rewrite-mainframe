@@ -656,6 +656,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterTrustedAttribute(DB2Parser.TrustedAttributeContext ctx) { }
 	/**
 	 * {@inheritDoc}
