@@ -109,6 +109,30 @@ class ParseTreeAlternativeTest extends CobolTest {
     }
 
     @Test
+    void aReferenceModifiedNameAfterOrIsAnAbbreviatedOperand() {
+        List<String> operands = new ArrayList<>();
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
+              @Override
+              public Cobol.AndOrCondition visitAndOrCondition(Cobol.AndOrCondition andOr, ExecutionContext ctx) {
+                  operands.add(andOr.getCombinableCondition() == null ? "abbreviation" : "condition");
+                  return andOr;
+              }
+          })),
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                        \s
+              000000 PROGRAM-ID. ABBREV.                                             \s
+              000000 PROCEDURE DIVISION.                                             \s
+              000000     IF D2 = '{' OR XA37(B:1) OR XA47(B:1) CONTINUE END-IF       \s
+              000000     IF D2 = '{' OR FLAG-ON DISPLAY D2 END-IF.                   \s
+              """
+          )
+        );
+        assertThat(operands).containsExactly("abbreviation", "abbreviation", "condition");
+    }
+
+    @Test
     void eachAllLeadingOrFirstOpensAnInspectGroup() {
         List<String> groups = new ArrayList<>();
         rewriteRun(

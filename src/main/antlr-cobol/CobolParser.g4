@@ -49,11 +49,15 @@ options { tokenVocab = CobolLexer; }
      * which of the two it opens.
      */
     boolean startsSubscripts() {
-        if (_input.LA(1) != LPARENCHAR) {
+        return subscriptsAt(1);
+    }
+
+    private boolean subscriptsAt(int i) {
+        if (_input.LA(i) != LPARENCHAR) {
             return false;
         }
         int depth = 0;
-        for (int i = 1; ; i++) {
+        for (; ; i++) {
             int type = _input.LA(i);
             if (type == Token.EOF) {
                 return false;
@@ -159,10 +163,33 @@ options { tokenVocab = CobolLexer; }
             return CONDITION;
         }
         boolean operand = afterOperand(i) == end;
-        if ((next == AND || next == OR) && operand && cobolWordStart().contains(_input.LA(i))) {
+        if ((next == AND || next == OR) && operand && conditionNameAt(i)) {
             return CONDITION;
         }
         return operand ? OPERAND : EXPRESSION;
+    }
+
+    /**
+     * Whether the operand at LT(i) can be a condition-name, which is a name with qualifiers and subscripts. A
+     * condition-name never takes a reference modifier.
+     */
+    private boolean conditionNameAt(int i) {
+        if (!cobolWordStart().contains(_input.LA(i))) {
+            return false;
+        }
+        for (i++; ; ) {
+            int type = _input.LA(i);
+            if (type == IN || type == OF) {
+                i += 2;
+            } else if (type == LPARENCHAR) {
+                if (!subscriptsAt(i)) {
+                    return false;
+                }
+                i = afterParens(i);
+            } else {
+                return true;
+            }
+        }
     }
 
     private IntervalSet cobolWordStart() {
@@ -330,7 +357,7 @@ options { tokenVocab = CobolLexer; }
     boolean combinableAhead(ParserRuleContext andOr) {
         int i = _input.LA(1) == NOT ? 2 : 1;
         int kind = operandKind(andOr, i);
-        return kind == CONDITION || kind == OPERAND && cobolWordStart().contains(_input.LA(i));
+        return kind == CONDITION || kind == OPERAND && conditionNameAt(i);
     }
 
     /**

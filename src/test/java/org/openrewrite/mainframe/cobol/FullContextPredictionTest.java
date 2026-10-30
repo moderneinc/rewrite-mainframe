@@ -312,6 +312,7 @@ class FullContextPredictionTest {
               MOVE DFHVALUE(NOUCTRAN) TO X
               IF A = 1 AND B = 2 OR C = 3 MOVE 1 TO Y END-IF
               IF A = 1 AND 2 OR NOT 3 MOVE 1 TO Y END-IF
+              IF A = 1 OR B (I:1) OR C (I:1) MOVE 1 TO Y END-IF
               IF A = 1 AND B NOT = 2 MOVE 1 TO Y END-IF
               IF A = 1 AND (B = 2 OR C = 3) MOVE 1 TO Y END-IF
               IF FLAG-ON AND NOT FLAG-OFF MOVE 1 TO Y END-IF
