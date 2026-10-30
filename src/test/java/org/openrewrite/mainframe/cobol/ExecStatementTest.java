@@ -159,6 +159,22 @@ class ExecStatementTest extends CobolTest {
     }
 
     @Test
+    void execSqlCallingTheReplaceFunction() {
+        rewriteRun(
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                        \s
+              000000 PROGRAM-ID. SQLEXEC.                                            \s
+              000000 PROCEDURE DIVISION.                                             \s
+              000000     EXEC SQL SELECT REPLACE(NAME, 'X', 'Y') INTO :WS-NAME       \s
+              000000          FROM CUST END-EXEC.                                    \s
+              000000     GOBACK.                                                     \s
+              """
+          )
+        );
+    }
+
+    @Test
     void execDli() {
         rewriteRun(
           cobol(

@@ -211,7 +211,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
         return new CobolPreprocessor.CharDataSql(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAllList(ctx.charDataLine())
+                convertAllList(ctx.charDataLine(), ctx.COPY(), ctx.REPLACE())
         );
     }
 

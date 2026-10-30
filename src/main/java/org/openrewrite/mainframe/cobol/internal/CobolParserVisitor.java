@@ -1485,16 +1485,18 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitDataTypeClause(CobolParser.DataTypeClauseContext ctx) {
+        // A size in parentheses always ends the clause, and every word comes before it.
+        List<ParseTree> words = ctx.LPARENCHAR() == null ? ctx.children :
+                ctx.children.subList(0, ctx.children.indexOf(ctx.LPARENCHAR()));
         return new Cobol.DataTypeClause(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                wordsList(ctx.TYPE(), ctx.IS(), ctx.SHORT_DATE(), ctx.LONG_DATE(), ctx.NUMERIC_DATE(),
-                        ctx.NUMERIC_TIME(), ctx.LONG_TIME(), ctx.CLOB(), ctx.BLOB(), ctx.DBCLOB()),
+                words(words.toArray(new ParseTree[0])),
                 ctx.LPARENCHAR() == null ? null : new Cobol.Parenthesized(randomId(),
                         EMPTY,
                         Markers.EMPTY,
                         (Cobol.Word) visit(ctx.LPARENCHAR()),
-                        convertAllList(singletonList(ctx.integerLiteral()), singletonList(ctx.cobolWord())),
+                        convertAllList(singletonList(ctx.integerLiteral()), ctx.cobolWord()),
                         (Cobol.Word) visit(ctx.RPARENCHAR())
                 )
         );
@@ -3448,7 +3450,8 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 Markers.EMPTY,
                 visitNullable(ctx.performTestClause()),
                 (Cobol.Word) visit(ctx.UNTIL()),
-                (Cobol.Condition) visit(ctx.condition())
+                visitNullable(ctx.EXIT()),
+                visitNullable(ctx.condition())
         );
     }
 

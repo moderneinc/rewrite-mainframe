@@ -49,11 +49,15 @@ options { tokenVocab = CobolLexer; }
      * which of the two it opens.
      */
     boolean startsSubscripts() {
-        if (_input.LA(1) != LPARENCHAR) {
+        return subscriptsAt(1);
+    }
+
+    private boolean subscriptsAt(int i) {
+        if (_input.LA(i) != LPARENCHAR) {
             return false;
         }
         int depth = 0;
-        for (int i = 1; ; i++) {
+        for (; ; i++) {
             int type = _input.LA(i);
             if (type == Token.EOF) {
                 return false;
@@ -159,10 +163,33 @@ options { tokenVocab = CobolLexer; }
             return CONDITION;
         }
         boolean operand = afterOperand(i) == end;
-        if ((next == AND || next == OR) && operand && cobolWordStart().contains(_input.LA(i))) {
+        if ((next == AND || next == OR) && operand && conditionNameAt(i)) {
             return CONDITION;
         }
         return operand ? OPERAND : EXPRESSION;
+    }
+
+    /**
+     * Whether the operand at LT(i) can be a condition-name, which is a name with qualifiers and subscripts. A
+     * condition-name never takes a reference modifier.
+     */
+    private boolean conditionNameAt(int i) {
+        if (!cobolWordStart().contains(_input.LA(i))) {
+            return false;
+        }
+        for (i++; ; ) {
+            int type = _input.LA(i);
+            if (type == IN || type == OF) {
+                i += 2;
+            } else if (type == LPARENCHAR) {
+                if (!subscriptsAt(i)) {
+                    return false;
+                }
+                i = afterParens(i);
+            } else {
+                return true;
+            }
+        }
     }
 
     private IntervalSet cobolWordStart() {
@@ -277,7 +304,7 @@ options { tokenVocab = CobolLexer; }
         return _input.LA(1) == PLUSCHAR || _input.LA(1) == MINUSCHAR;
     }
 
-    boolean startsIntegerLiteral(ParserRuleContext rule) {
+    private boolean startsIntegerLiteral() {
         if (integerLiteralStart == null) {
             integerLiteralStart = firstOf(RULE_integerLiteral);
         }
@@ -290,14 +317,14 @@ options { tokenVocab = CobolLexer; }
      */
     boolean plainSubscriptAhead(ParserRuleContext subscript) {
         int i = 1;
-        if (startsIntegerLiteral(subscript)) {
+        if (startsIntegerLiteral()) {
             i = 2;
         } else if (cobolWordStart().contains(_input.LA(1))) {
             i = 2;
             while (_input.LA(i) == IN || _input.LA(i) == OF) {
                 i += 2;
             }
-            if (integerLiteralStart.contains(_input.LA(i))) {
+            if (signedIntegerAt(i)) {
                 i++;
             }
         } else {
@@ -308,13 +335,36 @@ options { tokenVocab = CobolLexer; }
                integerLiteralStart.contains(next);
     }
 
+    boolean signedIntegerAhead(ParserRuleContext subscript) {
+        return signedIntegerAt(1);
+    }
+
+    /**
+     * Whether LT(i) is an integer written with its sign, which the lexer folds into the token, and no separator comma
+     * or semicolon comes between it and the token before. Only such an integer makes the name before it a relative
+     * subscript. Any other integer is the next subscript.
+     */
+    private boolean signedIntegerAt(int i) {
+        if (_input.LA(i) != INTEGERLITERAL) {
+            return false;
+        }
+        Token integer = _input.LT(i);
+        char sign = integer.getText().charAt(0);
+        if (sign != '+' && sign != '-') {
+            return false;
+        }
+        Token before = _input.LT(i == 1 ? -1 : i - 1);
+        String gap = integer.getInputStream().getText(Interval.of(before.getStopIndex() + 1, integer.getStartIndex() - 1));
+        return gap.indexOf(',') < 0 && gap.indexOf(';') < 0;
+    }
+
     /**
      * Whether AND or OR is followed by a full condition, which the condition takes before an abbreviation can.
      */
     boolean combinableAhead(ParserRuleContext andOr) {
         int i = _input.LA(1) == NOT ? 2 : 1;
         int kind = operandKind(andOr, i);
-        return kind == CONDITION || kind == OPERAND && cobolWordStart().contains(_input.LA(i));
+        return kind == CONDITION || kind == OPERAND && conditionNameAt(i);
     }
 
     /**
@@ -1418,8 +1468,12 @@ dataThreadLocalClause
    : IS? THREAD_LOCAL
    ;
 
+// The SQL types are Db2's host variable types, which follow USAGE SQL.
 dataTypeClause
-   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME | (CLOB | BLOB | DBCLOB) LPARENCHAR (integerLiteral cobolWord? | cobolWord) RPARENCHAR)
+   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME
+      | (XML AS)? (CLOB | BLOB | DBCLOB | (BINARY | CHARACTER | CHAR) LARGE OBJECT | BINARY VARYING? | VARBINARY) LPARENCHAR (integerLiteral cobolWord? | cobolWord) RPARENCHAR
+      | (XML AS)? (BLOB_FILE | CLOB_FILE | DBCLOB_FILE)
+      | BLOB_LOCATOR | CLOB_LOCATOR | DBCLOB_LOCATOR | RESULT_SET_LOCATOR VARYING | TABLE LIKE cobolWord (DOT_FS cobolWord)* AS LOCATOR | ROWID)
    ;
 
 dataTypeDefClause
@@ -2160,7 +2214,7 @@ performTimes
    ;
 
 performUntil
-   : performTestClause? UNTIL condition
+   : performTestClause? UNTIL (EXIT | condition)
    ;
 
 performVarying
@@ -2838,7 +2892,7 @@ length
 subscript
    : ALL
    | {plainSubscriptAhead($ctx)}? integerLiteral
-   | {plainSubscriptAhead($ctx)}? qualifiedDataName (integerLiteral | {!startsIntegerLiteral($ctx)}?)
+   | {plainSubscriptAhead($ctx)}? qualifiedDataName ({signedIntegerAhead($ctx)}? integerLiteral | {!signedIntegerAhead($ctx)}?)
    | {!plainSubscriptAhead($ctx)}? arithmeticExpression
    ;
 
@@ -2998,25 +3052,25 @@ cobolWord
    : IDENTIFIER
    | ATTRIBUTES | ELEMENT | INITIALIZED | LOC | NAME | NAMESPACE | NAMESPACE_PREFIX | NONNUMERIC | XML_DECLARATION
    | ABORT | AS | ASCII | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH | ATTRIBUTE | AUTO | AUTO_SKIP
-   | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BINARY | BIT | BLINK | BLOB | BOUNDS
-   | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CLOB | CLOSE_DISPOSITION | COBOL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR
-   | DBCLOB | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DISK | DONTCARE | DOUBLE
+   | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BINARY | BIT | BLINK | BLOB | BLOB_FILE | BLOB_LOCATOR | BOUNDS
+   | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CHAR | CLOB | CLOB_FILE | CLOB_LOCATOR | CLOSE_DISPOSITION | COBOL | COL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR
+   | DBCLOB | DBCLOB_FILE | DBCLOB_LOCATOR | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DISK | DONTCARE | DOUBLE
    | EBCDIC | EMPTY_CHECK | ENTER | ENTRY_PROCEDURE | EOL | EOS | ERASE | ESCAPE | EVENT | EXCLUSIVE | EXPORT | EXTENDED
    | FOREGROUND_COLOR | FOREGROUND_COLOUR | FULL | FUNCTIONNAME | FUNCTION_POINTER
    | GRID
    | HIGHLIGHT
    | IMPLICIT | IMPORT | INTEGER
    | KEPT | KEYBOARD
-   | LANGUAGE | LB | LD | LEFTLINE | LENGTH_CHECK | LIBACCESS | LIBPARAMETER | LIBRARY | LIST | LOCAL | LONG_DATE | LONG_TIME | LOWER | LOWLIGHT
+   | LANGUAGE | LARGE | LB | LD | LEFTLINE | LENGTH_CHECK | LIBACCESS | LIBPARAMETER | LIBRARY | LIKE | LIST | LOCAL | LOCATOR | LONG_DATE | LONG_TIME | LOWER | LOWLIGHT
    | MMDDYYYY
    | NAMED | NATIONAL | NATIONAL_EDITED | NETWORK | NO_ECHO | NUMERIC_DATE | NUMERIC_TIME
-   | ODT | ORDERLY | OVERLINE | OWN
+   | OBJECT | ODT | ORDERLY | OVERLINE | OWN
    | PASSWORD | PORT | PRINTER | PRIVATE | PROCESS | PROGRAM | PROMPT
-   | READER | REAL | RECEIVED | RECURSIVE | REF | REMOTE | REMOVE | REQUIRED | REVERSE_VIDEO
+   | READER | REAL | RECEIVED | RECURSIVE | REF | REMOTE | REMOVE | REQUIRED | RESULT_SET_LOCATOR | REVERSE_VIDEO | ROWID
    | SAVE | SECURE | SHARED | SHAREDBYALL | SHAREDBYRUNUNIT | SHARING | SHORT_DATE | SQL | SYMBOL
    | TASK | THREAD | THREAD_LOCAL | TIMER | TODAYS_DATE | TODAYS_NAME | TRUNCATED | TYPEDEF
    | UNDERLINE
-   | VIRTUAL
+   | VARBINARY | VIRTUAL
    | WAIT
    | YEAR | YYYYMMDD | YYYYDDD
    | ZERO_FILL

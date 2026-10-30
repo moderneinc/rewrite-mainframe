@@ -155,6 +155,24 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
+    @Test
+    void remarksEndsTheCommentEntryBeforeIt() {
+        rewriteRun(
+          cobol(
+            """
+              000100 IDENTIFICATION DIVISION.
+              000200 PROGRAM-ID.           PPCAL884.
+              000300 AUTHOR.              DDS TEAM.
+              000400 REMARKS.      MODIFIED BY DDS TEAM.
+              000500*                       HCFA.
+              000600 DATE-COMPILED.
+              000700 PROCEDURE DIVISION.
+              000800     GOBACK.
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-cobol/issues/29")
     @Test
     void cblRent() {
