@@ -1489,11 +1489,11 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 Markers.EMPTY,
                 wordsList(ctx.TYPE(), ctx.IS(), ctx.SHORT_DATE(), ctx.LONG_DATE(), ctx.NUMERIC_DATE(),
                         ctx.NUMERIC_TIME(), ctx.LONG_TIME(), ctx.CLOB(), ctx.BLOB(), ctx.DBCLOB()),
-                ctx.integerLiteral() == null ? null : new Cobol.Parenthesized(randomId(),
+                ctx.LPARENCHAR() == null ? null : new Cobol.Parenthesized(randomId(),
                         EMPTY,
                         Markers.EMPTY,
                         (Cobol.Word) visit(ctx.LPARENCHAR()),
-                        singletonList((Cobol) visit(ctx.integerLiteral())),
+                        singletonList((Cobol) visit(ctx.integerLiteral() != null ? ctx.integerLiteral() : ctx.cobolWord())),
                         (Cobol.Word) visit(ctx.RPARENCHAR())
                 )
         );
@@ -1517,7 +1517,8 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         ctx.COMP(), ctx.COMP_1(), ctx.COMP_2(), ctx.COMP_3(), ctx.COMP_4(), ctx.COMP_5(),
                         ctx.COMPUTATIONAL(), ctx.COMPUTATIONAL_1(), ctx.COMPUTATIONAL_2(), ctx.COMPUTATIONAL_3(), ctx.COMPUTATIONAL_4(), ctx.COMPUTATIONAL_5(),
                         ctx.CONTROL_POINT(), ctx.DATE(), ctx.DISPLAY(), ctx.DISPLAY_1(), ctx.DOUBLE(), ctx.EVENT(), ctx.FUNCTION_POINTER(), ctx.INDEX(), ctx.KANJI(), ctx.LOCK(),
-                        ctx.NATIONAL(), ctx.PACKED_DECIMAL(), ctx.POINTER(), ctx.PROCEDURE_POINTER(), ctx.REAL(), ctx.SQL(), ctx.TASK())
+                        ctx.NATIONAL(), ctx.PACKED_DECIMAL(), ctx.POINTER(), ctx.POINTER_32(), ctx.PROCEDURE_POINTER(), ctx.REAL(), ctx.SQL(), ctx.TASK(),
+                        ctx.UTF_8())
         );
     }
 
@@ -2287,6 +2288,46 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
+        );
+    }
+
+    @Override
+    public Object visitDataDynamicLengthClause(CobolParser.DataDynamicLengthClauseContext ctx) {
+        return new Cobol.DataDynamicLengthClause(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.DYNAMIC(), ctx.LENGTH(), ctx.LIMIT(), ctx.IS()),
+                visitNullable(ctx.integerLiteral())
+        );
+    }
+
+    @Override
+    public Object visitDataGroupUsageClause(CobolParser.DataGroupUsageClauseContext ctx) {
+        return new Cobol.DataGroupUsageClause(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.GROUP_USAGE(), ctx.IS(), ctx.NATIONAL(), ctx.UTF_8())
+        );
+    }
+
+    @Override
+    public Object visitDataVolatileClause(CobolParser.DataVolatileClauseContext ctx) {
+        return new Cobol.DataVolatileClause(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.VOLATILE())
+        );
+    }
+
+    @Override
+    public Object visitXmlSchemaClause(CobolParser.XmlSchemaClauseContext ctx) {
+        return new Cobol.XmlSchemaClause(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                (Cobol.Word) visit(ctx.XML_SCHEMA()),
+                (Cobol) visit(ctx.cobolWord(0)),
+                visitNullable(ctx.IS()),
+                (Cobol) visit(ctx.literal() != null ? ctx.literal() : ctx.cobolWord(1))
         );
     }
 

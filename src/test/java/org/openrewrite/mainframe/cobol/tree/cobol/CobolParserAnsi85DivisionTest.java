@@ -1443,7 +1443,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000011       MOVE ZERO TO CONVERTER-RC                                  C_AREA.11
               000012     END-XML                                                      C_AREA.12
               000013     XML PARSE XML-BUFFER WITH ENCODING 1208 RETURNING NATIONAL   C_AREA.13
-              000014      VALIDATING WITH FILE XML-SCHEMA                             C_AREA.14
+              000014      VALIDATING WITH FILE CLMSCHEMA                              C_AREA.14
               000015      PROCESSING PROCEDURE IS XML-HANDLER.                        C_AREA.15
               000016 XML-HANDLER.                                                     C_AREA.16
               000017     CONTINUE.                                                    C_AREA.17

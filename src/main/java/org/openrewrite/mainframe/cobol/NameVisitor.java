@@ -975,6 +975,26 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     }
 
     @Override
+    public Cobol.DataDynamicLengthClause visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, P p) {
+        return dataDynamicLengthClause;
+    }
+
+    @Override
+    public Cobol.DataGroupUsageClause visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, P p) {
+        return dataGroupUsageClause;
+    }
+
+    @Override
+    public Cobol.DataVolatileClause visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, P p) {
+        return dataVolatileClause;
+    }
+
+    @Override
+    public Cobol.XmlSchemaClause visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, P p) {
+        return xmlSchemaClause.withName(visitAndCast(xmlSchemaClause.getName(), p));
+    }
+
+    @Override
     public Cobol.Allocate visitAllocate(Cobol.Allocate allocate, P p) {
         Cobol.Allocate a = allocate;
         a = a.withSubject(visitAndCast(a.getSubject(), p));

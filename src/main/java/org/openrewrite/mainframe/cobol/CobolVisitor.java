@@ -636,6 +636,28 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return d.withSections(ListUtils.map(d.getSections(), it -> (DataDivisionSection) visit(it, p)));
     }
 
+    public Cobol visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, P p) {
+        Cobol.DataDynamicLengthClause c = dataDynamicLengthClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.DATA_DYNAMIC_LENGTH_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        c = c.withWords(ListUtils.map(c.getWords(), t -> (Cobol.Word) visit(t, p)));
+        return c.withLimit(visit(c.getLimit(), p));
+    }
+
+    public Cobol visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, P p) {
+        Cobol.DataGroupUsageClause c = dataGroupUsageClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.DATA_GROUP_USAGE_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        return c.withWords(ListUtils.map(c.getWords(), t -> (Cobol.Word) visit(t, p)));
+    }
+
+    public Cobol visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, P p) {
+        Cobol.DataVolatileClause c = dataVolatileClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.DATA_VOLATILE_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        return c.withWords(ListUtils.map(c.getWords(), t -> (Cobol.Word) visit(t, p)));
+    }
+
     public Cobol visitDataExternalClause(Cobol.DataExternalClause dataExternalClause, P p) {
         Cobol.DataExternalClause d = dataExternalClause;
         d = d.withPrefix(visitSpace(d.getPrefix(), Space.Location.DATA_EXTERNAL_CLAUSE_PREFIX, p));
@@ -4014,6 +4036,16 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         w = w.withMarkers(visitMarkers(w.getMarkers(), p));
         w = w.withFrom((Cobol.Word) visit(w.getFrom(), p));
         return w.withName((Name) visit(w.getName(), p));
+    }
+
+    public Cobol visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, P p) {
+        Cobol.XmlSchemaClause c = xmlSchemaClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.XML_SCHEMA_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        c = c.withXmlSchema((Cobol.Word) visit(c.getXmlSchema(), p));
+        c = c.withName(visit(c.getName(), p));
+        c = c.withIs((Cobol.Word) visit(c.getIs(), p));
+        return c.withLocation(visit(c.getLocation(), p));
     }
 
     public Cobol visitXmlParse(Cobol.XmlParse xmlParse, P p) {

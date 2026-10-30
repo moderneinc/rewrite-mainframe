@@ -303,6 +303,16 @@ public interface CobolParserListener extends ParseTreeListener {
 	 */
 	void exitSpecialNameClause(CobolParser.SpecialNameClauseContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolParser#xmlSchemaClause}.
+	 * @param ctx the parse tree
+	 */
+	void enterXmlSchemaClause(CobolParser.XmlSchemaClauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#xmlSchemaClause}.
+	 * @param ctx the parse tree
+	 */
+	void exitXmlSchemaClause(CobolParser.XmlSchemaClauseContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolParser#alphabetClause}.
 	 * @param ctx the parse tree
 	 */
@@ -2312,6 +2322,36 @@ public interface CobolParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitDataGlobalClause(CobolParser.DataGlobalClauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#dataGroupUsageClause}.
+	 * @param ctx the parse tree
+	 */
+	void enterDataGroupUsageClause(CobolParser.DataGroupUsageClauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#dataGroupUsageClause}.
+	 * @param ctx the parse tree
+	 */
+	void exitDataGroupUsageClause(CobolParser.DataGroupUsageClauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#dataDynamicLengthClause}.
+	 * @param ctx the parse tree
+	 */
+	void enterDataDynamicLengthClause(CobolParser.DataDynamicLengthClauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#dataDynamicLengthClause}.
+	 * @param ctx the parse tree
+	 */
+	void exitDataDynamicLengthClause(CobolParser.DataDynamicLengthClauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#dataVolatileClause}.
+	 * @param ctx the parse tree
+	 */
+	void enterDataVolatileClause(CobolParser.DataVolatileClauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#dataVolatileClause}.
+	 * @param ctx the parse tree
+	 */
+	void exitDataVolatileClause(CobolParser.DataVolatileClauseContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#dataIntegerStringClause}.
 	 * @param ctx the parse tree

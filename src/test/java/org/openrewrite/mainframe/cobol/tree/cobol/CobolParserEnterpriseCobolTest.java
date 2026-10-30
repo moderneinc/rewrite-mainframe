@@ -228,6 +228,70 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     @Test
+    void dataClausesOfEnterpriseCobol() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  U1  PIC U(5) USAGE UTF-8.
+              000006 01  U2  PIC U(5) USAGE IS UTF-8.
+              000007 01  P1  USAGE POINTER-32.
+              000008 01  P2  POINTER-32.
+              000009 01  G1  GROUP-USAGE NATIONAL.
+              000010     05  G1A PIC N(5).
+              000011 01  G2  GROUP-USAGE IS UTF-8.
+              000012     05  G2A PIC U(5).
+              000013 01  D1  PIC X DYNAMIC LENGTH LIMIT 100.
+              000014 01  D2  PIC X DYNAMIC LENGTH.
+              000015 01  D3  PIC X DYNAMIC LIMIT IS 8.
+              000016 01  V1  PIC X VOLATILE.
+              000017 01  C1  USAGE IS SQL TYPE IS CLOB(1M).
+              000018 01  C2  USAGE IS SQL TYPE IS BLOB(64K).
+              000019 01  C3  USAGE IS SQL TYPE IS DBCLOB(100).
+              000020 PROCEDURE DIVISION.
+              000021     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(treesOf(cu, Cobol.DataGroupUsageClause.class)).hasSize(2);
+                assertThat(treesOf(cu, Cobol.DataDynamicLengthClause.class)).hasSize(3);
+                assertThat(treesOf(cu, Cobol.DataVolatileClause.class)).hasSize(1);
+            })
+          )
+        );
+    }
+
+    @Test
+    void xmlSchemaNamesTheFileXmlParseValidatesWith() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 ENVIRONMENT DIVISION.
+              000004 CONFIGURATION SECTION.
+              000005 SPECIAL-NAMES.
+              000006     XML-SCHEMA CLMSCHEMA IS 'CLMXSD'
+              000007     XML-SCHEMA OTHERSCH IS SCHEMADD.
+              000008 DATA DIVISION.
+              000009 WORKING-STORAGE SECTION.
+              000010 01  DOC PIC X(200).
+              000011 PROCEDURE DIVISION.
+              000012     XML PARSE DOC VALIDATING WITH FILE CLMSCHEMA
+              000013         PROCESSING PROCEDURE HANDLER
+              000014     END-XML
+              000015     GOBACK.
+              000016 HANDLER.
+              000017     CONTINUE.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.XmlSchemaClause.class)).hasSize(2))
+          )
+        );
+    }
+
+    @Test
     void phraseWordsStillNameData() {
         rewriteRun(
           cobol(
@@ -280,6 +344,10 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     private static <T extends Statement> List<T> statementsOf(Cobol.CompilationUnit cu, Class<T> type) {
+        return treesOf(cu, type);
+    }
+
+    private static <T extends Cobol> List<T> treesOf(Cobol.CompilationUnit cu, Class<T> type) {
         List<T> found = new ArrayList<>();
         new CobolIsoVisitor<List<T>>() {
             @Override
