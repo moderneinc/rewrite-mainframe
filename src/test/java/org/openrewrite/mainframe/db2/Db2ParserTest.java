@@ -634,6 +634,32 @@ class Db2ParserTest {
     }
 
     @Test
+    void aCommentAfterTheLastColumnStaysBeforeTheClosingParenthesis() {
+        parse("""
+          CREATE TABLE T (
+              A CHAR(1),      -- the first
+              B VARCHAR(20)   -- the last
+            );
+          """);
+    }
+
+    @Test
+    void aParameterNamedLikeAKeywordKeepsItsMode() {
+        Db2.Ddl ddl = parse("""
+          CREATE PROCEDURE P (
+                IN SCHEMA_PREFIX VARCHAR(128),
+                IN DATABASE VARCHAR(24),
+                INOUT RETCODE INTEGER
+              )
+            LANGUAGE SQL;
+          """);
+
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(0)).getParameters().getElements())
+          .extracting(parameter -> parameter.getMode().getText())
+          .containsExactly("IN", "IN", "INOUT");
+    }
+
+    @Test
     void aSetMayLeaveOutItsEquals() {
         Db2.Ddl ddl = parse("SET CURRENT SQLID 'SYSADM';\nSET SCHEMA = CLM;\nSET SCHEMA CLM;\n");
 

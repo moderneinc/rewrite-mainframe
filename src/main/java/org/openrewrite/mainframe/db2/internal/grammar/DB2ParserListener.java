@@ -663,6 +663,16 @@ public interface DB2ParserListener extends ParseTreeListener {
 	 */
 	void exitRoutineParameter(DB2Parser.RoutineParameterContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DB2Parser#parameterName}.
+	 * @param ctx the parse tree
+	 */
+	void enterParameterName(DB2Parser.ParameterNameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#parameterName}.
+	 * @param ctx the parse tree
+	 */
+	void exitParameterName(DB2Parser.ParameterNameContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DB2Parser#routineClause}.
 	 * @param ctx the parse tree
 	 */

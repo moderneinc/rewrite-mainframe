@@ -410,6 +410,12 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitRoutineParameter(DB2Parser.RoutineParameterContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DB2Parser#parameterName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParameterName(DB2Parser.ParameterNameContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DB2Parser#routineClause}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
