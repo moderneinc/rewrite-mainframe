@@ -470,19 +470,20 @@ class DataNameTest implements RewriteTest {
             000000 WORKING-STORAGE SECTION.                                        \s
             000000 01  WS-SHARED   PIC X.                                          \s
             000000 PROCEDURE DIVISION.                                             \s
-            000000     GOBACK.                                                     \s
+            000000     MOVE 'N' TO WS-SHARED.                                      \s
             000000 END PROGRAM INNERPGM.                                           \s
             000000 END PROGRAM OUTERPGM.                                           \s
             """
         );
 
+        // Both programs declare WS-SHARED, so either one reading the other's entries makes its usage ambiguous.
         List<DataName> definitions = names.stream().filter(DataName::isDefinition).collect(Collectors.toList());
-        assertThat(definitions).hasSize(2);
-        assertThat(definitions.get(0).isReferenced()).isTrue();
-        assertThat(definitions.get(1).isReferenced()).isFalse();
-        assertThat(usagesOf(names, "WS-SHARED")).singleElement()
-          .satisfies(u -> assertThat(u.getDefinition()).isNotNull()
-            .extracting(d -> d.getTree().getId()).isEqualTo(definitions.get(0).getTree().getId()));
+        assertThat(definitions).hasSize(2).allMatch(DataName::isReferenced);
+        assertThat(usagesOf(names, "WS-SHARED")).satisfiesExactly(
+          outer -> assertThat(outer.getDefinition()).isNotNull()
+            .extracting(d -> d.getTree().getId()).isEqualTo(definitions.get(0).getTree().getId()),
+          inner -> assertThat(inner.getDefinition()).isNotNull()
+            .extracting(d -> d.getTree().getId()).isEqualTo(definitions.get(1).getTree().getId()));
     }
 
     /**
