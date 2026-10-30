@@ -25,6 +25,7 @@ import org.openrewrite.mainframe.db2.tree.*;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -171,9 +172,21 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateAuxiliaryTable(Db2.CreateAuxiliaryTable createAuxiliaryTable, PrintOutputCapture<P> p) {
         beforeSyntax(createAuxiliaryTable, Space.Location.CREATE_AUXILIARY_TABLE_PREFIX, p);
-        visit(createAuxiliaryTable.getKeywords(), p);
+        List<Db2.Keyword> keywords = createAuxiliaryTable.getKeywords();
+        Iterator<Db2> options = createAuxiliaryTable.getOptions().iterator();
+        int clauses = indexOf(keywords, Db2.Keyword.Type.In, Db2.Keyword.Type.Stores);
+        visit(keywords.subList(0, clauses), p);
         visit(createAuxiliaryTable.getName(), p);
-        visit(createAuxiliaryTable.getOptions(), p);
+        for (Db2.Keyword keyword : keywords.subList(clauses, keywords.size())) {
+            visit(keyword, p);
+            Db2.Keyword.Type type = keyword.getType();
+            boolean introducesOption = type == Db2.Keyword.Type.In || type == Db2.Keyword.Type.Stores ||
+                                       type == Db2.Keyword.Type.Column || type == Db2.Keyword.Type.Part;
+            if (introducesOption && options.hasNext()) {
+                visit(options.next(), p);
+            }
+        }
+        options.forEachRemaining(option -> visit(option, p));
         afterSyntax(createAuxiliaryTable, p);
         return createAuxiliaryTable;
     }
@@ -252,8 +265,12 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateTrustedContext(Db2.CreateTrustedContext createTrustedContext, PrintOutputCapture<P> p) {
         beforeSyntax(createTrustedContext, Space.Location.CREATE_TRUSTED_CONTEXT_PREFIX, p);
-        visit(createTrustedContext.getKeywords(), p);
+        List<Db2.Keyword> keywords = createTrustedContext.getKeywords();
+        int based = indexOf(keywords, Db2.Keyword.Type.Based);
+        visit(keywords.subList(0, based), p);
         visit(createTrustedContext.getName(), p);
+        // The authid follows AUTHID, the last keyword, and is the first option.
+        visit(keywords.subList(based, keywords.size()), p);
         visit(createTrustedContext.getOptions(), p);
         afterSyntax(createTrustedContext, p);
         return createTrustedContext;

@@ -355,6 +355,37 @@ class Db2ParserTest {
     }
 
     @Test
+    void aTrustedContextPrintsItsAuthidAfterItsName() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TRUSTED CONTEXT CLMCTX BASED UPON CONNECTION USING SYSTEM AUTHID CLMADM
+              ATTRIBUTES (ADDRESS '10.0.0.1', ENCRYPTION 'LOW')
+              DEFAULT ROLE CLMROLE ENABLE
+              WITH USE FOR JOE, PUBLIC WITHOUT AUTHENTICATION;
+            """);
+
+        Db2.CreateTrustedContext context = (Db2.CreateTrustedContext) ddl.getStatements().get(0);
+        assertThat(context.getName().getFullName()).isEqualTo("CLMCTX");
+        assertThat(context.getOptions()).first().isInstanceOfSatisfying(Db2.Name.class,
+          authid -> assertThat(authid.getFullName()).isEqualTo("CLMADM"));
+    }
+
+    @Test
+    void anAuxiliaryTablePrintsEachKeywordBesideWhatItIntroduces() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE AUX TABLE CLM.POLICY_DOC_AUX IN CLMDB.TSDOCAUX STORES CLM.POLICY APPEND NO COLUMN DOC PART 1;
+            CREATE AUXILIARY TABLE CLM.CLAIM_NOTE_AUX STORES CLM.CLAIM COLUMN NOTE;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateAuxiliaryTable.class))
+          .extracting(aux -> aux.getName().getFullName(),
+            aux -> Db2.elementsOf(aux.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+          .containsExactly(tuple("CLM.POLICY_DOC_AUX", List.of("CLMDB.TSDOCAUX", "CLM.POLICY", "DOC")),
+            tuple("CLM.CLAIM_NOTE_AUX", List.of("CLM.CLAIM", "NOTE")));
+    }
+
+    @Test
     void aTriggerPrintsEachKeywordBesideWhatItIntroduces() {
         Db2.Ddl ddl = parse(
           """
@@ -454,6 +485,19 @@ class Db2ParserTest {
         Db2.Revoke revoke = (Db2.Revoke) ddl.getStatements().get(2);
         assertThat(revoke.getObjects().getElements()).extracting(Db2.Name::getFullName).containsExactly("CLM.POLICY");
         assertThat(revoke.getGrantees().getElements()).hasSize(1);
+    }
+
+    @Test
+    void aTrustedContextAltersAddsOrDropsAttributesNamedByOrdinaryWords() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TRUSTED CONTEXT CLMCTX ALTER ATTRIBUTES (ADDRESS '10.0.0.1', ENCRYPTION 'LOW');
+            ALTER TRUSTED CONTEXT CLMCTX ADD ATTRIBUTES (SERVAUTH 'EZB.NETACCESS.ZOS1.TCPIP.CLMZONE', JOBNAME 'CLMBAT*');
+            ALTER TRUSTED CONTEXT CLMCTX DROP ATTRIBUTES (ADDRESS '10.0.0.1');
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class))
+          .extracting(alter -> alter.getName().getFullName()).containsExactly("CLMCTX", "CLMCTX", "CLMCTX");
     }
 
     /**

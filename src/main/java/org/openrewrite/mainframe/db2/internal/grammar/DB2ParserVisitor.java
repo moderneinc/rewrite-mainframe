@@ -338,6 +338,12 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTrustedContextOption(DB2Parser.TrustedContextOptionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DB2Parser#namedTrustedContextOption}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DB2Parser#trustedAttribute}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

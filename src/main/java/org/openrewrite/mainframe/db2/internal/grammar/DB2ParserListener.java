@@ -543,6 +543,16 @@ public interface DB2ParserListener extends ParseTreeListener {
 	 */
 	void exitTrustedContextOption(DB2Parser.TrustedContextOptionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DB2Parser#namedTrustedContextOption}.
+	 * @param ctx the parse tree
+	 */
+	void enterNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#namedTrustedContextOption}.
+	 * @param ctx the parse tree
+	 */
+	void exitNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DB2Parser#trustedAttribute}.
 	 * @param ctx the parse tree
 	 */
