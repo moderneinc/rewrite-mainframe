@@ -53,11 +53,14 @@ public class Program implements Trait<Cobol.ProgramUnit> {
     /**
      * The EXEC interface block the CICS translator inserts into a program it translates, as a DATA
      * DIVISION whose LINKAGE SECTION declares DFHEIBLK. Null where this program declares a DFHEIBLK
-     * itself, since the translator then inserts none. The division hangs under this program's cursor,
-     * so a definition in it belongs to this program.
+     * itself, since the translator then inserts none. Null for a nested program too, since the
+     * integrated translator declares the block GLOBAL in the outermost program only. The division
+     * hangs under this program's cursor, so a definition in it belongs to this program.
      */
     public @Nullable Cursor getExecInterfaceBlock() {
-        return declaresExecInterfaceBlock() ? null : new Cursor(cursor, Translated.DATA_DIVISION);
+        Cursor parent = cursor.getParent();
+        boolean nested = parent != null && parent.firstEnclosing(Cobol.ProgramUnit.class) != null;
+        return nested || declaresExecInterfaceBlock() ? null : new Cursor(cursor, Translated.DATA_DIVISION);
     }
 
     private boolean declaresExecInterfaceBlock() {

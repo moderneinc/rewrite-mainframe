@@ -33,12 +33,14 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 
 /**
  * A data name where it is written: as its definition, the data description entry in the program or
@@ -108,9 +110,10 @@ public class DataName implements Trait<Cobol.Word> {
 
     /**
      * The definition this occurrence resolves to. A definition answers itself. A name the program
-     * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
-     * inserts. Null where the name is declared nowhere the program can see, such as a copybook that
-     * was not found, or where qualification leaves more than one declaration.
+     * does not declare resolves to a GLOBAL item of the nearest program containing it that declares
+     * one, such as EIBCALEN in the DFHEIBLK the CICS translator inserts into the outermost program.
+     * Null where the name is declared nowhere the program can see, such as a copybook that was not
+     * found, or where qualification leaves more than one declaration.
      */
     public @Nullable DataName getDefinition() {
         if (isDefinition()) {
@@ -161,8 +164,8 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * Whether anything in the program names a definition: a usage resolving to it, or a use of a
-     * condition name declared under it. False for a usage.
+     * Whether anything in the program or a program nested in it names a definition: a usage
+     * resolving to it, or a use of a condition name declared under it. False for a usage.
      */
     public boolean isReferenced() {
         return isDefinition() && index().referenced.contains(getTree().getId());
@@ -262,19 +265,11 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     private List<Definition> candidates(Index index) {
-        List<Definition> named = index.byName.get(Names.upperOf(getTree()));
-        if (named == null) {
-            return emptyList();
-        }
+        String name = Names.upperOf(getTree());
         List<String> qualifiers = getQualifiers();
-        if (qualifiers.isEmpty()) {
-            return named;
-        }
-        List<Definition> matching = new ArrayList<>(1);
-        for (Definition definition : named) {
-            if (definition.isQualifiedBy(qualifiers)) {
-                matching.add(definition);
-            }
+        List<Definition> matching = index.matching(name, qualifiers, false);
+        for (Index outer = index.container; matching.isEmpty() && outer != null; outer = outer.container) {
+            matching = outer.matching(name, qualifiers, true);
         }
         return matching;
     }
@@ -288,12 +283,17 @@ public class DataName implements Trait<Cobol.Word> {
         // index sits on a cursor chain of the index's own, and would build the index again from it.
         Map<UUID, Index> byProgram = cursor.getRoot().computeMessageIfAbsent("cobol.dataNames", k -> new HashMap<>());
         UUID id = program.getTree().getId();
-        Index index = byProgram.get(id);
-        if (index == null) {
-            index = Index.of(program);
-            byProgram.put(id, index);
+        if (!byProgram.containsKey(id)) {
+            Cursor outermost = program.getCursor();
+            for (Iterator<Cursor> path = outermost.getPathAsCursors(); path.hasNext(); ) {
+                Cursor enclosing = path.next();
+                if (enclosing.getValue() instanceof Cobol.ProgramUnit) {
+                    outermost = enclosing;
+                }
+            }
+            Index.of(outermost, null, new HashSet<>(), byProgram);
         }
-        return index;
+        return byProgram.get(id);
     }
 
     private static boolean isDefinition(Cursor at) {
@@ -402,6 +402,12 @@ public class DataName implements Trait<Cobol.Word> {
         @Nullable
         Definition parent;
 
+        /**
+         * Whether a nested program can name it. Anything under a GLOBAL entry is global, condition
+         * names included.
+         */
+        boolean global;
+
         @Nullable String getName() {
             return word == null ? null : Names.upperOf(word.getValue());
         }
@@ -437,24 +443,40 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * Every definition in a program and which of them something names, built once per program the
-     * first time any occurrence in it asks.
+     * Every definition in a program, and which definitions anything names. A usage in a nested
+     * program can name an outer program's GLOBAL entry. So the outermost program and every program
+     * nested in it are indexed together, the first time any occurrence in them asks, and share one
+     * {@code referenced} set.
      */
     private static class Index {
 
-        static final Index EMPTY = new Index();
+        static final Index EMPTY = new Index(null, emptySet());
+
+        final @Nullable Index container;
 
         final Map<String, List<Definition>> byName = new HashMap<>();
         final Map<UUID, Definition> byWord = new HashMap<>();
-        final Set<UUID> referenced = new HashSet<>();
+        final Set<UUID> referenced;
 
-        static Index of(Program program) {
-            Index index = new Index();
-            List<Cursor> usages = index.walk(program.getCursor());
+        private Index(@Nullable Index container, Set<UUID> referenced) {
+            this.container = container;
+            this.referenced = referenced;
+        }
 
-            Cursor block = program.getExecInterfaceBlock();
+        /**
+         * Indexes {@code program}, then each program nested in it, so that a nested program's
+         * usages resolve against the complete index of every program containing it.
+         */
+        static void of(Cursor program, @Nullable Index container, Set<UUID> referenced, Map<UUID, Index> byProgram) {
+            Cobol.ProgramUnit unit = program.getValue();
+            Index index = new Index(container, referenced);
+            byProgram.put(unit.getId(), index);
+            List<Cursor> usages = index.walk(program, false);
+
+            Cursor block = new Program(program).getExecInterfaceBlock();
             if (block != null) {
-                index.walk(block);
+                // The translator declares it GLOBAL.
+                index.walk(block, true);
             }
 
             // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
@@ -469,13 +491,35 @@ public class DataName implements Trait<Cobol.Word> {
                     }
                 }
             }
-            return index;
+
+            if (unit.getProgramUnits() != null) {
+                for (Cobol.ProgramUnit nested : unit.getProgramUnits()) {
+                    of(new Cursor(program, nested), index, referenced, byProgram);
+                }
+            }
+        }
+
+        List<Definition> matching(String name, List<String> qualifiers, boolean globalOnly) {
+            List<Definition> named = byName.get(name);
+            if (named == null) {
+                return emptyList();
+            }
+            if (qualifiers.isEmpty() && !globalOnly) {
+                return named;
+            }
+            List<Definition> matching = new ArrayList<>(1);
+            for (Definition definition : named) {
+                if ((definition.isGlobal() || !globalOnly) && definition.isQualifiedBy(qualifiers)) {
+                    matching.add(definition);
+                }
+            }
+            return matching;
         }
 
         /**
          * Defines every entry under {@code tree} and returns the words written where a data name is used.
          */
-        private List<Cursor> walk(Cursor tree) {
+        private List<Cursor> walk(Cursor tree, boolean global) {
             Index index = this;
             List<Cursor> usages = new ArrayList<>();
             new CopybookSkippingVisitor<Deque<Definition>>() {
@@ -488,7 +532,7 @@ public class DataName implements Trait<Cobol.Word> {
                 @Override
                 public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry,
                                                                             Deque<Definition> open) {
-                    index.define(getCursor(), open);
+                    index.define(getCursor(), open, global);
                     return super.visitDataDescriptionEntry(entry, open);
                 }
 
@@ -515,7 +559,7 @@ public class DataName implements Trait<Cobol.Word> {
          * A level 88 and a level 66 sit under the item before them and nest nothing; 01 and 77
          * start over; anything else is under the nearest entry of a lower level.
          */
-        private void define(Cursor at, Deque<Definition> open) {
+        private void define(Cursor at, Deque<Definition> open, boolean global) {
             Cobol.DataDescriptionEntry entry = at.getValue();
             int level = levelOf(entry);
             Definition parent;
@@ -534,7 +578,8 @@ public class DataName implements Trait<Cobol.Word> {
             }
             Cobol.Word name = entry.getName();
             boolean named = name != null && !"FILLER".equalsIgnoreCase(name.getWord());
-            Definition definition = new Definition(named ? new Cursor(at, name) : null, level, parent);
+            Definition definition = new Definition(named ? new Cursor(at, name) : null, level, parent,
+                    parent == null ? global || declaresGlobal(at) : parent.isGlobal());
             if (level != 88 && level != 66) {
                 open.push(definition);
             }
@@ -542,6 +587,27 @@ public class DataName implements Trait<Cobol.Word> {
                 byWord.put(name.getId(), definition);
                 byName.computeIfAbsent(Names.upperOf(name), k -> new ArrayList<>(1)).add(definition);
             }
+        }
+
+        /**
+         * Whether the entry says GLOBAL, or the FD it describes a record of does.
+         */
+        private static boolean declaresGlobal(Cursor at) {
+            Cobol.DataDescriptionEntry entry = at.getValue();
+            Cobol.FileDescriptionEntry file = at.firstEnclosing(Cobol.FileDescriptionEntry.class);
+            return anyOf(entry.getClauses(), Cobol.DataGlobalClause.class) ||
+                   file != null && anyOf(file.getClauses(), Cobol.GlobalClause.class);
+        }
+
+        private static boolean anyOf(@Nullable List<Cobol> clauses, Class<? extends Cobol> type) {
+            if (clauses != null) {
+                for (Cobol clause : clauses) {
+                    if (type.isInstance(clause)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private static int levelOf(Cobol.DataDescriptionEntry entry) {
