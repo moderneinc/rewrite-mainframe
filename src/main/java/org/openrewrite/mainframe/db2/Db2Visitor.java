@@ -232,7 +232,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));
@@ -246,7 +248,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));
@@ -347,7 +351,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));
@@ -361,7 +367,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));

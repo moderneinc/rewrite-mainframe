@@ -123,7 +123,7 @@ public class CopybookParser implements Parser {
             );
 
             parsingListener.parsed(input, preprocessedCU);
-            return copybook;
+            return requirePrintEqualsInput(copybook, input, relativeTo, ctx);
         } catch (Throwable t) {
             ctx.getOnError().accept(t);
             return ParseError.build(this, input, relativeTo, ctx, t);

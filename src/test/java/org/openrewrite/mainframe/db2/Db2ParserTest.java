@@ -805,7 +805,6 @@ class Db2ParserTest {
     @ValueSource(strings = {
       "CREATE TABLE T(COMMENT VARCHAR(10));\n",
       "CREATE TABLE T(DATA VARCHAR(10));\n",
-      "CREATE TABLE T(CONSTRAINT VARCHAR(10));\n",
       "ALTER TABLE T ADD COLUMN DATA VARCHAR(10);\n",
       "CREATE TABLE T(ID);\n"})
     void aTableElementThatCannotBeReadDoesNotFailTheWholeFile(String source) {
@@ -814,6 +813,23 @@ class Db2ParserTest {
         assertThat(parsed).isInstanceOf(Db2.Ddl.class);
         assertThat(parsed.getMarkers().findFirst(ParseExceptionResult.class)).isEmpty();
         assertThat(errorsIn(source)).isNotEmpty();
+    }
+
+    @Test
+    void aProcedureMayLeaveOutItsParameterList() {
+        Db2.Ddl ddl = parse("CREATE PROCEDURE P LANGUAGE SQL;\nCREATE PROCEDURE Q () LANGUAGE SQL;\n");
+
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(0)).getParameters()).isNull();
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(1)).getParameters()).isNotNull();
+    }
+
+    @Test
+    void aConstraintNamedLikeATypeIsAParseErrorForNotPrintingBack() {
+        SourceFile parsed = parseIgnoringErrors("CREATE TABLE T(CONSTRAINT VARCHAR(10));\n");
+
+        assertThat(parsed).isInstanceOf(ParseError.class);
+        assertThat(parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow().getMessage())
+          .contains("is not print idempotent");
     }
 
     @ParameterizedTest
