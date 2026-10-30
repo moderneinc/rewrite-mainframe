@@ -2162,6 +2162,24 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitInitializeStatement(CobolParser.InitializeStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#initializeValuePhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInitializeValuePhrase(CobolParser.InitializeValuePhraseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#initializeDefaultPhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInitializeDefaultPhrase(CobolParser.InitializeDefaultPhraseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#initializeCategory}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInitializeCategory(CobolParser.InitializeCategoryContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#initializeReplacingPhrase}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -3139,6 +3157,30 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitXmlProcessingProcedurePhrase(CobolParser.XmlProcessingProcedurePhraseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#jsonXmlStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitJsonXmlStatement(CobolParser.JsonXmlStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#jsonXmlPhrase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitJsonXmlPhrase(CobolParser.JsonXmlPhraseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#allocateStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAllocateStatement(CobolParser.AllocateStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#freeStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFreeStatement(CobolParser.FreeStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#atEndPhrase}.
 	 * @param ctx the parse tree

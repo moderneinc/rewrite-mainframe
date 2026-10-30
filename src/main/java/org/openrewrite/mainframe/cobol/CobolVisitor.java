@@ -1361,13 +1361,55 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return i.withTableCall((Cobol.TableCall) visit(i.getTableCall(), p));
     }
 
+    public Cobol visitAllocate(Cobol.Allocate allocate, P p) {
+        Cobol.Allocate a = allocate;
+        a = a.withPrefix(visitSpace(a.getPrefix(), Space.Location.ALLOCATE_PREFIX, p));
+        a = a.withMarkers(visitMarkers(a.getMarkers(), p));
+        a = a.withAllocate((Cobol.Word) visit(a.getAllocate(), p));
+        a = a.withSubject(visit(a.getSubject(), p));
+        a = a.withOptions(ListUtils.map(a.getOptions(), t -> visit(t, p)));
+        a = a.withReturning((Cobol.Word) visit(a.getReturning(), p));
+        return a.withPointer((Name) visit(a.getPointer(), p));
+    }
+
+    public Cobol visitFree(Cobol.Free free, P p) {
+        Cobol.Free f = free;
+        f = f.withPrefix(visitSpace(f.getPrefix(), Space.Location.FREE_PREFIX, p));
+        f = f.withMarkers(visitMarkers(f.getMarkers(), p));
+        f = f.withFree((Cobol.Word) visit(f.getFree(), p));
+        return f.withPointers(ListUtils.map(f.getPointers(), t -> visit(t, p)));
+    }
+
+    public Cobol visitJsonXml(Cobol.JsonXml jsonXml, P p) {
+        Cobol.JsonXml j = jsonXml;
+        j = j.withPrefix(visitSpace(j.getPrefix(), Space.Location.JSON_XML_PREFIX, p));
+        j = j.withMarkers(visitMarkers(j.getMarkers(), p));
+        j = j.withWords(ListUtils.map(j.getWords(), t -> (Cobol.Word) visit(t, p)));
+        j = j.withDocument((Name) visit(j.getDocument(), p));
+        j = j.withPreposition((Cobol.Word) visit(j.getPreposition(), p));
+        j = j.withData((Name) visit(j.getData(), p));
+        j = j.withPhrases(ListUtils.map(j.getPhrases(), t -> (Cobol.JsonXmlPhrase) visit(t, p)));
+        j = j.withOnException((Cobol.StatementPhrase) visit(j.getOnException(), p));
+        j = j.withNotOnException((Cobol.StatementPhrase) visit(j.getNotOnException(), p));
+        return j.withEnd((Cobol.Word) visit(j.getEnd(), p));
+    }
+
+    public Cobol visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, P p) {
+        Cobol.JsonXmlPhrase j = jsonXmlPhrase;
+        j = j.withPrefix(visitSpace(j.getPrefix(), Space.Location.JSON_XML_PHRASE_PREFIX, p));
+        j = j.withMarkers(visitMarkers(j.getMarkers(), p));
+        return j.withElements(ListUtils.map(j.getElements(), t -> visit(t, p)));
+    }
+
     public Cobol visitInitialize(Cobol.Initialize initialize, P p) {
         Cobol.Initialize i = initialize;
         i = i.withPrefix(visitSpace(i.getPrefix(), Space.Location.INITIALIZE_PREFIX, p));
         i = i.withMarkers(visitMarkers(i.getMarkers(), p));
         i = i.withInitialize((Cobol.Word) visit(i.getInitialize(), p));
         i = i.withIdentifiers(ListUtils.map(i.getIdentifiers(), t -> visit(t, p)));
-        return i.withInitializeReplacingPhrase((Cobol.InitializeReplacingPhrase) visit(i.getInitializeReplacingPhrase(), p));
+        i = i.withValuePhrase(ListUtils.map(i.getValuePhrase(), t -> (Cobol.Word) visit(t, p)));
+        i = i.withInitializeReplacingPhrase((Cobol.InitializeReplacingPhrase) visit(i.getInitializeReplacingPhrase(), p));
+        return i.withDefaultPhrase(ListUtils.map(i.getDefaultPhrase(), t -> (Cobol.Word) visit(t, p)));
     }
 
     public Cobol visitInitializeReplacingBy(Cobol.InitializeReplacingBy initializeReplacingBy, P p) {

@@ -1537,11 +1537,57 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public Cobol visitAllocate(Cobol.Allocate allocate, PrintOutputCapture<P> p) {
+        beforeSyntax(allocate, Space.Location.ALLOCATE_PREFIX, p);
+        visit(allocate.getAllocate(), p);
+        visit(allocate.getSubject(), p);
+        visit(allocate.getOptions(), p);
+        visit(allocate.getReturning(), p);
+        visit(allocate.getPointer(), p);
+        afterSyntax(allocate, p);
+        return allocate;
+    }
+
+    @Override
+    public Cobol visitFree(Cobol.Free free, PrintOutputCapture<P> p) {
+        beforeSyntax(free, Space.Location.FREE_PREFIX, p);
+        visit(free.getFree(), p);
+        visit(free.getPointers(), p);
+        afterSyntax(free, p);
+        return free;
+    }
+
+    @Override
+    public Cobol visitJsonXml(Cobol.JsonXml jsonXml, PrintOutputCapture<P> p) {
+        beforeSyntax(jsonXml, Space.Location.JSON_XML_PREFIX, p);
+        visit(jsonXml.getWords(), p);
+        visit(jsonXml.getDocument(), p);
+        visit(jsonXml.getPreposition(), p);
+        visit(jsonXml.getData(), p);
+        visit(jsonXml.getPhrases(), p);
+        visit(jsonXml.getOnException(), p);
+        visit(jsonXml.getNotOnException(), p);
+        visit(jsonXml.getEnd(), p);
+        afterSyntax(jsonXml, p);
+        return jsonXml;
+    }
+
+    @Override
+    public Cobol visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, PrintOutputCapture<P> p) {
+        beforeSyntax(jsonXmlPhrase, Space.Location.JSON_XML_PHRASE_PREFIX, p);
+        visit(jsonXmlPhrase.getElements(), p);
+        afterSyntax(jsonXmlPhrase, p);
+        return jsonXmlPhrase;
+    }
+
+    @Override
     public Cobol visitInitialize(Cobol.Initialize initialize, PrintOutputCapture<P> p) {
         beforeSyntax(initialize, Space.Location.INITIALIZE_PREFIX, p);
         visit(initialize.getInitialize(), p);
         visit(initialize.getIdentifiers(), p);
+        visit(initialize.getValuePhrase(), p);
         visit(initialize.getInitializeReplacingPhrase(), p);
+        visit(initialize.getDefaultPhrase(), p);
         afterSyntax(initialize, p);
         return initialize;
     }

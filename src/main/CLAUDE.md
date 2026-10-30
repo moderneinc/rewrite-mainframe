@@ -23,6 +23,12 @@ Run it on main and on the branch, alternating, three times each, under an exclus
 - **The warm passes.** They are what a long run over many programs sees, for time and allocation alike.
 - **The full-context predictions in pass 1**, by rule, and the longest span one scanned. Each is an ambiguity SLL could not settle, and costs a second prediction every time the parser meets it. The test fails when one prediction scans more than 50 tokens, the shape of a change that makes parsing quadratic. A rule that appears here for the first time has an exit or an alternative that needs a predicate stating the answer, as `imperativeStatements` and the statement phrases have.
 
+## Changing a grammar
+
+Regenerate with the grammar's `generateAntlrSources…` task, then run `licenseFormat`, since the generator drops the license header. Make the `// Generated from` path relative. Restore a generated lexer whose serialized ATN did not change. A large lexer splits that string into `_serializedATNSegment0`, `_serializedATNSegment1` and so on, so compare every segment, and make sure the comparison extracted something, because two empty extracts compare equal.
+
+A new keyword needs the class IBM gives it in the Enterprise COBOL Language Reference. A reserved word is a token and nothing else. A context-sensitive word, listed in the appendix of that name, is a token that `cobolWord` also accepts, so that a program naming a data item `NAME` or `LOC` still parses. Check the corpus for data items spelled like a new reserved word before adding it.
+
 ## What went wrong before
 
 - A predicate on both sides of a loop over statement lists made SLL closure grow until a 10 GB heap ran out on a 20-line program (#189). One predicate on the exit side of the decision, in a rule shared by every call site, did the same job.

@@ -4304,6 +4304,42 @@ public class CobolParserBaseListener implements CobolParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterInitializeValuePhrase(CobolParser.InitializeValuePhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInitializeValuePhrase(CobolParser.InitializeValuePhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterInitializeDefaultPhrase(CobolParser.InitializeDefaultPhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInitializeDefaultPhrase(CobolParser.InitializeDefaultPhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterInitializeCategory(CobolParser.InitializeCategoryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInitializeCategory(CobolParser.InitializeCategoryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterInitializeReplacingPhrase(CobolParser.InitializeReplacingPhraseContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -6255,6 +6291,54 @@ public class CobolParserBaseListener implements CobolParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitXmlProcessingProcedurePhrase(CobolParser.XmlProcessingProcedurePhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterJsonXmlStatement(CobolParser.JsonXmlStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitJsonXmlStatement(CobolParser.JsonXmlStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterJsonXmlPhrase(CobolParser.JsonXmlPhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitJsonXmlPhrase(CobolParser.JsonXmlPhraseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterAllocateStatement(CobolParser.AllocateStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAllocateStatement(CobolParser.AllocateStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFreeStatement(CobolParser.FreeStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFreeStatement(CobolParser.FreeStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

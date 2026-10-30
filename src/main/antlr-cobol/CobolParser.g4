@@ -1482,7 +1482,7 @@ imperativeStatements
    ;
 
 statement
-   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement
+   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement | jsonXmlStatement | allocateStatement | freeStatement
    ;
 
 // accept statement
@@ -1874,7 +1874,21 @@ ifElse
 // initialize statement
 
 initializeStatement
-   : INITIALIZE identifier+ initializeReplacingPhrase?
+   : INITIALIZE identifier+ initializeValuePhrase? initializeReplacingPhrase? initializeDefaultPhrase?
+   ;
+
+initializeValuePhrase
+   : WITH? FILLER ((ALL | initializeCategory) TO VALUE)? THEN?
+   | (ALL | initializeCategory) TO VALUE THEN?
+   | THEN
+   ;
+
+initializeDefaultPhrase
+   : THEN? TO DEFAULT
+   ;
+
+initializeCategory
+   : ALPHABETIC | ALPHANUMERIC | ALPHANUMERIC_EDITED | NATIONAL | NATIONAL_EDITED | NUMERIC | NUMERIC_EDITED | DBCS | EGCS
    ;
 
 initializeReplacingPhrase
@@ -1882,7 +1896,7 @@ initializeReplacingPhrase
    ;
 
 initializeReplacingBy
-   : (ALPHABETIC | ALPHANUMERIC | ALPHANUMERIC_EDITED | NATIONAL | NATIONAL_EDITED | NUMERIC | NUMERIC_EDITED | DBCS | EGCS) DATA? BY (identifier | literal)
+   : initializeCategory DATA? BY (identifier | literal)
    ;
 
 // initiate statement
@@ -2585,6 +2599,33 @@ xmlProcessingProcedurePhrase
    : PROCESSING PROCEDURE IS? procedureName ((THROUGH | THRU) procedureName)?
    ;
 
+// JSON GENERATE, JSON PARSE and XML GENERATE convert between a document and a data item. Their phrases are read
+// loosely, as the words and operands each may hold, in any order. NAME is a keyword inside these statements, so it
+// starts a phrase rather than continuing one, and a WHEN after SUPPRESS is the phrase's rather than an EVALUATE's.
+
+jsonXmlStatement
+   : (JSON (GENERATE | PARSE) | XML GENERATE) identifier (FROM | INTO) identifier jsonXmlPhrase* (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_JSON | END_XML | {!ahead($ctx, END_JSON) && !ahead($ctx, END_XML)}?)
+   ;
+
+jsonXmlPhrase
+   : COUNT IN? identifier
+   | WITH? (DETAIL | XML_DECLARATION | ATTRIBUTES | ENCODING (identifier | integerLiteral))
+   | (NAMESPACE | NAMESPACE_PREFIX) IS? (identifier | literal)
+   | (NAME | TYPE) OF? ({!ahead($ctx, NAME)}? identifier IS? (literal | OMITTED | ATTRIBUTE | ELEMENT | CONTENT))+
+   | SUPPRESS ({!ahead($ctx, NAME)}? identifier | EVERY | NUMERIC | NONNUMERIC | CONTENT | ELEMENT | WHEN | OR | literal)+ {!ahead($ctx, WHEN)}?
+   | CONVERTING ({!ahead($ctx, NAME)}? identifier | TO | FROM | JSON | BOOLEAN | USING | ALSO | literal)+
+   ;
+
+// allocate and free statements
+
+allocateStatement
+   : ALLOCATE arithmeticExpression CHARACTERS? INITIALIZED? (LOC integerLiteral)? (RETURNING identifier)?
+   ;
+
+freeStatement
+   : FREE identifier+
+   ;
+
 // statement phrases ----------------------------------
 
 atEndPhrase
@@ -2910,6 +2951,7 @@ symbolicCharacter
 
 cobolWord
    : IDENTIFIER
+   | INITIALIZED | LOC | NAME
    | ABORT | AS | ASCII | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH | ATTRIBUTE | AUTO | AUTO_SKIP
    | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BINARY | BIT | BLINK | BLOB | BOUNDS
    | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CLOB | CLOSE_DISPOSITION | COBOL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR
