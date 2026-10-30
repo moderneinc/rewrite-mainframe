@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,10 +109,10 @@ public class DataName implements Trait<Cobol.Word> {
 
     /**
      * The definition this occurrence resolves to. A definition answers itself. A name the program
-     * does not declare resolves to a GLOBAL item of the nearest program containing it that declares
-     * one, such as EIBCALEN in the DFHEIBLK the CICS translator inserts into the outermost program.
-     * Null where the name is declared nowhere the program can see, such as a copybook that was not
-     * found, or where qualification leaves more than one declaration.
+     * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
+     * inserts. Failing that, it resolves to a GLOBAL item of the nearest program containing it that
+     * declares one. Null where the name is declared nowhere the program can see, such as a copybook
+     * that was not found, or where qualification leaves more than one declaration.
      */
     public @Nullable DataName getDefinition() {
         if (isDefinition()) {
@@ -284,14 +283,7 @@ public class DataName implements Trait<Cobol.Word> {
         Map<UUID, Index> byProgram = cursor.getRoot().computeMessageIfAbsent("cobol.dataNames", k -> new HashMap<>());
         UUID id = program.getTree().getId();
         if (!byProgram.containsKey(id)) {
-            Cursor outermost = program.getCursor();
-            for (Iterator<Cursor> path = outermost.getPathAsCursors(); path.hasNext(); ) {
-                Cursor enclosing = path.next();
-                if (enclosing.getValue() instanceof Cobol.ProgramUnit) {
-                    outermost = enclosing;
-                }
-            }
-            Index.of(outermost, null, new HashSet<>(), byProgram);
+            Index.of(program.outermost().getCursor(), null, new HashSet<>(), byProgram);
         }
         return byProgram.get(id);
     }

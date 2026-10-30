@@ -504,11 +504,15 @@ class DataNameTest implements RewriteTest {
             000000 01  WS-REC GLOBAL.                                              \s
             000000     05  WS-FLAG    PIC X.                                       \s
             000000         88  FLAG-ON  VALUE 'Y'.                                 \s
-            000000 01  WS-LOCAL    PIC X.                                          \s
+            000000 01  WS-NEAR     PIC X GLOBAL.                                   \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     GOBACK.                                                     \s
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. MIDPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-REC      PIC X.                                          \s
+            000000 01  WS-NEAR     PIC X GLOBAL.                                   \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     GOBACK.                                                     \s
             000000 IDENTIFICATION DIVISION.                                        \s
@@ -517,7 +521,7 @@ class DataNameTest implements RewriteTest {
             000000     SET FLAG-ON TO TRUE.                                        \s
             000000     EXEC CICS RECEIVE INTO(WS-REC) END-EXEC.                    \s
             000000     MOVE SPACES TO CUST-REC.                                    \s
-            000000     MOVE EIBCALEN TO WS-LOCAL.                                  \s
+            000000     MOVE EIBCALEN TO WS-NEAR.                                   \s
             000000 END PROGRAM INNERPGM.                                           \s
             000000 END PROGRAM MIDPGM.                                             \s
             000000 END PROGRAM OUTERPGM.                                           \s
@@ -525,16 +529,18 @@ class DataNameTest implements RewriteTest {
         );
 
         assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
-          .containsExactly("FLAG-ON", "WS-REC", "CUST-REC", "EIBCALEN", "WS-LOCAL");
+          .containsExactly("FLAG-ON", "WS-REC", "CUST-REC", "EIBCALEN", "WS-NEAR");
         assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull();
         assertThat(usagesOf(names, "EIBCALEN").get(0).getDefinition()).isNotNull()
           .extracting(DataName::isSystemSupplied).isEqualTo(true);
         // Credited through the condition name SET in INNERPGM.
         assertThat(definitionOf(names, "WS-FLAG").isReferenced()).isTrue();
 
-        // Only GLOBAL reaches into a nested program.
-        assertThat(usagesOf(names, "WS-LOCAL").get(0).getDefinition()).isNull();
-        assertThat(definitionOf(names, "WS-LOCAL").isReferenced()).isFalse();
+        // MIDPGM's WS-REC is not GLOBAL, so it neither reaches INNERPGM nor hides OUTERPGM's.
+        assertThat(usagesOf(names, "WS-REC").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
+        assertThat(usagesOf(names, "WS-NEAR").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("MIDPGM");
     }
 
     @Test

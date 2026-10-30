@@ -52,15 +52,30 @@ public class Program implements Trait<Cobol.ProgramUnit> {
 
     /**
      * The EXEC interface block the CICS translator inserts into a program it translates, as a DATA
-     * DIVISION whose LINKAGE SECTION declares DFHEIBLK. Null where this program declares a DFHEIBLK
-     * itself, since the translator then inserts none. Null for a nested program too, since the
-     * integrated translator declares the block GLOBAL in the outermost program only. The division
-     * hangs under this program's cursor, so a definition in it belongs to this program.
+     * DIVISION whose LINKAGE SECTION declares DFHEIBLK. The division hangs under this program's
+     * cursor, so a definition in it belongs to this program.
+     * <p>
+     * Null where this program declares a DFHEIBLK itself, since the translator then inserts none.
+     * Null for a nested program too, since the integrated translator declares the block GLOBAL in
+     * the outermost program only. A program is nested only if its cursor reaches the program
+     * containing it.
      */
     public @Nullable Cursor getExecInterfaceBlock() {
-        Cursor parent = cursor.getParent();
-        boolean nested = parent != null && parent.firstEnclosing(Cobol.ProgramUnit.class) != null;
-        return nested || declaresExecInterfaceBlock() ? null : new Cursor(cursor, Translated.DATA_DIVISION);
+        return outermost() != this || declaresExecInterfaceBlock() ? null : new Cursor(cursor, Translated.DATA_DIVISION);
+    }
+
+    /**
+     * The outermost program on this program's cursor, or this program itself where none contains it.
+     */
+    Program outermost() {
+        Cursor outermost = cursor;
+        for (Iterator<Cursor> path = cursor.getPathAsCursors(); path.hasNext(); ) {
+            Cursor enclosing = path.next();
+            if (enclosing.getValue() instanceof Cobol.ProgramUnit) {
+                outermost = enclosing;
+            }
+        }
+        return outermost == cursor ? this : new Program(outermost);
     }
 
     private boolean declaresExecInterfaceBlock() {
