@@ -90,6 +90,35 @@ options { tokenVocab = CobolLexer; }
     }
 
     /**
+     * Whether the word ahead is one a JSON or XML statement reads as a keyword, though it names data elsewhere.
+     */
+    boolean jsonXmlKeywordAhead(ParserRuleContext statement) {
+        switch (_input.LA(1)) {
+            case NAME: case NAMESPACE: case NAMESPACE_PREFIX: case ATTRIBUTE: case ATTRIBUTES: case ELEMENT:
+            case NONNUMERIC: case XML_DECLARATION:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Whether WHEN and a figurative constant follow, which is how a SUPPRESS phrase names its condition.
+     */
+    boolean suppressWhenAhead(ParserRuleContext phrase) {
+        if (_input.LA(1) != WHEN) {
+            return false;
+        }
+        switch (_input.LA(2)) {
+            case ZERO: case ZEROS: case ZEROES: case SPACE: case SPACES:
+            case LOW_VALUE: case LOW_VALUES: case HIGH_VALUE: case HIGH_VALUES:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
      * Whether the next word opens another ALL, LEADING or FIRST group of an INSPECT phrase. The operands of one
      * group follow its word without repeating it, and INSPECT forbids a figurative constant beginning with ALL
      * among them, so the word after an operand always opens a group.
@@ -1482,7 +1511,7 @@ imperativeStatements
    ;
 
 statement
-   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement
+   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement | jsonXmlStatement | allocateStatement | freeStatement
    ;
 
 // accept statement
@@ -1874,7 +1903,20 @@ ifElse
 // initialize statement
 
 initializeStatement
-   : INITIALIZE identifier+ initializeReplacingPhrase?
+   : INITIALIZE identifier+ initializeValuePhrase? (THEN? initializeReplacingPhrase)? initializeDefaultPhrase?
+   ;
+
+initializeValuePhrase
+   : WITH? FILLER ((ALL | initializeCategory) TO VALUE)?
+   | (ALL | initializeCategory) TO VALUE
+   ;
+
+initializeDefaultPhrase
+   : THEN? TO DEFAULT
+   ;
+
+initializeCategory
+   : ALPHABETIC | ALPHANUMERIC | ALPHANUMERIC_EDITED | NATIONAL | NATIONAL_EDITED | NUMERIC | NUMERIC_EDITED | DBCS | EGCS
    ;
 
 initializeReplacingPhrase
@@ -1882,7 +1924,7 @@ initializeReplacingPhrase
    ;
 
 initializeReplacingBy
-   : (ALPHABETIC | ALPHANUMERIC | ALPHANUMERIC_EDITED | NATIONAL | NATIONAL_EDITED | NUMERIC | NUMERIC_EDITED | DBCS | EGCS) DATA? BY (identifier | literal)
+   : initializeCategory DATA? BY (identifier | literal)
    ;
 
 // initiate statement
@@ -2585,6 +2627,34 @@ xmlProcessingProcedurePhrase
    : PROCESSING PROCEDURE IS? procedureName ((THROUGH | THRU) procedureName)?
    ;
 
+// JSON GENERATE, JSON PARSE and XML GENERATE convert between a document and a data item. Their phrases are read
+// loosely, as the words and operands each may hold, in any order. Inside them NAME, ELEMENT and the other phrase
+// words are keywords rather than data names, and a WHEN before a figurative constant is SUPPRESS's, not an EVALUATE's.
+
+jsonXmlStatement
+   : (JSON (GENERATE | PARSE) | XML GENERATE) identifier (FROM | INTO) identifier jsonXmlPhrase* (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_JSON | END_XML | {!ahead($ctx, END_JSON) && !ahead($ctx, END_XML)}?)
+   ;
+
+jsonXmlPhrase
+   : COUNT IN? identifier
+   | WITH? (DETAIL | XML_DECLARATION | ATTRIBUTES | ENCODING (identifier | integerLiteral))
+   | (NAMESPACE | NAMESPACE_PREFIX) IS? (identifier | literal)
+   | (NAME | TYPE) OF? ({!jsonXmlKeywordAhead($ctx)}? identifier IS? (literal | OMITTED | ATTRIBUTE | ELEMENT | CONTENT))+
+   | SUPPRESS ({!jsonXmlKeywordAhead($ctx)}? identifier | EVERY | NUMERIC | NONNUMERIC | ATTRIBUTE | CONTENT | ELEMENT
+       | (WHEN | OR) (ZERO | ZEROS | ZEROES | SPACE | SPACES | LOW_VALUE | LOW_VALUES | HIGH_VALUE | HIGH_VALUES))+ {!suppressWhenAhead($ctx)}?
+   | CONVERTING ({!jsonXmlKeywordAhead($ctx)}? identifier | TO | FROM | JSON | BOOLEAN | USING | ALSO | literal)+
+   ;
+
+// allocate and free statements
+
+allocateStatement
+   : ALLOCATE arithmeticExpression CHARACTERS? INITIALIZED? (LOC integerLiteral)? (RETURNING identifier)?
+   ;
+
+freeStatement
+   : FREE identifier+
+   ;
+
 // statement phrases ----------------------------------
 
 atEndPhrase
@@ -2910,6 +2980,7 @@ symbolicCharacter
 
 cobolWord
    : IDENTIFIER
+   | ATTRIBUTES | ELEMENT | INITIALIZED | LOC | NAME | NAMESPACE | NAMESPACE_PREFIX | NONNUMERIC | XML_DECLARATION
    | ABORT | AS | ASCII | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH | ATTRIBUTE | AUTO | AUTO_SKIP
    | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BINARY | BIT | BLINK | BLOB | BOUNDS
    | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CLOB | CLOSE_DISPOSITION | COBOL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR

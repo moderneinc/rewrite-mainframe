@@ -425,6 +425,39 @@ class FullContextPredictionTest {
           "replacingPhrase", "replaceByStatement", "copyStatement", "identifierWords")).isZero();
     }
 
+    @Test
+    void enterpriseCobolStatements() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENTSTMT.
+          PROCEDURE DIVISION.
+              JSON GENERATE DOC FROM REC COUNT IN CNT
+                  NAME OF ACCT IS 'account' BAL IS OMITTED
+                  SUPPRESS BAL WHEN ZERO OR SPACES
+                  CONVERTING FLAG TO JSON BOOLEAN USING ACTIVE
+                  ON EXCEPTION MOVE 1 TO CNT
+              END-JSON
+              XML GENERATE DOC FROM REC WITH ATTRIBUTES NAMESPACE IS NS
+                  TYPE OF BAL IS ELEMENT SUPPRESS EVERY NUMERIC ELEMENT WHEN ZERO
+              JSON PARSE DOC INTO REC WITH DETAIL
+              ALLOCATE CNT * 2 CHARACTERS INITIALIZED LOC 31 RETURNING PTR
+              ALLOCATE REC RETURNING PTR
+              FREE PTR PTR2
+              INITIALIZE REC WITH FILLER ALL TO VALUE THEN REPLACING NUMERIC DATA BY ZERO THEN TO DEFAULT
+              INITIALIZE REC NAME
+              INITIALIZE REC THEN TO DEFAULT
+              INITIALIZE REC ALL TO VALUE THEN TO DEFAULT
+              EVALUATE CNT
+                WHEN 1 XML GENERATE DOC FROM REC SUPPRESS BAL
+                WHEN 2 JSON GENERATE DOC FROM REC SUPPRESS BAL WHEN ZERO
+                WHEN OTHER CONTINUE
+              END-EVALUATE
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "jsonXmlStatement", "jsonXmlPhrase", "allocateStatement",
+          "freeStatement", "initializeStatement", "initializeValuePhrase", "initializeDefaultPhrase")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
         return fallbacks(parser, parser::compilationUnit, rules);

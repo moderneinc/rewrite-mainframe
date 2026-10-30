@@ -2291,13 +2291,64 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitAllocateStatement(CobolParser.AllocateStatementContext ctx) {
+        return new Cobol.Allocate(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                (Cobol.Word) visit(ctx.ALLOCATE()),
+                (Cobol) visit(ctx.arithmeticExpression()),
+                convertAllList(singletonList(ctx.CHARACTERS()), singletonList(ctx.INITIALIZED()), singletonList(ctx.LOC()),
+                        singletonList(ctx.integerLiteral())),
+                visitNullable(ctx.RETURNING()),
+                visitNullable(ctx.identifier())
+        );
+    }
+
+    @Override
+    public Object visitFreeStatement(CobolParser.FreeStatementContext ctx) {
+        return new Cobol.Free(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                (Cobol.Word) visit(ctx.FREE()),
+                convertAllList(ctx.identifier())
+        );
+    }
+
+    @Override
+    public Object visitJsonXmlStatement(CobolParser.JsonXmlStatementContext ctx) {
+        return new Cobol.JsonXml(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.JSON(), ctx.XML(), ctx.GENERATE(), ctx.PARSE()),
+                (Name) visit(ctx.identifier(0)),
+                (Cobol.Word) visit(ctx.FROM() != null ? ctx.FROM() : ctx.INTO()),
+                (Name) visit(ctx.identifier(1)),
+                convertAll(ctx.jsonXmlPhrase()),
+                visitNullable(ctx.onExceptionClause()),
+                visitNullable(ctx.notOnExceptionClause()),
+                visitNullable(ctx.END_JSON() != null ? ctx.END_JSON() : ctx.END_XML())
+        );
+    }
+
+    @Override
+    public Object visitJsonXmlPhrase(CobolParser.JsonXmlPhraseContext ctx) {
+        List<Cobol> elements = new ArrayList<>(ctx.getChildCount());
+        for (ParseTree child : ctx.children) {
+            elements.add((Cobol) visit(child));
+        }
+        return new Cobol.JsonXmlPhrase(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                elements
+        );
+    }
+
+    @Override
     public Object visitInitializeReplacingBy(CobolParser.InitializeReplacingByContext ctx) {
         return new Cobol.InitializeReplacingBy(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                wordsList(ctx.ALPHABETIC(), ctx.ALPHANUMERIC(), ctx.ALPHANUMERIC_EDITED(),
-                        ctx.NATIONAL(), ctx.NATIONAL_EDITED(), ctx.NUMERIC(), ctx.NUMERIC_EDITED(),
-                        ctx.DBCS(), ctx.EGCS(), ctx.DATA(), ctx.BY()),
+                words(ctx.initializeCategory(), ctx.DATA(), ctx.BY()),
                 visit(ctx.identifier(), ctx.literal())
         );
     }
@@ -2319,7 +2370,9 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.INITIALIZE()),
                 convertAllList(ctx.identifier()),
-                visitNullable(ctx.initializeReplacingPhrase())
+                words(ctx.initializeValuePhrase(), ctx.THEN()),
+                visitNullable(ctx.initializeReplacingPhrase()),
+                words(ctx.initializeDefaultPhrase())
         );
     }
 
@@ -6119,6 +6172,32 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             removeColumnMarkers = true;
         }
         return delimIndex;
+    }
+
+    /**
+     * The words of the given rules and tokens, in source order, or empty.
+     */
+    private List<Cobol.Word> words(@Nullable ParseTree... trees) {
+        List<TerminalNode> terminals = new ArrayList<>();
+        for (ParseTree tree : trees) {
+            collectTerminals(tree, terminals);
+        }
+        terminals.sort(Comparator.comparingInt(terminal -> terminal.getSymbol().getStartIndex()));
+        List<Cobol.Word> words = new ArrayList<>(terminals.size());
+        for (TerminalNode terminal : terminals) {
+            words.add((Cobol.Word) visit(terminal));
+        }
+        return words;
+    }
+
+    private static void collectTerminals(@Nullable ParseTree tree, List<TerminalNode> into) {
+        if (tree instanceof TerminalNode) {
+            into.add((TerminalNode) tree);
+        } else if (tree != null) {
+            for (int i = 0; i < tree.getChildCount(); i++) {
+                collectTerminals(tree.getChild(i), into);
+            }
+        }
     }
 
     private @Nullable List<Cobol.Word> wordsList(TerminalNode... wordNodes) {

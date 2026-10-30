@@ -3583,6 +3583,36 @@ public interface CobolParserListener extends ParseTreeListener {
 	 */
 	void exitInitializeStatement(CobolParser.InitializeStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolParser#initializeValuePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterInitializeValuePhrase(CobolParser.InitializeValuePhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#initializeValuePhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitInitializeValuePhrase(CobolParser.InitializeValuePhraseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#initializeDefaultPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterInitializeDefaultPhrase(CobolParser.InitializeDefaultPhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#initializeDefaultPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitInitializeDefaultPhrase(CobolParser.InitializeDefaultPhraseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#initializeCategory}.
+	 * @param ctx the parse tree
+	 */
+	void enterInitializeCategory(CobolParser.InitializeCategoryContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#initializeCategory}.
+	 * @param ctx the parse tree
+	 */
+	void exitInitializeCategory(CobolParser.InitializeCategoryContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolParser#initializeReplacingPhrase}.
 	 * @param ctx the parse tree
 	 */
@@ -5212,6 +5242,46 @@ public interface CobolParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitXmlProcessingProcedurePhrase(CobolParser.XmlProcessingProcedurePhraseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#jsonXmlStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterJsonXmlStatement(CobolParser.JsonXmlStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#jsonXmlStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitJsonXmlStatement(CobolParser.JsonXmlStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#jsonXmlPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void enterJsonXmlPhrase(CobolParser.JsonXmlPhraseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#jsonXmlPhrase}.
+	 * @param ctx the parse tree
+	 */
+	void exitJsonXmlPhrase(CobolParser.JsonXmlPhraseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#allocateStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterAllocateStatement(CobolParser.AllocateStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#allocateStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitAllocateStatement(CobolParser.AllocateStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#freeStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterFreeStatement(CobolParser.FreeStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#freeStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitFreeStatement(CobolParser.FreeStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#atEndPhrase}.
 	 * @param ctx the parse tree

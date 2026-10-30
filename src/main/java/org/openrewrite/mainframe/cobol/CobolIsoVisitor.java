@@ -790,6 +790,26 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.Allocate visitAllocate(Cobol.Allocate allocate, P p) {
+        return (Cobol.Allocate) super.visitAllocate(allocate, p);
+    }
+
+    @Override
+    public Cobol.Free visitFree(Cobol.Free free, P p) {
+        return (Cobol.Free) super.visitFree(free, p);
+    }
+
+    @Override
+    public Cobol.JsonXml visitJsonXml(Cobol.JsonXml jsonXml, P p) {
+        return (Cobol.JsonXml) super.visitJsonXml(jsonXml, p);
+    }
+
+    @Override
+    public Cobol.JsonXmlPhrase visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, P p) {
+        return (Cobol.JsonXmlPhrase) super.visitJsonXmlPhrase(jsonXmlPhrase, p);
+    }
+
+    @Override
     public Cobol.Initialize visitInitialize(Cobol.Initialize initialize, P p) {
         return (Cobol.Initialize) super.visitInitialize(initialize, p);
     }
