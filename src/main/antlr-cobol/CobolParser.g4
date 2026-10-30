@@ -2203,7 +2203,7 @@ performTimes
    ;
 
 performUntil
-   : performTestClause? UNTIL condition
+   : performTestClause? UNTIL (EXIT | condition)
    ;
 
 performVarying

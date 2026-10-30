@@ -373,6 +373,31 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     @Test
+    void performUntilExitHasNoCondition() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 PROCEDURE DIVISION.
+              000004     PERFORM UNTIL EXIT
+              000005         ADD 1 TO N
+              000006         IF N > 9
+              000007             EXIT PERFORM
+              000008         END-IF
+              000009     END-PERFORM
+              000010     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.PerformUntil.class)).singleElement()
+              .satisfies(until -> {
+                  assertThat(until.getExit()).extracting(Cobol.Word::getWord).isEqualTo("EXIT");
+                  assertThat(until.getCondition()).isNull();
+              }))
+          )
+        );
+    }
+
+    @Test
     void phraseWordsStillNameData() {
         rewriteRun(
           cobol(

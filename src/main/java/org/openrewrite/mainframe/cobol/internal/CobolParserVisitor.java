@@ -3448,7 +3448,8 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 Markers.EMPTY,
                 visitNullable(ctx.performTestClause()),
                 (Cobol.Word) visit(ctx.UNTIL()),
-                (Cobol.Condition) visit(ctx.condition())
+                visitNullable(ctx.EXIT()),
+                visitNullable(ctx.condition())
         );
     }
 

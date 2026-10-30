@@ -5361,6 +5361,14 @@ public interface Cobol extends Tree {
         PerformTestClause performTestClause;
 
         Word word;
+
+        /**
+         * The EXIT of UNTIL EXIT, which loops until EXIT PERFORM, GOBACK or STOP leaves it. Null with a condition.
+         */
+        @Nullable
+        Word exit;
+
+        @Nullable
         Condition condition;
 
         @Override
