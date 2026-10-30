@@ -300,6 +300,39 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     @Test
+    void compilerDirectivesPrintBackAndLeaveTheProgramAlone() {
+        rewriteRun(
+          cobol(
+            """
+              000001 >>CALLINTERFACE STATIC
+              000002 >>DEFINE TRACE-LEVEL AS 2
+              000003 IDENTIFICATION DIVISION.
+              000004 PROGRAM-ID. ENTCOB.
+              000005 DATA DIVISION.
+              000006 WORKING-STORAGE SECTION.
+              000007 >>DATA 31
+              000008 01  CNT PIC 9(4).
+              000009 PROCEDURE DIVISION.
+              000010     >>INLINE OFF
+              000011     >>IF TRACE-LEVEL > 1
+              000012     DISPLAY 'TRACING'
+              000013     >>ELSE
+              000014     DISPLAY 'QUIET'
+              000015     >>END-IF
+              000016     >>EVALUATE TRACE-LEVEL
+              000017     >>WHEN 2
+              000018     MOVE 2 TO CNT
+              000019     >>WHEN OTHER
+              000020     MOVE 0 TO CNT
+              000021     >>END-EVALUATE
+              000022     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.Display.class)).hasSize(2))
+          )
+        );
+    }
+
+    @Test
     void phraseWordsStillNameData() {
         rewriteRun(
           cobol(

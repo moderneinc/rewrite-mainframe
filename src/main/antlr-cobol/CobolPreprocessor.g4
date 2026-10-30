@@ -86,7 +86,7 @@ options { caseInsensitive = true; }
 }
 
 compilationUnit
-   : (compilerOptions | copyStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlIncludeStatement | execSqlImsStatement | replaceOffStatement | replaceArea | ejectStatement | skipStatement | titleStatement | charDataLine)* EOF
+   : (compilerOptions | compilerDirective | copyStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlIncludeStatement | execSqlImsStatement | replaceOffStatement | replaceArea | ejectStatement | skipStatement | titleStatement | charDataLine)* EOF
    ;
 
 // compiler options
@@ -306,6 +306,14 @@ replacement
 // A word alone is a cobolWord.
 identifierWords
    : cobolWord (((OF | IN) cobolWord)+ subscript* | subscript+)
+   ;
+
+// compiler directive
+
+// A >> directive is compile-time control, read whole to the end of its line. Conditional compilation keeps both
+// branches in the program, which reads them as they are written.
+compilerDirective
+   : COMPILER_DIRECTIVE
    ;
 
 // eject statement
@@ -742,6 +750,7 @@ FILENAME : [A-Z0-9]+ '.' [A-Z0-9]+;
  * SEPARATOR rule skips over the customized whitespace.
  */
 SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> skip;
+COMPILER_DIRECTIVE : '>>' ~('\n' | '\r')*;
 NEWLINE : '\r'? '\n' -> channel(HIDDEN);
 COMMENTENTRYLINE : COMMENTENTRYTAG WS ~('\n' | '\r')*;
 COMMENTLINE : COMMENTTAG WS ~('\n' | '\r')* -> channel(HIDDEN);

@@ -160,6 +160,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         inCopybook = true;
         for (CobolPreprocessor cobolPreprocessor : copybook.getLst()) {
             if (!(cobolPreprocessor instanceof CobolPreprocessor.CompilerOptions ||
+                    cobolPreprocessor instanceof CobolPreprocessor.CompilerDirective ||
                     cobolPreprocessor instanceof CobolPreprocessor.EjectStatement ||
                     cobolPreprocessor instanceof CobolPreprocessor.ExecStatement ||
                     cobolPreprocessor instanceof CobolPreprocessor.SkipStatement ||
@@ -247,6 +248,12 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         }
 
         addStopComment(getCopyStopComment(), (CobolPreprocessor) copybookSource, curIndex, p);
+    }
+
+    @Override
+    public CobolPreprocessor visitCompilerDirective(CobolPreprocessor.CompilerDirective compilerDirective, PrintOutputCapture<P> p) {
+        addPreprocessorStatementTemplate(compilerDirective, p);
+        return compilerDirective;
     }
 
     @Override

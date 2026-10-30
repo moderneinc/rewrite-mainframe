@@ -154,6 +154,7 @@ public class Space {
         // Cobol preprocessor prefixes
         CONTINUATION_PREFIX,
         COMPILER_OPTION_PREFIX,
+        COMPILER_DIRECTIVE_PREFIX,
         COMPILER_OPTIONS_PREFIX,
         COMPILER_XOPTS_PREFIX,
         COPY_BOOK_PREFIX,

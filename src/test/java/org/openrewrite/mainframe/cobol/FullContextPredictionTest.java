@@ -484,6 +484,21 @@ class FullContextPredictionTest {
           "xmlSchemaClause")).isZero();
     }
 
+    @Test
+    void preprocessorCompilerDirectives() {
+        String program = """
+          >>CALLINTERFACE STATIC
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. DIRECT.
+          PROCEDURE DIVISION.
+              >>IF TRACE-LEVEL > 1
+              DISPLAY 'TRACING'
+              >>END-IF
+              STOP RUN.
+          """;
+        assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "compilerDirective")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
         return fallbacks(parser, parser::compilationUnit, rules);

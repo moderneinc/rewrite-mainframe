@@ -84,6 +84,11 @@ public class CobolPreprocessorIsoVisitor<P> extends CobolPreprocessorVisitor<P> 
     }
 
     @Override
+    public CobolPreprocessor.CompilerDirective visitCompilerDirective(CobolPreprocessor.CompilerDirective compilerDirective, P p) {
+        return (CobolPreprocessor.CompilerDirective) super.visitCompilerDirective(compilerDirective, p);
+    }
+
+    @Override
     public CobolPreprocessor.EjectStatement visitEjectStatement(CobolPreprocessor.EjectStatement ejectStatement, P p) {
         return (CobolPreprocessor.EjectStatement) super.visitEjectStatement(ejectStatement, p);
     }

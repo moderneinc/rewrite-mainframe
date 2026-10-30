@@ -243,6 +243,16 @@ public interface CobolPreprocessorListener extends ParseTreeListener {
 	 */
 	void exitIdentifierWords(CobolPreprocessorParser.IdentifierWordsContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolPreprocessorParser#compilerDirective}.
+	 * @param ctx the parse tree
+	 */
+	void enterCompilerDirective(CobolPreprocessorParser.CompilerDirectiveContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolPreprocessorParser#compilerDirective}.
+	 * @param ctx the parse tree
+	 */
+	void exitCompilerDirective(CobolPreprocessorParser.CompilerDirectiveContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolPreprocessorParser#ejectStatement}.
 	 * @param ctx the parse tree
 	 */
