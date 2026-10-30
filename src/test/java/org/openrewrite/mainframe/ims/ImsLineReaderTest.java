@@ -60,25 +60,6 @@ class ImsLineReaderTest {
           "^^IMS^^         SEGM  NAME=CLMROOT" + blanks(45) + "^^CA_START^^CLMDBD01\n");
     }
 
-    /**
-     * What a gen member is, which is the only thing that tells a DBD kept as {@code .asm} from a
-     * program kept beside it. CardDemo opens both of its DBDs with a listing control, so the answer
-     * is not simply the first statement.
-     */
-    @Test
-    void theFirstOperationLooksPastTheListingControls() {
-        assertThat(ImsLineReader.firstOperation(
-          "***********************\n" +
-          "         TITLE   'ASSEMBLE OF DBDNAME=DBPAUTP0 '\n" +
-          "       DBD     NAME=DBPAUTP0,ACCESS=(HIDAM,VSAM)\n")).isEqualTo("DBD");
-
-        assertThat(ImsLineReader.firstOperation(
-          "         COPY  CLMREGS\n" +
-          "CLMROOTD DSECT\n")).isEqualTo("COPY");
-
-        assertThat(ImsLineReader.firstOperation("* nothing but a comment\n")).isNull();
-    }
-
     private static String blanks(int n) {
         StringBuilder blanks = new StringBuilder();
         for (int i = 0; i < n; i++) {

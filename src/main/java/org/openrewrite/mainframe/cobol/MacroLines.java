@@ -17,8 +17,13 @@ package org.openrewrite.mainframe.cobol;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Scanner;
+import java.util.Set;
 
 /**
  * Classifies the lines of assembler macro source before they are lexed.
@@ -43,6 +48,13 @@ public final class MacroLines {
      * marker rather than as operands.
      */
     private static final int SEQUENCE_AREA = 72;
+
+    /**
+     * The assembler listing controls, which say nothing about what a member is. CardDemo opens both
+     * of its DBDs with a {@code TITLE}, so what a member is has to be looked for past them.
+     */
+    private static final Set<String> LISTING_CONTROLS =
+            new HashSet<>(Arrays.asList("TITLE", "EJECT", "SPACE", "PRINT"));
 
     /**
      * Puts each line on the hidden channel that says what it is, where {@code language} names the
@@ -93,6 +105,31 @@ public final class MacroLines {
 
     public static boolean isComment(String line) {
         return line.startsWith("*");
+    }
+
+    /**
+     * The operation of the first statement, or null for a member that has none. This is what a
+     * member kept under a borrowed extension is known by, whether an {@code .asm} that gens or a
+     * {@code .copy} that lays out a DSECT.
+     */
+    public static @Nullable String firstOperation(String source) {
+        Scanner scanner = new Scanner(source);
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            if (isComment(line) || line.trim().isEmpty()) {
+                continue;
+            }
+            String[] words = line.trim().split("\\s+");
+            int operation = hasNameField(line) ? 1 : 0;
+            if (words.length <= operation) {
+                continue;
+            }
+            String word = words[operation].toUpperCase(Locale.ROOT);
+            if (!LISTING_CONTROLS.contains(word)) {
+                return word;
+            }
+        }
+        return null;
     }
 
     /**

@@ -23,6 +23,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.assembler.AssemblerParser;
 import org.openrewrite.mainframe.cobol.internal.CobolDialect;
 import org.openrewrite.mainframe.cobol.internal.CobolPreprocessorParserVisitor;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorLexer;
@@ -140,7 +141,7 @@ public class CopybookParser implements Parser {
         String s = path.toString().toLowerCase();
         for (String COBOL_FILE_EXTENSION : COPYBOOK_FILE_EXTENSIONS) {
             if (s.endsWith(COBOL_FILE_EXTENSION)) {
-                return true;
+                return !AssemblerParser.isCopyMember(path);
             }
         }
         return false;
