@@ -237,6 +237,37 @@ class DliCallTest implements RewriteTest {
           .containsExactly(singletonList("CLMROOT"), singletonList("CLMROOT"));
     }
 
+    @Test
+    void readsANestedProgramsSsasFromItsOwnData() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB IO-AREA ROOT-QUAL.      \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 01  ROOT-QUAL.                                                  \s
+            000000     05  FILLER        PIC X(8)  VALUE 'CLMROOT '.               \s
+            000000     05  FILLER        PIC X     VALUE ' '.                      \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB IO-AREA ROOT-QUAL.      \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        // Only the nested program declares ROOT-QUAL, so the outer program's call names no segment.
+        assertThat(calls).extracting(DliCall::getSegments)
+          .containsExactly(emptyList(), singletonList("CLMROOT"));
+    }
+
     /**
      * A checkpoint's later arguments are the areas it saves, which a program declares with values
      * as it declares an SSA, and are no search arguments.

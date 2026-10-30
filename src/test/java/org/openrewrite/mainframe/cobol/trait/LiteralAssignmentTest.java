@@ -410,4 +410,45 @@ class LiteralAssignmentTest implements RewriteTest {
         // Spaces or zeros are no resource name, any more than VALUE SPACES is.
         assertThat(found.get("WS-PGM")).containsExactly("PGMA");
     }
+
+    @Test
+    void keepsANestedProgramsStorageApart() {
+        Map<String, @Nullable Set<String>> found = candidates(
+          """
+            000000 IDENTIFICATION DIVISION.
+            000000 PROGRAM-ID. OUTERPGM.
+            000000 DATA DIVISION.
+            000000 WORKING-STORAGE SECTION.
+            000000 77 WS-ASSIGNED PIC X(8) VALUE 'PGMA'.
+            000000 77 WS-WRITTEN PIC X(8) VALUE 'PGMB'.
+            000000 77 WS-LINKED PIC X(8) VALUE 'PGMC'.
+            000000 PROCEDURE DIVISION.
+            000000     EXEC CICS XCTL PROGRAM(WS-ASSIGNED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-WRITTEN) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-LINKED) END-EXEC.
+            000000 IDENTIFICATION DIVISION.
+            000000 PROGRAM-ID. INNERPGM.
+            000000 DATA DIVISION.
+            000000 WORKING-STORAGE SECTION.
+            000000 77 WS-ASSIGNED PIC X(8).
+            000000 77 WS-WRITTEN PIC X(8).
+            000000 77 WS-INPUT PIC X(8).
+            000000 77 WS-OWN PIC X(8) VALUE 'PGMD'.
+            000000 LINKAGE SECTION.
+            000000 01 WS-LINKED PIC X(8).
+            000000 PROCEDURE DIVISION.
+            000000     MOVE 'PGMX' TO WS-ASSIGNED.
+            000000     MOVE WS-INPUT TO WS-WRITTEN.
+            000000     EXEC CICS XCTL PROGRAM(WS-OWN) END-EXEC.
+            000000 END PROGRAM INNERPGM.
+            000000 END PROGRAM OUTERPGM.
+            """
+        );
+
+        // The nested program assigns one item named like the outer's, overwrites another and declares a third in linkage.
+        assertThat(found.get("WS-ASSIGNED")).containsExactly("PGMA");
+        assertThat(found.get("WS-WRITTEN")).containsExactly("PGMB");
+        assertThat(found.get("WS-LINKED")).containsExactly("PGMC");
+        assertThat(found.get("WS-OWN")).containsExactly("PGMD");
+    }
 }

@@ -482,8 +482,7 @@ public class DataName implements Trait<Cobol.Word> {
                 @Override
                 public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit unit, Deque<Definition> open) {
                     // A nested program's names are its own, indexed from its own cursor.
-                    return getCursor().getParentTreeCursor().getValue() instanceof Cobol.ProgramUnit ?
-                            unit : super.visitProgramUnit(unit, open);
+                    return unit == tree.getValue() ? super.visitProgramUnit(unit, open) : unit;
                 }
 
                 @Override
