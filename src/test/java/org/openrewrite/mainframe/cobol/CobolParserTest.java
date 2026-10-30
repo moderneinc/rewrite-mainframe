@@ -142,6 +142,18 @@ class CobolParserTest {
         assertThat(parsed).isInstanceOf(Cobol.CompilationUnit.class);
     }
 
+    @Test
+    void aProgramThatIsNotUtf8PrintsBackInItsOwnCharset() {
+        byte[] source = ("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. HELLO.\n      *\u00dd STANDARDIZED\n" +
+                         "       PROCEDURE DIVISION.\n           STOP RUN.\n").getBytes(StandardCharsets.ISO_8859_1);
+        Parser.Input input = new Parser.Input(Paths.get("HELLO.cbl"), () -> new ByteArrayInputStream(source));
+
+        SourceFile parsed = parser.parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
+
+        assertThat(parsed).isInstanceOf(Cobol.CompilationUnit.class);
+        assertThat(parsed.printAll().getBytes(parsed.getCharset())).isEqualTo(source);
+    }
+
     private SourceFile parse(String name, String source) {
         Parser.Input input = new Parser.Input(Paths.get(name),
                 () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));

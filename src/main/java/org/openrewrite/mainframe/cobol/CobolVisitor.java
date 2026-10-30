@@ -2155,6 +2155,7 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         pp = pp.withMarkers(visitMarkers(pp.getMarkers(), p));
         pp = pp.withPerformTestClause((Cobol.PerformTestClause) visit(pp.getPerformTestClause(), p));
         pp = pp.withWord((Cobol.Word) visit(pp.getWord(), p));
+        pp = pp.withExit((Cobol.Word) visit(pp.getExit(), p));
         return pp.withCondition((Cobol.Condition) visit(pp.getCondition(), p));
     }
 

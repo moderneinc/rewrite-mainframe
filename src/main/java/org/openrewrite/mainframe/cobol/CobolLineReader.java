@@ -32,7 +32,8 @@ public class CobolLineReader {
             "DATE-COMPILED", "SECURITY", "REMARKS");
 
     private static final List<String> triggersEnd = Arrays.asList("PROGRAM-ID", "AUTHOR", "INSTALLATION",
-            "DATE-WRITTEN", "DATE-COMPILED", "SECURITY", "IDENTIFICATION", "ID", "ENVIRONMENT", "DATA", "PROCEDURE", "END");
+            "DATE-WRITTEN", "DATE-COMPILED", "SECURITY", "REMARKS", "IDENTIFICATION", "ID", "ENVIRONMENT", "DATA",
+            "PROCEDURE", "END");
 
     private static final int AREA_A_WIDTH = 4;
 

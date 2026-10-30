@@ -30,7 +30,6 @@ import org.openrewrite.mainframe.cobol.internal.CobolPreprocessorOutputSourcePri
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
-import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
@@ -79,7 +78,6 @@ public class CobolParser implements Parser {
                                   CobolPreprocessorParser cobolPreprocessorParser, ParsingEventListener parserListener) {
         try {
             parserListener.startedParsing(input);
-            EncodingDetectingInputStream is = input.getSource(ctx);
             cobolPreprocessorParser.reset();
             SourceFile preprocessedCU = cobolPreprocessorParser.parseInputs(singletonList(input), relativeTo, ctx).collect(toList()).get(0);
             assert preprocessedCU != null;
@@ -111,15 +109,17 @@ public class CobolParser implements Parser {
 
             try {
                 org.openrewrite.mainframe.cobol.internal.grammar.CobolParser.CompilationUnitContext tokenizedCU = parser.compilationUnit();
+                // The preprocessor read the source, so it knows the charset the source was detected in.
+                CobolPreprocessor.CompilationUnit preprocessed = (CobolPreprocessor.CompilationUnit) preprocessedCU;
                 Cobol.CompilationUnit compilationUnit = new CobolParserVisitor(
                         input.getRelativePath(relativeTo),
                         input.getFileAttributes(),
                         sourceOutput.getOut(),
-                        is.getCharset(),
-                        is.isCharsetBomMarked(),
+                        preprocessed.getCharset(),
+                        preprocessed.isCharsetBomMarked(),
                         cobolDialect,
-                        ((CobolPreprocessor.CompilationUnit) preprocessedCU).getPreprocessorStatements(),
-                        ((CobolPreprocessor.CompilationUnit) preprocessedCU).getReplacements(),
+                        preprocessed.getPreprocessorStatements(),
+                        preprocessed.getReplacements(),
                         printWithoutColumns.getElidedExecs(),
                         timeout
                 ).visitCompilationUnit(tokenizedCU);

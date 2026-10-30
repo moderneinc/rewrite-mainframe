@@ -232,6 +232,9 @@ class FullContextPredictionTest {
               PERFORM VARYING I FROM J BY I UNTIL DONE
                  CONTINUE
               END-PERFORM.
+              PERFORM UNTIL EXIT
+                 EXIT PERFORM
+              END-PERFORM.
               EVALUATE I
                 WHEN 1 CONTINUE
                 WHEN J CONTINUE
@@ -249,8 +252,8 @@ class FullContextPredictionTest {
           """;
         assertThat(fullContextFallbacks(program, "procedureName", "paragraph", "goToStatement", "callByReference",
           "callByReferencePhrase", "callUsingPhrase", "procedureDivisionByReference", "conditionNameReference",
-          "literal", "numericLiteral", "argument", "evaluateValue", "performBy", "performFrom", "functionCall",
-          "fileControlParagraph")).isZero();
+          "literal", "numericLiteral", "argument", "evaluateValue", "performBy", "performFrom", "performUntil",
+          "functionCall", "fileControlParagraph")).isZero();
     }
 
     /**
@@ -306,11 +309,13 @@ class FullContextPredictionTest {
               MOVE E (1) TO X
               MOVE E (I + 1) TO X
               MOVE E (I +1) TO X
+              MOVE E (I, 1) TO X
               MOVE E (I OF T) TO X
               MOVE E (F (1)) TO X
               MOVE DFHVALUE(NOUCTRAN) TO X
               IF A = 1 AND B = 2 OR C = 3 MOVE 1 TO Y END-IF
               IF A = 1 AND 2 OR NOT 3 MOVE 1 TO Y END-IF
+              IF A = 1 OR B (I:1) OR C (I:1) MOVE 1 TO Y END-IF
               IF A = 1 AND B NOT = 2 MOVE 1 TO Y END-IF
               IF A = 1 AND (B = 2 OR C = 3) MOVE 1 TO Y END-IF
               IF FLAG-ON AND NOT FLAG-OFF MOVE 1 TO Y END-IF
@@ -476,6 +481,13 @@ class FullContextPredictionTest {
           01  D1  PIC X DYNAMIC LENGTH LIMIT 100 VALUE SPACE.
           01  D2  PIC X DYNAMIC.
           01  C1  USAGE IS SQL TYPE IS CLOB(1M).
+          01  C2  USAGE SQL TYPE IS XML AS CLOB(1M).
+          01  C3  SQL TYPE IS XML AS CLOB-FILE.
+          01  B1  SQL TYPE IS BINARY(8) VALUE SPACES.
+          01  B2  SQL TYPE IS BINARY VARYING(8).
+          01  B3  SQL TYPE IS BINARY LARGE OBJECT(1M).
+          01  R1  SQL TYPE IS RESULT-SET-LOCATOR VARYING.
+          01  T1  SQL TYPE IS TABLE LIKE DSN8C10.EMP AS LOCATOR.
           PROCEDURE DIVISION.
               STOP RUN.
           """;

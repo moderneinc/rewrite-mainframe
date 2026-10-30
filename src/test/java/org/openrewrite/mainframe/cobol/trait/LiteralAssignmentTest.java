@@ -59,6 +59,7 @@ class LiteralAssignmentTest implements RewriteTest {
             000000 WORKING-STORAGE SECTION.
             000000 01 WS-NAMES.
             000000    05 WS-PGM PIC X(8) VALUE 'PGMA'.
+            000000       88 PGM-IS-C VALUE 'PGMC'.
             000000    05 WS-IX PIC 9 VALUE 1.
             000000 01 WS-TABLE.
             000000    05 WS-ENTRY PIC X(8) OCCURS 9.
@@ -147,7 +148,7 @@ class LiteralAssignmentTest implements RewriteTest {
             000000       10 WS-PREFIX PIC X(3).
             000000       10 WS-SUFFIX PIC X(5).
             000000 01 WS-GROUP.
-            000000    05 WS-PART PIC X(8) VALUE 'PGMC'.
+            000000    05 WS-PART PIC X(8).
             000000 PROCEDURE DIVISION.
             000000     MOVE 'XYZ' TO WS-PREFIX.
             000000     MOVE 'PGMB' TO WS-GROUP.
@@ -161,6 +162,34 @@ class LiteralAssignmentTest implements RewriteTest {
         assertThat(found).containsEntry("WS-PGM", null);
         assertThat(found).containsEntry("WS-PART", null);
         assertThat(found.get("WS-GROUP")).containsExactly("PGMB");
+    }
+
+    @Test
+    void valueOnSharedStorageMakesTheSetIncomplete() {
+        Map<String, @Nullable Set<String>> found = candidates(
+          """
+            000000 IDENTIFICATION DIVISION.
+            000000 PROGRAM-ID. INITVAL.
+            000000 DATA DIVISION.
+            000000 WORKING-STORAGE SECTION.
+            000000 01 WS-PGM-VALUES.
+            000000    05 FILLER PIC X(8) VALUE 'PGMA'.
+            000000 01 WS-PGM-AREA REDEFINES WS-PGM-VALUES.
+            000000    05 WS-PGM PIC X(8).
+            000000 01 WS-NAMES VALUE 'PGMC'.
+            000000    05 WS-NAME PIC X(4).
+            000000 PROCEDURE DIVISION.
+            000000     MOVE 'PGMD' TO WS-NAME.
+            000000     EXEC CICS XCTL PROGRAM(WS-PGM) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-PGM-VALUES) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-NAME) END-EXEC.
+            000000     GOBACK.
+            """
+        );
+
+        assertThat(found).containsEntry("WS-PGM", null);
+        assertThat(found).containsEntry("WS-PGM-VALUES", null);
+        assertThat(found).containsEntry("WS-NAME", null);
     }
 
     @Test
@@ -396,7 +425,7 @@ class LiteralAssignmentTest implements RewriteTest {
             000000 PROGRAM-ID. CLEARS.
             000000 DATA DIVISION.
             000000 WORKING-STORAGE SECTION.
-            000000 01 WS-NAMES.
+            000000 01 WS-NAMES VALUE SPACES.
             000000    05 WS-PGM PIC X(8).
             000000 PROCEDURE DIVISION.
             000000     INITIALIZE WS-NAMES.

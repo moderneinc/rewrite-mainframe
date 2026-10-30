@@ -2429,6 +2429,7 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
         beforeSyntax(performUntil, Space.Location.PERFORM_UNTIL_PREFIX, p);
         visit(performUntil.getPerformTestClause(), p);
         visit(performUntil.getWord(), p);
+        visit(performUntil.getExit(), p);
         visit(performUntil.getCondition(), p);
         afterSyntax(performUntil, p);
         return performUntil;

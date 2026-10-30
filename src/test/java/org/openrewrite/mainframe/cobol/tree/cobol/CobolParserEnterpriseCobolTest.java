@@ -276,6 +276,60 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     @Test
+    void sqlTypesOfDb2HostVariables() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  RS  USAGE SQL TYPE IS RESULT-SET-LOCATOR VARYING.
+              000006 01  TL  SQL TYPE IS TABLE LIKE DSN8C10.EMP AS LOCATOR.
+              000007 01  RI  SQL TYPE IS ROWID.
+              000008 01  B1  SQL TYPE IS BINARY(8).
+              000009 01  B2  SQL TYPE IS VARBINARY(100).
+              000010 01  B3  SQL TYPE IS BINARY VARYING(100).
+              000011 01  L1  SQL TYPE IS BINARY LARGE OBJECT(1M).
+              000012 01  L2  SQL TYPE IS CHARACTER LARGE OBJECT(10 K).
+              000013 01  L3  SQL TYPE IS CHAR LARGE OBJECT(1G).
+              000014 01  L4  SQL TYPE IS BLOB-LOCATOR.
+              000015 01  L5  SQL TYPE IS CLOB-LOCATOR.
+              000016 01  L6  SQL TYPE IS DBCLOB-LOCATOR.
+              000017 01  L7  SQL TYPE IS BLOB-FILE.
+              000018 01  L8  SQL TYPE IS CLOB-FILE.
+              000019 01  L9  SQL TYPE IS DBCLOB-FILE.
+              000020 01  X1  SQL TYPE IS XML AS CLOB(1M).
+              000021 01  X2  SQL TYPE IS XML AS DBCLOB-FILE.
+              000022 PROCEDURE DIVISION.
+              000023     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.DataTypeClause.class))
+              .extracting(type -> words(type.getWords()),
+                type -> type.getParenthesized() == null ? null : type.getParenthesized().printTrimmed(new Cursor(null, cu)))
+              .containsExactly(
+                tuple("TYPE IS RESULT-SET-LOCATOR VARYING", null),
+                tuple("TYPE IS TABLE LIKE DSN8C10 . EMP AS LOCATOR", null),
+                tuple("TYPE IS ROWID", null),
+                tuple("TYPE IS BINARY", "(8)"),
+                tuple("TYPE IS VARBINARY", "(100)"),
+                tuple("TYPE IS BINARY VARYING", "(100)"),
+                tuple("TYPE IS BINARY LARGE OBJECT", "(1M)"),
+                tuple("TYPE IS CHARACTER LARGE OBJECT", "(10 K)"),
+                tuple("TYPE IS CHAR LARGE OBJECT", "(1G)"),
+                tuple("TYPE IS BLOB-LOCATOR", null),
+                tuple("TYPE IS CLOB-LOCATOR", null),
+                tuple("TYPE IS DBCLOB-LOCATOR", null),
+                tuple("TYPE IS BLOB-FILE", null),
+                tuple("TYPE IS CLOB-FILE", null),
+                tuple("TYPE IS DBCLOB-FILE", null),
+                tuple("TYPE IS XML AS CLOB", "(1M)"),
+                tuple("TYPE IS XML AS DBCLOB-FILE", null)))
+          )
+        );
+    }
+
+    @Test
     void xmlSchemaNamesTheFileXmlParseValidatesWith() {
         rewriteRun(
           cobol(
@@ -373,6 +427,31 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     @Test
+    void performUntilExitHasNoCondition() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 PROCEDURE DIVISION.
+              000004     PERFORM UNTIL EXIT
+              000005         ADD 1 TO N
+              000006         IF N > 9
+              000007             EXIT PERFORM
+              000008         END-IF
+              000009     END-PERFORM
+              000010     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.PerformUntil.class)).singleElement()
+              .satisfies(until -> {
+                  assertThat(until.getExit()).extracting(Cobol.Word::getWord).isEqualTo("EXIT");
+                  assertThat(until.getCondition()).isNull();
+              }))
+          )
+        );
+    }
+
+    @Test
     void phraseWordsStillNameData() {
         rewriteRun(
           cobol(
@@ -389,11 +468,15 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000010 01  NAMESPACE       PIC X.
               000011 01  NONNUMERIC      PIC X.
               000012 01  XML-DECLARATION PIC X.
-              000013 PROCEDURE DIVISION.
-              000014     MOVE NAME TO LOC
-              000015     MOVE ELEMENT TO ATTRIBUTES NAMESPACE NONNUMERIC XML-DECLARATION
-              000016     IF INITIALIZED = 'Y' DISPLAY NAME END-IF
-              000017     GOBACK.
+              000013 01  COL             PIC S9(04) COMP VALUE ZEROES.
+              000014 01  OBJECT          PIC X.
+              000014 PROCEDURE DIVISION.
+              000015     MOVE NAME TO LOC
+              000016     MOVE ELEMENT TO ATTRIBUTES NAMESPACE NONNUMERIC XML-DECLARATION
+              000017     IF INITIALIZED = 'Y' DISPLAY NAME END-IF
+              000018     DIVIDE 80 INTO LOC GIVING NAME REMAINDER COL
+              000018     MOVE OBJECT TO ELEMENT
+              000019     GOBACK.
               """
           )
         );
