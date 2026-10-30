@@ -78,6 +78,18 @@ class EmbeddedSqlTest {
         assertThat(EmbeddedSql.read("DECLARE C1 CURSOR FOR SELECT POLICY_NO FROM CLM.POLICY").getTarget()).isNull();
     }
 
+    @Test
+    void readsAnInsertWhoseColumnsAQueryFills() {
+        EmbeddedSql read = EmbeddedSql.read("INSERT INTO CLM.LOG (ID, LOGGED) SELECT ID, :WS-NOW FROM CLM.CLAIM");
+        assertThat(read.getColumns()).containsExactly("ID", "LOGGED");
+        // A query fills the listed columns by position, as VALUES does.
+        assertThat(read.getHostVariables()).containsExactly("", "WS-NOW");
+
+        assertThat(EmbeddedSql.read(
+          "INSERT INTO CLM.LOG (ID) WITH T AS (SELECT ID FROM CLM.CLAIM) SELECT ID FROM T").getTables())
+          .contains("CLM.CLAIM", "CLM.LOG");
+    }
+
     /**
      * Every statement is parsed on one pool of daemon threads rather than on an executor built for
      * it, so reading an estate neither starts a thread a statement nor holds the JVM open.

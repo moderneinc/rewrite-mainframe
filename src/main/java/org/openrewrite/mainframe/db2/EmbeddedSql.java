@@ -307,9 +307,14 @@ public class EmbeddedSql {
             columns.add(column.getColumnName());
         }
         List<Expression> values = new ArrayList<>();
-        Values inserted = insert.getValues();
-        if (inserted != null && inserted.getExpressions() != null) {
-            values.addAll(inserted.getExpressions());
+        // Insert.getValues() casts whatever fills the columns to Values, and a query is not one.
+        Select inserted = insert.getSelect();
+        if (inserted instanceof Values && ((Values) inserted).getExpressions() != null) {
+            values.addAll(((Values) inserted).getExpressions());
+        } else if (inserted instanceof PlainSelect && ((PlainSelect) inserted).getSelectItems() != null) {
+            for (SelectItem<?> item : ((PlainSelect) inserted).getSelectItems()) {
+                values.add(item.getExpression());
+            }
         }
         return new EmbeddedSql(columns, inEachPosition(values, columns.size(), names), emptyList(), tables, target);
     }
