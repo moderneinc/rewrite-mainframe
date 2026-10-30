@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.marker.MissingCopybook;
@@ -100,8 +101,8 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
 
     private CobolPreprocessor resolve(CobolPreprocessor c, String copybookName, P p) {
         String member = memberName(copybookName);
-        if (copybooks.containsKey(member)) {
-            SourceFile sf = copybooks.get(member);
+        SourceFile sf = library(member);
+        if (sf != null) {
             if (sf instanceof ParseError) {
                 return missing(c, MissingCopybook.Status.PARSE_ERROR);
             }
@@ -126,6 +127,19 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
         }
 
         return c;
+    }
+
+    /**
+     * The repository's member of this name, or else the one the CICS translator or the Db2 precompiler
+     * supplies, which is read once and kept with the resolved copybooks.
+     */
+    private @Nullable SourceFile library(String member) {
+        SourceFile sf = copybooks.get(member);
+        if (sf != null) {
+            return sf;
+        }
+        CobolPreprocessor.Copybook supplied = resolved.get(member);
+        return supplied != null ? supplied : SystemCopybooks.find(member);
     }
 
     private static CobolPreprocessor missing(CobolPreprocessor c, MissingCopybook.Status status) {

@@ -20,7 +20,9 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
+import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.trait.SimpleTraitMatcher;
@@ -38,6 +40,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A data name where it is written: as its definition, the data description entry in the program or
@@ -85,6 +88,14 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
+     * Whether the word was copied from a member the CICS translator or the Db2 precompiler supplies.
+     * Read it on a usage's definition to ask where the usage's declaration came from.
+     */
+    public boolean isSystemSupplied() {
+        return getTree().getMarkers().findFirst(SystemCopybook.class).isPresent();
+    }
+
+    /**
      * The level number of the definition, or of the definition a usage resolves to; 0 where it
      * resolves to none.
      */
@@ -98,9 +109,10 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * The definition this occurrence resolves to; a definition answers itself. Null where the name
-     * is declared nowhere the program can see — a copybook that was not found, a field CICS
-     * supplies — or where qualification leaves more than one declaration.
+     * The definition this occurrence resolves to. A definition answers itself. A name the program
+     * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
+     * inserts. Null where the name is declared nowhere the program can see, such as a copybook that
+     * was not found, or where qualification leaves more than one declaration.
      */
     public @Nullable DataName getDefinition() {
         if (isDefinition()) {
@@ -440,6 +452,32 @@ public class DataName implements Trait<Cobol.Word> {
 
         static Index of(Cursor program) {
             Index index = new Index();
+            List<Cursor> usages = index.walk(program);
+
+            if (!index.byName.containsKey("DFHEIBLK")) {
+                index.walk(Translated.dataDivisionIn(program));
+            }
+
+            // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
+            for (Cursor at : usages) {
+                DataName usage = new DataName(at);
+                for (Definition definition : usage.candidates(index)) {
+                    index.reference(definition);
+                    // A condition name reads its item where it is tested and assigns it where it is SET.
+                    // A FILLER item has no name to be credited by, so the group above it is not.
+                    if (definition.getLevel() == 88) {
+                        index.reference(definition.getParent());
+                    }
+                }
+            }
+            return index;
+        }
+
+        /**
+         * Defines every entry under {@code tree} and returns the words written where a data name is used.
+         */
+        private List<Cursor> walk(Cursor tree) {
+            Index index = this;
             List<Cursor> usages = new ArrayList<>();
             new CopybookSkippingVisitor<Deque<Definition>>() {
                 @Override
@@ -465,21 +503,8 @@ public class DataName implements Trait<Cobol.Word> {
                     }
                     return visited;
                 }
-            }.visit(program.getValue(), new ArrayDeque<>(), program.getParentOrThrow());
-
-            // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
-            for (Cursor at : usages) {
-                DataName usage = new DataName(at);
-                for (Definition definition : usage.candidates(index)) {
-                    index.reference(definition);
-                    // A condition name reads its item where it is tested and assigns it where it is SET.
-                    // A FILLER item has no name to be credited by, so the group above it is not.
-                    if (definition.getLevel() == 88) {
-                        index.reference(definition.getParent());
-                    }
-                }
-            }
-            return index;
+            }.visit(tree.getValue(), new ArrayDeque<>(), tree.getParentOrThrow());
+            return usages;
         }
 
         private void reference(@Nullable Definition definition) {
@@ -527,6 +552,34 @@ public class DataName implements Trait<Cobol.Word> {
             } catch (NumberFormatException e) {
                 return 0;
             }
+        }
+    }
+
+    /**
+     * The DFHEIBLK the CICS translator inserts into the LINKAGE SECTION of each program it translates,
+     * unless the program declares one itself. No program's source contains it, so it is parsed here once.
+     */
+    private static final class Translated {
+
+        private static final Cobol.DataDivision DATA_DIVISION = parse(
+                "       IDENTIFICATION DIVISION.\n" +
+                "       PROGRAM-ID. DFHEIBLK.\n" +
+                "       DATA DIVISION.\n" +
+                "       LINKAGE SECTION.\n" +
+                "       COPY DFHEIBLK.\n");
+
+        private static Cobol.DataDivision parse(String source) {
+            Cobol.CompilationUnit unit = (Cobol.CompilationUnit) CobolParser.builder().build().parse(source)
+                    .findFirst().orElseThrow(IllegalStateException::new);
+            return requireNonNull(unit.getProgramUnits().get(0).getDataDivision());
+        }
+
+        /**
+         * The block's entries as though declared in {@code program}, so that a definition among them
+         * reads the program's own index.
+         */
+        static Cursor dataDivisionIn(Cursor program) {
+            return new Cursor(program, DATA_DIVISION);
         }
     }
 

@@ -19,10 +19,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Parser;
+import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.cobol.CobolParser;
+import org.openrewrite.mainframe.cobol.CopybookParser;
 import org.openrewrite.test.RewriteTest;
 
+import java.io.ByteArrayInputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
@@ -132,5 +143,58 @@ class CopybookReferenceTest implements RewriteTest {
 
         assertThat(references).singleElement().satisfies(reference ->
           assertThat(reference.getEnclosingWord()).isNotNull());
+    }
+
+    @Test
+    void resolvesAMemberTheCompilerSupplies() {
+        List<CopybookReference> references = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                         *
+                   PROGRAM-ID. SUPPLIED.                                            *
+                   DATA DIVISION.                                                   *
+                   WORKING-STORAGE SECTION.                                         *
+                       EXEC SQL INCLUDE SQLCA END-EXEC.                             *
+                       COPY DFHAID.                                                 *
+                       COPY DFHBMSCA.                                               *
+            """
+        );
+
+        assertThat(references).extracting(CopybookReference::getName).containsExactly("SQLCA", "DFHAID", "DFHBMSCA");
+        assertThat(references).allSatisfy(reference -> {
+            assertThat(reference.isResolved()).isTrue();
+            assertThat(reference.isSystemSupplied()).isTrue();
+            assertThat(reference.getSourcePath()).isNull();
+        });
+    }
+
+    @Test
+    void prefersAMemberTheRepositoryHolds() {
+        String sqlca = """
+                 01  SQLCA.                                                       \s
+                     05  SQLCODE    PIC S9(9) COMP-5.                             \s
+          """;
+        List<SourceFile> copybooks = CopybookParser.builder().build().parseInputs(singletonList(
+            new Parser.Input(Paths.get("SQLCA.cpy"), () -> new ByteArrayInputStream(sqlca.getBytes(UTF_8)))),
+          null, new InMemoryExecutionContext()).collect(toList());
+        SourceFile program = CobolParser.builder().copybooks(copybooks).build().parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                         *
+                   PROGRAM-ID. OWNSQLCA.                                            *
+                   DATA DIVISION.                                                   *
+                   WORKING-STORAGE SECTION.                                         *
+                       EXEC SQL INCLUDE SQLCA END-EXEC.                             *
+            """
+        ).findFirst().orElseThrow();
+
+        List<CopybookReference> references = new ArrayList<>();
+        new CopybookReference.Matcher().<Integer>asVisitor((reference, p) -> {
+            references.add(reference);
+            return reference.getTree();
+        }).visit(program, 0);
+
+        assertThat(references).singleElement().satisfies(reference -> {
+            assertThat(reference.isSystemSupplied()).isFalse();
+            assertThat(reference.getSourcePath()).isEqualTo(Paths.get("SQLCA.cpy"));
+        });
     }
 }
