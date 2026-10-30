@@ -591,7 +591,13 @@ createFunction
     ;
 
 routineParameter
-    : (IN | OUT | INOUT)? identifier? dataType
+    : (IN | OUT | INOUT)? parameterName? dataType
+    ;
+
+// A parameter may be named DATABASE, a keyword everywhere else in this grammar.
+parameterName
+    : identifier
+    | DATABASE
     ;
 
 routineClause

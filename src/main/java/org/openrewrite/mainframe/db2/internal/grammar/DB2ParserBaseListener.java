@@ -800,6 +800,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterParameterName(DB2Parser.ParameterNameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitParameterName(DB2Parser.ParameterNameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterRoutineClause(DB2Parser.RoutineClauseContext ctx) { }
 	/**
 	 * {@inheritDoc}

@@ -481,6 +481,13 @@ public class DB2ParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitParameterName(DB2Parser.ParameterNameContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitRoutineClause(DB2Parser.RoutineClauseContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
