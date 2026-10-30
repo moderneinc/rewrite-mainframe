@@ -205,10 +205,24 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateMask(Db2.CreateMask createMask, PrintOutputCapture<P> p) {
         beforeSyntax(createMask, Space.Location.CREATE_MASK_PREFIX, p);
-        visit(createMask.getKeywords(), p);
+        List<Db2.Keyword> keywords = createMask.getKeywords();
+        List<Db2> options = createMask.getOptions();
+        int table = indexOf(keywords, Db2.Keyword.Type.On) + 1;
+        // AS follows ON, and the correlation name it introduces is the first option.
+        int correlation = indexOf(keywords, Db2.Keyword.Type.As) < keywords.size() ? 1 : 0;
+        int column = indexOf(keywords, Db2.Keyword.Type.Column) + 1;
+        int expression = indexOf(keywords, Db2.Keyword.Type.Return) + 1;
+        visit(keywords.subList(0, table - 1), p);
         visit(createMask.getName(), p);
+        visit(keywords.subList(table - 1, table), p);
         visit(createMask.getTable(), p);
-        visit(createMask.getOptions(), p);
+        visit(keywords.subList(table, table + correlation), p);
+        visit(options.subList(0, correlation), p);
+        visit(keywords.subList(table + correlation, column), p);
+        visit(options.subList(correlation, correlation + 1), p);
+        visit(keywords.subList(column, expression), p);
+        visit(options.subList(correlation + 1, options.size()), p);
+        visit(keywords.subList(expression, keywords.size()), p);
         afterSyntax(createMask, p);
         return createMask;
     }
@@ -216,10 +230,20 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreatePermission(Db2.CreatePermission createPermission, PrintOutputCapture<P> p) {
         beforeSyntax(createPermission, Space.Location.CREATE_PERMISSION_PREFIX, p);
-        visit(createPermission.getKeywords(), p);
+        List<Db2.Keyword> keywords = createPermission.getKeywords();
+        List<Db2> options = createPermission.getOptions();
+        int table = indexOf(keywords, Db2.Keyword.Type.On) + 1;
+        int correlation = indexOf(keywords, Db2.Keyword.Type.As) < keywords.size() ? 1 : 0;
+        int condition = indexOf(keywords, Db2.Keyword.Type.When) + 1;
+        visit(keywords.subList(0, table - 1), p);
         visit(createPermission.getName(), p);
+        visit(keywords.subList(table - 1, table), p);
         visit(createPermission.getTable(), p);
-        visit(createPermission.getOptions(), p);
+        visit(keywords.subList(table, table + correlation), p);
+        visit(options.subList(0, correlation), p);
+        visit(keywords.subList(table + correlation, condition), p);
+        visit(options.subList(correlation, options.size()), p);
+        visit(keywords.subList(condition, keywords.size()), p);
         afterSyntax(createPermission, p);
         return createPermission;
     }

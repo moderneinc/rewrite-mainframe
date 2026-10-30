@@ -169,6 +169,16 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             }
             return tail;
         }
+
+        /**
+         * The names from {@code fromName} on, then the options, which is source order for a statement
+         * that writes all its names before its first option.
+         */
+        List<Db2> namesThenOptions(int fromName) {
+            List<Db2> tail = new ArrayList<>(names.subList(fromName, names.size()));
+            tail.addAll(options);
+            return tail;
+        }
     }
 
     @Override
@@ -439,14 +449,14 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     public Db2 visitCreateMask(DB2Parser.CreateMaskContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreateMask(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.nameAt(1), p.tail(2));
+                p.nameAt(0), p.nameAt(1), p.namesThenOptions(2));
     }
 
     @Override
     public Db2 visitCreatePermission(DB2Parser.CreatePermissionContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreatePermission(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.nameAt(1), p.tail(2));
+                p.nameAt(0), p.nameAt(1), p.namesThenOptions(2));
     }
 
     @Override

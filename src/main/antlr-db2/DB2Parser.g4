@@ -20,18 +20,56 @@ options { caseInsensitive = true; tokenVocab=DB2Lexer; }
     }
 
     /**
-     * Whether the END ahead closes the compound statement, rather than a control flow statement in its body.
+     * Whether the END ahead closes the compound statement, rather than a control flow statement or a CASE
+     * expression in its body. A CASE expression ends with a bare END, so one is the block's only when every
+     * CASE the body has opened so far is closed.
      */
-    boolean closesBlock(ParserRuleContext block) {
+    boolean closesBlock(CompoundStatementContext block) {
         if (_input.LA(1) != END) {
             return false;
         }
-        switch (_input.LA(2)) {
+        return !endsStatement(_input.LA(2)) && openCases(block) == 0;
+    }
+
+    private static boolean endsStatement(int wordAfterEnd) {
+        switch (wordAfterEnd) {
             case IF: case WHILE: case FOR: case CASE: case LOOP: case REPEAT:
-                return false;
-            default:
                 return true;
+            default:
+                return false;
         }
+    }
+
+    /**
+     * The CASE expressions and CASE statements of the block's body that no END has closed yet. The block keeps
+     * the count, and each call brings it up to date over the body items added since the last one. A nested
+     * block closes its own.
+     */
+    private int openCases(CompoundStatementContext block) {
+        List<ParseTree> items = block.children;
+        for (int i = block.counted; i < items.size(); i++) {
+            int word = bodyWord(items.get(i));
+            if (word == CASE) {
+                block.openCases++;
+            } else if (word == END) {
+                int next = i + 1 < items.size() ? bodyWord(items.get(i + 1)) : _input.LA(1);
+                if (next == CASE) {
+                    i++;
+                    block.openCases--;
+                } else if (!endsStatement(next)) {
+                    block.openCases--;
+                }
+            }
+        }
+        block.counted = items.size();
+        return block.openCases;
+    }
+
+    private static int bodyWord(ParseTree item) {
+        if (item instanceof BodyItemContext && ((BodyItemContext) item).compoundStatement() == null) {
+            return ((BodyItemContext) item).getStart().getType();
+        }
+        return Token.INVALID_TYPE;
     }
 
     /**
@@ -576,17 +614,19 @@ routineClause
     ;
 
 // SQL PL is a procedural language of its own, not DDL. Its block structure is modelled so that a
-// nested BEGIN, or an END that closes a control flow statement rather than the block, does not end
-// the routine early; the statements inside it are not.
+// nested BEGIN, or an END that closes a control flow statement or a CASE expression rather than
+// the block, does not end the routine early; the statements inside it are not.
+//
+// Both sides of the body loop carry the predicate. One inside bodyItem would not reach the loop's
+// decision, since prediction evaluates a context-dependent predicate only in its own rule.
 compoundStatement
-    : BEGIN ATOMIC? bodyItem* {closesBlock($ctx)}? END identifier?
+locals [int openCases, int counted]
+    : BEGIN ATOMIC? ({!closesBlock($ctx)}? bodyItem)* {closesBlock($ctx)}? END identifier?
     ;
 
 bodyItem
     : compoundStatement
-    // closesBlock names the same words.
-    | END (IF | WHILE | FOR | CASE | LOOP | REPEAT)
-    | ~(BEGIN | END)
+    | ~BEGIN
     ;
 
 // A trigger's single statement has no block for an END to close, and its semicolon ends the trigger.

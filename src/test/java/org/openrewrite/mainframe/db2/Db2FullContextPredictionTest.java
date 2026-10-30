@@ -47,6 +47,23 @@ class Db2FullContextPredictionTest {
     }
 
     @Test
+    void aCaseExpressionsEndIsNotTheBlocks() {
+        String ddl = """
+          CREATE PROCEDURE CLM.RATE (INOUT X INT)
+            LANGUAGE SQL
+          BEGIN
+            SET X = CASE WHEN X = 1 THEN 2 ELSE 3 END;
+            CASE X
+              WHEN 1 THEN SET X = CASE X WHEN 1 THEN CASE WHEN X > 0 THEN 1 END ELSE 0 END;
+              ELSE SET X = 0;
+            END CASE;
+            RETURN X;
+          END;
+          """;
+        assertThat(fallbacks(ddl, "compoundStatement", "bodyItem")).isZero();
+    }
+
+    @Test
     void qualifiedNamesColumnTargetsAndIndexKeys() {
         String ddl = """
           CREATE TABLE CLM.POLICY (POLICY_NO CHAR(10) NOT NULL);
