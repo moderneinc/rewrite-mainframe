@@ -92,6 +92,18 @@ class Db2FullContextPredictionTest {
     }
 
     @Test
+    void trustedContextOptions() {
+        String ddl = """
+          CREATE TRUSTED CONTEXT CLMCTX BASED UPON CONNECTION USING SYSTEM AUTHID CLMADM
+            ATTRIBUTES (ADDRESS '10.0.0.1', JOBNAME 'CLMBAT*') DEFAULT ROLE CLMROLE ENABLE
+          ALTER TRUSTED CONTEXT CLMCTX ALTER ATTRIBUTES (ENCRYPTION 'LOW') DROP ATTRIBUTES (ADDRESS '10.0.0.1')
+          ALTER TABLE CLM.POLICY ADD COLUMN NOTE CHAR(8);
+          """;
+        assertThat(fallbacks(ddl, "createTrustedContext", "alterTrustedContext", "trustedContextOption",
+          "namedTrustedContextOption", "trustedAttribute")).isZero();
+    }
+
+    @Test
     void aSemicolonAfterAStatementIsItsEnd() {
         String ddl = """
           ;
