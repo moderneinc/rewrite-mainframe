@@ -187,9 +187,10 @@ queryStatement
     : queryExpression end
     ;
 
-// A semicolon before the first statement. Every later one ends the statement before it.
+// A terminator before the first statement. Every later one ends the statement before it.
 terminator
     : SEMI
+    | AT_SIGN
     ;
 
 //
@@ -629,9 +630,9 @@ bodyItem
     | ~BEGIN
     ;
 
-// A trigger's single statement has no block for an END to close, and its semicolon ends the trigger.
+// A trigger's single statement has no block for an END to close, and its terminator ends the trigger.
 triggeredStatement
-    : ~(BEGIN | SEMI)+
+    : ~(BEGIN | SEMI | AT_SIGN)+
     ;
 
 //
@@ -1028,7 +1029,7 @@ storageOption
     ;
 
 end
-    : SEMI*
+    : (SEMI | AT_SIGN)*
     ;
 
 // DB2's non-reserved keywords. A word here is a keyword in the statements that use it and an

@@ -466,5 +466,8 @@ DELIMITED_IDENTIFIER : '"' (~["\r\n] | '""')* '"';
 PLACEHOLDER : '<' [A-Z0-9_.]+ '>' | '{{' ~[}\r\n]* '}}' | '&' [A-Z0-9_@#$]+ ('.' [A-Z0-9_@#$]*)?;
 
 NUMBER : [0-9]+ ('.' [0-9]+)? (('E') ('+' | '-')? [0-9]+)?;
+// A lone @ ends a statement. Coming before IDENTIFIER wins the tie for it, and a longer word that
+// starts with @ is still a name.
+AT_SIGN : '@';
 IDENTIFIER : [A-Z_@#$] [A-Z0-9_@#$]*;
 HOST_VARIABLE : ':' [A-Z_@#$] [A-Z0-9_@#$\-.]*;

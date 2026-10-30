@@ -64,6 +64,26 @@ class Db2FullContextPredictionTest {
     }
 
     @Test
+    void anAtSignAfterABlockEndsTheStatement() {
+        String ddl = """
+          --#SET TERMINATOR @
+          CREATE PROCEDURE CLM.OPEN_CLAIM (INOUT X INT)
+          BEGIN
+            SET X = 1;
+          END @
+          CREATE PROCEDURE CLM.CLOSE_CLAIM (INOUT X INT)
+          BEGIN
+            IF X = 1 THEN
+              IF X = 2 THEN
+                SET X = 3;
+              END IF;
+            END IF;
+          END @
+          """;
+        assertThat(fallbacks(ddl, "compoundStatement", "bodyItem", "end")).isZero();
+    }
+
+    @Test
     void qualifiedNamesColumnTargetsAndIndexKeys() {
         String ddl = """
           CREATE TABLE CLM.POLICY (POLICY_NO CHAR(10) NOT NULL);
