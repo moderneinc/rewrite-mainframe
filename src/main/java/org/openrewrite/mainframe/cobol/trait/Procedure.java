@@ -26,7 +26,8 @@ import java.util.Iterator;
 
 /**
  * A paragraph or a section: the unit {@code PERFORM} and {@code GO TO} name, and so the unit a
- * control flow graph has nodes for.
+ * control flow graph has nodes for. A declarative section counts as a section. Control reaches it
+ * when the condition its {@code USE} statement names occurs, an I/O error say.
  * <p>
  * The two are one concept as far as anything that reaches them is concerned — {@code PERFORM
  * A-SECTION} and {@code PERFORM A-PARA} are written the same and mean the same — which is why they
@@ -43,36 +44,44 @@ public class Procedure implements Trait<Cobol> {
      */
     public String getName() {
         Cobol tree = getTree();
-        String name = tree instanceof Cobol.Paragraph ?
-                Names.upperOf(((Cobol.Paragraph) tree).getParagraphName()) :
-                Names.upperOf(((Cobol.ProcedureSection) tree).getProcedureSectionHeader().getSectionName());
+        String name = Names.upperOf(tree instanceof Cobol.Paragraph ?
+                ((Cobol.Paragraph) tree).getParagraphName() :
+                sectionHeader(tree).getSectionName());
         return name == null ? "" : name;
     }
 
     public boolean isSection() {
-        return getTree() instanceof Cobol.ProcedureSection;
+        return !(getTree() instanceof Cobol.Paragraph);
+    }
+
+    private static Cobol.ProcedureSectionHeader sectionHeader(Cobol section) {
+        return section instanceof Cobol.ProcedureSection ?
+                ((Cobol.ProcedureSection) section).getProcedureSectionHeader() :
+                ((Cobol.ProcedureDeclarative) section).getProcedureSectionHeader();
+    }
+
+    private static boolean isProcedure(Object value) {
+        return value instanceof Cobol.Paragraph || value instanceof Cobol.ProcedureSection ||
+               value instanceof Cobol.ProcedureDeclarative;
     }
 
     public static class Matcher extends SimpleTraitMatcher<Procedure> {
 
         @Override
         protected @Nullable Procedure test(Cursor cursor) {
-            Object value = cursor.getValue();
-            return value instanceof Cobol.Paragraph || value instanceof Cobol.ProcedureSection ?
-                    new Procedure(cursor) : null;
+            return isProcedure(cursor.getValue()) ? new Procedure(cursor) : null;
         }
     }
 
     /**
-     * The procedure {@code cursor} is inside, or null for a statement written before any paragraph.
+     * The procedure {@code cursor} is inside, or null where it is in none.
      * A paragraph within a section answers with the paragraph: it is the finer of the two names, and
      * the one a {@code PERFORM} would have to use to reach that statement.
      */
     public static @Nullable Procedure of(Cursor cursor) {
         for (Iterator<Cursor> path = cursor.getPathAsCursors(); path.hasNext(); ) {
             Cursor enclosing = path.next();
-            Object value = enclosing.getValue();
-            if (value instanceof Cobol.Paragraph || value instanceof Cobol.ProcedureSection) {
+            if (isProcedure(enclosing.getValue())) {
                 return new Procedure(enclosing);
             }
         }
