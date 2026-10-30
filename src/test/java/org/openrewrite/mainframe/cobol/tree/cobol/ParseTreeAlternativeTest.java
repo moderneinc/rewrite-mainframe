@@ -82,6 +82,33 @@ class ParseTreeAlternativeTest extends CobolTest {
     }
 
     @Test
+    void onlyASignedIntegerMakesADataNameSubscriptRelative() {
+        List<Long> dimensions = new ArrayList<>();
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
+              @Override
+              public Cobol.TableCall visitTableCall(Cobol.TableCall tableCall, ExecutionContext ctx) {
+                  dimensions.add(tableCall.getSubscripts().get(0).getContents().stream()
+                    .filter(Cobol.Subscript.class::isInstance).count());
+                  return tableCall;
+              }
+          })),
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                        \s
+              000000 PROGRAM-ID. RELSUB.                                             \s
+              000000 PROCEDURE DIVISION.                                             \s
+              000000     MOVE C (R1, 1) TO X                                         \s
+              000000     MOVE C (R1 R2 3) TO X                                       \s
+              000000     MOVE C (R1 +1) TO X                                         \s
+              000000     MOVE C (R1 - 1) TO X.                                       \s
+              """
+          )
+        );
+        assertThat(dimensions).containsExactly(2L, 3L, 1L, 1L);
+    }
+
+    @Test
     void eachAllLeadingOrFirstOpensAnInspectGroup() {
         List<String> groups = new ArrayList<>();
         rewriteRun(

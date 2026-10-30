@@ -306,6 +306,7 @@ class FullContextPredictionTest {
               MOVE E (1) TO X
               MOVE E (I + 1) TO X
               MOVE E (I +1) TO X
+              MOVE E (I, 1) TO X
               MOVE E (I OF T) TO X
               MOVE E (F (1)) TO X
               MOVE DFHVALUE(NOUCTRAN) TO X

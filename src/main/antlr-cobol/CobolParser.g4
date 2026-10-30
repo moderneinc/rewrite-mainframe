@@ -297,7 +297,7 @@ options { tokenVocab = CobolLexer; }
             while (_input.LA(i) == IN || _input.LA(i) == OF) {
                 i += 2;
             }
-            if (integerLiteralStart.contains(_input.LA(i))) {
+            if (signedIntegerAt(i)) {
                 i++;
             }
         } else {
@@ -306,6 +306,22 @@ options { tokenVocab = CobolLexer; }
         int next = _input.LA(i);
         return next == RPARENCHAR || next == COMMACHAR || next == ALL || cobolWordStart().contains(next) ||
                integerLiteralStart.contains(next);
+    }
+
+    boolean signedIntegerAhead(ParserRuleContext subscript) {
+        return signedIntegerAt(1);
+    }
+
+    /**
+     * Whether LT(i) is an integer written with its sign, which the lexer folds into the token. Only such an integer
+     * makes the name before it a relative subscript. An unsigned one is the next subscript.
+     */
+    private boolean signedIntegerAt(int i) {
+        if (_input.LA(i) != INTEGERLITERAL) {
+            return false;
+        }
+        char sign = _input.LT(i).getText().charAt(0);
+        return sign == '+' || sign == '-';
     }
 
     /**
@@ -2838,7 +2854,7 @@ length
 subscript
    : ALL
    | {plainSubscriptAhead($ctx)}? integerLiteral
-   | {plainSubscriptAhead($ctx)}? qualifiedDataName (integerLiteral | {!startsIntegerLiteral($ctx)}?)
+   | {plainSubscriptAhead($ctx)}? qualifiedDataName ({signedIntegerAhead($ctx)}? integerLiteral | {!signedIntegerAhead($ctx)}?)
    | {!plainSubscriptAhead($ctx)}? arithmeticExpression
    ;
 
