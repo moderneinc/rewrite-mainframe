@@ -975,6 +975,34 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     }
 
     @Override
+    public Cobol.Allocate visitAllocate(Cobol.Allocate allocate, P p) {
+        Cobol.Allocate a = allocate;
+        a = a.withSubject(visitAndCast(a.getSubject(), p));
+        return a.withPointer(visitAndCast(a.getPointer(), p));
+    }
+
+    @Override
+    public Cobol.Free visitFree(Cobol.Free free, P p) {
+        return free.withPointers(ListUtils.map(free.getPointers(), it -> visitAndCast(it, p)));
+    }
+
+    @Override
+    public Cobol.JsonXml visitJsonXml(Cobol.JsonXml jsonXml, P p) {
+        Cobol.JsonXml j = jsonXml;
+        j = j.withDocument(visitAndCast(j.getDocument(), p));
+        j = j.withData(visitAndCast(j.getData(), p));
+        j = j.withPhrases(ListUtils.map(j.getPhrases(), it -> visitAndCast(it, p)));
+        j = j.withOnException(visitAndCast(j.getOnException(), p));
+        return j.withNotOnException(visitAndCast(j.getNotOnException(), p));
+    }
+
+    @Override
+    public Cobol.JsonXmlPhrase visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, P p) {
+        return jsonXmlPhrase.withElements(ListUtils.map(jsonXmlPhrase.getElements(),
+                it -> it instanceof Cobol.Word ? it : visitAndCast(it, p)));
+    }
+
+    @Override
     public Cobol.Initialize visitInitialize(Cobol.Initialize initialize, P p) {
         Cobol.Initialize i = initialize;
         i = i.withIdentifiers(ListUtils.map(i.getIdentifiers(), it -> visitAndCast(it, p)));

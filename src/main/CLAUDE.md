@@ -27,7 +27,7 @@ Run it on main and on the branch, alternating, three times each, under an exclus
 
 Regenerate with the grammar's `generateAntlrSources…` task, then run `licenseFormat`, since the generator drops the license header. Make the `// Generated from` path relative. Restore a generated lexer whose serialized ATN did not change. A large lexer splits that string into `_serializedATNSegment0`, `_serializedATNSegment1` and so on, so compare every segment, and make sure the comparison extracted something, because two empty extracts compare equal.
 
-A new keyword needs the class IBM gives it in the Enterprise COBOL Language Reference. A reserved word is a token and nothing else. A context-sensitive word, listed in the appendix of that name, is a token that `cobolWord` also accepts, so that a program naming a data item `NAME` or `LOC` still parses. Check the corpus for data items spelled like a new reserved word before adding it.
+A new keyword is a token, and `cobolWord` also accepts it unless the reserved-word table of the Enterprise COBOL Language Reference marks it reserved. A program may name a data item `NAME`, `LOC` or `ELEMENT`, so those three are names everywhere outside the statement that reads them as keywords. Inside that statement a `$ctx` predicate on the operand keeps them keywords. Check the corpus for data items spelled like a new reserved word before adding it.
 
 ## What went wrong before
 

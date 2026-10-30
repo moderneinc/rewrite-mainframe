@@ -445,6 +445,13 @@ class FullContextPredictionTest {
               FREE PTR PTR2
               INITIALIZE REC WITH FILLER ALL TO VALUE THEN REPLACING NUMERIC DATA BY ZERO THEN TO DEFAULT
               INITIALIZE REC NAME
+              INITIALIZE REC THEN TO DEFAULT
+              INITIALIZE REC ALL TO VALUE THEN TO DEFAULT
+              EVALUATE CNT
+                WHEN 1 XML GENERATE DOC FROM REC SUPPRESS BAL
+                WHEN 2 JSON GENERATE DOC FROM REC SUPPRESS BAL WHEN ZERO
+                WHEN OTHER CONTINUE
+              END-EVALUATE
               STOP RUN.
           """;
         assertThat(fullContextFallbacks(program, "jsonXmlStatement", "jsonXmlPhrase", "allocateStatement",

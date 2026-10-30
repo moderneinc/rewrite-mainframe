@@ -2332,10 +2332,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitJsonXmlPhrase(CobolParser.JsonXmlPhraseContext ctx) {
+        List<Cobol> elements = new ArrayList<>(ctx.getChildCount());
+        for (ParseTree child : ctx.children) {
+            elements.add((Cobol) visit(child));
+        }
         return new Cobol.JsonXmlPhrase(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAllList(ctx.children)
+                elements
         );
     }
 
@@ -2366,7 +2370,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.INITIALIZE()),
                 convertAllList(ctx.identifier()),
-                words(ctx.initializeValuePhrase()),
+                words(ctx.initializeValuePhrase(), ctx.THEN()),
                 visitNullable(ctx.initializeReplacingPhrase()),
                 words(ctx.initializeDefaultPhrase())
         );
@@ -6174,20 +6178,21 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
      * The words of the given rules and tokens, in source order, or empty.
      */
     private List<Cobol.Word> words(@Nullable ParseTree... trees) {
-        List<ParseTree> terminals = new ArrayList<>();
+        List<TerminalNode> terminals = new ArrayList<>();
         for (ParseTree tree : trees) {
             collectTerminals(tree, terminals);
         }
+        terminals.sort(Comparator.comparingInt(terminal -> terminal.getSymbol().getStartIndex()));
         List<Cobol.Word> words = new ArrayList<>(terminals.size());
-        for (ParseTree terminal : terminals) {
+        for (TerminalNode terminal : terminals) {
             words.add((Cobol.Word) visit(terminal));
         }
         return words;
     }
 
-    private static void collectTerminals(@Nullable ParseTree tree, List<ParseTree> into) {
+    private static void collectTerminals(@Nullable ParseTree tree, List<TerminalNode> into) {
         if (tree instanceof TerminalNode) {
-            into.add(tree);
+            into.add((TerminalNode) tree);
         } else if (tree != null) {
             for (int i = 0; i < tree.getChildCount(); i++) {
                 collectTerminals(tree.getChild(i), into);

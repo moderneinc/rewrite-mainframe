@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 
@@ -108,14 +109,16 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000019         NAMESPACE-PREFIX IS 'ns'
               000020         NAME OF ACCT IS 'account'
               000021         TYPE OF BAL IS ELEMENT
-              000022         SUPPRESS EVERY NUMERIC ELEMENT WHEN ZERO
+              000022         SUPPRESS EVERY NUMERIC ATTRIBUTE WHEN ZERO
               000023         ON EXCEPTION DISPLAY 'FAILED'
               000024     END-XML
               000025     GOBACK.
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(statementsOf(cu, Cobol.JsonXml.class)).singleElement()
-                .satisfies(s -> assertThat(s.getPhrases()).hasSize(9)))
+              assertThat(statementsOf(cu, Cobol.JsonXml.class)).singleElement().satisfies(s -> {
+                  assertThat(s.getPhrases()).hasSize(9);
+                  assertThat(s.getPhrases().get(8).getElements()).allMatch(Cobol.Word.class::isInstance);
+              }))
           )
         );
     }
@@ -185,13 +188,19 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000019     INITIALIZE REC NUMERIC TO VALUE
               000020     INITIALIZE REC THEN TO DEFAULT
               000021     GOBACK.
-              """
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(statementsOf(cu, Cobol.Initialize.class))
+              .extracting(init -> words(init.getValuePhrase()), init -> words(init.getDefaultPhrase()))
+              .containsExactly(
+                tuple("WITH FILLER ALL TO VALUE THEN", "THEN TO DEFAULT"),
+                tuple("NUMERIC TO VALUE", ""),
+                tuple("", "THEN TO DEFAULT")))
           )
         );
     }
 
     @Test
-    void contextSensitiveWordsStillNameData() {
+    void aWhenAfterSuppressIsTheEvaluatesUnlessAConditionFollows() {
         rewriteRun(
           cobol(
             """
@@ -199,13 +208,47 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000002 PROGRAM-ID. ENTCOB.
               000003 DATA DIVISION.
               000004 WORKING-STORAGE SECTION.
-              000005 01  NAME        PIC X(20).
-              000006 01  LOC         PIC X(20).
-              000007 01  INITIALIZED PIC X.
-              000008 PROCEDURE DIVISION.
-              000009     MOVE NAME TO LOC
-              000010     IF INITIALIZED = 'Y' DISPLAY NAME END-IF
-              000011     GOBACK.
+              000005 01  DOC        PIC X(200).
+              000006 01  CNT        PIC 9(4).
+              000007 01  REC.
+              000008     05  BAL    PIC 9(7).
+              000009 PROCEDURE DIVISION.
+              000010     EVALUATE CNT
+              000011       WHEN 1 JSON GENERATE DOC FROM REC SUPPRESS BAL
+              000012       WHEN 2 JSON GENERATE DOC FROM REC SUPPRESS BAL WHEN ZERO
+              000013       WHEN OTHER CONTINUE
+              000014     END-EVALUATE
+              000015     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(statementsOf(cu, Cobol.JsonXml.class))
+              .extracting(s -> s.getPhrases().get(0).getElements().size())
+              .containsExactly(2, 4))
+          )
+        );
+    }
+
+    @Test
+    void phraseWordsStillNameData() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  NAME            PIC X(20).
+              000006 01  LOC             PIC X(20).
+              000007 01  INITIALIZED     PIC X.
+              000008 01  ELEMENT         PIC X.
+              000009 01  ATTRIBUTES      PIC X.
+              000010 01  NAMESPACE       PIC X.
+              000011 01  NONNUMERIC      PIC X.
+              000012 01  XML-DECLARATION PIC X.
+              000013 PROCEDURE DIVISION.
+              000014     MOVE NAME TO LOC
+              000015     MOVE ELEMENT TO ATTRIBUTES NAMESPACE NONNUMERIC XML-DECLARATION
+              000016     IF INITIALIZED = 'Y' DISPLAY NAME END-IF
+              000017     GOBACK.
               """
           )
         );
@@ -230,6 +273,10 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               """
           )
         );
+    }
+
+    private static String words(List<Cobol.Word> words) {
+        return words.stream().map(Cobol.Word::getWord).collect(joining(" "));
     }
 
     private static <T extends Statement> List<T> statementsOf(Cobol.CompilationUnit cu, Class<T> type) {
