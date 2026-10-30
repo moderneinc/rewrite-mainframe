@@ -329,6 +329,30 @@ class Db2ParserTest {
           .containsExactly(tuple("POLICY", "CLM.POLICY"));
     }
 
+    @Test
+    void aMaskOrAPermissionPrintsEachKeywordBesideWhatItIntroduces() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE MASK CLM.SSN_MASK ON CLM.POLICY FOR COLUMN SSN RETURN CASE WHEN 1 = 1 THEN SSN ELSE 'X' END ENABLE;
+            CREATE MASK CLM.RATE_MASK ON CLM.POLICY AS P
+              FOR COLUMN RATE RETURN CASE WHEN P.RATE > 0 THEN P.RATE ELSE 0 END;
+            CREATE PERMISSION CLM.OWN_ROWS ON CLM.CLAIM AS C
+              FOR ROW ACCESS CONTROL WHEN (C.OWNER = SESSION_USER) ENFORCED FOR ALL ACCESS ENABLE;
+            CREATE PERMISSION CLM.ALL_ROWS ON CLM.POLICY FOR ROW ACCESS CONTROL WHEN (1 = 1);
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateMask.class))
+          .extracting(mask -> mask.getName().getFullName(), mask -> mask.getTable().getFullName(),
+            mask -> Db2.elementsOf(mask.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+          .containsExactly(tuple("CLM.SSN_MASK", "CLM.POLICY", List.of("SSN")),
+            tuple("CLM.RATE_MASK", "CLM.POLICY", List.of("P", "RATE")));
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreatePermission.class))
+          .extracting(permission -> permission.getName().getFullName(), permission -> permission.getTable().getFullName(),
+            permission -> Db2.elementsOf(permission.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+          .containsExactly(tuple("CLM.OWN_ROWS", "CLM.CLAIM", List.of("C")),
+            tuple("CLM.ALL_ROWS", "CLM.POLICY", List.of()));
+    }
+
     /**
      * Each of these writes keywords after the name it acts on — the {@code TO} of a rename, the mode
      * a table is locked in, the rule a drop is made under, what an {@code ALTER VIEW} does — and each
