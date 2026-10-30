@@ -525,17 +525,23 @@ trustedContextOption
 
 namedTrustedContextOption
     : (ALTER | ADD | DROP)? ATTRIBUTES LPAREN trustedAttribute (COMMA trustedAttribute)* RPAREN
-    | (ENABLE | DISABLE)
-    | NO? DEFAULT ROLE identifier?
-    | WITH USE FOR trustedUser (COMMA trustedUser)*
+    | ALTER? (ENABLE | DISABLE)
+    | ALTER? NO? DEFAULT ROLE identifier?
+    | ALTER? (NO DEFAULT SECURITY LABEL | DEFAULT SECURITY LABEL identifier)
+    // OBJECT and OWNER are not tokens.
+    | ALTER? (WITH | WITHOUT) ROLE AS identifier identifier (AND QUALIFIER)?
+    | ALTER SYSTEM AUTHID identifier
+    | (WITH | ADD | REPLACE | DROP) USE FOR trustedUser (COMMA trustedUser)*
     ;
 
 trustedAttribute
     : identifier (EQ | ) STRING
     ;
 
+// PROFILE is not a token.
 trustedUser
-    : (identifier | PUBLIC) (ROLE identifier)? (WITH | WITHOUT)? AUTHENTICATION?
+    : (identifier | EXTERNAL SECURITY identifier identifier | PUBLIC)
+      (ROLE identifier)? (SECURITY LABEL identifier)? ((WITH | WITHOUT) AUTHENTICATION)?
     ;
 
 caseExpression
