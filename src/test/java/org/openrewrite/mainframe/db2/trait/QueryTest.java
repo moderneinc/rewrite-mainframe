@@ -178,6 +178,29 @@ class QueryTest implements RewriteTest {
     }
 
     @Test
+    void aCommonTableExpressionInAProcedureBodyIsNoTable() {
+        rewriteRun(
+          db2(
+            """
+              CREATE PROCEDURE CLM.OPENCLAIMS (OUT N INT)
+                LANGUAGE SQL
+              BEGIN
+                DECLARE C1 CURSOR WITH RETURN FOR
+                  WITH OPENED (CLAIM_NO) AS (SELECT CLAIM_NO FROM CLM.CLAIM WHERE STATUS = 'O'),
+                       PAID AS (SELECT CLAIM_NO FROM CLM.PAYMENT)
+                  SELECT O.CLAIM_NO FROM OPENED O, PAID P, CLM.POLICY WHERE O.CLAIM_NO = P.CLAIM_NO;
+                WITH RECENT AS (SELECT CLAIM_NO FROM CLM.CLAIM_HIST) SELECT COUNT(*) INTO N FROM RECENT;
+                ASSOCIATE RESULT SET LOCATOR (LOC1) WITH PROCEDURE CLM.GENDEPS;
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(tablesByQuery(cu)).containsExactly(
+              List.of("CLM.CLAIM", "CLM.PAYMENT", "CLM.POLICY"),
+              List.of("CLM.CLAIM_HIST")))
+          )
+        );
+    }
+
+    @Test
     void aTriggersSingleStatementReadsTheTablesOfItsQuery() {
         rewriteRun(
           db2(

@@ -805,14 +805,16 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     }
 
     /**
-     * The words of a SQL PL body, with each SELECT and the words up to the end of its query made a
-     * {@link Db2.Query}. A string literal is one token, so every SELECT token starts a query.
+     * The words of a SQL PL body, with each query made a {@link Db2.Query}. A query starts at a
+     * SELECT, or at the WITH that names its common table expressions. A string literal is one token,
+     * so every SELECT token starts a query.
      */
     private List<Db2> bodyParts(List<Token> tokens) {
         List<Db2> parts = new ArrayList<>(tokens.size());
         int i = 0;
         while (i < tokens.size()) {
-            if (tokens.get(i).getType() == DB2Parser.SELECT) {
+            int type = tokens.get(i).getType();
+            if (type == DB2Parser.SELECT || type == DB2Parser.WITH && namesCommonTable(tokens, i)) {
                 int end = queryEnd(tokens, i);
                 parts.add(bodyQuery(tokens.subList(i, end)));
                 i = end;
@@ -821,6 +823,26 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             }
         }
         return parts;
+    }
+
+    /**
+     * Whether the WITH at {@code with} opens {@code WITH name [(columns)] AS (}, as against the WITH
+     * of a cursor's {@code WITH RETURN} or a query's {@code WITH UR}.
+     */
+    private static boolean namesCommonTable(List<Token> tokens, int with) {
+        int i = with + 1;
+        if (i >= tokens.size() || !IDENTIFIER_START.contains(tokens.get(i).getType())) {
+            return false;
+        }
+        i++;
+        if (i < tokens.size() && tokens.get(i).getType() == DB2Parser.LPAREN) {
+            while (i < tokens.size() && tokens.get(i).getType() != DB2Parser.RPAREN) {
+                i++;
+            }
+            i++;
+        }
+        return i + 1 < tokens.size() && tokens.get(i).getType() == DB2Parser.AS &&
+               tokens.get(i + 1).getType() == DB2Parser.LPAREN;
     }
 
     /**

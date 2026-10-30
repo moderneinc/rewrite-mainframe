@@ -73,6 +73,10 @@ public class Query implements Trait<Db2.Query> {
             Db2 part = parts.get(i);
             Level level = levels.peek();
             if (part instanceof Db2.Name) {
+                // A SQL PL body's query keeps the name of a common table expression as a name.
+                if (depth == 0 && defining && ("WITH".equals(previous) || ",".equals(previous))) {
+                    commonTables.add(((Db2.Name) part).getSimpleName().toUpperCase(Locale.ROOT));
+                }
                 if (level.table && depth == level.depth) {
                     // A name called like a function, XMLTABLE say, is a table function.
                     if (!isWord(parts, i + 1, "(")) {
