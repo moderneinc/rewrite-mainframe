@@ -85,9 +85,22 @@ class EmbeddedSqlTest {
         // A query fills the listed columns by position, as VALUES does.
         assertThat(read.getHostVariables()).containsExactly("", "WS-NOW");
 
+        assertThat(EmbeddedSql.read("INSERT INTO CLM.LOG (ID, LOGGED) (SELECT ID, :WS-NOW FROM CLM.CLAIM)")
+          .getHostVariables()).containsExactly("", "WS-NOW");
+
         assertThat(EmbeddedSql.read(
           "INSERT INTO CLM.LOG (ID) WITH T AS (SELECT ID FROM CLM.CLAIM) SELECT ID FROM T").getTables())
           .contains("CLM.CLAIM", "CLM.LOG");
+    }
+
+    @Test
+    void readsAQueryThatIsNotAPlainSelect() {
+        assertThat(EmbeddedSql.read(
+          "DECLARE C1 CURSOR FOR SELECT ID, STATUS FROM CLM.CLAIM UNION ALL SELECT CLAIM_ID, STATE FROM CLM.CLAIM_HIST")
+          .getColumns()).containsExactly("ID", "STATUS");
+
+        assertThat(EmbeddedSql.read("VALUES CURRENT TIMESTAMP INTO :WS-NOW").getHostVariables())
+          .containsExactly("WS-NOW");
     }
 
     /**
