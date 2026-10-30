@@ -296,6 +296,18 @@ public class CobolPreprocessorBaseListener implements CobolPreprocessorListener 
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCompilerDirective(CobolPreprocessorParser.CompilerDirectiveContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCompilerDirective(CobolPreprocessorParser.CompilerDirectiveContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterEjectStatement(CobolPreprocessorParser.EjectStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}

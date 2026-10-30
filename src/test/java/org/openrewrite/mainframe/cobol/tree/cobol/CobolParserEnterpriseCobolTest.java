@@ -17,9 +17,13 @@ package org.openrewrite.mainframe.cobol.tree.cobol;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Cursor;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
+import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
+import org.openrewrite.mainframe.cobol.CobolPreprocessorParser;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
+import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -300,6 +304,75 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     @Test
+    void compilerDirectivesPrintBackAndLeaveTheProgramAlone() {
+        rewriteRun(
+          cobol(
+            """
+              000001 >>CALLINTERFACE STATIC
+              000002 >>DEFINE TRACE-LEVEL AS 2
+              000003 IDENTIFICATION DIVISION.
+              000004 PROGRAM-ID. ENTCOB.
+              000005 DATA DIVISION.
+              000006 WORKING-STORAGE SECTION.
+              000007 >>DATA 31
+              000008 01  CNT PIC 9(4).
+              000009 PROCEDURE DIVISION.
+              000010     >>INLINE OFF
+              000011     >>IF TRACE-LEVEL > 1
+              000012     DISPLAY 'TRACING'
+              000013     >>ELSE
+              000014     DISPLAY 'QUIET'
+              000015     >>END-IF
+              000016     >>EVALUATE TRACE-LEVEL
+              000017     >>WHEN 2
+              000018     MOVE 2 TO CNT
+              000019     >>WHEN OTHER
+              000020     MOVE 0 TO CNT
+              000021     >>END-EVALUATE
+              000022     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.Display.class)).hasSize(2))
+          )
+        );
+    }
+
+    @Test
+    void directivesAreNodesOfTheirOwnAndLeaveReplaceAndPseudoTextAlone() {
+        String source = """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 AUTHOR. A PERSON.
+              000004 >>CALLINTERFACE DLL
+              000005 DATA DIVISION.
+              000006 WORKING-STORAGE SECTION.
+              000007 01  WS-TEXT PIC X(10).
+              000008 PROCEDURE DIVISION.
+              000009     REPLACE ==:P:== BY ==WS== ==A>>B== BY ==C==.
+              000010     >>INLINE OFF
+              000011     DISPLAY :P:-TEXT
+              000012     REPLACE OFF.
+              000013     GOBACK.
+              """;
+        rewriteRun(
+          cobol(source, spec -> spec.afterRecipe(cu ->
+            assertThat(treesOf(cu, Cobol.Display.class)).singleElement()
+              .satisfies(display -> assertThat(wordsIn(display)).containsExactly("DISPLAY", "WS-TEXT"))))
+        );
+
+        CobolPreprocessor.CompilationUnit preprocessed = (CobolPreprocessor.CompilationUnit) CobolPreprocessorParser.builder().build()
+          .parse(new InMemoryExecutionContext(), source).findFirst().orElseThrow();
+        List<String> directives = new ArrayList<>();
+        new CobolPreprocessorIsoVisitor<List<String>>() {
+            @Override
+            public CobolPreprocessor.CompilerDirective visitCompilerDirective(CobolPreprocessor.CompilerDirective directive, List<String> found) {
+                found.add(directive.getWord().getCobolWord().getWord());
+                return directive;
+            }
+        }.visit(preprocessed, directives);
+        assertThat(directives).containsExactly(">>CALLINTERFACE DLL", ">>INLINE OFF");
+    }
+
+    @Test
     void phraseWordsStillNameData() {
         rewriteRun(
           cobol(
@@ -345,6 +418,18 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               """
           )
         );
+    }
+
+    private static List<String> wordsIn(Cobol tree) {
+        List<String> words = new ArrayList<>();
+        new CobolIsoVisitor<List<String>>() {
+            @Override
+            public Cobol.Word visitWord(Cobol.Word word, List<String> found) {
+                found.add(word.getWord());
+                return word;
+            }
+        }.visit(tree, words);
+        return words;
     }
 
     private static String words(List<Cobol.Word> words) {

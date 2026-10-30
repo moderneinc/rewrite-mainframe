@@ -96,7 +96,7 @@ public class CobolLineReader {
             // A paragraph header belongs in area A, and generated code begins it past the area's first column.
             String paragraph = beginsInAreaA(contentArea) ? trimLeadingWhitespace(contentArea) : contentArea;
             if (inCommentEntry && !line.isEmpty()) {
-                if (startsWithTrigger(paragraph, triggersEnd)) {
+                if (startsWithTrigger(paragraph, triggersEnd) || trimLeadingWhitespace(contentArea).startsWith(">>")) {
                     inCommentEntry = false;
                 } else {
                     // Mark the comment entry.

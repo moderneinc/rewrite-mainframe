@@ -147,6 +147,12 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
     }
 
     @Override
+    public CobolPreprocessor.CompilerDirective visitCompilerDirective(CobolPreprocessor.CompilerDirective compilerDirective, P p) {
+        preprocessorMap.put(compilerDirective.getId().toString(), compilerDirective);
+        return compilerDirective;
+    }
+
+    @Override
     public CobolPreprocessor.EjectStatement visitEjectStatement(CobolPreprocessor.EjectStatement ejectStatement, P p) {
         preprocessorMap.put(ejectStatement.getId().toString(), ejectStatement);
         return ejectStatement;

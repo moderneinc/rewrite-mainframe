@@ -568,6 +568,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
                 new HashMap<>(),
                 convertAll(ctx.charDataLine(),
                         ctx.compilerOptions(),
+                        ctx.compilerDirective(),
                         ctx.copyStatement(),
                         ctx.execCicsStatement(),
                         ctx.execDliStatement(),
@@ -622,6 +623,16 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
                 Markers.EMPTY,
                 visit(ctx.OF(), ctx.IN()),
                 visit(ctx.literal(), ctx.cobolWord())
+        );
+    }
+
+    @Override
+    public Object visitCompilerDirective(CobolPreprocessorParser.CompilerDirectiveContext ctx) {
+        return new CobolPreprocessor.CompilerDirective(
+                randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                (CobolPreprocessor.Word) visit(ctx.COMPILER_DIRECTIVE())
         );
     }
 
@@ -749,7 +760,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
                 EMPTY,
                 Markers.EMPTY,
                 (CobolPreprocessor.ReplaceByStatement) visit(ctx.replaceByStatement()),
-                convertAllList(ctx.copyStatement(), ctx.charData()),
+                convertAllList(ctx.copyStatement(), ctx.compilerDirective(), ctx.charData()),
                 visitNullable(ctx.replaceOffStatement())
         );
     }

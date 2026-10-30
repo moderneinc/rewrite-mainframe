@@ -153,6 +153,14 @@ public class CobolPreprocessorSourcePrinter<P> extends CobolPreprocessorVisitor<
     }
 
     @Override
+    public CobolPreprocessor visitCompilerDirective(CobolPreprocessor.CompilerDirective compilerDirective, PrintOutputCapture<P> p) {
+        beforeSyntax(compilerDirective, Space.Location.COMPILER_DIRECTIVE_PREFIX, p);
+        visit(compilerDirective.getWord(), p);
+        afterSyntax(compilerDirective, p);
+        return compilerDirective;
+    }
+
+    @Override
     public CobolPreprocessor visitEjectStatement(CobolPreprocessor.EjectStatement ejectStatement, PrintOutputCapture<P> p) {
         beforeSyntax(ejectStatement, Space.Location.EJECT_STATEMENT_PREFIX, p);
         visit(ejectStatement.getWord(), p);
