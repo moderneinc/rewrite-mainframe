@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.dfa.DFAState;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
@@ -50,15 +51,19 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -73,7 +78,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * one scanned. A prediction that scans further than {@link #LONGEST_FULL_CONTEXT_SCAN} fails the test, since that
  * is the shape of a grammar change that makes a parse quadratic, as the dangling ELSE did before #189.
  * <p>
- * Run with {@code MAINFRAME_CORPUS} naming a directory of repositories.
+ * Run with {@code MAINFRAME_CORPUS} naming a directory of repositories, and {@code MAINFRAME_LANGUAGES} naming the
+ * languages to measure by their report names, or none of them for all.
  */
 class ParseCostTest {
 
@@ -83,7 +89,7 @@ class ParseCostTest {
     @Test
     void measure() throws IOException {
         Path root = Paths.get(System.getenv("MAINFRAME_CORPUS"));
-        List<Language> languages = asList(
+        List<Language> languages = selected(asList(
           new Language("COBOL", Corpus::programs,
             repository -> CobolParser.builder().copybooks(copybooks(root, repository)).build(),
             new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(null),
@@ -103,7 +109,8 @@ class ParseCostTest {
             new org.openrewrite.mainframe.linkedit.internal.grammar.LinkEditParser(null)),
           new Language("Control-M", Corpus::schedules, repository -> ControlMParser.builder().build(),
             new org.openrewrite.mainframe.controlm.internal.grammar.ControlMParser(null)),
-          new Language("Assembler", Corpus::assemblerMembers, repository -> AssemblerParser.builder().build()));
+          new Language("Assembler", Corpus::assemblerMembers, repository -> AssemblerParser.builder().build())),
+          System.getenv("MAINFRAME_LANGUAGES"));
 
         List<Path> repositories = Corpus.repositories(root);
         FullContextWatch watch = new FullContextWatch();
@@ -120,6 +127,34 @@ class ParseCostTest {
         assertThat(files).as("files under %s", root).isPositive();
         assertThat(watch.longestScan).as("tokens scanned by one full-context prediction, in %s", watch.longestScanRule)
           .isLessThanOrEqualTo(LONGEST_FULL_CONTEXT_SCAN);
+    }
+
+    @Test
+    void measuresOnlyTheLanguagesNamed() {
+        List<Language> all = asList(language("COBOL"), language("Db2"), language("JCL"));
+        assertThat(selected(all, null)).isEqualTo(all);
+        assertThat(selected(all, "db2, JCL")).extracting(language -> language.name).containsExactly("Db2", "JCL");
+    }
+
+    private static Language language(String name) {
+        return new Language(name, repository -> emptyList(), repository -> null);
+    }
+
+    /**
+     * The languages a comma-separated list names, in any case, or all of them for a null or empty list.
+     */
+    private static List<Language> selected(List<Language> languages, @Nullable String names) {
+        if (names == null || names.trim().isEmpty()) {
+            return languages;
+        }
+        Set<String> wanted = Arrays.stream(names.split(","))
+          .map(name -> name.trim().toLowerCase(Locale.ROOT))
+          .collect(toSet());
+        List<Language> selected = languages.stream()
+          .filter(language -> wanted.contains(language.name.toLowerCase(Locale.ROOT)))
+          .collect(toList());
+        assertThat(selected).as("languages named by MAINFRAME_LANGUAGES=%s", names).isNotEmpty();
+        return selected;
     }
 
     private static List<SourceFile> copybooks(Path root, Path repository) throws IOException {

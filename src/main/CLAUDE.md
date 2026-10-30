@@ -14,7 +14,7 @@ These public GitHub repositories together reach every parser:
 - `openmainframeproject/cobol-programming-course`, `openmainframeproject/zorow`
 - `aws-samples/aws-mainframe-modernization-carddemo`, `bheckel/code`, `billrain/MainframeJCL`, `davidegirardi/adcdsetup`, `ibmdbbdev/Samples`, `IBMStockTrader/cash-account-cobol`, `lnlyssg/IRRXUTIL`, `tobiaslinke/tools-data_structures-macros-for-zos_assembly`, `zowe/zowe-common-c`
 
-`--rerun` keeps Gradle from replaying an earlier result. The report goes to the test's standard output, which Gradle keeps in `build/test-results/test/TEST-org.openrewrite.mainframe.cobol.ParseCostTest.xml`.
+`--rerun` keeps Gradle from replaying an earlier result. The report goes to the test's standard output, which Gradle keeps in `build/test-results/test/TEST-org.openrewrite.mainframe.cobol.ParseCostTest.xml`. `MAINFRAME_LANGUAGES=Db2,JCL` measures only the languages it names, by the names in the report's first column.
 
 Run it on main and on the branch, alternating, three times each, under an exclusive CPU claim. Compare in this order:
 
