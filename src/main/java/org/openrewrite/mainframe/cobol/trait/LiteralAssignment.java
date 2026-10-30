@@ -139,7 +139,8 @@ public class LiteralAssignment implements Trait<Cobol> {
      * The set is complete when the item is declared in working or local storage and is not
      * {@code EXTERNAL}. Every statement naming it must read it, move a literal to it, or clear it
      * with a figurative constant or {@code INITIALIZE}. Every statement naming an item sharing its
-     * storage must read or clear that item. Any other statement is taken to write what it names.
+     * storage must read or clear that item, and a {@code VALUE} on that item must be a figurative
+     * constant. Any other statement is taken to write what it names.
      * <p>
      * It is flow insensitive by choice. It collects what is assigned anywhere, not what holds at a
      * point, and leaves out what an item without a {@code VALUE} holds before its first assignment.
@@ -241,6 +242,7 @@ public class LiteralAssignment implements Trait<Cobol> {
          */
         private void declare(Cursor program) {
             Deque<Item> nesting = new ArrayDeque<>();
+            List<Item> initialized = new ArrayList<>();
             new CopybookSkippingVisitor<Integer>() {
                 @Override
                 public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit unit, Integer p) {
@@ -252,13 +254,14 @@ public class LiteralAssignment implements Trait<Cobol> {
                     Object section = getCursor().firstEnclosing(DataDivisionSection.class);
                     boolean owned = section instanceof Cobol.WorkingStorageSection ||
                                     section instanceof Cobol.LocalStorageSection;
-                    declare(entry, owned, nesting);
+                    declare(entry, owned, nesting, initialized);
                     return super.visitDataDescriptionEntry(entry, p);
                 }
             }.visit(program.getValue(), 0, program.getParentOrThrow());
+            initialized.forEach(item -> write(item, true));
         }
 
-        private void declare(Cobol.DataDescriptionEntry entry, boolean owned, Deque<Item> nesting) {
+        private void declare(Cobol.DataDescriptionEntry entry, boolean owned, Deque<Item> nesting, List<Item> initialized) {
             int level = DliCall.levelOf(entry);
             Item parent;
             if (level == 88) {
@@ -286,6 +289,8 @@ public class LiteralAssignment implements Trait<Cobol> {
                     }
                 } else if (clause instanceof Cobol.DataExternalClause) {
                     external = true;
+                } else if (clause instanceof Cobol.DataValueClause && level != 88 && !clears((Cobol.DataValueClause) clause)) {
+                    initialized.add(item);
                 }
             }
             if (!owned || external || level == 66 || parent != null && open.contains(parent)) {
@@ -300,6 +305,16 @@ public class LiteralAssignment implements Trait<Cobol> {
                 item.name = Names.upperOf(name);
                 items.computeIfAbsent(item.name, k -> new ArrayList<>(1)).add(item);
             }
+        }
+
+        private static boolean clears(Cobol.DataValueClause value) {
+            for (Cobol interval : value.getCobols()) {
+                if (interval instanceof Cobol.DataValueInterval &&
+                    !isConstant(((Cobol.DataValueInterval) interval).getFrom())) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static @Nullable Item last(List<Item> siblings, @Nullable String name) {
@@ -374,11 +389,17 @@ public class LiteralAssignment implements Trait<Cobol> {
                 if (written == null) {
                     continue;
                 }
-                boolean whole = literal && written == item;
-                for (Item overlapping : written.overlapping()) {
-                    if (!whole || overlapping != written) {
-                        open.add(overlapping);
-                    }
+                write(written, literal && written == item);
+            }
+        }
+
+        /**
+         * {@code whole} is a literal filling the item, which leaves the item itself complete.
+         */
+        private void write(Item written, boolean whole) {
+            for (Item overlapping : written.overlapping()) {
+                if (!whole || overlapping != written) {
+                    open.add(overlapping);
                 }
             }
         }
@@ -457,12 +478,19 @@ public class LiteralAssignment implements Trait<Cobol> {
                 return Access.READ;
             }
             Cobol from = move.getFrom();
-            if (from instanceof Cobol.FigurativeConstant && ((Cobol.FigurativeConstant) from).getLiteral() == null) {
+            if (isConstant(from)) {
                 return Access.CONSTANT;
             }
             boolean literal = from instanceof Cobol.Word && Literals.isLiteral(((Cobol.Word) from).getWord());
             boolean partial = child instanceof Cobol.TableCall && ((Cobol.TableCall) child).getReferenceModifier() != null;
             return literal && !partial ? Access.LITERAL : Access.WRITE;
+        }
+
+        /**
+         * A figurative constant such as {@code SPACES}, but not {@code ALL 'X'}, which repeats a literal.
+         */
+        private static boolean isConstant(Cobol value) {
+            return value instanceof Cobol.FigurativeConstant && ((Cobol.FigurativeConstant) value).getLiteral() == null;
         }
 
         /**
