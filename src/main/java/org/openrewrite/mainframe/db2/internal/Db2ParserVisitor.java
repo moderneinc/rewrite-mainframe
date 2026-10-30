@@ -646,7 +646,9 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2> options = new ArrayList<>();
         Db2.Block body = null;
 
-        for (ParseTree child : children(ctx)) {
+        List<ParseTree> children = children(ctx);
+        for (int i = 0; i < children.size(); i++) {
+            ParseTree child = children.get(i);
             if (child instanceof DB2Parser.QualifiedNameContext) {
                 Db2.Name qualified = name((DB2Parser.QualifiedNameContext) child);
                 if (name == null) {
@@ -656,10 +658,17 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
                 }
             } else if (child instanceof DB2Parser.TriggerEventContext) {
                 events.add(option((ParserRuleContext) child));
+            } else if (ctx.OR().contains(child)) {
+                // OR is the first keyword of the event it introduces, so it prints between the two.
+                List<Db2.Keyword> eventKeywords = new ArrayList<>();
+                eventKeywords.add(keyword((TerminalNode) child));
+                List<Db2> values = new ArrayList<>();
+                collectOption(children.get(++i), eventKeywords, values);
+                events.add(new Db2.Option(randomId(), EMPTY, Markers.EMPTY, eventKeywords, values));
             } else if (child instanceof DB2Parser.CompoundStatementContext) {
                 body = block((DB2Parser.CompoundStatementContext) child);
             } else if (child instanceof DB2Parser.TriggeredStatementContext) {
-                // A trigger whose body is a single statement has no BEGIN and no END.
+                // A trigger whose body is a single statement is a block with no BEGIN or END of its own.
                 body = new Db2.Block(randomId(), prefix((ParserRuleContext) child), Markers.EMPTY,
                         emptyList(), new ArrayList<>(words((ParserRuleContext) child)), null, null);
             } else if (child instanceof DB2Parser.EndContext) {
