@@ -906,6 +906,16 @@ class Db2ParserTest {
           .findFirst(Semicolon.class)).isEmpty();
     }
 
+    @Test
+    void aStraySemicolonIsAnEmptyStatement() {
+        Db2.Ddl ddl = parse(";\nCOMMENT ON TABLE T IS 'x';;\n  ;\nCOMMENT ON TABLE U IS 'y';\n");
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("Empty", "Comment", "Empty", "Empty", "Comment");
+        assertThat(ddl.getPadding().getStatements())
+          .allSatisfy(s -> assertThat(s.getMarkers().findFirst(Semicolon.class)).isPresent());
+    }
+
     /**
      * A statement written without its terminating semicolon must not swallow the one after it.
      */

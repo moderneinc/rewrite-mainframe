@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/openrewrite/rewrite-cobol/.claude/worktrees/ims-or-cics/src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.db2.internal.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -323,6 +323,16 @@ public interface DB2ParserListener extends ParseTreeListener {
 	 */
 	void exitIndexOption(DB2Parser.IndexOptionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DB2Parser#namedIndexOption}.
+	 * @param ctx the parse tree
+	 */
+	void enterNamedIndexOption(DB2Parser.NamedIndexOptionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#namedIndexOption}.
+	 * @param ctx the parse tree
+	 */
+	void exitNamedIndexOption(DB2Parser.NamedIndexOptionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DB2Parser#createTablespace}.
 	 * @param ctx the parse tree
 	 */
@@ -342,6 +352,16 @@ public interface DB2ParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitTablespaceOption(DB2Parser.TablespaceOptionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DB2Parser#namedTablespaceOption}.
+	 * @param ctx the parse tree
+	 */
+	void enterNamedTablespaceOption(DB2Parser.NamedTablespaceOptionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DB2Parser#namedTablespaceOption}.
+	 * @param ctx the parse tree
+	 */
+	void exitNamedTablespaceOption(DB2Parser.NamedTablespaceOptionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link DB2Parser#createDatabase}.
 	 * @param ctx the parse tree
