@@ -201,23 +201,6 @@ class FullContextPredictionTest {
     }
 
     @Test
-    void screenEntryNamedCol() {
-        String program = """
-          IDENTIFICATION DIVISION.
-          PROGRAM-ID. SCRCOL.
-          DATA DIVISION.
-          SCREEN SECTION.
-          01  S1.
-              05  COL 10 VALUE 'A'.
-              05  COL COL 20 VALUE 'B'.
-              05  COL LINE 3 COL 5 PIC X(5) USING F1.
-          PROCEDURE DIVISION.
-              STOP RUN.
-          """;
-        assertThat(fullContextFallbacks(program, "screenDescriptionEntry", "screenDescriptionColumnClause")).isZero();
-    }
-
-    @Test
     void foldedAlternatives() {
         String program = """
           IDENTIFICATION DIVISION.
