@@ -480,7 +480,8 @@ class FullContextPredictionTest {
               STOP RUN.
           """;
         assertThat(fullContextFallbacks(program, "dataDescriptionEntryFormat1", "dataUsageClause",
-          "dataGroupUsageClause", "dataDynamicLengthClause", "dataTypeClause", "specialNameClause")).isZero();
+          "dataGroupUsageClause", "dataDynamicLengthClause", "dataVolatileClause", "dataTypeClause", "specialNameClause",
+          "xmlSchemaClause")).isZero();
     }
 
     private static long fullContextFallbacks(String program, String... rules) {

@@ -10032,7 +10032,7 @@ public interface Cobol extends Tree {
         Word is;
 
         /**
-         * The literal or DD name that locates the schema.
+         * The alphanumeric literal or external file name that locates the schema.
          */
         Cobol location;
 

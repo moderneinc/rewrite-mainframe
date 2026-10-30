@@ -20,7 +20,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
-import org.openrewrite.mainframe.cobol.tree.Statement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +69,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000028     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Cobol.JsonXml> statements = statementsOf(cu, Cobol.JsonXml.class);
+                List<Cobol.JsonXml> statements = treesOf(cu, Cobol.JsonXml.class);
                 Cursor root = new Cursor(null, cu);
                 assertThat(statements).extracting(s -> s.getDocument().printTrimmed(root), s -> s.getData().printTrimmed(root))
                   .containsExactly(tuple("DOC", "REC"), tuple("DOC", "REC"), tuple("DOC", "REC"));
@@ -115,7 +114,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000025     GOBACK.
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(statementsOf(cu, Cobol.JsonXml.class)).singleElement().satisfies(s -> {
+              assertThat(treesOf(cu, Cobol.JsonXml.class)).singleElement().satisfies(s -> {
                   assertThat(s.getPhrases()).hasSize(9);
                   assertThat(s.getPhrases().get(8).getElements()).allMatch(Cobol.Word.class::isInstance);
               }))
@@ -152,10 +151,10 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 Cursor root = new Cursor(null, cu);
-                assertThat(statementsOf(cu, Cobol.Allocate.class))
+                assertThat(treesOf(cu, Cobol.Allocate.class))
                   .extracting(a -> a.getPointer() == null ? null : a.getPointer().printTrimmed(root))
                   .containsExactly("PTR", "PTR2", "PTR");
-                assertThat(statementsOf(cu, Cobol.Free.class)).singleElement()
+                assertThat(treesOf(cu, Cobol.Free.class)).singleElement()
                   .satisfies(f -> assertThat(f.getPointers()).hasSize(2));
             })
           )
@@ -189,7 +188,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000020     INITIALIZE REC THEN TO DEFAULT
               000021     GOBACK.
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(statementsOf(cu, Cobol.Initialize.class))
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.Initialize.class))
               .extracting(init -> words(init.getValuePhrase()), init -> words(init.getDefaultPhrase()))
               .containsExactly(
                 tuple("WITH FILLER ALL TO VALUE THEN", "THEN TO DEFAULT"),
@@ -220,7 +219,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000014     END-EVALUATE
               000015     GOBACK.
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(statementsOf(cu, Cobol.JsonXml.class))
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.JsonXml.class))
               .extracting(s -> s.getPhrases().get(0).getElements().size())
               .containsExactly(2, 4))
           )
@@ -249,15 +248,24 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000015 01  D3  PIC X DYNAMIC LIMIT IS 8.
               000016 01  V1  PIC X VOLATILE.
               000017 01  C1  USAGE IS SQL TYPE IS CLOB(1M).
-              000018 01  C2  USAGE IS SQL TYPE IS BLOB(64K).
+              000018 01  C2  USAGE IS SQL TYPE IS BLOB(64 K).
               000019 01  C3  USAGE IS SQL TYPE IS DBCLOB(100).
               000020 PROCEDURE DIVISION.
               000021     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                assertThat(treesOf(cu, Cobol.DataGroupUsageClause.class)).hasSize(2);
-                assertThat(treesOf(cu, Cobol.DataDynamicLengthClause.class)).hasSize(3);
+                assertThat(treesOf(cu, Cobol.DataUsageClause.class))
+                  .extracting(usage -> words(usage.getWords()))
+                  .contains("USAGE UTF-8", "USAGE IS UTF-8", "USAGE POINTER-32", "POINTER-32");
+                assertThat(treesOf(cu, Cobol.DataGroupUsageClause.class)).extracting(usage -> words(usage.getWords()))
+                  .containsExactly("GROUP-USAGE NATIONAL", "GROUP-USAGE IS UTF-8");
+                assertThat(treesOf(cu, Cobol.DataDynamicLengthClause.class))
+                  .extracting(dynamic -> dynamic.getLimit() == null ? null : dynamic.getLimit().printTrimmed(new Cursor(null, cu)))
+                  .containsExactly("100", null, "8");
                 assertThat(treesOf(cu, Cobol.DataVolatileClause.class)).hasSize(1);
+                assertThat(treesOf(cu, Cobol.DataTypeClause.class))
+                  .extracting(type -> type.getParenthesized().printTrimmed(new Cursor(null, cu)))
+                  .containsExactly("(1M)", "(64 K)", "(100)");
             })
           )
         );
@@ -341,10 +349,6 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
 
     private static String words(List<Cobol.Word> words) {
         return words.stream().map(Cobol.Word::getWord).collect(joining(" "));
-    }
-
-    private static <T extends Statement> List<T> statementsOf(Cobol.CompilationUnit cu, Class<T> type) {
-        return treesOf(cu, type);
     }
 
     private static <T extends Cobol> List<T> treesOf(Cobol.CompilationUnit cu, Class<T> type) {

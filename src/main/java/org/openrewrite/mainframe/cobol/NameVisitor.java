@@ -566,8 +566,7 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
 
     @Override
     public Cobol.DataTypeClause visitDataTypeClause(Cobol.DataTypeClause dataTypeClause, P p) {
-        Cobol.DataTypeClause d = dataTypeClause;
-        return d.withParenthesized(visitAndCast(d.getParenthesized(), p));
+        return dataTypeClause;
     }
 
     @Override

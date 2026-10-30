@@ -1493,7 +1493,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         EMPTY,
                         Markers.EMPTY,
                         (Cobol.Word) visit(ctx.LPARENCHAR()),
-                        singletonList((Cobol) visit(ctx.integerLiteral() != null ? ctx.integerLiteral() : ctx.cobolWord())),
+                        convertAllList(singletonList(ctx.integerLiteral()), singletonList(ctx.cobolWord())),
                         (Cobol.Word) visit(ctx.RPARENCHAR())
                 )
         );
@@ -2327,7 +2327,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 (Cobol.Word) visit(ctx.XML_SCHEMA()),
                 (Cobol) visit(ctx.cobolWord(0)),
                 visitNullable(ctx.IS()),
-                (Cobol) visit(ctx.literal() != null ? ctx.literal() : ctx.cobolWord(1))
+                (Cobol) visit(ctx.NONNUMERICLITERAL() != null ? ctx.NONNUMERICLITERAL() : ctx.cobolWord(1))
         );
     }
 

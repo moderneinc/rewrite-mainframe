@@ -498,7 +498,7 @@ specialNameClause
    ;
 
 xmlSchemaClause
-   : XML_SCHEMA cobolWord IS? (literal | cobolWord)
+   : XML_SCHEMA cobolWord IS? (NONNUMERICLITERAL | cobolWord)
    ;
 
 alphabetClause
@@ -1419,7 +1419,7 @@ dataThreadLocalClause
    ;
 
 dataTypeClause
-   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME | (CLOB | BLOB | DBCLOB) LPARENCHAR (integerLiteral | cobolWord) RPARENCHAR)
+   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME | (CLOB | BLOB | DBCLOB) LPARENCHAR (integerLiteral cobolWord? | cobolWord) RPARENCHAR)
    ;
 
 dataTypeDefClause
