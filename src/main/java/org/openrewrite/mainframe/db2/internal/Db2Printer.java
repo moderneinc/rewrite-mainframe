@@ -20,6 +20,7 @@ import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.mainframe.db2.Db2Visitor;
 import org.openrewrite.mainframe.db2.marker.AtSign;
+import org.openrewrite.mainframe.db2.marker.OmitEquals;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.*;
 import org.openrewrite.marker.Marker;
@@ -561,7 +562,8 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     public Db2 visitSet(Db2.Set set, PrintOutputCapture<P> p) {
         beforeSyntax(set, Space.Location.SET_PREFIX, p);
         visit(set.getKeywords(), p);
-        printLeftPadded("=", set.getValue(), p);
+        boolean omitted = set.getValue().getMarkers().findFirst(OmitEquals.class).isPresent();
+        printLeftPadded(omitted ? "" : "=", set.getValue(), p);
         afterSyntax(set, p);
         return set;
     }

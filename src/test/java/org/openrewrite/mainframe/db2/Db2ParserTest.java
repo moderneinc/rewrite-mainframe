@@ -633,6 +633,14 @@ class Db2ParserTest {
           .endsWith("END", "CASE", ";", "RETURN", "X", ";");
     }
 
+    @Test
+    void aSetMayLeaveOutItsEquals() {
+        Db2.Ddl ddl = parse("SET CURRENT SQLID 'SYSADM';\nSET SCHEMA = CLM;\nSET SCHEMA CLM;\n");
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("Set", "Set", "Set");
+    }
+
     /**
      * Every statement DB2 documents is a node of its own. None of these says anything the
      * relationship graph joins on, and all of them are still read as what they are rather than
