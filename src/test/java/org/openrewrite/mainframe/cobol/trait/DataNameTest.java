@@ -461,7 +461,7 @@ class DataNameTest implements RewriteTest {
             000000 PROGRAM-ID. OUTERPGM.                                           \s
             000000 DATA DIVISION.                                                  \s
             000000 WORKING-STORAGE SECTION.                                        \s
-            000000 01  WS-SHARED   PIC X.                                          \s
+            000000 01  WS-SHARED   PIC X GLOBAL.                                   \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     MOVE 'Y' TO WS-SHARED.                                      \s
             000000 IDENTIFICATION DIVISION.                                        \s
@@ -476,7 +476,7 @@ class DataNameTest implements RewriteTest {
             """
         );
 
-        // Both programs declare WS-SHARED, so either one reading the other's entries makes its usage ambiguous.
+        // The inner declaration hides the outer GLOBAL one. Either program also reading the other's makes its usage ambiguous.
         List<DataName> definitions = names.stream().filter(DataName::isDefinition).collect(Collectors.toList());
         assertThat(definitions).hasSize(2).allMatch(DataName::isReferenced);
         assertThat(usagesOf(names, "WS-SHARED")).satisfiesExactly(
@@ -484,6 +484,89 @@ class DataNameTest implements RewriteTest {
             .extracting(d -> d.getTree().getId()).isEqualTo(definitions.get(0).getTree().getId()),
           inner -> assertThat(inner.getDefinition()).isNotNull()
             .extracting(d -> d.getTree().getId()).isEqualTo(definitions.get(1).getTree().getId()));
+    }
+
+    @Test
+    void resolvesTheGlobalItemsOfEveryContainingProgram() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 ENVIRONMENT DIVISION.                                           \s
+            000000 INPUT-OUTPUT SECTION.                                           \s
+            000000 FILE-CONTROL.                                                   \s
+            000000     SELECT CUST-FILE ASSIGN TO CUSTDD.                          \s
+            000000 DATA DIVISION.                                                  \s
+            000000 FILE SECTION.                                                   \s
+            000000 FD  CUST-FILE GLOBAL.                                           \s
+            000000 01  CUST-REC    PIC X(80).                                      \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-REC GLOBAL.                                              \s
+            000000     05  WS-FLAG    PIC X.                                       \s
+            000000         88  FLAG-ON  VALUE 'Y'.                                 \s
+            000000 01  WS-NEAR     PIC X GLOBAL.                                   \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. MIDPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-REC      PIC X.                                          \s
+            000000 01  WS-NEAR     PIC X GLOBAL.                                   \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     SET FLAG-ON TO TRUE.                                        \s
+            000000     EXEC CICS RECEIVE INTO(WS-REC) END-EXEC.                    \s
+            000000     MOVE SPACES TO CUST-REC.                                    \s
+            000000     MOVE EIBCALEN TO WS-NEAR.                                   \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM MIDPGM.                                             \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("FLAG-ON", "WS-REC", "CUST-REC", "EIBCALEN", "WS-NEAR");
+        assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull();
+        assertThat(usagesOf(names, "EIBCALEN").get(0).getDefinition()).isNotNull()
+          .extracting(DataName::isSystemSupplied).isEqualTo(true);
+        // Credited through the condition name SET in INNERPGM.
+        assertThat(definitionOf(names, "WS-FLAG").isReferenced()).isTrue();
+
+        // MIDPGM's WS-REC is not GLOBAL, so it neither reaches INNERPGM nor hides OUTERPGM's.
+        assertThat(usagesOf(names, "WS-REC").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
+        assertThat(usagesOf(names, "WS-NEAR").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("MIDPGM");
+    }
+
+    @Test
+    void resolvesANestedEibFieldToTheOuterProgramsGlobalDfheiblk() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01  DFHEIBLK GLOBAL.                                            \s
+            000000     05  EIBCALEN   PIC S9(4) COMP.                              \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     IF EIBCALEN = 0 GOBACK END-IF.                              \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(usagesOf(names, "EIBCALEN")).singleElement().satisfies(usage ->
+          assertThat(usage.getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(false));
+        assertThat(definitionOf(names, "EIBCALEN").isReferenced()).isTrue();
     }
 
     /**
