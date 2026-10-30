@@ -435,14 +435,14 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     public Db2 visitCreateAuxiliaryTable(DB2Parser.CreateAuxiliaryTableContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreateAuxiliaryTable(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.tail(1));
+                p.nameAt(0), p.namesThenOptions(1));
     }
 
     @Override
     public Db2 visitCreateTrustedContext(DB2Parser.CreateTrustedContextContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreateTrustedContext(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.tail(1));
+                p.nameAt(0), p.namesThenOptions(1));
     }
 
     @Override
