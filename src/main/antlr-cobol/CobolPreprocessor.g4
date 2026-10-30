@@ -18,6 +18,23 @@ grammar CobolPreprocessor;
 
 options { caseInsensitive = true; }
 
+@lexer::members {
+    /**
+     * Whether only blanks stand between the next character and the start of its line.
+     */
+    boolean startsLine() {
+        for (int i = -1; ; i--) {
+            int c = _input.LA(i);
+            if (c == '\n' || c == '\r' || c == IntStream.EOF || c == 0) {
+                return true;
+            }
+            if (c != ' ' && c != '\t') {
+                return false;
+            }
+        }
+    }
+}
+
 @parser::members {
     /**
      * Whether the next token opens a CBL or PROCESS statement. The word is the first on its line,
@@ -270,7 +287,7 @@ replacingPhrase
 // replace statement
 
 replaceArea
-   : replaceByStatement (copyStatement | charData)* {_input.LA(1) != COPY && !continuesCharDataLine()}?
+   : replaceByStatement (copyStatement | compilerDirective | charData)* {_input.LA(1) != COPY && _input.LA(1) != COMPILER_DIRECTIVE && !continuesCharDataLine()}?
      (replaceOffStatement | {_input.LA(1) != REPLACE || _input.LA(2) != OFF}?)
    ;
 
@@ -310,8 +327,8 @@ identifierWords
 
 // compiler directive
 
-// A >> directive is compile-time control, read whole to the end of its line. Conditional compilation keeps both
-// branches in the program, which reads them as they are written.
+// A >> directive is compile-time control, read whole to the end of its line, which IBM requires it to fit on.
+// Conditional compilation keeps both branches in the program, which reads them as they are written.
 compilerDirective
    : COMPILER_DIRECTIVE
    ;
@@ -750,7 +767,8 @@ FILENAME : [A-Z0-9]+ '.' [A-Z0-9]+;
  * SEPARATOR rule skips over the customized whitespace.
  */
 SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> skip;
-COMPILER_DIRECTIVE : '>>' ~('\n' | '\r')*;
+// Only a >> that begins its line starts a directive, so pseudo-text and EXEC blocks keep theirs as text.
+COMPILER_DIRECTIVE : {startsLine()}? '>>' (~('\n' | '\r')* ~(' ' | '\t' | '\n' | '\r'))?;
 NEWLINE : '\r'? '\n' -> channel(HIDDEN);
 COMMENTENTRYLINE : COMMENTENTRYTAG WS ~('\n' | '\r')*;
 COMMENTLINE : COMMENTTAG WS ~('\n' | '\r')* -> channel(HIDDEN);

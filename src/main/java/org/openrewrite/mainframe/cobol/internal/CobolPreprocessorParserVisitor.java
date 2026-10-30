@@ -760,7 +760,7 @@ public class CobolPreprocessorParserVisitor extends CobolPreprocessorBaseVisitor
                 EMPTY,
                 Markers.EMPTY,
                 (CobolPreprocessor.ReplaceByStatement) visit(ctx.replaceByStatement()),
-                convertAllList(ctx.copyStatement(), ctx.charData()),
+                convertAllList(ctx.copyStatement(), ctx.compilerDirective(), ctx.charData()),
                 visitNullable(ctx.replaceOffStatement())
         );
     }

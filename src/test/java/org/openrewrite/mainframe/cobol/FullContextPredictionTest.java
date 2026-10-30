@@ -491,12 +491,14 @@ class FullContextPredictionTest {
           IDENTIFICATION DIVISION.
           PROGRAM-ID. DIRECT.
           PROCEDURE DIVISION.
+              REPLACE ==:P:== BY ==WS==.
               >>IF TRACE-LEVEL > 1
-              DISPLAY 'TRACING'
+              DISPLAY :P:-TEXT
               >>END-IF
+              REPLACE OFF.
               STOP RUN.
           """;
-        assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "compilerDirective")).isZero();
+        assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "replaceArea")).isZero();
     }
 
     private static long fullContextFallbacks(String program, String... rules) {

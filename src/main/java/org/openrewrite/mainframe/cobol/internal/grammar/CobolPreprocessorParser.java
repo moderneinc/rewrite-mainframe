@@ -5017,6 +5017,12 @@ public class CobolPreprocessorParser extends Parser {
 		public CopyStatementContext copyStatement(int i) {
 			return getRuleContext(CopyStatementContext.class,i);
 		}
+		public List<CompilerDirectiveContext> compilerDirective() {
+			return getRuleContexts(CompilerDirectiveContext.class);
+		}
+		public CompilerDirectiveContext compilerDirective(int i) {
+			return getRuleContext(CompilerDirectiveContext.class,i);
+		}
 		public List<CharDataContext> charData() {
 			return getRuleContexts(CharDataContext.class);
 		}
@@ -5051,13 +5057,13 @@ public class CobolPreprocessorParser extends Parser {
 			{
 			setState(555);
 			replaceByStatement();
-			setState(560);
+			setState(561);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,47,_ctx);
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
-					setState(558);
+					setState(559);
 					_errHandler.sync(this);
 					switch ( getInterpreter().adaptivePredict(_input,46,_ctx) ) {
 					case 1:
@@ -5069,30 +5075,36 @@ public class CobolPreprocessorParser extends Parser {
 					case 2:
 						{
 						setState(557);
+						compilerDirective();
+						}
+						break;
+					case 3:
+						{
+						setState(558);
 						charData();
 						}
 						break;
 					}
 					} 
 				}
-				setState(562);
+				setState(563);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,47,_ctx);
 			}
-			setState(563);
-			if (!(_input.LA(1) != COPY && !continuesCharDataLine())) throw new FailedPredicateException(this, "_input.LA(1) != COPY && !continuesCharDataLine()");
-			setState(566);
+			setState(564);
+			if (!(_input.LA(1) != COPY && _input.LA(1) != COMPILER_DIRECTIVE && !continuesCharDataLine())) throw new FailedPredicateException(this, "_input.LA(1) != COPY && _input.LA(1) != COMPILER_DIRECTIVE && !continuesCharDataLine()");
+			setState(567);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,48,_ctx) ) {
 			case 1:
 				{
-				setState(564);
+				setState(565);
 				replaceOffStatement();
 				}
 				break;
 			case 2:
 				{
-				setState(565);
+				setState(566);
 				if (!(_input.LA(1) != REPLACE || _input.LA(2) != OFF)) throw new FailedPredicateException(this, "_input.LA(1) != REPLACE || _input.LA(2) != OFF");
 				}
 				break;
@@ -5146,23 +5158,23 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(568);
+			setState(569);
 			match(REPLACE);
-			setState(570); 
+			setState(571); 
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			do {
 				{
 				{
-				setState(569);
+				setState(570);
 				replaceClause();
 				}
 				}
-				setState(572); 
+				setState(573); 
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || ((((_la - 256)) & ~0x3f) == 0 && ((1L << (_la - 256)) & 33621540591L) != 0) );
-			setState(574);
+			setState(575);
 			match(DOT);
 			}
 		}
@@ -5207,11 +5219,11 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(576);
-			match(REPLACE);
 			setState(577);
-			match(OFF);
+			match(REPLACE);
 			setState(578);
+			match(OFF);
+			setState(579);
 			match(DOT);
 			}
 		}
@@ -5260,11 +5272,11 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(580);
-			replaceable();
 			setState(581);
-			match(BY);
+			replaceable();
 			setState(582);
+			match(BY);
+			setState(583);
 			replacement();
 			}
 		}
@@ -5315,7 +5327,7 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(584);
+			setState(585);
 			_la = _input.LA(1);
 			if ( !(_la==IN || _la==OF) ) {
 			_errHandler.recoverInline(this);
@@ -5325,14 +5337,14 @@ public class CobolPreprocessorParser extends Parser {
 				_errHandler.reportMatch(this);
 				consume();
 			}
-			setState(587);
+			setState(588);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case NONNUMERICLITERAL:
 			case INTEGERLITERAL:
 			case NUMERICLITERAL:
 				{
-				setState(585);
+				setState(586);
 				literal();
 				}
 				break;
@@ -5601,7 +5613,7 @@ public class CobolPreprocessorParser extends Parser {
 			case COMMACHAR:
 			case IDENTIFIER:
 				{
-				setState(586);
+				setState(587);
 				cobolWord();
 				}
 				break;
@@ -5655,16 +5667,16 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(589);
+			setState(590);
 			match(ON);
-			setState(592);
+			setState(593);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case NONNUMERICLITERAL:
 			case INTEGERLITERAL:
 			case NUMERICLITERAL:
 				{
-				setState(590);
+				setState(591);
 				literal();
 				}
 				break;
@@ -5933,7 +5945,7 @@ public class CobolPreprocessorParser extends Parser {
 			case COMMACHAR:
 			case IDENTIFIER:
 				{
-				setState(591);
+				setState(592);
 				cobolWord();
 				}
 				break;
@@ -5990,34 +6002,34 @@ public class CobolPreprocessorParser extends Parser {
 		ReplaceableContext _localctx = new ReplaceableContext(_ctx, getState());
 		enterRule(_localctx, 38, RULE_replaceable);
 		try {
-			setState(598);
+			setState(599);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,52,_ctx) ) {
 			case 1:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(594);
+				setState(595);
 				literal();
 				}
 				break;
 			case 2:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(595);
+				setState(596);
 				cobolWord();
 				}
 				break;
 			case 3:
 				enterOuterAlt(_localctx, 3);
 				{
-				setState(596);
+				setState(597);
 				pseudoText();
 				}
 				break;
 			case 4:
 				enterOuterAlt(_localctx, 4);
 				{
-				setState(597);
+				setState(598);
 				identifierWords();
 				}
 				break;
@@ -6071,34 +6083,34 @@ public class CobolPreprocessorParser extends Parser {
 		ReplacementContext _localctx = new ReplacementContext(_ctx, getState());
 		enterRule(_localctx, 40, RULE_replacement);
 		try {
-			setState(604);
+			setState(605);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,53,_ctx) ) {
 			case 1:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(600);
+				setState(601);
 				literal();
 				}
 				break;
 			case 2:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(601);
+				setState(602);
 				cobolWord();
 				}
 				break;
 			case 3:
 				enterOuterAlt(_localctx, 3);
 				{
-				setState(602);
+				setState(603);
 				pseudoText();
 				}
 				break;
 			case 4:
 				enterOuterAlt(_localctx, 4);
 				{
-				setState(603);
+				setState(604);
 				identifierWords();
 				}
 				break;
@@ -6164,15 +6176,15 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(606);
+			setState(607);
 			cobolWord();
-			setState(624);
+			setState(625);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case IN:
 			case OF:
 				{
-				setState(609); 
+				setState(610); 
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -6180,7 +6192,7 @@ public class CobolPreprocessorParser extends Parser {
 					case 1:
 						{
 						{
-						setState(607);
+						setState(608);
 						_la = _input.LA(1);
 						if ( !(_la==IN || _la==OF) ) {
 						_errHandler.recoverInline(this);
@@ -6190,7 +6202,7 @@ public class CobolPreprocessorParser extends Parser {
 							_errHandler.reportMatch(this);
 							consume();
 						}
-						setState(608);
+						setState(609);
 						cobolWord();
 						}
 						}
@@ -6198,21 +6210,21 @@ public class CobolPreprocessorParser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(611); 
+					setState(612); 
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,54,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
-				setState(616);
+				setState(617);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 				while (_la==LPARENCHAR) {
 					{
 					{
-					setState(613);
+					setState(614);
 					subscript();
 					}
 					}
-					setState(618);
+					setState(619);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
 				}
@@ -6220,17 +6232,17 @@ public class CobolPreprocessorParser extends Parser {
 				break;
 			case LPARENCHAR:
 				{
-				setState(620); 
+				setState(621); 
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 				do {
 					{
 					{
-					setState(619);
+					setState(620);
 					subscript();
 					}
 					}
-					setState(622); 
+					setState(623); 
 					_errHandler.sync(this);
 					_la = _input.LA(1);
 				} while ( _la==LPARENCHAR );
@@ -6280,7 +6292,7 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(626);
+			setState(627);
 			match(COMPILER_DIRECTIVE);
 			}
 		}
@@ -6324,20 +6336,20 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(628);
+			setState(629);
 			match(EJECT);
-			setState(631);
+			setState(632);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,58,_ctx) ) {
 			case 1:
 				{
-				setState(629);
+				setState(630);
 				match(DOT);
 				}
 				break;
 			case 2:
 				{
-				setState(630);
+				setState(631);
 				if (!(_input.LA(1) != DOT)) throw new FailedPredicateException(this, "_input.LA(1) != DOT");
 				}
 				break;
@@ -6387,7 +6399,7 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(633);
+			setState(634);
 			_la = _input.LA(1);
 			if ( !(((((_la - 239)) & ~0x3f) == 0 && ((1L << (_la - 239)) & 7L) != 0)) ) {
 			_errHandler.recoverInline(this);
@@ -6397,18 +6409,18 @@ public class CobolPreprocessorParser extends Parser {
 				_errHandler.reportMatch(this);
 				consume();
 			}
-			setState(636);
+			setState(637);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,59,_ctx) ) {
 			case 1:
 				{
-				setState(634);
+				setState(635);
 				match(DOT);
 				}
 				break;
 			case 2:
 				{
-				setState(635);
+				setState(636);
 				if (!(_input.LA(1) != DOT)) throw new FailedPredicateException(this, "_input.LA(1) != DOT");
 				}
 				break;
@@ -6458,22 +6470,22 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(638);
-			match(TITLE);
 			setState(639);
+			match(TITLE);
+			setState(640);
 			literal();
-			setState(642);
+			setState(643);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,60,_ctx) ) {
 			case 1:
 				{
-				setState(640);
+				setState(641);
 				match(DOT);
 				}
 				break;
 			case 2:
 				{
-				setState(641);
+				setState(642);
 				if (!(_input.LA(1) != DOT)) throw new FailedPredicateException(this, "_input.LA(1) != DOT");
 				}
 				break;
@@ -6525,19 +6537,19 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(644);
+			setState(645);
 			match(DOUBLEEQUALCHAR);
-			setState(646);
+			setState(647);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,61,_ctx) ) {
 			case 1:
 				{
-				setState(645);
+				setState(646);
 				charData();
 				}
 				break;
 			}
-			setState(648);
+			setState(649);
 			match(DOUBLEEQUALCHAR);
 			}
 		}
@@ -6586,7 +6598,7 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(651); 
+			setState(652); 
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -6594,7 +6606,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 1:
 					{
 					{
-					setState(650);
+					setState(651);
 					charDataLine();
 					}
 					}
@@ -6602,7 +6614,7 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(653); 
+				setState(654); 
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,62,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -6661,31 +6673,31 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(658); 
+			setState(659); 
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
 				switch (_alt) {
 				case 1:
 					{
-					setState(658);
+					setState(659);
 					_errHandler.sync(this);
 					switch ( getInterpreter().adaptivePredict(_input,63,_ctx) ) {
 					case 1:
 						{
-						setState(655);
+						setState(656);
 						charDataLine();
 						}
 						break;
 					case 2:
 						{
-						setState(656);
+						setState(657);
 						match(COPY);
 						}
 						break;
 					case 3:
 						{
-						setState(657);
+						setState(658);
 						match(REPLACE);
 						}
 						break;
@@ -6695,7 +6707,7 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(660); 
+				setState(661); 
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,64,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -6780,7 +6792,7 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(673); 
+			setState(674); 
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -6788,9 +6800,9 @@ public class CobolPreprocessorParser extends Parser {
 				case 1:
 					{
 					{
-					setState(662);
+					setState(663);
 					if (!(!compilerOptionsAhead())) throw new FailedPredicateException(this, "!compilerOptionsAhead()");
-					setState(671);
+					setState(672);
 					_errHandler.sync(this);
 					switch (_input.LA(1)) {
 					case ADATA:
@@ -7058,7 +7070,7 @@ public class CobolPreprocessorParser extends Parser {
 					case COMMACHAR:
 					case IDENTIFIER:
 						{
-						setState(663);
+						setState(664);
 						cobolWord();
 						}
 						break;
@@ -7066,43 +7078,43 @@ public class CobolPreprocessorParser extends Parser {
 					case INTEGERLITERAL:
 					case NUMERICLITERAL:
 						{
-						setState(664);
+						setState(665);
 						literal();
 						}
 						break;
 					case FILENAME:
 						{
-						setState(665);
+						setState(666);
 						filename();
 						}
 						break;
 					case COMMENTENTRYLINE:
 						{
-						setState(666);
+						setState(667);
 						commentEntry();
 						}
 						break;
 					case TEXT:
 						{
-						setState(667);
+						setState(668);
 						match(TEXT);
 						}
 						break;
 					case DOT:
 						{
-						setState(668);
+						setState(669);
 						match(DOT);
 						}
 						break;
 					case LPARENCHAR:
 						{
-						setState(669);
+						setState(670);
 						match(LPARENCHAR);
 						}
 						break;
 					case RPARENCHAR:
 						{
-						setState(670);
+						setState(671);
 						match(RPARENCHAR);
 						}
 						break;
@@ -7115,11 +7127,11 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(675); 
+				setState(676); 
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,66,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
-			setState(677);
+			setState(678);
 			if (!(!continuesCharDataLine())) throw new FailedPredicateException(this, "!continuesCharDataLine()");
 			}
 		}
@@ -7184,16 +7196,16 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(679);
+			setState(680);
 			match(LPARENCHAR);
-			setState(683);
+			setState(684);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case NONNUMERICLITERAL:
 			case INTEGERLITERAL:
 			case NUMERICLITERAL:
 				{
-				setState(680);
+				setState(681);
 				literal();
 				}
 				break;
@@ -7462,43 +7474,43 @@ public class CobolPreprocessorParser extends Parser {
 			case COMMACHAR:
 			case IDENTIFIER:
 				{
-				setState(681);
+				setState(682);
 				cobolWord();
 				}
 				break;
 			case TEXT:
 				{
-				setState(682);
+				setState(683);
 				match(TEXT);
 				}
 				break;
 			default:
 				throw new NoViableAltException(this);
 			}
-			setState(695);
+			setState(696);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || ((((_la - 256)) & ~0x3f) == 0 && ((1L << (_la - 256)) & 4430594309871L) != 0)) {
 				{
 				{
-				setState(686);
+				setState(687);
 				_errHandler.sync(this);
 				switch ( getInterpreter().adaptivePredict(_input,68,_ctx) ) {
 				case 1:
 					{
-					setState(685);
+					setState(686);
 					match(COMMACHAR);
 					}
 					break;
 				}
-				setState(691);
+				setState(692);
 				_errHandler.sync(this);
 				switch (_input.LA(1)) {
 				case NONNUMERICLITERAL:
 				case INTEGERLITERAL:
 				case NUMERICLITERAL:
 					{
-					setState(688);
+					setState(689);
 					literal();
 					}
 					break;
@@ -7767,13 +7779,13 @@ public class CobolPreprocessorParser extends Parser {
 				case COMMACHAR:
 				case IDENTIFIER:
 					{
-					setState(689);
+					setState(690);
 					cobolWord();
 					}
 					break;
 				case TEXT:
 					{
-					setState(690);
+					setState(691);
 					match(TEXT);
 					}
 					break;
@@ -7782,11 +7794,11 @@ public class CobolPreprocessorParser extends Parser {
 				}
 				}
 				}
-				setState(697);
+				setState(698);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
-			setState(698);
+			setState(699);
 			match(RPARENCHAR);
 			}
 		}
@@ -7830,13 +7842,13 @@ public class CobolPreprocessorParser extends Parser {
 		CobolWordContext _localctx = new CobolWordContext(_ctx, getState());
 		enterRule(_localctx, 62, RULE_cobolWord);
 		try {
-			setState(702);
+			setState(703);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case IDENTIFIER:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(700);
+				setState(701);
 				match(IDENTIFIER);
 				}
 				break;
@@ -8105,7 +8117,7 @@ public class CobolPreprocessorParser extends Parser {
 			case COMMACHAR:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(701);
+				setState(702);
 				charDataKeyword();
 				}
 				break;
@@ -8155,7 +8167,7 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(704);
+			setState(705);
 			_la = _input.LA(1);
 			if ( !(((((_la - 287)) & ~0x3f) == 0 && ((1L << (_la - 287)) & 7L) != 0)) ) {
 			_errHandler.recoverInline(this);
@@ -8206,7 +8218,7 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(706);
+			setState(707);
 			match(FILENAME);
 			}
 		}
@@ -8253,7 +8265,7 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(709); 
+			setState(710); 
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -8261,7 +8273,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 1:
 					{
 					{
-					setState(708);
+					setState(709);
 					match(COMMENTENTRYLINE);
 					}
 					}
@@ -8269,11 +8281,11 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(711); 
+				setState(712); 
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,72,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
-			setState(713);
+			setState(714);
 			if (!(_input.LA(1) != COMMENTENTRYLINE)) throw new FailedPredicateException(this, "_input.LA(1) != COMMENTENTRYLINE");
 			}
 		}
@@ -8579,7 +8591,7 @@ public class CobolPreprocessorParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(715);
+			setState(716);
 			_la = _input.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || ((((_la - 256)) & ~0x3f) == 0 && ((1L << (_la - 256)) & 335544047L) != 0)) ) {
 			_errHandler.recoverInline(this);
@@ -8712,7 +8724,7 @@ public class CobolPreprocessorParser extends Parser {
 	private boolean replaceArea_sempred(ReplaceAreaContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 17:
-			return _input.LA(1) != COPY && !continuesCharDataLine();
+			return _input.LA(1) != COPY && _input.LA(1) != COMPILER_DIRECTIVE && !continuesCharDataLine();
 		case 18:
 			return _input.LA(1) != REPLACE || _input.LA(2) != OFF;
 		}
@@ -8757,7 +8769,7 @@ public class CobolPreprocessorParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\u0004\u0001\u012a\u02ce\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001"+
+		"\u0004\u0001\u012a\u02cf\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001"+
 		"\u0002\u0002\u0007\u0002\u0002\u0003\u0007\u0003\u0002\u0004\u0007\u0004"+
 		"\u0002\u0005\u0007\u0005\u0002\u0006\u0007\u0006\u0002\u0007\u0007\u0007"+
 		"\u0002\b\u0007\b\u0002\t\u0007\t\u0002\n\u0007\n\u0002\u000b\u0007\u000b"+
@@ -8846,46 +8858,46 @@ public class CobolPreprocessorParser extends Parser {
 		"\t\t\u0001\t\u0003\t\u0212\b\t\u0001\t\u0001\t\u0001\n\u0001\n\u0001\n"+
 		"\u0003\n\u0219\b\n\u0001\n\u0001\n\u0001\n\u0003\n\u021e\b\n\u0001\u000b"+
 		"\u0001\u000b\u0003\u000b\u0222\b\u000b\u0001\f\u0001\f\u0001\f\u0005\f"+
-		"\u0227\b\f\n\f\f\f\u022a\t\f\u0001\r\u0001\r\u0001\r\u0005\r\u022f\b\r"+
-		"\n\r\f\r\u0232\t\r\u0001\r\u0001\r\u0001\r\u0003\r\u0237\b\r\u0001\u000e"+
-		"\u0001\u000e\u0004\u000e\u023b\b\u000e\u000b\u000e\f\u000e\u023c\u0001"+
-		"\u000e\u0001\u000e\u0001\u000f\u0001\u000f\u0001\u000f\u0001\u000f\u0001"+
-		"\u0010\u0001\u0010\u0001\u0010\u0001\u0010\u0001\u0011\u0001\u0011\u0001"+
-		"\u0011\u0003\u0011\u024c\b\u0011\u0001\u0012\u0001\u0012\u0001\u0012\u0003"+
-		"\u0012\u0251\b\u0012\u0001\u0013\u0001\u0013\u0001\u0013\u0001\u0013\u0003"+
-		"\u0013\u0257\b\u0013\u0001\u0014\u0001\u0014\u0001\u0014\u0001\u0014\u0003"+
-		"\u0014\u025d\b\u0014\u0001\u0015\u0001\u0015\u0001\u0015\u0004\u0015\u0262"+
-		"\b\u0015\u000b\u0015\f\u0015\u0263\u0001\u0015\u0005\u0015\u0267\b\u0015"+
-		"\n\u0015\f\u0015\u026a\t\u0015\u0001\u0015\u0004\u0015\u026d\b\u0015\u000b"+
-		"\u0015\f\u0015\u026e\u0003\u0015\u0271\b\u0015\u0001\u0016\u0001\u0016"+
-		"\u0001\u0017\u0001\u0017\u0001\u0017\u0003\u0017\u0278\b\u0017\u0001\u0018"+
-		"\u0001\u0018\u0001\u0018\u0003\u0018\u027d\b\u0018\u0001\u0019\u0001\u0019"+
-		"\u0001\u0019\u0001\u0019\u0003\u0019\u0283\b\u0019\u0001\u001a\u0001\u001a"+
-		"\u0003\u001a\u0287\b\u001a\u0001\u001a\u0001\u001a\u0001\u001b\u0004\u001b"+
-		"\u028c\b\u001b\u000b\u001b\f\u001b\u028d\u0001\u001c\u0001\u001c\u0001"+
-		"\u001c\u0004\u001c\u0293\b\u001c\u000b\u001c\f\u001c\u0294\u0001\u001d"+
+		"\u0227\b\f\n\f\f\f\u022a\t\f\u0001\r\u0001\r\u0001\r\u0001\r\u0005\r\u0230"+
+		"\b\r\n\r\f\r\u0233\t\r\u0001\r\u0001\r\u0001\r\u0003\r\u0238\b\r\u0001"+
+		"\u000e\u0001\u000e\u0004\u000e\u023c\b\u000e\u000b\u000e\f\u000e\u023d"+
+		"\u0001\u000e\u0001\u000e\u0001\u000f\u0001\u000f\u0001\u000f\u0001\u000f"+
+		"\u0001\u0010\u0001\u0010\u0001\u0010\u0001\u0010\u0001\u0011\u0001\u0011"+
+		"\u0001\u0011\u0003\u0011\u024d\b\u0011\u0001\u0012\u0001\u0012\u0001\u0012"+
+		"\u0003\u0012\u0252\b\u0012\u0001\u0013\u0001\u0013\u0001\u0013\u0001\u0013"+
+		"\u0003\u0013\u0258\b\u0013\u0001\u0014\u0001\u0014\u0001\u0014\u0001\u0014"+
+		"\u0003\u0014\u025e\b\u0014\u0001\u0015\u0001\u0015\u0001\u0015\u0004\u0015"+
+		"\u0263\b\u0015\u000b\u0015\f\u0015\u0264\u0001\u0015\u0005\u0015\u0268"+
+		"\b\u0015\n\u0015\f\u0015\u026b\t\u0015\u0001\u0015\u0004\u0015\u026e\b"+
+		"\u0015\u000b\u0015\f\u0015\u026f\u0003\u0015\u0272\b\u0015\u0001\u0016"+
+		"\u0001\u0016\u0001\u0017\u0001\u0017\u0001\u0017\u0003\u0017\u0279\b\u0017"+
+		"\u0001\u0018\u0001\u0018\u0001\u0018\u0003\u0018\u027e\b\u0018\u0001\u0019"+
+		"\u0001\u0019\u0001\u0019\u0001\u0019\u0003\u0019\u0284\b\u0019\u0001\u001a"+
+		"\u0001\u001a\u0003\u001a\u0288\b\u001a\u0001\u001a\u0001\u001a\u0001\u001b"+
+		"\u0004\u001b\u028d\b\u001b\u000b\u001b\f\u001b\u028e\u0001\u001c\u0001"+
+		"\u001c\u0001\u001c\u0004\u001c\u0294\b\u001c\u000b\u001c\f\u001c\u0295"+
 		"\u0001\u001d\u0001\u001d\u0001\u001d\u0001\u001d\u0001\u001d\u0001\u001d"+
-		"\u0001\u001d\u0001\u001d\u0003\u001d\u02a0\b\u001d\u0004\u001d\u02a2\b"+
-		"\u001d\u000b\u001d\f\u001d\u02a3\u0001\u001d\u0001\u001d\u0001\u001e\u0001"+
-		"\u001e\u0001\u001e\u0001\u001e\u0003\u001e\u02ac\b\u001e\u0001\u001e\u0003"+
-		"\u001e\u02af\b\u001e\u0001\u001e\u0001\u001e\u0001\u001e\u0003\u001e\u02b4"+
-		"\b\u001e\u0005\u001e\u02b6\b\u001e\n\u001e\f\u001e\u02b9\t\u001e\u0001"+
-		"\u001e\u0001\u001e\u0001\u001f\u0001\u001f\u0003\u001f\u02bf\b\u001f\u0001"+
-		" \u0001 \u0001!\u0001!\u0001\"\u0004\"\u02c6\b\"\u000b\"\f\"\u02c7\u0001"+
-		"\"\u0001\"\u0001#\u0001#\u0001#\u0000\u0000$\u0000\u0002\u0004\u0006\b"+
-		"\n\f\u000e\u0010\u0012\u0014\u0016\u0018\u001a\u001c\u001e \"$&(*,.02"+
-		"468:<>@BDF\u0000S\u0002\u0000\u0010\u0010\u00d9\u00d9\u0001\u0000\u0007"+
-		"\b\u0004\u0000\u0017\u0017;;\u010d\u010d\u010f\u010f\u0001\u0000\r\u000e"+
-		"\u0002\u0000\u0016\u0016\u001a\u001a\u0002\u0000\u0018\u0018\u010d\u010d"+
-		"\u0001\u0000\u001e\u001f\u0002\u0000!!))\u0002\u0000>>\u008c\u008c\u0002"+
-		"\u0000\u00b9\u00b9\u00fe\u00fe\u0002\u0000%%\u010e\u010e\u0002\u0000&"+
-		"&**\u0001\u0000+,\u0001\u0000-.\u0001\u00009:\u0002\u0000<<@@\u0002\u0000"+
-		">>\u0110\u0110\u0003\u0000\u010f\u010f\u0112\u0112\u0116\u0118\u0001\u0000"+
-		"\u0111\u0113\u0006\u0000##ff\u00f2\u00f2\u010e\u010e\u0114\u0114\u0116"+
-		"\u0116\u0002\u0000\u0004\u0004QQ\u0001\u0000KL\u0004\u0000\u001d\u001d"+
-		"23HJ\u0100\u0100\u0002\u0000MMSS\u0001\u0000^_\u0004\u0000\u0018\u0018"+
-		"mmqq\u010d\u010d\u0002\u0000\u0003\u0003jj\u0003\u0000\u001d\u001d22J"+
-		"J\u0002\u0000mmqq\u0003\u0000\u010f\u010f\u0116\u0116\u0118\u0118\u0001"+
+		"\u0001\u001d\u0001\u001d\u0001\u001d\u0003\u001d\u02a1\b\u001d\u0004\u001d"+
+		"\u02a3\b\u001d\u000b\u001d\f\u001d\u02a4\u0001\u001d\u0001\u001d\u0001"+
+		"\u001e\u0001\u001e\u0001\u001e\u0001\u001e\u0003\u001e\u02ad\b\u001e\u0001"+
+		"\u001e\u0003\u001e\u02b0\b\u001e\u0001\u001e\u0001\u001e\u0001\u001e\u0003"+
+		"\u001e\u02b5\b\u001e\u0005\u001e\u02b7\b\u001e\n\u001e\f\u001e\u02ba\t"+
+		"\u001e\u0001\u001e\u0001\u001e\u0001\u001f\u0001\u001f\u0003\u001f\u02c0"+
+		"\b\u001f\u0001 \u0001 \u0001!\u0001!\u0001\"\u0004\"\u02c7\b\"\u000b\""+
+		"\f\"\u02c8\u0001\"\u0001\"\u0001#\u0001#\u0001#\u0000\u0000$\u0000\u0002"+
+		"\u0004\u0006\b\n\f\u000e\u0010\u0012\u0014\u0016\u0018\u001a\u001c\u001e"+
+		" \"$&(*,.02468:<>@BDF\u0000S\u0002\u0000\u0010\u0010\u00d9\u00d9\u0001"+
+		"\u0000\u0007\b\u0004\u0000\u0017\u0017;;\u010d\u010d\u010f\u010f\u0001"+
+		"\u0000\r\u000e\u0002\u0000\u0016\u0016\u001a\u001a\u0002\u0000\u0018\u0018"+
+		"\u010d\u010d\u0001\u0000\u001e\u001f\u0002\u0000!!))\u0002\u0000>>\u008c"+
+		"\u008c\u0002\u0000\u00b9\u00b9\u00fe\u00fe\u0002\u0000%%\u010e\u010e\u0002"+
+		"\u0000&&**\u0001\u0000+,\u0001\u0000-.\u0001\u00009:\u0002\u0000<<@@\u0002"+
+		"\u0000>>\u0110\u0110\u0003\u0000\u010f\u010f\u0112\u0112\u0116\u0118\u0001"+
+		"\u0000\u0111\u0113\u0006\u0000##ff\u00f2\u00f2\u010e\u010e\u0114\u0114"+
+		"\u0116\u0116\u0002\u0000\u0004\u0004QQ\u0001\u0000KL\u0004\u0000\u001d"+
+		"\u001d23HJ\u0100\u0100\u0002\u0000MMSS\u0001\u0000^_\u0004\u0000\u0018"+
+		"\u0018mmqq\u010d\u010d\u0002\u0000\u0003\u0003jj\u0003\u0000\u001d\u001d"+
+		"22JJ\u0002\u0000mmqq\u0003\u0000\u010f\u010f\u0116\u0116\u0118\u0118\u0001"+
 		"\u0000st\u0002\u0000vv\u007f\u007f\u0002\u0000uuzz\u0001\u0000}~\u0002"+
 		"\u0000{{\u0080\u0080\u0001\u0000\u0081\u0082\u0001\u0000\u0087\u0088\u0002"+
 		"\u0000\u008a\u008a\u008f\u008f\u0002\u0000\u0089\u0089\u008c\u008c\u0001"+
@@ -8908,23 +8920,23 @@ public class CobolPreprocessorParser extends Parser {
 		"\u0000AA\u00e5\u00e5\u0001\u0000\u010a\u010b\u0002\u0000EE\u00c8\u00c8"+
 		"\u0001\u0000\u00ef\u00f1\u0001\u0000\u011f\u0121\u0012\u0000\u0001\u0011"+
 		"\u0013\u0018\u001a/13568<>EGMOXZ\u00ba\u00bc\u00dc\u00de\u00df\u00e1\u00ed"+
-		"\u00f2\u00fc\u00fe\u0103\u0105\u0107\u0109\u0119\u011c\u011c\u03a0\u0000"+
+		"\u00f2\u00fc\u00fe\u0103\u0105\u0107\u0109\u0119\u011c\u011c\u03a2\u0000"+
 		"X\u0001\u0000\u0000\u0000\u0002]\u0001\u0000\u0000\u0000\u0004i\u0001"+
 		"\u0000\u0000\u0000\u0006\u01d7\u0001\u0000\u0000\u0000\b\u01d9\u0001\u0000"+
 		"\u0000\u0000\n\u01e1\u0001\u0000\u0000\u0000\f\u01e9\u0001\u0000\u0000"+
 		"\u0000\u000e\u01f1\u0001\u0000\u0000\u0000\u0010\u01fe\u0001\u0000\u0000"+
 		"\u0000\u0012\u0206\u0001\u0000\u0000\u0000\u0014\u0218\u0001\u0000\u0000"+
 		"\u0000\u0016\u0221\u0001\u0000\u0000\u0000\u0018\u0223\u0001\u0000\u0000"+
-		"\u0000\u001a\u022b\u0001\u0000\u0000\u0000\u001c\u0238\u0001\u0000\u0000"+
-		"\u0000\u001e\u0240\u0001\u0000\u0000\u0000 \u0244\u0001\u0000\u0000\u0000"+
-		"\"\u0248\u0001\u0000\u0000\u0000$\u024d\u0001\u0000\u0000\u0000&\u0256"+
-		"\u0001\u0000\u0000\u0000(\u025c\u0001\u0000\u0000\u0000*\u025e\u0001\u0000"+
-		"\u0000\u0000,\u0272\u0001\u0000\u0000\u0000.\u0274\u0001\u0000\u0000\u0000"+
-		"0\u0279\u0001\u0000\u0000\u00002\u027e\u0001\u0000\u0000\u00004\u0284"+
-		"\u0001\u0000\u0000\u00006\u028b\u0001\u0000\u0000\u00008\u0292\u0001\u0000"+
-		"\u0000\u0000:\u02a1\u0001\u0000\u0000\u0000<\u02a7\u0001\u0000\u0000\u0000"+
-		">\u02be\u0001\u0000\u0000\u0000@\u02c0\u0001\u0000\u0000\u0000B\u02c2"+
-		"\u0001\u0000\u0000\u0000D\u02c5\u0001\u0000\u0000\u0000F\u02cb\u0001\u0000"+
+		"\u0000\u001a\u022b\u0001\u0000\u0000\u0000\u001c\u0239\u0001\u0000\u0000"+
+		"\u0000\u001e\u0241\u0001\u0000\u0000\u0000 \u0245\u0001\u0000\u0000\u0000"+
+		"\"\u0249\u0001\u0000\u0000\u0000$\u024e\u0001\u0000\u0000\u0000&\u0257"+
+		"\u0001\u0000\u0000\u0000(\u025d\u0001\u0000\u0000\u0000*\u025f\u0001\u0000"+
+		"\u0000\u0000,\u0273\u0001\u0000\u0000\u0000.\u0275\u0001\u0000\u0000\u0000"+
+		"0\u027a\u0001\u0000\u0000\u00002\u027f\u0001\u0000\u0000\u00004\u0285"+
+		"\u0001\u0000\u0000\u00006\u028c\u0001\u0000\u0000\u00008\u0293\u0001\u0000"+
+		"\u0000\u0000:\u02a2\u0001\u0000\u0000\u0000<\u02a8\u0001\u0000\u0000\u0000"+
+		">\u02bf\u0001\u0000\u0000\u0000@\u02c1\u0001\u0000\u0000\u0000B\u02c3"+
+		"\u0001\u0000\u0000\u0000D\u02c6\u0001\u0000\u0000\u0000F\u02cc\u0001\u0000"+
 		"\u0000\u0000HW\u0003\u0002\u0001\u0000IW\u0003,\u0016\u0000JW\u0003\u0012"+
 		"\t\u0000KW\u0003\b\u0004\u0000LW\u0003\n\u0005\u0000MW\u0003\f\u0006\u0000"+
 		"NW\u0003\u000e\u0007\u0000OW\u0003\u0010\b\u0000PW\u0003\u001e\u000f\u0000"+
@@ -9244,107 +9256,108 @@ public class CobolPreprocessorParser extends Parser {
 		"\u0225\u0001\u0000\u0000\u0000\u0227\u022a\u0001\u0000\u0000\u0000\u0228"+
 		"\u0226\u0001\u0000\u0000\u0000\u0228\u0229\u0001\u0000\u0000\u0000\u0229"+
 		"\u0019\u0001\u0000\u0000\u0000\u022a\u0228\u0001\u0000\u0000\u0000\u022b"+
-		"\u0230\u0003\u001c\u000e\u0000\u022c\u022f\u0003\u0012\t\u0000\u022d\u022f"+
-		"\u00036\u001b\u0000\u022e\u022c\u0001\u0000\u0000\u0000\u022e\u022d\u0001"+
-		"\u0000\u0000\u0000\u022f\u0232\u0001\u0000\u0000\u0000\u0230\u022e\u0001"+
-		"\u0000\u0000\u0000\u0230\u0231\u0001\u0000\u0000\u0000\u0231\u0233\u0001"+
-		"\u0000\u0000\u0000\u0232\u0230\u0001\u0000\u0000\u0000\u0233\u0236\u0004"+
-		"\r\u0011\u0000\u0234\u0237\u0003\u001e\u000f\u0000\u0235\u0237\u0004\r"+
-		"\u0012\u0000\u0236\u0234\u0001\u0000\u0000\u0000\u0236\u0235\u0001\u0000"+
-		"\u0000\u0000\u0237\u001b\u0001\u0000\u0000\u0000\u0238\u023a\u0005\u00dd"+
-		"\u0000\u0000\u0239\u023b\u0003 \u0010\u0000\u023a\u0239\u0001\u0000\u0000"+
-		"\u0000\u023b\u023c\u0001\u0000\u0000\u0000\u023c\u023a\u0001\u0000\u0000"+
-		"\u0000\u023c\u023d\u0001\u0000\u0000\u0000\u023d\u023e\u0001\u0000\u0000"+
-		"\u0000\u023e\u023f\u0005\u011d\u0000\u0000\u023f\u001d\u0001\u0000\u0000"+
-		"\u0000\u0240\u0241\u0005\u00dd\u0000\u0000\u0241\u0242\u0005\u00c9\u0000"+
-		"\u0000\u0242\u0243\u0005\u011d\u0000\u0000\u0243\u001f\u0001\u0000\u0000"+
-		"\u0000\u0244\u0245\u0003&\u0013\u0000\u0245\u0246\u0005\u000f\u0000\u0000"+
-		"\u0246\u0247\u0003(\u0014\u0000\u0247!\u0001\u0000\u0000\u0000\u0248\u024b"+
-		"\u0007O\u0000\u0000\u0249\u024c\u0003@ \u0000\u024a\u024c\u0003>\u001f"+
-		"\u0000\u024b\u0249\u0001\u0000\u0000\u0000\u024b\u024a\u0001\u0000\u0000"+
-		"\u0000\u024c#\u0001\u0000\u0000\u0000\u024d\u0250\u0005\u00cb\u0000\u0000"+
-		"\u024e\u0251\u0003@ \u0000\u024f\u0251\u0003>\u001f\u0000\u0250\u024e"+
-		"\u0001\u0000\u0000\u0000\u0250\u024f\u0001\u0000\u0000\u0000\u0251%\u0001"+
-		"\u0000\u0000\u0000\u0252\u0257\u0003@ \u0000\u0253\u0257\u0003>\u001f"+
-		"\u0000\u0254\u0257\u00034\u001a\u0000\u0255\u0257\u0003*\u0015\u0000\u0256"+
-		"\u0252\u0001\u0000\u0000\u0000\u0256\u0253\u0001\u0000\u0000\u0000\u0256"+
-		"\u0254\u0001\u0000\u0000\u0000\u0256\u0255\u0001\u0000\u0000\u0000\u0257"+
-		"\'\u0001\u0000\u0000\u0000\u0258\u025d\u0003@ \u0000\u0259\u025d\u0003"+
-		">\u001f\u0000\u025a\u025d\u00034\u001a\u0000\u025b\u025d\u0003*\u0015"+
-		"\u0000\u025c\u0258\u0001\u0000\u0000\u0000\u025c\u0259\u0001\u0000\u0000"+
-		"\u0000\u025c\u025a\u0001\u0000\u0000\u0000\u025c\u025b\u0001\u0000\u0000"+
-		"\u0000\u025d)\u0001\u0000\u0000\u0000\u025e\u0270\u0003>\u001f\u0000\u025f"+
-		"\u0260\u0007O\u0000\u0000\u0260\u0262\u0003>\u001f\u0000\u0261\u025f\u0001"+
-		"\u0000\u0000\u0000\u0262\u0263\u0001\u0000\u0000\u0000\u0263\u0261\u0001"+
-		"\u0000\u0000\u0000\u0263\u0264\u0001\u0000\u0000\u0000\u0264\u0268\u0001"+
-		"\u0000\u0000\u0000\u0265\u0267\u0003<\u001e\u0000\u0266\u0265\u0001\u0000"+
-		"\u0000\u0000\u0267\u026a\u0001\u0000\u0000\u0000\u0268\u0266\u0001\u0000"+
-		"\u0000\u0000\u0268\u0269\u0001\u0000\u0000\u0000\u0269\u0271\u0001\u0000"+
-		"\u0000\u0000\u026a\u0268\u0001\u0000\u0000\u0000\u026b\u026d\u0003<\u001e"+
-		"\u0000\u026c\u026b\u0001\u0000\u0000\u0000\u026d\u026e\u0001\u0000\u0000"+
-		"\u0000\u026e\u026c\u0001\u0000\u0000\u0000\u026e\u026f\u0001\u0000\u0000"+
-		"\u0000\u026f\u0271\u0001\u0000\u0000\u0000\u0270\u0261\u0001\u0000\u0000"+
-		"\u0000\u0270\u026c\u0001\u0000\u0000\u0000\u0271+\u0001\u0000\u0000\u0000"+
-		"\u0272\u0273\u0005\u0125\u0000\u0000\u0273-\u0001\u0000\u0000\u0000\u0274"+
-		"\u0277\u00050\u0000\u0000\u0275\u0278\u0005\u011d\u0000\u0000\u0276\u0278"+
-		"\u0004\u0017\u0013\u0000\u0277\u0275\u0001\u0000\u0000\u0000\u0277\u0276"+
-		"\u0001\u0000\u0000\u0000\u0278/\u0001\u0000\u0000\u0000\u0279\u027c\u0007"+
-		"P\u0000\u0000\u027a\u027d\u0005\u011d\u0000\u0000\u027b\u027d\u0004\u0018"+
-		"\u0014\u0000\u027c\u027a\u0001\u0000\u0000\u0000\u027c\u027b\u0001\u0000"+
-		"\u0000\u0000\u027d1\u0001\u0000\u0000\u0000\u027e\u027f\u0005\u00fd\u0000"+
-		"\u0000\u027f\u0282\u0003@ \u0000\u0280\u0283\u0005\u011d\u0000\u0000\u0281"+
-		"\u0283\u0004\u0019\u0015\u0000\u0282\u0280\u0001\u0000\u0000\u0000\u0282"+
-		"\u0281\u0001\u0000\u0000\u0000\u02833\u0001\u0000\u0000\u0000\u0284\u0286"+
-		"\u0005\u011e\u0000\u0000\u0285\u0287\u00036\u001b\u0000\u0286\u0285\u0001"+
-		"\u0000\u0000\u0000\u0286\u0287\u0001\u0000\u0000\u0000\u0287\u0288\u0001"+
-		"\u0000\u0000\u0000\u0288\u0289\u0005\u011e\u0000\u0000\u02895\u0001\u0000"+
-		"\u0000\u0000\u028a\u028c\u0003:\u001d\u0000\u028b\u028a\u0001\u0000\u0000"+
-		"\u0000\u028c\u028d\u0001\u0000\u0000\u0000\u028d\u028b\u0001\u0000\u0000"+
-		"\u0000\u028d\u028e\u0001\u0000\u0000\u0000\u028e7\u0001\u0000\u0000\u0000"+
-		"\u028f\u0293\u0003:\u001d\u0000\u0290\u0293\u0005\u0019\u0000\u0000\u0291"+
-		"\u0293\u0005\u00dd\u0000\u0000\u0292\u028f\u0001\u0000\u0000\u0000\u0292"+
-		"\u0290\u0001\u0000\u0000\u0000\u0292\u0291\u0001\u0000\u0000\u0000\u0293"+
-		"\u0294\u0001\u0000\u0000\u0000\u0294\u0292\u0001\u0000\u0000\u0000\u0294"+
-		"\u0295\u0001\u0000\u0000\u0000\u02959\u0001\u0000\u0000\u0000\u0296\u029f"+
-		"\u0004\u001d\u0016\u0000\u0297\u02a0\u0003>\u001f\u0000\u0298\u02a0\u0003"+
-		"@ \u0000\u0299\u02a0\u0003B!\u0000\u029a\u02a0\u0003D\"\u0000\u029b\u02a0"+
-		"\u0005\u012a\u0000\u0000\u029c\u02a0\u0005\u011d\u0000\u0000\u029d\u02a0"+
-		"\u0005Y\u0000\u0000\u029e\u02a0\u0005\u00e0\u0000\u0000\u029f\u0297\u0001"+
-		"\u0000\u0000\u0000\u029f\u0298\u0001\u0000\u0000\u0000\u029f\u0299\u0001"+
-		"\u0000\u0000\u0000\u029f\u029a\u0001\u0000\u0000\u0000\u029f\u029b\u0001"+
-		"\u0000\u0000\u0000\u029f\u029c\u0001\u0000\u0000\u0000\u029f\u029d\u0001"+
-		"\u0000\u0000\u0000\u029f\u029e\u0001\u0000\u0000\u0000\u02a0\u02a2\u0001"+
-		"\u0000\u0000\u0000\u02a1\u0296\u0001\u0000\u0000\u0000\u02a2\u02a3\u0001"+
-		"\u0000\u0000\u0000\u02a3\u02a1\u0001\u0000\u0000\u0000\u02a3\u02a4\u0001"+
-		"\u0000\u0000\u0000\u02a4\u02a5\u0001\u0000\u0000\u0000\u02a5\u02a6\u0004"+
-		"\u001d\u0017\u0000\u02a6;\u0001\u0000\u0000\u0000\u02a7\u02ab\u0005Y\u0000"+
-		"\u0000\u02a8\u02ac\u0003@ \u0000\u02a9\u02ac\u0003>\u001f\u0000\u02aa"+
-		"\u02ac\u0005\u012a\u0000\u0000\u02ab\u02a8\u0001\u0000\u0000\u0000\u02ab"+
-		"\u02a9\u0001\u0000\u0000\u0000\u02ab\u02aa\u0001\u0000\u0000\u0000\u02ac"+
-		"\u02b7\u0001\u0000\u0000\u0000\u02ad\u02af\u0005\u011c\u0000\u0000\u02ae"+
-		"\u02ad\u0001\u0000\u0000\u0000\u02ae\u02af\u0001\u0000\u0000\u0000\u02af"+
-		"\u02b3\u0001\u0000\u0000\u0000\u02b0\u02b4\u0003@ \u0000\u02b1\u02b4\u0003"+
-		">\u001f\u0000\u02b2\u02b4\u0005\u012a\u0000\u0000\u02b3\u02b0\u0001\u0000"+
-		"\u0000\u0000\u02b3\u02b1\u0001\u0000\u0000\u0000\u02b3\u02b2\u0001\u0000"+
-		"\u0000\u0000\u02b4\u02b6\u0001\u0000\u0000\u0000\u02b5\u02ae\u0001\u0000"+
-		"\u0000\u0000\u02b6\u02b9\u0001\u0000\u0000\u0000\u02b7\u02b5\u0001\u0000"+
-		"\u0000\u0000\u02b7\u02b8\u0001\u0000\u0000\u0000\u02b8\u02ba\u0001\u0000"+
-		"\u0000\u0000\u02b9\u02b7\u0001\u0000\u0000\u0000\u02ba\u02bb\u0005\u00e0"+
-		"\u0000\u0000\u02bb=\u0001\u0000\u0000\u0000\u02bc\u02bf\u0005\u0122\u0000"+
-		"\u0000\u02bd\u02bf\u0003F#\u0000\u02be\u02bc\u0001\u0000\u0000\u0000\u02be"+
-		"\u02bd\u0001\u0000\u0000\u0000\u02bf?\u0001\u0000\u0000\u0000\u02c0\u02c1"+
-		"\u0007Q\u0000\u0000\u02c1A\u0001\u0000\u0000\u0000\u02c2\u02c3\u0005\u0123"+
-		"\u0000\u0000\u02c3C\u0001\u0000\u0000\u0000\u02c4\u02c6\u0005\u0127\u0000"+
-		"\u0000\u02c5\u02c4\u0001\u0000\u0000\u0000\u02c6\u02c7\u0001\u0000\u0000"+
-		"\u0000\u02c7\u02c5\u0001\u0000\u0000\u0000\u02c7\u02c8\u0001\u0000\u0000"+
-		"\u0000\u02c8\u02c9\u0001\u0000\u0000\u0000\u02c9\u02ca\u0004\"\u0018\u0000"+
-		"\u02caE\u0001\u0000\u0000\u0000\u02cb\u02cc\u0007R\u0000\u0000\u02ccG"+
+		"\u0231\u0003\u001c\u000e\u0000\u022c\u0230\u0003\u0012\t\u0000\u022d\u0230"+
+		"\u0003,\u0016\u0000\u022e\u0230\u00036\u001b\u0000\u022f\u022c\u0001\u0000"+
+		"\u0000\u0000\u022f\u022d\u0001\u0000\u0000\u0000\u022f\u022e\u0001\u0000"+
+		"\u0000\u0000\u0230\u0233\u0001\u0000\u0000\u0000\u0231\u022f\u0001\u0000"+
+		"\u0000\u0000\u0231\u0232\u0001\u0000\u0000\u0000\u0232\u0234\u0001\u0000"+
+		"\u0000\u0000\u0233\u0231\u0001\u0000\u0000\u0000\u0234\u0237\u0004\r\u0011"+
+		"\u0000\u0235\u0238\u0003\u001e\u000f\u0000\u0236\u0238\u0004\r\u0012\u0000"+
+		"\u0237\u0235\u0001\u0000\u0000\u0000\u0237\u0236\u0001\u0000\u0000\u0000"+
+		"\u0238\u001b\u0001\u0000\u0000\u0000\u0239\u023b\u0005\u00dd\u0000\u0000"+
+		"\u023a\u023c\u0003 \u0010\u0000\u023b\u023a\u0001\u0000\u0000\u0000\u023c"+
+		"\u023d\u0001\u0000\u0000\u0000\u023d\u023b\u0001\u0000\u0000\u0000\u023d"+
+		"\u023e\u0001\u0000\u0000\u0000\u023e\u023f\u0001\u0000\u0000\u0000\u023f"+
+		"\u0240\u0005\u011d\u0000\u0000\u0240\u001d\u0001\u0000\u0000\u0000\u0241"+
+		"\u0242\u0005\u00dd\u0000\u0000\u0242\u0243\u0005\u00c9\u0000\u0000\u0243"+
+		"\u0244\u0005\u011d\u0000\u0000\u0244\u001f\u0001\u0000\u0000\u0000\u0245"+
+		"\u0246\u0003&\u0013\u0000\u0246\u0247\u0005\u000f\u0000\u0000\u0247\u0248"+
+		"\u0003(\u0014\u0000\u0248!\u0001\u0000\u0000\u0000\u0249\u024c\u0007O"+
+		"\u0000\u0000\u024a\u024d\u0003@ \u0000\u024b\u024d\u0003>\u001f\u0000"+
+		"\u024c\u024a\u0001\u0000\u0000\u0000\u024c\u024b\u0001\u0000\u0000\u0000"+
+		"\u024d#\u0001\u0000\u0000\u0000\u024e\u0251\u0005\u00cb\u0000\u0000\u024f"+
+		"\u0252\u0003@ \u0000\u0250\u0252\u0003>\u001f\u0000\u0251\u024f\u0001"+
+		"\u0000\u0000\u0000\u0251\u0250\u0001\u0000\u0000\u0000\u0252%\u0001\u0000"+
+		"\u0000\u0000\u0253\u0258\u0003@ \u0000\u0254\u0258\u0003>\u001f\u0000"+
+		"\u0255\u0258\u00034\u001a\u0000\u0256\u0258\u0003*\u0015\u0000\u0257\u0253"+
+		"\u0001\u0000\u0000\u0000\u0257\u0254\u0001\u0000\u0000\u0000\u0257\u0255"+
+		"\u0001\u0000\u0000\u0000\u0257\u0256\u0001\u0000\u0000\u0000\u0258\'\u0001"+
+		"\u0000\u0000\u0000\u0259\u025e\u0003@ \u0000\u025a\u025e\u0003>\u001f"+
+		"\u0000\u025b\u025e\u00034\u001a\u0000\u025c\u025e\u0003*\u0015\u0000\u025d"+
+		"\u0259\u0001\u0000\u0000\u0000\u025d\u025a\u0001\u0000\u0000\u0000\u025d"+
+		"\u025b\u0001\u0000\u0000\u0000\u025d\u025c\u0001\u0000\u0000\u0000\u025e"+
+		")\u0001\u0000\u0000\u0000\u025f\u0271\u0003>\u001f\u0000\u0260\u0261\u0007"+
+		"O\u0000\u0000\u0261\u0263\u0003>\u001f\u0000\u0262\u0260\u0001\u0000\u0000"+
+		"\u0000\u0263\u0264\u0001\u0000\u0000\u0000\u0264\u0262\u0001\u0000\u0000"+
+		"\u0000\u0264\u0265\u0001\u0000\u0000\u0000\u0265\u0269\u0001\u0000\u0000"+
+		"\u0000\u0266\u0268\u0003<\u001e\u0000\u0267\u0266\u0001\u0000\u0000\u0000"+
+		"\u0268\u026b\u0001\u0000\u0000\u0000\u0269\u0267\u0001\u0000\u0000\u0000"+
+		"\u0269\u026a\u0001\u0000\u0000\u0000\u026a\u0272\u0001\u0000\u0000\u0000"+
+		"\u026b\u0269\u0001\u0000\u0000\u0000\u026c\u026e\u0003<\u001e\u0000\u026d"+
+		"\u026c\u0001\u0000\u0000\u0000\u026e\u026f\u0001\u0000\u0000\u0000\u026f"+
+		"\u026d\u0001\u0000\u0000\u0000\u026f\u0270\u0001\u0000\u0000\u0000\u0270"+
+		"\u0272\u0001\u0000\u0000\u0000\u0271\u0262\u0001\u0000\u0000\u0000\u0271"+
+		"\u026d\u0001\u0000\u0000\u0000\u0272+\u0001\u0000\u0000\u0000\u0273\u0274"+
+		"\u0005\u0125\u0000\u0000\u0274-\u0001\u0000\u0000\u0000\u0275\u0278\u0005"+
+		"0\u0000\u0000\u0276\u0279\u0005\u011d\u0000\u0000\u0277\u0279\u0004\u0017"+
+		"\u0013\u0000\u0278\u0276\u0001\u0000\u0000\u0000\u0278\u0277\u0001\u0000"+
+		"\u0000\u0000\u0279/\u0001\u0000\u0000\u0000\u027a\u027d\u0007P\u0000\u0000"+
+		"\u027b\u027e\u0005\u011d\u0000\u0000\u027c\u027e\u0004\u0018\u0014\u0000"+
+		"\u027d\u027b\u0001\u0000\u0000\u0000\u027d\u027c\u0001\u0000\u0000\u0000"+
+		"\u027e1\u0001\u0000\u0000\u0000\u027f\u0280\u0005\u00fd\u0000\u0000\u0280"+
+		"\u0283\u0003@ \u0000\u0281\u0284\u0005\u011d\u0000\u0000\u0282\u0284\u0004"+
+		"\u0019\u0015\u0000\u0283\u0281\u0001\u0000\u0000\u0000\u0283\u0282\u0001"+
+		"\u0000\u0000\u0000\u02843\u0001\u0000\u0000\u0000\u0285\u0287\u0005\u011e"+
+		"\u0000\u0000\u0286\u0288\u00036\u001b\u0000\u0287\u0286\u0001\u0000\u0000"+
+		"\u0000\u0287\u0288\u0001\u0000\u0000\u0000\u0288\u0289\u0001\u0000\u0000"+
+		"\u0000\u0289\u028a\u0005\u011e\u0000\u0000\u028a5\u0001\u0000\u0000\u0000"+
+		"\u028b\u028d\u0003:\u001d\u0000\u028c\u028b\u0001\u0000\u0000\u0000\u028d"+
+		"\u028e\u0001\u0000\u0000\u0000\u028e\u028c\u0001\u0000\u0000\u0000\u028e"+
+		"\u028f\u0001\u0000\u0000\u0000\u028f7\u0001\u0000\u0000\u0000\u0290\u0294"+
+		"\u0003:\u001d\u0000\u0291\u0294\u0005\u0019\u0000\u0000\u0292\u0294\u0005"+
+		"\u00dd\u0000\u0000\u0293\u0290\u0001\u0000\u0000\u0000\u0293\u0291\u0001"+
+		"\u0000\u0000\u0000\u0293\u0292\u0001\u0000\u0000\u0000\u0294\u0295\u0001"+
+		"\u0000\u0000\u0000\u0295\u0293\u0001\u0000\u0000\u0000\u0295\u0296\u0001"+
+		"\u0000\u0000\u0000\u02969\u0001\u0000\u0000\u0000\u0297\u02a0\u0004\u001d"+
+		"\u0016\u0000\u0298\u02a1\u0003>\u001f\u0000\u0299\u02a1\u0003@ \u0000"+
+		"\u029a\u02a1\u0003B!\u0000\u029b\u02a1\u0003D\"\u0000\u029c\u02a1\u0005"+
+		"\u012a\u0000\u0000\u029d\u02a1\u0005\u011d\u0000\u0000\u029e\u02a1\u0005"+
+		"Y\u0000\u0000\u029f\u02a1\u0005\u00e0\u0000\u0000\u02a0\u0298\u0001\u0000"+
+		"\u0000\u0000\u02a0\u0299\u0001\u0000\u0000\u0000\u02a0\u029a\u0001\u0000"+
+		"\u0000\u0000\u02a0\u029b\u0001\u0000\u0000\u0000\u02a0\u029c\u0001\u0000"+
+		"\u0000\u0000\u02a0\u029d\u0001\u0000\u0000\u0000\u02a0\u029e\u0001\u0000"+
+		"\u0000\u0000\u02a0\u029f\u0001\u0000\u0000\u0000\u02a1\u02a3\u0001\u0000"+
+		"\u0000\u0000\u02a2\u0297\u0001\u0000\u0000\u0000\u02a3\u02a4\u0001\u0000"+
+		"\u0000\u0000\u02a4\u02a2\u0001\u0000\u0000\u0000\u02a4\u02a5\u0001\u0000"+
+		"\u0000\u0000\u02a5\u02a6\u0001\u0000\u0000\u0000\u02a6\u02a7\u0004\u001d"+
+		"\u0017\u0000\u02a7;\u0001\u0000\u0000\u0000\u02a8\u02ac\u0005Y\u0000\u0000"+
+		"\u02a9\u02ad\u0003@ \u0000\u02aa\u02ad\u0003>\u001f\u0000\u02ab\u02ad"+
+		"\u0005\u012a\u0000\u0000\u02ac\u02a9\u0001\u0000\u0000\u0000\u02ac\u02aa"+
+		"\u0001\u0000\u0000\u0000\u02ac\u02ab\u0001\u0000\u0000\u0000\u02ad\u02b8"+
+		"\u0001\u0000\u0000\u0000\u02ae\u02b0\u0005\u011c\u0000\u0000\u02af\u02ae"+
+		"\u0001\u0000\u0000\u0000\u02af\u02b0\u0001\u0000\u0000\u0000\u02b0\u02b4"+
+		"\u0001\u0000\u0000\u0000\u02b1\u02b5\u0003@ \u0000\u02b2\u02b5\u0003>"+
+		"\u001f\u0000\u02b3\u02b5\u0005\u012a\u0000\u0000\u02b4\u02b1\u0001\u0000"+
+		"\u0000\u0000\u02b4\u02b2\u0001\u0000\u0000\u0000\u02b4\u02b3\u0001\u0000"+
+		"\u0000\u0000\u02b5\u02b7\u0001\u0000\u0000\u0000\u02b6\u02af\u0001\u0000"+
+		"\u0000\u0000\u02b7\u02ba\u0001\u0000\u0000\u0000\u02b8\u02b6\u0001\u0000"+
+		"\u0000\u0000\u02b8\u02b9\u0001\u0000\u0000\u0000\u02b9\u02bb\u0001\u0000"+
+		"\u0000\u0000\u02ba\u02b8\u0001\u0000\u0000\u0000\u02bb\u02bc\u0005\u00e0"+
+		"\u0000\u0000\u02bc=\u0001\u0000\u0000\u0000\u02bd\u02c0\u0005\u0122\u0000"+
+		"\u0000\u02be\u02c0\u0003F#\u0000\u02bf\u02bd\u0001\u0000\u0000\u0000\u02bf"+
+		"\u02be\u0001\u0000\u0000\u0000\u02c0?\u0001\u0000\u0000\u0000\u02c1\u02c2"+
+		"\u0007Q\u0000\u0000\u02c2A\u0001\u0000\u0000\u0000\u02c3\u02c4\u0005\u0123"+
+		"\u0000\u0000\u02c4C\u0001\u0000\u0000\u0000\u02c5\u02c7\u0005\u0127\u0000"+
+		"\u0000\u02c6\u02c5\u0001\u0000\u0000\u0000\u02c7\u02c8\u0001\u0000\u0000"+
+		"\u0000\u02c8\u02c6\u0001\u0000\u0000\u0000\u02c8\u02c9\u0001\u0000\u0000"+
+		"\u0000\u02c9\u02ca\u0001\u0000\u0000\u0000\u02ca\u02cb\u0004\"\u0018\u0000"+
+		"\u02cbE\u0001\u0000\u0000\u0000\u02cc\u02cd\u0007R\u0000\u0000\u02cdG"+
 		"\u0001\u0000\u0000\u0000IVX_cemr\u008c\u00a5\u00a8\u00ab\u00af\u00c3\u00cb"+
 		"\u00eb\u00f4\u00fb\u010d\u0156\u0166\u017c\u0187\u018d\u019e\u01a7\u01aa"+
 		"\u01ad\u01b0\u01b3\u01b7\u01cb\u01cf\u01d7\u01df\u01e7\u01ef\u01f7\u01fc"+
-		"\u0204\u020b\u020d\u0211\u0218\u021d\u0221\u0228\u022e\u0230\u0236\u023c"+
-		"\u024b\u0250\u0256\u025c\u0263\u0268\u026e\u0270\u0277\u027c\u0282\u0286"+
-		"\u028d\u0292\u0294\u029f\u02a3\u02ab\u02ae\u02b3\u02b7\u02be\u02c7";
+		"\u0204\u020b\u020d\u0211\u0218\u021d\u0221\u0228\u022f\u0231\u0237\u023d"+
+		"\u024c\u0251\u0257\u025d\u0264\u0269\u026f\u0271\u0278\u027d\u0283\u0287"+
+		"\u028e\u0293\u0295\u02a0\u02a4\u02ac\u02af\u02b4\u02b8\u02bf\u02c8";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
