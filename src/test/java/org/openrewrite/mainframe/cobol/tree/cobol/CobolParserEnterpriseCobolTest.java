@@ -414,11 +414,13 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000010 01  NAMESPACE       PIC X.
               000011 01  NONNUMERIC      PIC X.
               000012 01  XML-DECLARATION PIC X.
-              000013 PROCEDURE DIVISION.
-              000014     MOVE NAME TO LOC
-              000015     MOVE ELEMENT TO ATTRIBUTES NAMESPACE NONNUMERIC XML-DECLARATION
-              000016     IF INITIALIZED = 'Y' DISPLAY NAME END-IF
-              000017     GOBACK.
+              000013 01  COL             PIC S9(04) COMP VALUE ZEROES.
+              000014 PROCEDURE DIVISION.
+              000015     MOVE NAME TO LOC
+              000016     MOVE ELEMENT TO ATTRIBUTES NAMESPACE NONNUMERIC XML-DECLARATION
+              000017     IF INITIALIZED = 'Y' DISPLAY NAME END-IF
+              000018     DIVIDE 80 INTO LOC GIVING NAME REMAINDER COL
+              000019     GOBACK.
               """
           )
         );
