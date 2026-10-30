@@ -56,8 +56,8 @@ public class Query implements Trait<Db2.Query> {
      * The names the query reads as tables, in the order written, a subquery's included: each name
      * after {@code FROM} or {@code JOIN}, or after a comma that separates a FROM list, unless it is
      * called like a function. A name in the select list, a join's {@code ON} or a {@code WHERE} is a
-     * column or a function, and an alias is no table. Nor is a name the {@code WITH} clause gives a common table expression, whose
-     * query's tables are read instead.
+     * column or a function, and an alias is no table. Nor is a name the {@code WITH} clause gives a
+     * common table expression, whose query's tables are read instead.
      */
     public List<Db2.Name> getTables() {
         List<Db2.Name> tables = new ArrayList<>();
