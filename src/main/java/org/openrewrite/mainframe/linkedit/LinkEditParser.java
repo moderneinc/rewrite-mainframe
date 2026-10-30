@@ -30,6 +30,7 @@ import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.mainframe.linkedit.internal.LinkEditParserVisitor;
 import org.openrewrite.mainframe.linkedit.internal.grammar.LinkEditLexer;
 import org.openrewrite.mainframe.linkedit.tree.LinkEdit;
@@ -74,7 +75,7 @@ public class LinkEditParser implements Parser {
                         }
                         LinkEdit.CompilationUnit cu = parse(path, sourceFile.getFileAttributes(), sourceStr,
                                 is.getCharset(), is.isCharsetBomMarked(),
-                                new ForwardingErrorListener(sourceFile.getPath(), ctx));
+                                new ForwardingErrorListener(sourceFile.getPath(), ctx), ctx);
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
@@ -92,13 +93,14 @@ public class LinkEditParser implements Parser {
      * prints back to.
      */
     public static LinkEdit.CompilationUnit parse(Path sourcePath, String source) {
+        ExecutionContext ctx = new InMemoryExecutionContext();
         return parse(sourcePath, null, source, StandardCharsets.UTF_8, false,
-                new ForwardingErrorListener(sourcePath, new InMemoryExecutionContext()));
+                new ForwardingErrorListener(sourcePath, ctx), ctx);
     }
 
     private static LinkEdit.CompilationUnit parse(Path path, @Nullable FileAttributes fileAttributes, String source,
                                                   Charset charset, boolean charsetBomMarked,
-                                                  ANTLRErrorListener errorListener) {
+                                                  ANTLRErrorListener errorListener, ExecutionContext ctx) {
         CommonTokenStream tokens = new CommonTokenStream(new LinkEditLexer(
                 CharStreams.fromString(LinkEditLineReader.readLines(source))));
         org.openrewrite.mainframe.linkedit.internal.grammar.LinkEditParser parser =
@@ -106,6 +108,7 @@ public class LinkEditParser implements Parser {
 
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
+        PredictionListener.addTo(parser, ctx);
 
         return new LinkEditParserVisitor(
                 path,
