@@ -194,6 +194,12 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSpecialNameClause(CobolParser.SpecialNameClauseContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#xmlSchemaClause}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitXmlSchemaClause(CobolParser.XmlSchemaClauseContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#alphabetClause}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -1399,6 +1405,24 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitDataGlobalClause(CobolParser.DataGlobalClauseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#dataGroupUsageClause}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDataGroupUsageClause(CobolParser.DataGroupUsageClauseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#dataDynamicLengthClause}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDataDynamicLengthClause(CobolParser.DataDynamicLengthClauseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#dataVolatileClause}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDataVolatileClause(CobolParser.DataVolatileClauseContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#dataIntegerStringClause}.
 	 * @param ctx the parse tree

@@ -494,7 +494,11 @@ specialNamesParagraph
    ;
 
 specialNameClause
-   : channelClause | odtClause | alphabetClause | classClause | currencySignClause | decimalPointClause | symbolicCharactersClause | environmentSwitchNameClause | defaultDisplaySignClause | defaultComputationalSignClause | reserveNetworkClause
+   : channelClause | odtClause | alphabetClause | classClause | currencySignClause | decimalPointClause | symbolicCharactersClause | environmentSwitchNameClause | defaultDisplaySignClause | defaultComputationalSignClause | reserveNetworkClause | xmlSchemaClause
+   ;
+
+xmlSchemaClause
+   : XML_SCHEMA cobolWord IS? (NONNUMERICLITERAL | cobolWord)
    ;
 
 alphabetClause
@@ -1299,7 +1303,7 @@ dataDescriptionEntryFormat1
    ;
 
 dataDescriptionEntryFormat1Clause
-   : dataRedefinesClause | dataIntegerStringClause | dataExternalClause | dataGlobalClause | dataTypeDefClause | dataThreadLocalClause | dataPictureClause | dataCommonOwnLocalClause | dataTypeClause | dataUsingClause | dataUsageClause | dataValueClause | dataReceivedByClause | dataOccursClause | dataSignClause | dataSynchronizedClause | dataJustifiedClause | dataBlankWhenZeroClause | dataWithLowerBoundsClause | dataAlignedClause | dataRecordAreaClause
+   : dataRedefinesClause | dataIntegerStringClause | dataExternalClause | dataGlobalClause | dataTypeDefClause | dataThreadLocalClause | dataPictureClause | dataCommonOwnLocalClause | dataTypeClause | dataUsingClause | dataUsageClause | dataValueClause | dataReceivedByClause | dataOccursClause | dataSignClause | dataSynchronizedClause | dataJustifiedClause | dataBlankWhenZeroClause | dataWithLowerBoundsClause | dataAlignedClause | dataRecordAreaClause | dataGroupUsageClause | dataDynamicLengthClause | dataVolatileClause
    ;
 
 dataDescriptionEntryFormat2
@@ -1332,6 +1336,18 @@ dataExternalClause
 
 dataGlobalClause
    : IS? GLOBAL
+   ;
+
+dataGroupUsageClause
+   : GROUP_USAGE IS? (NATIONAL | UTF_8)
+   ;
+
+dataDynamicLengthClause
+   : DYNAMIC LENGTH? (LIMIT IS? integerLiteral)?
+   ;
+
+dataVolatileClause
+   : VOLATILE
    ;
 
 dataIntegerStringClause
@@ -1403,7 +1419,7 @@ dataThreadLocalClause
    ;
 
 dataTypeClause
-   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME | (CLOB | BLOB | DBCLOB) LPARENCHAR integerLiteral RPARENCHAR)
+   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME | (CLOB | BLOB | DBCLOB) LPARENCHAR (integerLiteral cobolWord? | cobolWord) RPARENCHAR)
    ;
 
 dataTypeDefClause
@@ -1411,7 +1427,7 @@ dataTypeDefClause
    ;
 
 dataUsageClause
-   : (USAGE IS?)? (BINARY (TRUNCATED | EXTENDED)? | BIT | COMP | COMP_1 | COMP_2 | COMP_3 | COMP_4 | COMP_5 | COMPUTATIONAL | COMPUTATIONAL_1 | COMPUTATIONAL_2 | COMPUTATIONAL_3 | COMPUTATIONAL_4 | COMPUTATIONAL_5 | CONTROL_POINT | DATE | DISPLAY | DISPLAY_1 | DOUBLE | EVENT | FUNCTION_POINTER | INDEX | KANJI | LOCK | NATIONAL | PACKED_DECIMAL | POINTER | PROCEDURE_POINTER | REAL | SQL | TASK)
+   : (USAGE IS?)? (BINARY (TRUNCATED | EXTENDED)? | BIT | COMP | COMP_1 | COMP_2 | COMP_3 | COMP_4 | COMP_5 | COMPUTATIONAL | COMPUTATIONAL_1 | COMPUTATIONAL_2 | COMPUTATIONAL_3 | COMPUTATIONAL_4 | COMPUTATIONAL_5 | CONTROL_POINT | DATE | DISPLAY | DISPLAY_1 | DOUBLE | EVENT | FUNCTION_POINTER | INDEX | KANJI | LOCK | NATIONAL | PACKED_DECIMAL | POINTER | POINTER_32 | PROCEDURE_POINTER | REAL | SQL | TASK | UTF_8)
    ;
 
 dataUsingClause

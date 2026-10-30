@@ -20,7 +20,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
-import org.openrewrite.mainframe.cobol.tree.Statement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +69,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000028     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Cobol.JsonXml> statements = statementsOf(cu, Cobol.JsonXml.class);
+                List<Cobol.JsonXml> statements = treesOf(cu, Cobol.JsonXml.class);
                 Cursor root = new Cursor(null, cu);
                 assertThat(statements).extracting(s -> s.getDocument().printTrimmed(root), s -> s.getData().printTrimmed(root))
                   .containsExactly(tuple("DOC", "REC"), tuple("DOC", "REC"), tuple("DOC", "REC"));
@@ -115,7 +114,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000025     GOBACK.
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(statementsOf(cu, Cobol.JsonXml.class)).singleElement().satisfies(s -> {
+              assertThat(treesOf(cu, Cobol.JsonXml.class)).singleElement().satisfies(s -> {
                   assertThat(s.getPhrases()).hasSize(9);
                   assertThat(s.getPhrases().get(8).getElements()).allMatch(Cobol.Word.class::isInstance);
               }))
@@ -152,10 +151,10 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 Cursor root = new Cursor(null, cu);
-                assertThat(statementsOf(cu, Cobol.Allocate.class))
+                assertThat(treesOf(cu, Cobol.Allocate.class))
                   .extracting(a -> a.getPointer() == null ? null : a.getPointer().printTrimmed(root))
                   .containsExactly("PTR", "PTR2", "PTR");
-                assertThat(statementsOf(cu, Cobol.Free.class)).singleElement()
+                assertThat(treesOf(cu, Cobol.Free.class)).singleElement()
                   .satisfies(f -> assertThat(f.getPointers()).hasSize(2));
             })
           )
@@ -189,7 +188,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000020     INITIALIZE REC THEN TO DEFAULT
               000021     GOBACK.
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(statementsOf(cu, Cobol.Initialize.class))
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.Initialize.class))
               .extracting(init -> words(init.getValuePhrase()), init -> words(init.getDefaultPhrase()))
               .containsExactly(
                 tuple("WITH FILLER ALL TO VALUE THEN", "THEN TO DEFAULT"),
@@ -220,9 +219,82 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000014     END-EVALUATE
               000015     GOBACK.
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(statementsOf(cu, Cobol.JsonXml.class))
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.JsonXml.class))
               .extracting(s -> s.getPhrases().get(0).getElements().size())
               .containsExactly(2, 4))
+          )
+        );
+    }
+
+    @Test
+    void dataClausesOfEnterpriseCobol() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  U1  PIC U(5) USAGE UTF-8.
+              000006 01  U2  PIC U(5) USAGE IS UTF-8.
+              000007 01  P1  USAGE POINTER-32.
+              000008 01  P2  POINTER-32.
+              000009 01  G1  GROUP-USAGE NATIONAL.
+              000010     05  G1A PIC N(5).
+              000011 01  G2  GROUP-USAGE IS UTF-8.
+              000012     05  G2A PIC U(5).
+              000013 01  D1  PIC X DYNAMIC LENGTH LIMIT 100.
+              000014 01  D2  PIC X DYNAMIC LENGTH.
+              000015 01  D3  PIC X DYNAMIC LIMIT IS 8.
+              000016 01  V1  PIC X VOLATILE.
+              000017 01  C1  USAGE IS SQL TYPE IS CLOB(1M).
+              000018 01  C2  USAGE IS SQL TYPE IS BLOB(64 K).
+              000019 01  C3  USAGE IS SQL TYPE IS DBCLOB(100).
+              000020 PROCEDURE DIVISION.
+              000021     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(treesOf(cu, Cobol.DataUsageClause.class))
+                  .extracting(usage -> words(usage.getWords()))
+                  .contains("USAGE UTF-8", "USAGE IS UTF-8", "USAGE POINTER-32", "POINTER-32");
+                assertThat(treesOf(cu, Cobol.DataGroupUsageClause.class)).extracting(usage -> words(usage.getWords()))
+                  .containsExactly("GROUP-USAGE NATIONAL", "GROUP-USAGE IS UTF-8");
+                assertThat(treesOf(cu, Cobol.DataDynamicLengthClause.class))
+                  .extracting(dynamic -> dynamic.getLimit() == null ? null : dynamic.getLimit().printTrimmed(new Cursor(null, cu)))
+                  .containsExactly("100", null, "8");
+                assertThat(treesOf(cu, Cobol.DataVolatileClause.class)).hasSize(1);
+                assertThat(treesOf(cu, Cobol.DataTypeClause.class))
+                  .extracting(type -> type.getParenthesized().printTrimmed(new Cursor(null, cu)))
+                  .containsExactly("(1M)", "(64 K)", "(100)");
+            })
+          )
+        );
+    }
+
+    @Test
+    void xmlSchemaNamesTheFileXmlParseValidatesWith() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ENTCOB.
+              000003 ENVIRONMENT DIVISION.
+              000004 CONFIGURATION SECTION.
+              000005 SPECIAL-NAMES.
+              000006     XML-SCHEMA CLMSCHEMA IS 'CLMXSD'
+              000007     XML-SCHEMA OTHERSCH IS SCHEMADD.
+              000008 DATA DIVISION.
+              000009 WORKING-STORAGE SECTION.
+              000010 01  DOC PIC X(200).
+              000011 PROCEDURE DIVISION.
+              000012     XML PARSE DOC VALIDATING WITH FILE CLMSCHEMA
+              000013         PROCESSING PROCEDURE HANDLER
+              000014     END-XML
+              000015     GOBACK.
+              000016 HANDLER.
+              000017     CONTINUE.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.XmlSchemaClause.class)).hasSize(2))
           )
         );
     }
@@ -279,7 +351,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
         return words.stream().map(Cobol.Word::getWord).collect(joining(" "));
     }
 
-    private static <T extends Statement> List<T> statementsOf(Cobol.CompilationUnit cu, Class<T> type) {
+    private static <T extends Cobol> List<T> treesOf(Cobol.CompilationUnit cu, Class<T> type) {
         List<T> found = new ArrayList<>();
         new CobolIsoVisitor<List<T>>() {
             @Override

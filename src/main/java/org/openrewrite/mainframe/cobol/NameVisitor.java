@@ -566,8 +566,7 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
 
     @Override
     public Cobol.DataTypeClause visitDataTypeClause(Cobol.DataTypeClause dataTypeClause, P p) {
-        Cobol.DataTypeClause d = dataTypeClause;
-        return d.withParenthesized(visitAndCast(d.getParenthesized(), p));
+        return dataTypeClause;
     }
 
     @Override
@@ -972,6 +971,26 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     public Cobol.InFile visitInFile(Cobol.InFile inFile, P p) {
         Cobol.InFile i = inFile;
         return i.withName(visitAndCast(i.getName(), p));
+    }
+
+    @Override
+    public Cobol.DataDynamicLengthClause visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, P p) {
+        return dataDynamicLengthClause;
+    }
+
+    @Override
+    public Cobol.DataGroupUsageClause visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, P p) {
+        return dataGroupUsageClause;
+    }
+
+    @Override
+    public Cobol.DataVolatileClause visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, P p) {
+        return dataVolatileClause;
+    }
+
+    @Override
+    public Cobol.XmlSchemaClause visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, P p) {
+        return xmlSchemaClause.withName(visitAndCast(xmlSchemaClause.getName(), p));
     }
 
     @Override

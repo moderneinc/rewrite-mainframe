@@ -1581,6 +1581,42 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public Cobol visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, PrintOutputCapture<P> p) {
+        beforeSyntax(dataDynamicLengthClause, Space.Location.DATA_DYNAMIC_LENGTH_CLAUSE_PREFIX, p);
+        visit(dataDynamicLengthClause.getWords(), p);
+        visit(dataDynamicLengthClause.getLimit(), p);
+        afterSyntax(dataDynamicLengthClause, p);
+        return dataDynamicLengthClause;
+    }
+
+    @Override
+    public Cobol visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, PrintOutputCapture<P> p) {
+        beforeSyntax(dataGroupUsageClause, Space.Location.DATA_GROUP_USAGE_CLAUSE_PREFIX, p);
+        visit(dataGroupUsageClause.getWords(), p);
+        afterSyntax(dataGroupUsageClause, p);
+        return dataGroupUsageClause;
+    }
+
+    @Override
+    public Cobol visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, PrintOutputCapture<P> p) {
+        beforeSyntax(dataVolatileClause, Space.Location.DATA_VOLATILE_CLAUSE_PREFIX, p);
+        visit(dataVolatileClause.getWords(), p);
+        afterSyntax(dataVolatileClause, p);
+        return dataVolatileClause;
+    }
+
+    @Override
+    public Cobol visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlSchemaClause, Space.Location.XML_SCHEMA_CLAUSE_PREFIX, p);
+        visit(xmlSchemaClause.getXmlSchema(), p);
+        visit(xmlSchemaClause.getName(), p);
+        visit(xmlSchemaClause.getIs(), p);
+        visit(xmlSchemaClause.getLocation(), p);
+        afterSyntax(xmlSchemaClause, p);
+        return xmlSchemaClause;
+    }
+
+    @Override
     public Cobol visitInitialize(Cobol.Initialize initialize, PrintOutputCapture<P> p) {
         beforeSyntax(initialize, Space.Location.INITIALIZE_PREFIX, p);
         visit(initialize.getInitialize(), p);

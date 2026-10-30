@@ -810,6 +810,26 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.DataDynamicLengthClause visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, P p) {
+        return (Cobol.DataDynamicLengthClause) super.visitDataDynamicLengthClause(dataDynamicLengthClause, p);
+    }
+
+    @Override
+    public Cobol.DataGroupUsageClause visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, P p) {
+        return (Cobol.DataGroupUsageClause) super.visitDataGroupUsageClause(dataGroupUsageClause, p);
+    }
+
+    @Override
+    public Cobol.DataVolatileClause visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, P p) {
+        return (Cobol.DataVolatileClause) super.visitDataVolatileClause(dataVolatileClause, p);
+    }
+
+    @Override
+    public Cobol.XmlSchemaClause visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, P p) {
+        return (Cobol.XmlSchemaClause) super.visitXmlSchemaClause(xmlSchemaClause, p);
+    }
+
+    @Override
     public Cobol.Initialize visitInitialize(Cobol.Initialize initialize, P p) {
         return (Cobol.Initialize) super.visitInitialize(initialize, p);
     }

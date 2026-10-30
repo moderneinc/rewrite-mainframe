@@ -458,6 +458,32 @@ class FullContextPredictionTest {
           "freeStatement", "initializeStatement", "initializeValuePhrase", "initializeDefaultPhrase")).isZero();
     }
 
+    @Test
+    void enterpriseCobolDataClauses() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. ENTDATA.
+          ENVIRONMENT DIVISION.
+          CONFIGURATION SECTION.
+          SPECIAL-NAMES.
+              XML-SCHEMA CLMSCHEMA IS 'CLMXSD'.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  U1  PIC U(5) USAGE UTF-8 VOLATILE.
+          01  P1  POINTER-32.
+          01  G1  GROUP-USAGE NATIONAL.
+              05  G1A PIC N(5).
+          01  D1  PIC X DYNAMIC LENGTH LIMIT 100 VALUE SPACE.
+          01  D2  PIC X DYNAMIC.
+          01  C1  USAGE IS SQL TYPE IS CLOB(1M).
+          PROCEDURE DIVISION.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "dataDescriptionEntryFormat1", "dataUsageClause",
+          "dataGroupUsageClause", "dataDynamicLengthClause", "dataVolatileClause", "dataTypeClause", "specialNameClause",
+          "xmlSchemaClause")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
         return fallbacks(parser, parser::compilationUnit, rules);
