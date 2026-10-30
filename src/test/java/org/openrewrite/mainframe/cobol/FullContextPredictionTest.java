@@ -249,6 +249,9 @@ class FullContextPredictionTest {
               PERFORM VARYING I FROM J BY I UNTIL DONE
                  CONTINUE
               END-PERFORM.
+              PERFORM UNTIL EXIT
+                 EXIT PERFORM
+              END-PERFORM.
               EVALUATE I
                 WHEN 1 CONTINUE
                 WHEN J CONTINUE
@@ -266,8 +269,8 @@ class FullContextPredictionTest {
           """;
         assertThat(fullContextFallbacks(program, "procedureName", "paragraph", "goToStatement", "callByReference",
           "callByReferencePhrase", "callUsingPhrase", "procedureDivisionByReference", "conditionNameReference",
-          "literal", "numericLiteral", "argument", "evaluateValue", "performBy", "performFrom", "functionCall",
-          "fileControlParagraph")).isZero();
+          "literal", "numericLiteral", "argument", "evaluateValue", "performBy", "performFrom", "performUntil",
+          "functionCall", "fileControlParagraph")).isZero();
     }
 
     /**

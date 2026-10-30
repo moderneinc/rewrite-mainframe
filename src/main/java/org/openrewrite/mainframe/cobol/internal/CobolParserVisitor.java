@@ -1496,7 +1496,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         EMPTY,
                         Markers.EMPTY,
                         (Cobol.Word) visit(ctx.LPARENCHAR()),
-                        convertAllList(singletonList(ctx.integerLiteral()), singletonList(ctx.cobolWord())),
+                        convertAllList(singletonList(ctx.integerLiteral()), ctx.cobolWord()),
                         (Cobol.Word) visit(ctx.RPARENCHAR())
                 )
         );

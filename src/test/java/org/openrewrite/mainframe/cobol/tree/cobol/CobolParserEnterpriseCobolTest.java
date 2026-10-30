@@ -285,7 +285,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000003 DATA DIVISION.
               000004 WORKING-STORAGE SECTION.
               000005 01  RS  USAGE SQL TYPE IS RESULT-SET-LOCATOR VARYING.
-              000006 01  TL  SQL TYPE IS TABLE LIKE EMP AS LOCATOR.
+              000006 01  TL  SQL TYPE IS TABLE LIKE DSN8C10.EMP AS LOCATOR.
               000007 01  RI  SQL TYPE IS ROWID.
               000008 01  B1  SQL TYPE IS BINARY(8).
               000009 01  B2  SQL TYPE IS VARBINARY(100).
@@ -309,7 +309,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
                 type -> type.getParenthesized() == null ? null : type.getParenthesized().printTrimmed(new Cursor(null, cu)))
               .containsExactly(
                 tuple("TYPE IS RESULT-SET-LOCATOR VARYING", null),
-                tuple("TYPE IS TABLE LIKE EMP AS LOCATOR", null),
+                tuple("TYPE IS TABLE LIKE DSN8C10 . EMP AS LOCATOR", null),
                 tuple("TYPE IS ROWID", null),
                 tuple("TYPE IS BINARY", "(8)"),
                 tuple("TYPE IS VARBINARY", "(100)"),

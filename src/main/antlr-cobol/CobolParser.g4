@@ -304,7 +304,7 @@ options { tokenVocab = CobolLexer; }
         return _input.LA(1) == PLUSCHAR || _input.LA(1) == MINUSCHAR;
     }
 
-    boolean startsIntegerLiteral(ParserRuleContext rule) {
+    private boolean startsIntegerLiteral() {
         if (integerLiteralStart == null) {
             integerLiteralStart = firstOf(RULE_integerLiteral);
         }
@@ -317,7 +317,7 @@ options { tokenVocab = CobolLexer; }
      */
     boolean plainSubscriptAhead(ParserRuleContext subscript) {
         int i = 1;
-        if (startsIntegerLiteral(subscript)) {
+        if (startsIntegerLiteral()) {
             i = 2;
         } else if (cobolWordStart().contains(_input.LA(1))) {
             i = 2;
@@ -340,15 +340,22 @@ options { tokenVocab = CobolLexer; }
     }
 
     /**
-     * Whether LT(i) is an integer written with its sign, which the lexer folds into the token. Only such an integer
-     * makes the name before it a relative subscript. An unsigned one is the next subscript.
+     * Whether LT(i) is an integer written with its sign, which the lexer folds into the token, and no comma separates
+     * it from the token before. Only such an integer makes the name before it a relative subscript. Any other integer
+     * is the next subscript.
      */
     private boolean signedIntegerAt(int i) {
         if (_input.LA(i) != INTEGERLITERAL) {
             return false;
         }
-        char sign = _input.LT(i).getText().charAt(0);
-        return sign == '+' || sign == '-';
+        Token integer = _input.LT(i);
+        char sign = integer.getText().charAt(0);
+        if (sign != '+' && sign != '-') {
+            return false;
+        }
+        Token before = _input.LT(i == 1 ? -1 : i - 1);
+        return integer.getInputStream().getText(Interval.of(before.getStopIndex() + 1, integer.getStartIndex() - 1))
+                .indexOf(',') < 0;
     }
 
     /**
@@ -1466,7 +1473,7 @@ dataTypeClause
    : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME
       | (XML AS)? (CLOB | BLOB | DBCLOB | (BINARY | CHARACTER | CHAR) LARGE OBJECT | BINARY VARYING? | VARBINARY) LPARENCHAR (integerLiteral cobolWord? | cobolWord) RPARENCHAR
       | (XML AS)? (BLOB_FILE | CLOB_FILE | DBCLOB_FILE)
-      | BLOB_LOCATOR | CLOB_LOCATOR | DBCLOB_LOCATOR | RESULT_SET_LOCATOR VARYING | TABLE LIKE cobolWord AS LOCATOR | ROWID)
+      | BLOB_LOCATOR | CLOB_LOCATOR | DBCLOB_LOCATOR | RESULT_SET_LOCATOR VARYING | TABLE LIKE cobolWord (DOT_FS cobolWord)* AS LOCATOR | ROWID)
    ;
 
 dataTypeDefClause
