@@ -6463,7 +6463,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         // contributing no words is still closed by its own stop comment.
                         // Pushed rather than appended: a copybook that copies another has to close
                         // before the one that copied it, and peek and pop both read the head.
-                        copiedWordMarkers.push(copiedWordMarkers(copybookSource));
+                        copiedWordMarkers.push(copiedWordMarkersOf(copybookSource));
                         objects.add(copybookSource);
                     } else if (copyStopComment.equals(contentArea)) {
                         copyStopComment();
@@ -6735,7 +6735,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         }
     }
 
-    private static Markers copiedWordMarkers(CobolPreprocessor copybookSource) {
+    private static Markers copiedWordMarkersOf(CobolPreprocessor copybookSource) {
         CopiedWord copied = new CopiedWord(randomId(), CopybookReference.nameOf(copybookSource));
         CobolPreprocessor.Copybook copybook = copybookSource instanceof CopybookSource ?
                 ((CopybookSource) copybookSource).getCopybook() : null;

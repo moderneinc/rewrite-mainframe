@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A data name where it is written: as its definition, the data description entry in the program or
@@ -108,7 +109,7 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * The definition this occurrence resolves to; a definition answers itself. A name the program
+     * The definition this occurrence resolves to. A definition answers itself. A name the program
      * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
      * inserts. Null where the name is declared nowhere the program can see, such as a copybook that
      * was not found, or where qualification leaves more than one declaration.
@@ -453,10 +454,9 @@ public class DataName implements Trait<Cobol.Word> {
             Index index = new Index();
             List<Cursor> usages = index.walk(program);
 
-            // A program's own declaration of a name hides the one the translator inserts.
-            Index translated = new Index();
-            translated.walk(Translated.program());
-            translated.byName.forEach(index.byName::putIfAbsent);
+            if (!index.byName.containsKey("DFHEIBLK")) {
+                index.walk(Translated.dataDivisionIn(program));
+            }
 
             // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
             for (Cursor at : usages) {
@@ -474,9 +474,9 @@ public class DataName implements Trait<Cobol.Word> {
         }
 
         /**
-         * Defines every entry of the program and returns the words written where a data name is used.
+         * Defines every entry under {@code tree} and returns the words written where a data name is used.
          */
-        private List<Cursor> walk(Cursor program) {
+        private List<Cursor> walk(Cursor tree) {
             Index index = this;
             List<Cursor> usages = new ArrayList<>();
             new CopybookSkippingVisitor<Deque<Definition>>() {
@@ -503,7 +503,7 @@ public class DataName implements Trait<Cobol.Word> {
                     }
                     return visited;
                 }
-            }.visit(program.getValue(), new ArrayDeque<>(), program.getParentOrThrow());
+            }.visit(tree.getValue(), new ArrayDeque<>(), tree.getParentOrThrow());
             return usages;
         }
 
@@ -556,24 +556,30 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * A program holding only the DFHEIBLK the CICS translator inserts into the LINKAGE SECTION of each
-     * program it translates. No program's source contains it, so it is parsed here once.
+     * The DFHEIBLK the CICS translator inserts into the LINKAGE SECTION of each program it translates,
+     * unless the program declares one itself. No program's source contains it, so it is parsed here once.
      */
     private static final class Translated {
 
-        private static final Cobol.CompilationUnit PROGRAM = (Cobol.CompilationUnit) CobolParser.builder().build().parse(
+        private static final Cobol.DataDivision DATA_DIVISION = parse(
                 "       IDENTIFICATION DIVISION.\n" +
                 "       PROGRAM-ID. DFHEIBLK.\n" +
                 "       DATA DIVISION.\n" +
                 "       LINKAGE SECTION.\n" +
-                "       COPY DFHEIBLK.\n"
-        ).findFirst().orElseThrow(IllegalStateException::new);
+                "       COPY DFHEIBLK.\n");
+
+        private static Cobol.DataDivision parse(String source) {
+            Cobol.CompilationUnit unit = (Cobol.CompilationUnit) CobolParser.builder().build().parse(source)
+                    .findFirst().orElseThrow(IllegalStateException::new);
+            return requireNonNull(unit.getProgramUnits().get(0).getDataDivision());
+        }
 
         /**
-         * The program on a cursor chain of its own, since an index is kept on the root it is reached from.
+         * The block's entries as though declared in {@code program}, so that a definition among them
+         * reads the program's own index.
          */
-        static Cursor program() {
-            return new Cursor(new Cursor(new Cursor(null, Cursor.ROOT_VALUE), PROGRAM), PROGRAM.getProgramUnits().get(0));
+        static Cursor dataDivisionIn(Cursor program) {
+            return new Cursor(program, DATA_DIVISION);
         }
     }
 

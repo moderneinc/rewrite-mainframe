@@ -23,9 +23,6 @@ import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
@@ -37,23 +34,25 @@ import static org.openrewrite.Tree.randomId;
  */
 final class SystemCopybooks {
 
-    private static final Set<String> MEMBERS = new HashSet<>(Arrays.asList("DFHAID", "DFHBMSCA", "DFHEIBLK", "SQLCA"));
-
     private SystemCopybooks() {
     }
 
     /**
-     * The member by its upper-cased name, or null for one neither supplies.
+     * The member by its upper-cased name, or null for one neither supplies. A member that does not
+     * parse is returned as the parse error, which the caller reports as it would for a repository's.
      */
-    static CobolPreprocessor.@Nullable Copybook find(String member) {
-        if (!MEMBERS.contains(member)) {
-            return null;
-        }
+    static @Nullable SourceFile find(String member) {
         // A .cpy resource is found by a classpath scan for copybooks and read as one of the repository's.
         String resource = "system/" + member + ".txt";
+        if (SystemCopybooks.class.getResource(resource) == null) {
+            return null;
+        }
         SourceFile parsed = CopybookParser.builder().build().parseInputs(singletonList(new Parser.Input(
                         Paths.get(member + ".cpy"), () -> SystemCopybooks.class.getResourceAsStream(resource))),
                 null, new InMemoryExecutionContext()).findFirst().orElseThrow(IllegalStateException::new);
+        if (!(parsed instanceof CobolPreprocessor.Copybook)) {
+            return parsed;
+        }
         CobolPreprocessor.Copybook copybook = (CobolPreprocessor.Copybook) parsed;
         return copybook.withMarkers(copybook.getMarkers().add(new SystemCopybook(randomId())));
     }

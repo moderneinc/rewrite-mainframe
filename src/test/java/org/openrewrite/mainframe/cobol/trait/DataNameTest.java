@@ -330,6 +330,7 @@ class DataNameTest implements RewriteTest {
             assertThat(usage.getDefinition()).isNotNull().satisfies(definition -> {
                 assertThat(definition.getCopybook()).isEqualTo("DFHEIBLK");
                 assertThat(definition.isSystemSupplied()).isTrue();
+                assertThat(definition.isReferenced()).isTrue();
             });
             assertThat(usage.getLevel()).isEqualTo(2);
             assertThat(usage.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("DFHEIBLK");
@@ -343,6 +344,30 @@ class DataNameTest implements RewriteTest {
         });
         assertThat(usagesOf(names, "WS-LEN").get(0).getDefinition()).isNotNull()
           .extracting(DataName::isSystemSupplied).isEqualTo(false);
+    }
+
+    @Test
+    void qualifiesAnEibFieldTheProgramAlsoDeclares() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. SAVEEIB.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-SAVE.                                                    \s
+            000000     05  EIBDATE    PIC S9(7) COMP-3.                            \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE EIBDATE OF DFHEIBLK TO EIBDATE OF WS-SAVE.             \s
+            000000     MOVE EIBDATE TO EIBDATE OF WS-SAVE.                         \s
+            """
+        );
+
+        List<DataName> dates = usagesOf(names, "EIBDATE");
+        assertThat(dates.get(0).getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(true);
+        assertThat(dates.get(1).getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(false);
+
+        // Unqualified, the name is ambiguous, as the compiler reads it once the translator has inserted DFHEIBLK.
+        assertThat(dates.get(2).getDefinition()).isNull();
     }
 
     @Test

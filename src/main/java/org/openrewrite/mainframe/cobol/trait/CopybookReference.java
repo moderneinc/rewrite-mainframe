@@ -88,10 +88,9 @@ public class CopybookReference implements Trait<CobolPreprocessor> {
     }
 
     /**
-     * The file the copybook was read from, or null when it resolved to none. A program whose
-     * copybooks are missing parses, and reads as though the fields it uses were never declared, so
-     * this is the difference between an analysis that is complete and one that only looks it. A
-     * system-supplied copybook is resolved and has no file.
+     * The file the copybook was read from. Null when the reference resolved to no copybook, or to a
+     * system-supplied one, which has no file. Ask {@link #isResolved()} whether the program's
+     * declarations are complete.
      */
     public @Nullable Path getSourcePath() {
         CobolPreprocessor.Copybook copybook = getCopybook();
