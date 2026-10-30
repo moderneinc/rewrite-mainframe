@@ -135,4 +135,31 @@ class ProcedureTest implements RewriteTest {
             """
         )).containsExactly("OUTERPGM/OUTER-PARA", "INNERPGM/INNER-PARA");
     }
+
+    @Test
+    void readsADeclarativeSection() {
+        String source = """
+          000000 IDENTIFICATION DIVISION.                                        \s
+          000000 PROGRAM-ID. DECLPGM.                                            \s
+          000000 PROCEDURE DIVISION.                                             \s
+          000000 DECLARATIVES.                                                   \s
+          000000 IO-ERROR SECTION.                                               \s
+          000000     USE AFTER STANDARD ERROR PROCEDURE ON INPUT.                \s
+          000000     DISPLAY 'IO ERROR'.                                         \s
+          000000 END DECLARATIVES.                                               \s
+          000000 MAIN-PARA.                                                      \s
+          000000     DISPLAY 'MAIN'.                                             \s
+          """;
+        assertThat(locations(source)).containsExactly("DECLPGM/IO-ERROR", "DECLPGM/MAIN-PARA");
+
+        List<String> matched = new ArrayList<>();
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new Procedure.Matcher().<ExecutionContext>asVisitor((procedure, ctx) -> {
+              matched.add(procedure.toString());
+              return procedure.getTree();
+          }))),
+          cobol(source)
+        );
+        assertThat(matched).containsExactly("IO-ERROR SECTION", "MAIN-PARA");
+    }
 }
