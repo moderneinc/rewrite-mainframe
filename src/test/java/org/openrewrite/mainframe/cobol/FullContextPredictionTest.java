@@ -495,6 +495,12 @@ class FullContextPredictionTest {
           01  D1  PIC X DYNAMIC LENGTH LIMIT 100 VALUE SPACE.
           01  D2  PIC X DYNAMIC.
           01  C1  USAGE IS SQL TYPE IS CLOB(1M).
+          01  C2  USAGE SQL TYPE IS XML AS CLOB(1M).
+          01  C3  SQL TYPE IS XML AS CLOB-FILE.
+          01  B1  SQL TYPE IS BINARY(8) VALUE SPACES.
+          01  B2  SQL TYPE IS BINARY VARYING(8).
+          01  B3  SQL TYPE IS BINARY LARGE OBJECT(1M).
+          01  R1  SQL TYPE IS RESULT-SET-LOCATOR VARYING.
           PROCEDURE DIVISION.
               STOP RUN.
           """;
