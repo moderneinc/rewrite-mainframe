@@ -354,6 +354,36 @@ class Db2ParserTest {
     }
 
     @Test
+    void aTrustedContextPrintsItsAuthidAfterItsName() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TRUSTED CONTEXT CLMCTX BASED UPON CONNECTION USING SYSTEM AUTHID CLMADM
+              DEFAULT ROLE CLMROLE ENABLE
+              WITH USE FOR JOE, PUBLIC WITHOUT AUTHENTICATION;
+            """);
+
+        Db2.CreateTrustedContext context = (Db2.CreateTrustedContext) ddl.getStatements().get(0);
+        assertThat(context.getName().getFullName()).isEqualTo("CLMCTX");
+        assertThat(context.getOptions()).first().isInstanceOfSatisfying(Db2.Name.class,
+          authid -> assertThat(authid.getFullName()).isEqualTo("CLMADM"));
+    }
+
+    @Test
+    void anAuxiliaryTablePrintsEachKeywordBesideWhatItIntroduces() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE AUX TABLE CLM.POLICY_DOC_AUX IN CLMDB.TSDOCAUX STORES CLM.POLICY APPEND NO COLUMN DOC PART 1;
+            CREATE AUXILIARY TABLE CLM.CLAIM_NOTE_AUX STORES CLM.CLAIM COLUMN NOTE;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateAuxiliaryTable.class))
+          .extracting(aux -> aux.getName().getFullName(),
+            aux -> Db2.elementsOf(aux.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+          .containsExactly(tuple("CLM.POLICY_DOC_AUX", List.of("CLMDB.TSDOCAUX", "CLM.POLICY", "DOC")),
+            tuple("CLM.CLAIM_NOTE_AUX", List.of("CLM.CLAIM", "NOTE")));
+    }
+
+    @Test
     void aTriggerPrintsEachKeywordBesideWhatItIntroduces() {
         Db2.Ddl ddl = parse(
           """
