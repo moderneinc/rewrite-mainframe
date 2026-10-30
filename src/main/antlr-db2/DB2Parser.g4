@@ -179,12 +179,14 @@ statement
     | releaseSavepointStatement
     | lockStatement
     | insertStatement
+    | updateStatement
+    | deleteStatement
     | queryStatement
     ;
 
 // A query standing on its own. The .sql files next to a schema are usually catalog queries.
 queryStatement
-    : queryExpression end
+    : selectStatement end
     ;
 
 // A terminator before the first statement. Every later one ends the statement before it.
@@ -455,7 +457,7 @@ stogroupOption
     ;
 
 createView
-    : CREATE VIEW qualifiedName columnList? AS queryExpression viewOption* end
+    : CREATE VIEW qualifiedName columnList? AS selectStatement viewOption* end
     ;
 
 viewOption
@@ -873,7 +875,7 @@ lockStatement
 
 insertStatement
     : INSERT INTO qualifiedName columnList?
-      (VALUES valuesRow (COMMA valuesRow)* | queryExpression) end
+      (VALUES valuesRow (COMMA valuesRow)* | selectStatement) end
     ;
 
 valuesRow
@@ -881,13 +883,45 @@ valuesRow
     | expression
     ;
 
+updateStatement
+    : UPDATE qualifiedName updateClauses end
+    ;
+
+updateClauses
+    : (AS? identifier)? SET assignment (COMMA assignment)* (WHERE searchCondition)?
+    ;
+
+assignment
+    : identifier EQ expression
+    | LPAREN identifier (COMMA identifier)* RPAREN EQ
+      LPAREN (expression (COMMA expression)* | queryExpression) RPAREN
+    ;
+
+deleteStatement
+    : DELETE FROM? qualifiedName deleteClauses? end
+    ;
+
+deleteClauses
+    : AS? identifier (WHERE searchCondition)?
+    | WHERE searchCondition
+    ;
+
 //
 // Queries. A view and a materialized query table are defined by one, and the relationship graph
 // wants the tables it names.
 //
 
+// A statement's query, which unlike a subquery may open by naming queries of its own.
+selectStatement
+    : (WITH commonTableExpression (COMMA commonTableExpression)*)? queryExpression
+    ;
+
 queryExpression
     : querySpecification (setOperator querySpecification)*
+    ;
+
+commonTableExpression
+    : identifier columnList? AS LPAREN queryExpression RPAREN
     ;
 
 setOperator

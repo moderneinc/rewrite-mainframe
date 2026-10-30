@@ -586,7 +586,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Db2Container<Db2.Name> columns = ctx.columnList() == null ? null : columnList(ctx.columnList());
         // AS joins the keyword run, as written, rather than being printed as the operator of the query.
         keywords.add(keyword(ctx.AS()));
-        Db2LeftPadded<Db2.Query> query = Db2LeftPadded.build(query(ctx.queryExpression()));
+        Db2LeftPadded<Db2.Query> query = Db2LeftPadded.build(query(ctx.selectStatement()));
         return new Db2.CreateView(randomId(), prefix, Markers.EMPTY, keywords, name, columns, query,
                 options(ctx.viewOption()));
     }
@@ -1049,7 +1049,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
 
     @Override
     public Db2 visitQueryStatement(DB2Parser.QueryStatementContext ctx) {
-        return query(ctx.queryExpression());
+        return query(ctx.selectStatement());
     }
 
     @Override
@@ -1066,11 +1066,28 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             values.add(Db2RightPadded.build((Db2) query(row)).withAfter(space()));
             skip(",");
         }
-        if (ctx.queryExpression() != null) {
-            values.add(Db2RightPadded.build((Db2) query(ctx.queryExpression())));
+        if (ctx.selectStatement() != null) {
+            values.add(Db2RightPadded.build((Db2) query(ctx.selectStatement())));
         }
         return new Db2.Insert(randomId(), prefix, Markers.EMPTY, keywords, table, columns,
                 Db2Container.build(values));
+    }
+
+    @Override
+    public Db2 visitUpdateStatement(DB2Parser.UpdateStatementContext ctx) {
+        Space prefix = prefix(ctx);
+        List<Db2.Keyword> keywords = keywords(ctx.UPDATE());
+        Db2.Name table = name(ctx.qualifiedName());
+        return new Db2.Update(randomId(), prefix, Markers.EMPTY, keywords, table, query(ctx.updateClauses()));
+    }
+
+    @Override
+    public Db2 visitDeleteStatement(DB2Parser.DeleteStatementContext ctx) {
+        Space prefix = prefix(ctx);
+        List<Db2.Keyword> keywords = keywords(ctx.DELETE(), ctx.FROM());
+        Db2.Name table = name(ctx.qualifiedName());
+        Db2.Query clauses = ctx.deleteClauses() == null ? null : query(ctx.deleteClauses());
+        return new Db2.Delete(randomId(), prefix, Markers.EMPTY, keywords, table, clauses);
     }
 
     /**
