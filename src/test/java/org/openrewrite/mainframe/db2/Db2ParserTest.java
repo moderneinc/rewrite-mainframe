@@ -499,6 +499,33 @@ class Db2ParserTest {
           .extracting(alter -> alter.getName().getFullName()).containsExactly("CLMCTX", "CLMCTX", "CLMCTX");
     }
 
+    @Test
+    void aTrustedContextAltersEachOfItsOptions() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TRUSTED CONTEXT CLMCTX ALTER SYSTEM AUTHID CLMADM2 ALTER DISABLE;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER DEFAULT ROLE CLMROLE WITH ROLE AS OBJECT OWNER AND QUALIFIER;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER NO DEFAULT ROLE ALTER WITHOUT ROLE AS OBJECT OWNER ALTER ENABLE;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER DEFAULT SECURITY LABEL CLMLBL;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER NO DEFAULT SECURITY LABEL;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class)).hasSize(5);
+    }
+
+    @Test
+    void aTrustedContextAddsReplacesOrDropsItsUsers() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TRUSTED CONTEXT CLMCTX ADD USE FOR BILL ROLE CLMROLE SECURITY LABEL CLMLBL WITH AUTHENTICATION,
+              EXTERNAL SECURITY PROFILE CLMPROF WITHOUT AUTHENTICATION, PUBLIC WITH AUTHENTICATION;
+            ALTER TRUSTED CONTEXT CLMCTX REPLACE USE FOR JOE WITHOUT AUTHENTICATION;
+            ALTER TRUSTED CONTEXT CLMCTX DROP USE FOR JOE, EXTERNAL SECURITY PROFILE CLMPROF, PUBLIC;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class)).hasSize(3);
+    }
+
     /**
      * The {@code AS} of a view, a sequence or a type and the {@code IS} of a comment or a label are
      * keywords, so they print in the case the file wrote them in, as every other keyword does.
