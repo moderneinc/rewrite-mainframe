@@ -194,13 +194,16 @@ public class LiteralAssignment implements Trait<Cobol> {
 
         /**
          * Kept on the program's cursor, so that the program is walked once for every operand any
-         * call site in it resolves.
+         * call site in it resolves. A nested program's entries and statements belong to its own storage.
          */
         static Storage of(Cursor program) {
             return program.computeMessageIfAbsent("cobol.literalAssignments", k -> {
                 Storage storage = new Storage();
                 storage.declare(program);
                 new Matcher().lower(program).forEach(assignment -> {
+                    if (!belongsTo(assignment.getCursor(), program)) {
+                        return;
+                    }
                     List<String> literals = assignment.getValues();
                     for (String target : assignment.getTargets()) {
                         storage.literals.computeIfAbsent(target.toUpperCase(Locale.ROOT), t -> new HashSet<>(2))
@@ -210,6 +213,11 @@ public class LiteralAssignment implements Trait<Cobol> {
                 storage.write(program);
                 return storage;
             });
+        }
+
+        private static boolean belongsTo(Cursor at, Cursor program) {
+            Program enclosing = Program.of(at);
+            return enclosing != null && enclosing.getTree() == program.getValue();
         }
 
         @Nullable Set<String> candidates(String name) {
@@ -234,6 +242,11 @@ public class LiteralAssignment implements Trait<Cobol> {
         private void declare(Cursor program) {
             Deque<Item> nesting = new ArrayDeque<>();
             new CopybookSkippingVisitor<Integer>() {
+                @Override
+                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit unit, Integer p) {
+                    return unit == program.getValue() ? super.visitProgramUnit(unit, p) : unit;
+                }
+
                 @Override
                 public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry, Integer p) {
                     Object section = getCursor().firstEnclosing(DataDivisionSection.class);
@@ -307,7 +320,7 @@ public class LiteralAssignment implements Trait<Cobol> {
         private void write(Cursor program) {
             Map<String, List<String>> restorable = new HashMap<>();
             new DataName.Matcher().lower(program).forEach(usage -> {
-                if (usage.isDefinition()) {
+                if (usage.isDefinition() || !belongsTo(usage.getCursor(), program)) {
                     return;
                 }
                 String name = Names.upperOf(usage.getTree());
