@@ -18,6 +18,8 @@ package org.openrewrite.mainframe.db2;
 import lombok.Value;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.JdbcNamedParameter;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -283,6 +285,10 @@ public class EmbeddedSql {
     }
 
     private static List<String> selected(Select select) {
+        // A VALUES row reads no column, so a name in it is a special register such as USER.
+        if (select instanceof Values) {
+            return emptyList();
+        }
         List<String> columns = new ArrayList<>();
         for (Expression selected : firstRow(select)) {
             // SELECT * names no column this can pair a host variable with, and guessing at the
@@ -298,7 +304,7 @@ public class EmbeddedSql {
     /**
      * The expression in each position of a query's first row, where SQL takes a union's column
      * names from. JSQLParser's {@link Select#getPlainSelect()} and {@link Select#getValues()} are
-     * unchecked casts, and a query may be any of the shapes tested here.
+     * unchecked casts that throw on any other shape.
      */
     private static List<Expression> firstRow(Select select) {
         if (select instanceof ParenthesedSelect) {
@@ -313,7 +319,12 @@ public class EmbeddedSql {
                 row.add(item.getExpression());
             }
         } else if (select instanceof Values && ((Values) select).getExpressions() != null) {
-            row.addAll(((Values) select).getExpressions());
+            ExpressionList<?> values = ((Values) select).getExpressions();
+            // Several rows parse to a list of parenthesized rows.
+            if (!values.isEmpty() && values.get(0) instanceof ParenthesedExpressionList) {
+                values = (ExpressionList<?>) values.get(0);
+            }
+            row.addAll(values);
         }
         return row;
     }

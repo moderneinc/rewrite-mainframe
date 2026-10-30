@@ -90,7 +90,7 @@ class EmbeddedSqlTest {
 
         assertThat(EmbeddedSql.read(
           "INSERT INTO CLM.LOG (ID) WITH T AS (SELECT ID FROM CLM.CLAIM) SELECT ID FROM T").getTables())
-          .contains("CLM.CLAIM", "CLM.LOG");
+          .containsExactlyInAnyOrder("CLM.CLAIM", "CLM.LOG");
     }
 
     @Test
@@ -99,8 +99,15 @@ class EmbeddedSqlTest {
           "DECLARE C1 CURSOR FOR SELECT ID, STATUS FROM CLM.CLAIM UNION ALL SELECT CLAIM_ID, STATE FROM CLM.CLAIM_HIST")
           .getColumns()).containsExactly("ID", "STATUS");
 
-        assertThat(EmbeddedSql.read("VALUES CURRENT TIMESTAMP INTO :WS-NOW").getHostVariables())
-          .containsExactly("WS-NOW");
+        EmbeddedSql values = EmbeddedSql.read("VALUES USER INTO :WS-USER");
+        assertThat(values.getColumns()).isEmpty();
+        assertThat(values.getHostVariables()).containsExactly("WS-USER");
+    }
+
+    @Test
+    void pairsAMultiRowInsertWithItsFirstRow() {
+        assertThat(EmbeddedSql.read("INSERT INTO CLM.LOG (ID, NOTE) VALUES (:WS-ID, :WS-NOTE), (:WS-ID2, 'X')")
+          .getHostVariables()).containsExactly("WS-ID", "WS-NOTE");
     }
 
     /**
