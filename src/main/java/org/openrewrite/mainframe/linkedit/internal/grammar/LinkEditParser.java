@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/openrewrite/rewrite-cobol/.claude/worktrees/oraweb/src/main/antlr-linkedit/LinkEditParser.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-linkedit/LinkEditParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.linkedit.internal.grammar;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;

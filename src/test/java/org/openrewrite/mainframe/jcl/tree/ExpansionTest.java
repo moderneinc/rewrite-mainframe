@@ -401,20 +401,32 @@ class ExpansionTest implements RewriteTest {
         );
     }
 
-    /**
-     * z/OS lets a one-step procedure take an override written without the step name.
-     */
     @Test
-    void anUnqualifiedOverrideBelongsToTheOneStep() {
+    void anUnqualifiedOverrideBelongsToTheStepNamedBeforeItOrTheFirstStep() {
         rewriteRun(
           jclWithProcedures(
             """
-              //EXTRACT  EXEC CLMBATCH,PGM=CLMB010
-              //SYSOUT   DD SYSOUT=D
+              //S1       EXEC TWOSTEP
+              //SORTIN   DD DSN=PROD.SORTIN,DISP=SHR
+              //PLAIN    DD DSN=PROD.PLAIN,DISP=SHR
+              //REPORT.SYSPRINT DD SYSOUT=D
+              //EXTRA    DD DSN=PROD.EXTRA,DISP=SHR
               """,
-            BATCH,
-            spec -> spec.afterRecipe(cu ->
-              assertThat(resolved(card(expansions(cu).get(0), "SYSOUT"), "SYSOUT")).isEqualTo("D"))
+            singletonList(procedureMember("TWOSTEP",
+              """
+                //TWOSTEP  PROC
+                //SORT     EXEC PGM=SORT
+                //SORTIN   DD DSN=TEST.SORTIN,DISP=SHR
+                //REPORT   EXEC PGM=RPT
+                //SYSPRINT DD SYSOUT=*
+                //         PEND
+                """)),
+            spec -> spec.afterRecipe(cu -> {
+                Jcl.Expansion expansion = expansions(cu).get(0);
+                assertThat(cards(expansion)).containsExactly("//SORT", "//SORTIN", "//PLAIN",
+                  "//REPORT", "//SYSPRINT", "//EXTRA");
+                assertThat(resolved(card(expansion, "SORTIN"), "DSN")).isEqualTo("PROD.SORTIN");
+            })
           )
         );
     }

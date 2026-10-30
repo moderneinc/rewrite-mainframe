@@ -30,6 +30,7 @@ import org.openrewrite.mainframe.controlm.internal.grammar.ControlMLexer;
 import org.openrewrite.mainframe.controlm.tree.ControlM;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -79,6 +80,7 @@ public class ControlMParser implements Parser {
 
                             parser.removeErrorListeners();
                             parser.addErrorListener(new ControlMParser.ForwardingErrorListener(sourceFile.getPath(), ctx));
+                            PredictionListener.addTo(parser, ctx);
 
                             cu = new ControlMParserVisitor(
                                     path,
@@ -91,7 +93,7 @@ public class ControlMParser implements Parser {
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
-                        return cu;
+                        return requirePrintEqualsInput(cu, sourceFile, relativeTo, ctx);
                     } catch (Throwable t) {
                         sample.stop(MetricsHelper.errorTags(timer, t).register(Metrics.globalRegistry));
                         return ParseError.build(this, sourceFile, relativeTo, pctx, t);

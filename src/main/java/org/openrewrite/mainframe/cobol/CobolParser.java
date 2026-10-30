@@ -31,6 +31,7 @@ import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.internal.EncodingDetectingInputStream;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -39,6 +40,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -100,6 +102,7 @@ public class CobolParser implements Parser {
                     }};
             parser.removeErrorListeners();
             parser.addErrorListener(new ForwardingErrorListener(input.getPath()));
+            PredictionListener.addTo(parser, ctx);
 
             // Print the pre-processed code to parse COBOL.
             PrintOutputCapture<ExecutionContext> sourceOutput = new PrintOutputCapture<>(new InMemoryExecutionContext());
@@ -121,7 +124,7 @@ public class CobolParser implements Parser {
                         timeout
                 ).visitCompilationUnit(tokenizedCU);
                 parserListener.parsed(input, compilationUnit);
-                return compilationUnit;
+                return requirePrintEqualsInput(compilationUnit, input, relativeTo, ctx);
             } catch (ParseCancellationException e) {
                 throw new CobolParsingTimeoutException(relativeTo == null ? input.getPath() :
                         relativeTo.relativize(input.getPath()));
@@ -246,5 +249,30 @@ public class CobolParser implements Parser {
             }
             super.closure(config, configs, closureBusy, collectPredicates, fullCtx, treatEofAsEpsilon);
         }
+
+        @Override
+        protected @Nullable ATNConfig predTransition(ATNConfig config, PredicateTransition pt,
+                                                     boolean collectPredicates, boolean inContext, boolean fullCtx) {
+            return inOperandOrder(super.predTransition(config, pt, collectPredicates, inContext, fullCtx));
+        }
+    }
+
+    private static final Comparator<SemanticContext> OPERAND_ORDER = Comparator
+            .comparing((SemanticContext c) -> c.getClass().getName())
+            .thenComparingInt(c -> c instanceof SemanticContext.Predicate ? ((SemanticContext.Predicate) c).ruleIndex : 0)
+            .thenComparingInt(c -> c instanceof SemanticContext.Predicate ? ((SemanticContext.Predicate) c).predIndex : 0)
+            .thenComparing(SemanticContext::toString);
+
+    /**
+     * ANTLR stores the predicates a configuration collected in hash-set order and compares them in that order, so the
+     * same predicates collected in another order would make a second configuration. The grammar has no precedence
+     * predicates, so every combined predicate is made in {@code predTransition} and sorted here before a configuration
+     * set holds it.
+     */
+    private static @Nullable ATNConfig inOperandOrder(@Nullable ATNConfig config) {
+        if (config != null && config.semanticContext instanceof SemanticContext.AND) {
+            Arrays.sort(((SemanticContext.AND) config.semanticContext).opnds, OPERAND_ORDER);
+        }
+        return config;
     }
 }

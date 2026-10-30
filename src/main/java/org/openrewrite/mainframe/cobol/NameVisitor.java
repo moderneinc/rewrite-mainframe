@@ -566,8 +566,7 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
 
     @Override
     public Cobol.DataTypeClause visitDataTypeClause(Cobol.DataTypeClause dataTypeClause, P p) {
-        Cobol.DataTypeClause d = dataTypeClause;
-        return d.withParenthesized(visitAndCast(d.getParenthesized(), p));
+        return dataTypeClause;
     }
 
     @Override
@@ -972,6 +971,54 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     public Cobol.InFile visitInFile(Cobol.InFile inFile, P p) {
         Cobol.InFile i = inFile;
         return i.withName(visitAndCast(i.getName(), p));
+    }
+
+    @Override
+    public Cobol.DataDynamicLengthClause visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, P p) {
+        return dataDynamicLengthClause;
+    }
+
+    @Override
+    public Cobol.DataGroupUsageClause visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, P p) {
+        return dataGroupUsageClause;
+    }
+
+    @Override
+    public Cobol.DataVolatileClause visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, P p) {
+        return dataVolatileClause;
+    }
+
+    @Override
+    public Cobol.XmlSchemaClause visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, P p) {
+        return xmlSchemaClause.withName(visitAndCast(xmlSchemaClause.getName(), p));
+    }
+
+    @Override
+    public Cobol.Allocate visitAllocate(Cobol.Allocate allocate, P p) {
+        Cobol.Allocate a = allocate;
+        a = a.withSubject(visitAndCast(a.getSubject(), p));
+        return a.withPointer(visitAndCast(a.getPointer(), p));
+    }
+
+    @Override
+    public Cobol.Free visitFree(Cobol.Free free, P p) {
+        return free.withPointers(ListUtils.map(free.getPointers(), it -> visitAndCast(it, p)));
+    }
+
+    @Override
+    public Cobol.JsonXml visitJsonXml(Cobol.JsonXml jsonXml, P p) {
+        Cobol.JsonXml j = jsonXml;
+        j = j.withDocument(visitAndCast(j.getDocument(), p));
+        j = j.withData(visitAndCast(j.getData(), p));
+        j = j.withPhrases(ListUtils.map(j.getPhrases(), it -> visitAndCast(it, p)));
+        j = j.withOnException(visitAndCast(j.getOnException(), p));
+        return j.withNotOnException(visitAndCast(j.getNotOnException(), p));
+    }
+
+    @Override
+    public Cobol.JsonXmlPhrase visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, P p) {
+        return jsonXmlPhrase.withElements(ListUtils.map(jsonXmlPhrase.getElements(),
+                it -> it instanceof Cobol.Word ? it : visitAndCast(it, p)));
     }
 
     @Override
@@ -2505,6 +2552,12 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     }
 
     @Override
+    public Cobol.Service visitService(Cobol.Service service, P p) {
+        Cobol.Service s = service;
+        return s.withIdentifier(visitAndCast(s.getIdentifier(), p));
+    }
+
+    @Override
     public Cobol.Set visitSet(Cobol.Set set, P p) {
         Cobol.Set s = set;
         s = s.withTo(ListUtils.map(s.getTo(), e -> visitAndCast(e, p)));
@@ -2920,5 +2973,29 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     public Cobol.WriteAdvancingLines visitWriteAdvancingLines(Cobol.WriteAdvancingLines writeAdvancingLines, P p) {
         Cobol.WriteAdvancingLines w = writeAdvancingLines;
         return w.withName(visitAndCast(w.getName(), p));
+    }
+
+    @Override
+    public Cobol.XmlParse visitXmlParse(Cobol.XmlParse xmlParse, P p) {
+        Cobol.XmlParse x = xmlParse;
+        x = x.withIdentifier(visitAndCast(x.getIdentifier(), p));
+        x = x.withEncoding(visitAndCast(x.getEncoding(), p));
+        x = x.withValidating(visitAndCast(x.getValidating(), p));
+        x = x.withProcessingProcedure(visitAndCast(x.getProcessingProcedure(), p));
+        x = x.withOnExceptionClause(visitAndCast(x.getOnExceptionClause(), p));
+        return x.withNotOnExceptionClause(visitAndCast(x.getNotOnExceptionClause(), p));
+    }
+
+    @Override
+    public Cobol.XmlParsePhrase visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, P p) {
+        Cobol.XmlParsePhrase x = xmlParsePhrase;
+        return x.withValue(visitAndCast(x.getValue(), p));
+    }
+
+    @Override
+    public Cobol.XmlParseProcessingProcedure visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, P p) {
+        Cobol.XmlParseProcessingProcedure x = xmlParseProcessingProcedure;
+        x = x.withProcedureName(visitAndCast(x.getProcedureName(), p));
+        return x.withThroughProcedure(visitAndCast(x.getThroughProcedure(), p));
     }
 }

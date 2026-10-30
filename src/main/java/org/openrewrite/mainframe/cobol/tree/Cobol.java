@@ -358,6 +358,40 @@ public interface Cobol extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
+    class Allocate implements Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        Word allocate;
+
+        /**
+         * The data item to obtain storage for, or the number of characters.
+         */
+        Cobol subject;
+
+        /**
+         * CHARACTERS, INITIALIZED and the LOC phrase, as written.
+         */
+        List<Cobol> options;
+
+        @Nullable
+        Word returning;
+
+        @Nullable
+        Name pointer;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitAllocate(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
     class AlphabetAlso implements Cobol {
 
         @EqualsAndHashCode.Include
@@ -1592,6 +1626,27 @@ public interface Cobol extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
+    class DataDynamicLengthClause implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+
+        @Nullable
+        Cobol limit;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitDataDynamicLengthClause(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
     class DataExternalClause implements Cobol {
 
         @EqualsAndHashCode.Include
@@ -1623,6 +1678,24 @@ public interface Cobol extends Tree {
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
             return v.visitDataGlobalClause(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class DataGroupUsageClause implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitDataGroupUsageClause(this, p);
         }
     }
 
@@ -2074,6 +2147,24 @@ public interface Cobol extends Tree {
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
             return v.visitDataValueIntervalTo(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class DataVolatileClause implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitDataVolatileClause(this, p);
         }
     }
 
@@ -3025,6 +3116,25 @@ public interface Cobol extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
+    class Free implements Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        Word free;
+        List<Cobol> pointers;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitFree(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
     class FunctionCall implements Identifier {
 
         @EqualsAndHashCode.Include
@@ -3322,8 +3432,18 @@ public interface Cobol extends Tree {
         Word initialize;
         List<Cobol> identifiers;
 
+        /**
+         * WITH FILLER, the category set TO VALUE and the THEN before REPLACING, or empty.
+         */
+        List<Word> valuePhrase;
+
         @Nullable
         InitializeReplacingPhrase initializeReplacingPhrase;
+
+        /**
+         * THEN TO DEFAULT, or empty.
+         */
+        List<Word> defaultPhrase;
 
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
@@ -3814,6 +3934,69 @@ public interface Cobol extends Tree {
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
             return v.visitIoControlParagraph(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class JsonXml implements Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        /**
+         * JSON GENERATE, JSON PARSE or XML GENERATE.
+         */
+        List<Word> words;
+
+        Name document;
+
+        /**
+         * FROM, which GENERATE reads the data item with, or INTO, which PARSE fills it with.
+         */
+        Word preposition;
+
+        Name data;
+        List<JsonXmlPhrase> phrases;
+
+        @Nullable
+        StatementPhrase onException;
+
+        @Nullable
+        StatementPhrase notOnException;
+
+        @Nullable
+        Word end;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitJsonXml(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class JsonXmlPhrase implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        /**
+         * The phrase's words and operands, in source order.
+         */
+        List<Cobol> elements;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitJsonXmlPhrase(this, p);
         }
     }
 
@@ -8317,6 +8500,27 @@ public interface Cobol extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
+    class Service implements Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+
+        @Nullable
+        Name identifier;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitService(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
     class Set implements Statement {
 
         @EqualsAndHashCode.Include
@@ -9723,6 +9927,118 @@ public interface Cobol extends Tree {
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
             return v.visitWriteFromPhrase(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class XmlParse implements Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+        Name identifier;
+
+        @Nullable
+        XmlParsePhrase encoding;
+
+        @Nullable
+        XmlParsePhrase returningNational;
+
+        @Nullable
+        XmlParsePhrase validating;
+
+        XmlParseProcessingProcedure processingProcedure;
+
+        @Nullable
+        StatementPhrase onExceptionClause;
+
+        @Nullable
+        StatementPhrase notOnExceptionClause;
+
+        @Nullable
+        Word endXml;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitXmlParse(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class XmlParsePhrase implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+
+        @Nullable
+        Name value;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitXmlParsePhrase(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class XmlParseProcessingProcedure implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<Word> words;
+        ProcedureName procedureName;
+
+        @Nullable
+        Word through;
+
+        @Nullable
+        ProcedureName throughProcedure;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitXmlParseProcessingProcedure(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class XmlSchemaClause implements Cobol {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        Word xmlSchema;
+        Cobol name;
+
+        @Nullable
+        Word is;
+
+        /**
+         * The alphanumeric literal or external file name that locates the schema.
+         */
+        Cobol location;
+
+        @Override
+        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
+            return v.visitXmlSchemaClause(this, p);
         }
     }
 }

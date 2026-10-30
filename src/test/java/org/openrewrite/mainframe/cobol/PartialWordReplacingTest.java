@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.cobol;
 
 import org.junit.jupiter.api.Test;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.openrewrite.mainframe.cobol.Assertions.cobolPostProcess;
 
@@ -54,25 +55,9 @@ class PartialWordReplacingTest extends CobolTest {
         );
     }
 
-    /**
-     * IBM Enterprise COBOL lets pseudo-text match part of a text word, so
-     * {@code ==(TESTVAR1)== BY ==DESCRIPTION==} turns {@code FLG-(TESTVAR1)-NOT-OK} into
-     * {@code FLG-DESCRIPTION-NOT-OK}. AWS CardDemo uses the idiom throughout.
-     * <p>
-     * We cannot do it yet. A reductive replacement keeps the following text in its original columns
-     * by blanking the words it removes where they stand, which is exactly what a partial-word
-     * replacement must not do — it leaves {@code FLG-DESCRIPTION         -NOT-OK}, three text words
-     * where the program means one. Joining them requires a single token of the COBOL grammar to map
-     * back onto seven words of the copybook spanning two replacement marker blocks, and the printer
-     * maps one token to one word.
-     * <p>
-     * Until that changes, refuse it. The alternative is not a parse failure but a program that
-     * parses into the wrong tree: {@code 05 FLG-(TESTVAR1)-SW PIC X} becomes a data item named
-     * {@code FLG-DESCRIPTION} followed by a stray {@code -SW}.
-     */
     @Test
-    void partialWordReplacingIsRefused() {
-        assertThatThrownBy(() -> rewriteRun(
+    void replacesInsideAndAtTheEndOfAWord() {
+        rewriteRun(
           cobolPostProcess(
             """
               000001 IDENTIFICATION DIVISION.                                         000000000
@@ -81,8 +66,81 @@ class PartialWordReplacingTest extends CobolTest {
               000004     COPY PARTWRD REPLACING                                       000000000
               000005       ==(TESTVAR1)== BY ==DESCRIPTION==                          000000000
               000006       ==(SCRNVAR2)== BY ==TRTYDSC== .                            000000000""",
+            """
+              IDENTIFICATION DIVISION.
+              PROGRAM-ID. PARTWRD.
+              PROCEDURE DIVISION.
+                  IF      FLG-DESCRIPTION-NOT-OK
+                     MOVE 'X' TO    TRTYDSCC
+                  END-IF.
+              """
+          )
+        );
+    }
+
+    @Test
+    void replacesAtTheStartOfAWord() {
+        rewriteRun(
+          // Text the program wrote itself prints back from the replacement, which copied text never exercises.
+          cobolPostProcess(
+            """
+              000001 IDENTIFICATION DIVISION.                                         000000000
+              000002 PROGRAM-ID. TAGWRD.                                              000000000
+              000003 DATA DIVISION.                                                   000000000
+              000004 WORKING-STORAGE SECTION.                                         000000000
+              000005 REPLACE ==:TAG:== BY ==CUST==.                                   000000000
+              000006 01  :TAG:-REC.                                                   000000000
+              000007     05  :TAG:-NAME          PIC X(17).                           000000000
+              000008 REPLACE OFF.                                                     000000000""",
+            """
+              IDENTIFICATION DIVISION.
+              PROGRAM-ID. TAGWRD.
+              DATA DIVISION.
+              WORKING-STORAGE SECTION.
+              01   CUST-REC.
+                  05   CUST-NAME          PIC X(17).
+              """
+          )
+        );
+    }
+
+    @Test
+    void replacesSeveralMatchesInOneWord() {
+        rewriteRun(
+          // Adjacent matches of one rule, and a second rule matching beside the first rule's replacement.
+          cobolPostProcess(
+            """
+              000001 IDENTIFICATION DIVISION.                                         000000000
+              000002 PROGRAM-ID. TAGWRD2.                                             000000000
+              000003 DATA DIVISION.                                                   000000000
+              000004 WORKING-STORAGE SECTION.                                         000000000
+              000005 REPLACE ==:TAG:== BY ==CUST== ==(N)== BY ==1==.                  000000000
+              000006 01  :TAG:-:TAG:-ID          PIC X.                               000000000
+              000007 01  :TAG:-FLD-(N)           PIC X.                               000000000
+              000008 REPLACE OFF.                                                     000000000""",
+            """
+              IDENTIFICATION DIVISION.
+              PROGRAM-ID. TAGWRD2.
+              DATA DIVISION.
+              WORKING-STORAGE SECTION.
+              01    CUST-CUST-ID          PIC X.
+              01     CUST-FLD-1           PIC X.
+              """
+          )
+        );
+    }
+
+    @Test
+    void refusesReplacingPartOfAWordWithSeveralWords() {
+        assertThatThrownBy(() -> rewriteRun(
+          cobolPostProcess(
+            """
+              000001 IDENTIFICATION DIVISION.                                         000000000
+              000002 PROGRAM-ID. PARTWRD.                                             000000000
+              000003 PROCEDURE DIVISION.                                              000000000
+              000004     COPY PARTWRD REPLACING ==(TESTVAR1)== BY ==A B== .           000000000""",
             null
           )
-        )).hasRootCauseMessage("Partial word replacement is not supported: ==(TESTVAR1)==.");
+        )).hasRootCauseMessage("Replacing part of a text word with anything but a single word is not supported: ==(TESTVAR1)== BY ==A B==.");
     }
 }

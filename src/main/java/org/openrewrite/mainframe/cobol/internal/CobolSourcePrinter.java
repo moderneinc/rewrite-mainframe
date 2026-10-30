@@ -1537,11 +1537,93 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public Cobol visitAllocate(Cobol.Allocate allocate, PrintOutputCapture<P> p) {
+        beforeSyntax(allocate, Space.Location.ALLOCATE_PREFIX, p);
+        visit(allocate.getAllocate(), p);
+        visit(allocate.getSubject(), p);
+        visit(allocate.getOptions(), p);
+        visit(allocate.getReturning(), p);
+        visit(allocate.getPointer(), p);
+        afterSyntax(allocate, p);
+        return allocate;
+    }
+
+    @Override
+    public Cobol visitFree(Cobol.Free free, PrintOutputCapture<P> p) {
+        beforeSyntax(free, Space.Location.FREE_PREFIX, p);
+        visit(free.getFree(), p);
+        visit(free.getPointers(), p);
+        afterSyntax(free, p);
+        return free;
+    }
+
+    @Override
+    public Cobol visitJsonXml(Cobol.JsonXml jsonXml, PrintOutputCapture<P> p) {
+        beforeSyntax(jsonXml, Space.Location.JSON_XML_PREFIX, p);
+        visit(jsonXml.getWords(), p);
+        visit(jsonXml.getDocument(), p);
+        visit(jsonXml.getPreposition(), p);
+        visit(jsonXml.getData(), p);
+        visit(jsonXml.getPhrases(), p);
+        visit(jsonXml.getOnException(), p);
+        visit(jsonXml.getNotOnException(), p);
+        visit(jsonXml.getEnd(), p);
+        afterSyntax(jsonXml, p);
+        return jsonXml;
+    }
+
+    @Override
+    public Cobol visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, PrintOutputCapture<P> p) {
+        beforeSyntax(jsonXmlPhrase, Space.Location.JSON_XML_PHRASE_PREFIX, p);
+        visit(jsonXmlPhrase.getElements(), p);
+        afterSyntax(jsonXmlPhrase, p);
+        return jsonXmlPhrase;
+    }
+
+    @Override
+    public Cobol visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, PrintOutputCapture<P> p) {
+        beforeSyntax(dataDynamicLengthClause, Space.Location.DATA_DYNAMIC_LENGTH_CLAUSE_PREFIX, p);
+        visit(dataDynamicLengthClause.getWords(), p);
+        visit(dataDynamicLengthClause.getLimit(), p);
+        afterSyntax(dataDynamicLengthClause, p);
+        return dataDynamicLengthClause;
+    }
+
+    @Override
+    public Cobol visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, PrintOutputCapture<P> p) {
+        beforeSyntax(dataGroupUsageClause, Space.Location.DATA_GROUP_USAGE_CLAUSE_PREFIX, p);
+        visit(dataGroupUsageClause.getWords(), p);
+        afterSyntax(dataGroupUsageClause, p);
+        return dataGroupUsageClause;
+    }
+
+    @Override
+    public Cobol visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, PrintOutputCapture<P> p) {
+        beforeSyntax(dataVolatileClause, Space.Location.DATA_VOLATILE_CLAUSE_PREFIX, p);
+        visit(dataVolatileClause.getWords(), p);
+        afterSyntax(dataVolatileClause, p);
+        return dataVolatileClause;
+    }
+
+    @Override
+    public Cobol visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlSchemaClause, Space.Location.XML_SCHEMA_CLAUSE_PREFIX, p);
+        visit(xmlSchemaClause.getXmlSchema(), p);
+        visit(xmlSchemaClause.getName(), p);
+        visit(xmlSchemaClause.getIs(), p);
+        visit(xmlSchemaClause.getLocation(), p);
+        afterSyntax(xmlSchemaClause, p);
+        return xmlSchemaClause;
+    }
+
+    @Override
     public Cobol visitInitialize(Cobol.Initialize initialize, PrintOutputCapture<P> p) {
         beforeSyntax(initialize, Space.Location.INITIALIZE_PREFIX, p);
         visit(initialize.getInitialize(), p);
         visit(initialize.getIdentifiers(), p);
+        visit(initialize.getValuePhrase(), p);
         visit(initialize.getInitializeReplacingPhrase(), p);
+        visit(initialize.getDefaultPhrase(), p);
         afterSyntax(initialize, p);
         return initialize;
     }
@@ -3778,6 +3860,15 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public Cobol visitService(Cobol.Service service, PrintOutputCapture<P> p) {
+        beforeSyntax(service, Space.Location.SERVICE_PREFIX, p);
+        visit(service.getWords(), p);
+        visit(service.getIdentifier(), p);
+        afterSyntax(service, p);
+        return service;
+    }
+
+    @Override
     public Cobol visitSet(Cobol.Set set, PrintOutputCapture<P> p) {
         beforeSyntax(set, Space.Location.SET_PREFIX, p);
         visit(set.getSet(), p);
@@ -4363,12 +4454,6 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
                 if (!preprocessorStatement.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
                     copybookSource = (CopybookSource) preprocessorStatement;
                     getCobolPreprocessorVisitor().visit((CobolPreprocessor) copybookSource, p);
-                    // Printing the copybook covers this word only when the word came from it. A copybook that
-                    // contributes no words is carried by a word of the program's own, which still has itself to print.
-                    if (!((CobolPreprocessor) copybookSource).getMarkers().findFirst(MissingCopybook.class).isPresent() &&
-                            word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
-                        return word;
-                    }
                 }
             } else if (preprocessorStatement instanceof CobolPreprocessor.CopyStatement) {
                 if (!preprocessorStatement.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
@@ -4381,6 +4466,13 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
             } else {
                 getCobolPreprocessorVisitor().visit(preprocessorStatement, p);
             }
+        }
+
+        // A copied word came from the last copybook it carries, and the copybook has already printed it. Every
+        // copybook before that one contributed no words, and a word of the program's own still has itself to print.
+        if (copybookSource != null && word.getMarkers().findFirst(CopiedWord.class).isPresent() &&
+                !((CobolPreprocessor) copybookSource).getMarkers().findFirst(MissingCopybook.class).isPresent()) {
+            return word;
         }
 
         if (copyStatement == null && copybookSource == null && word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
@@ -4526,6 +4618,42 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
         visit(writeFromPhrase.getName(), p);
         afterSyntax(writeFromPhrase, p);
         return writeFromPhrase;
+    }
+
+    @Override
+    public Cobol visitXmlParse(Cobol.XmlParse xmlParse, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlParse, Space.Location.XML_PARSE_PREFIX, p);
+        visit(xmlParse.getWords(), p);
+        visit(xmlParse.getIdentifier(), p);
+        visit(xmlParse.getEncoding(), p);
+        visit(xmlParse.getReturningNational(), p);
+        visit(xmlParse.getValidating(), p);
+        visit(xmlParse.getProcessingProcedure(), p);
+        visit(xmlParse.getOnExceptionClause(), p);
+        visit(xmlParse.getNotOnExceptionClause(), p);
+        visit(xmlParse.getEndXml(), p);
+        afterSyntax(xmlParse, p);
+        return xmlParse;
+    }
+
+    @Override
+    public Cobol visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlParsePhrase, Space.Location.XML_PARSE_PHRASE_PREFIX, p);
+        visit(xmlParsePhrase.getWords(), p);
+        visit(xmlParsePhrase.getValue(), p);
+        afterSyntax(xmlParsePhrase, p);
+        return xmlParsePhrase;
+    }
+
+    @Override
+    public Cobol visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, PrintOutputCapture<P> p) {
+        beforeSyntax(xmlParseProcessingProcedure, Space.Location.XML_PARSE_PROCESSING_PROCEDURE_PREFIX, p);
+        visit(xmlParseProcessingProcedure.getWords(), p);
+        visit(xmlParseProcessingProcedure.getProcedureName(), p);
+        visit(xmlParseProcessingProcedure.getThrough(), p);
+        visit(xmlParseProcessingProcedure.getThroughProcedure(), p);
+        afterSyntax(xmlParseProcessingProcedure, p);
+        return xmlParseProcessingProcedure;
     }
 
     /**

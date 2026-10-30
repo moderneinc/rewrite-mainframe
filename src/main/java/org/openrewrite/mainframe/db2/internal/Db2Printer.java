@@ -19,18 +19,21 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.mainframe.db2.Db2Visitor;
+import org.openrewrite.mainframe.db2.marker.AtSign;
+import org.openrewrite.mainframe.db2.marker.OmitEquals;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.*;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 /**
  * Writes back what the tree does not carry: the brackets and commas around a
- * {@link Db2Container}, the keyword a {@link Db2.Keyword} names, and the semicolon a statement's
- * {@link Semicolon} marker says it had.
+ * {@link Db2Container}, the keyword a {@link Db2.Keyword} names, and the terminator a statement's
+ * {@link Semicolon} or {@link AtSign} marker says it had.
  */
 public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     public static final UnaryOperator<String> DB2_MARKER_WRAPPER =
@@ -170,9 +173,21 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateAuxiliaryTable(Db2.CreateAuxiliaryTable createAuxiliaryTable, PrintOutputCapture<P> p) {
         beforeSyntax(createAuxiliaryTable, Space.Location.CREATE_AUXILIARY_TABLE_PREFIX, p);
-        visit(createAuxiliaryTable.getKeywords(), p);
+        List<Db2.Keyword> keywords = createAuxiliaryTable.getKeywords();
+        Iterator<Db2> options = createAuxiliaryTable.getOptions().iterator();
+        int clauses = indexOf(keywords, Db2.Keyword.Type.In, Db2.Keyword.Type.Stores);
+        visit(keywords.subList(0, clauses), p);
         visit(createAuxiliaryTable.getName(), p);
-        visit(createAuxiliaryTable.getOptions(), p);
+        for (Db2.Keyword keyword : keywords.subList(clauses, keywords.size())) {
+            visit(keyword, p);
+            Db2.Keyword.Type type = keyword.getType();
+            boolean introducesOption = type == Db2.Keyword.Type.In || type == Db2.Keyword.Type.Stores ||
+                                       type == Db2.Keyword.Type.Column || type == Db2.Keyword.Type.Part;
+            if (introducesOption && options.hasNext()) {
+                visit(options.next(), p);
+            }
+        }
+        options.forEachRemaining(option -> visit(option, p));
         afterSyntax(createAuxiliaryTable, p);
         return createAuxiliaryTable;
     }
@@ -205,10 +220,24 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateMask(Db2.CreateMask createMask, PrintOutputCapture<P> p) {
         beforeSyntax(createMask, Space.Location.CREATE_MASK_PREFIX, p);
-        visit(createMask.getKeywords(), p);
+        List<Db2.Keyword> keywords = createMask.getKeywords();
+        List<Db2> options = createMask.getOptions();
+        int table = indexOf(keywords, Db2.Keyword.Type.On) + 1;
+        // AS follows ON, and the correlation name it introduces is the first option.
+        int correlation = indexOf(keywords, Db2.Keyword.Type.As) < keywords.size() ? 1 : 0;
+        int column = indexOf(keywords, Db2.Keyword.Type.Column) + 1;
+        int expression = indexOf(keywords, Db2.Keyword.Type.Return) + 1;
+        visit(keywords.subList(0, table - 1), p);
         visit(createMask.getName(), p);
+        visit(keywords.subList(table - 1, table), p);
         visit(createMask.getTable(), p);
-        visit(createMask.getOptions(), p);
+        visit(keywords.subList(table, table + correlation), p);
+        visit(options.subList(0, correlation), p);
+        visit(keywords.subList(table + correlation, column), p);
+        visit(options.subList(correlation, correlation + 1), p);
+        visit(keywords.subList(column, expression), p);
+        visit(options.subList(correlation + 1, options.size()), p);
+        visit(keywords.subList(expression, keywords.size()), p);
         afterSyntax(createMask, p);
         return createMask;
     }
@@ -216,10 +245,20 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreatePermission(Db2.CreatePermission createPermission, PrintOutputCapture<P> p) {
         beforeSyntax(createPermission, Space.Location.CREATE_PERMISSION_PREFIX, p);
-        visit(createPermission.getKeywords(), p);
+        List<Db2.Keyword> keywords = createPermission.getKeywords();
+        List<Db2> options = createPermission.getOptions();
+        int table = indexOf(keywords, Db2.Keyword.Type.On) + 1;
+        int correlation = indexOf(keywords, Db2.Keyword.Type.As) < keywords.size() ? 1 : 0;
+        int condition = indexOf(keywords, Db2.Keyword.Type.When) + 1;
+        visit(keywords.subList(0, table - 1), p);
         visit(createPermission.getName(), p);
+        visit(keywords.subList(table - 1, table), p);
         visit(createPermission.getTable(), p);
-        visit(createPermission.getOptions(), p);
+        visit(keywords.subList(table, table + correlation), p);
+        visit(options.subList(0, correlation), p);
+        visit(keywords.subList(table + correlation, condition), p);
+        visit(options.subList(correlation, options.size()), p);
+        visit(keywords.subList(condition, keywords.size()), p);
         afterSyntax(createPermission, p);
         return createPermission;
     }
@@ -227,8 +266,12 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateTrustedContext(Db2.CreateTrustedContext createTrustedContext, PrintOutputCapture<P> p) {
         beforeSyntax(createTrustedContext, Space.Location.CREATE_TRUSTED_CONTEXT_PREFIX, p);
-        visit(createTrustedContext.getKeywords(), p);
+        List<Db2.Keyword> keywords = createTrustedContext.getKeywords();
+        int based = indexOf(keywords, Db2.Keyword.Type.Based);
+        visit(keywords.subList(0, based), p);
         visit(createTrustedContext.getName(), p);
+        // The authid follows AUTHID, the last keyword, and is the first option.
+        visit(keywords.subList(based, keywords.size()), p);
         visit(createTrustedContext.getOptions(), p);
         afterSyntax(createTrustedContext, p);
         return createTrustedContext;
@@ -237,9 +280,14 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     @Override
     public Db2 visitCreateTrigger(Db2.CreateTrigger createTrigger, PrintOutputCapture<P> p) {
         beforeSyntax(createTrigger, Space.Location.CREATE_TRIGGER_PREFIX, p);
-        visit(createTrigger.getKeywords(), p);
+        List<Db2.Keyword> keywords = createTrigger.getKeywords();
+        int timing = indexOf(keywords, Db2.Keyword.Type.Trigger) + 1;
+        int on = indexOf(keywords, Db2.Keyword.Type.On);
+        visit(keywords.subList(0, timing), p);
         visit(createTrigger.getName(), p);
+        visit(keywords.subList(timing, on), p);
         visit(createTrigger.getEvents(), p);
+        visit(keywords.subList(on, keywords.size()), p);
         visit(createTrigger.getTable(), p);
         visit(createTrigger.getOptions(), p);
         visit(createTrigger.getBody(), p);
@@ -514,7 +562,8 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     public Db2 visitSet(Db2.Set set, PrintOutputCapture<P> p) {
         beforeSyntax(set, Space.Location.SET_PREFIX, p);
         visit(set.getKeywords(), p);
-        printLeftPadded("=", set.getValue(), p);
+        boolean omitted = set.getValue().getMarkers().findFirst(OmitEquals.class).isPresent();
+        printLeftPadded(omitted ? "" : "=", set.getValue(), p);
         afterSyntax(set, p);
         return set;
     }
@@ -579,6 +628,26 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
         printContainer("", insert.getValues(), ",", "", p);
         afterSyntax(insert, p);
         return insert;
+    }
+
+    @Override
+    public Db2 visitUpdate(Db2.Update update, PrintOutputCapture<P> p) {
+        beforeSyntax(update, Space.Location.UPDATE_PREFIX, p);
+        visit(update.getKeywords(), p);
+        visit(update.getTable(), p);
+        visit(update.getClauses(), p);
+        afterSyntax(update, p);
+        return update;
+    }
+
+    @Override
+    public Db2 visitDelete(Db2.Delete delete, PrintOutputCapture<P> p) {
+        beforeSyntax(delete, Space.Location.DELETE_PREFIX, p);
+        visit(delete.getKeywords(), p);
+        visit(delete.getTable(), p);
+        visit(delete.getClauses(), p);
+        afterSyntax(delete, p);
+        return delete;
     }
 
     @Override
@@ -792,6 +861,8 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
     public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<P> p) {
         if (marker instanceof Semicolon) {
             p.append(';');
+        } else if (marker instanceof AtSign) {
+            p.append('@');
         }
         return super.visitMarker(marker, p);
     }

@@ -17,25 +17,11 @@
 * with the provided preprocessor, which executes COPY and REPLACE statements.
 */
 
-grammar Cobol;
+parser grammar CobolParser;
 
-options { caseInsensitive = true; }
+options { tokenVocab = CobolLexer; }
 
-@parser::members {
-    /**
-     * Whether the period at the current position belongs to a PICTURE character-string rather than
-     * ending the entry. A picture ends at a separator period, meaning one followed by a space or the
-     * end of the line; a period followed immediately by another character is the decimal point of an
-     * edited picture such as `PIC ZZ9.99`. Without this distinction `picture+` runs through the
-     * period and consumes the level number and name of the entry that follows.
-     */
-    boolean pictureDot() {
-        Token dot = _input.LT(1);
-        Token next = _input.LT(2);
-        return dot != null && next != null && next.getType() != Token.EOF &&
-               dot.getStopIndex() + 1 == next.getStartIndex();
-    }
-
+@members {
     private static IntervalSet statementStart;
 
     /**
@@ -55,14 +41,327 @@ options { caseInsensitive = true; }
     boolean startsWhenCondition() {
         return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
     }
+
+    /**
+     * Whether the next token opens a subscript group. A reference modifier opens with the same parenthesis and
+     * is told apart only by the colon at its top level, so the group is scanned to its closing parenthesis.
+     * A parenthesis after a name always belongs to the name, so the only other question at that point is
+     * which of the two it opens.
+     */
+    boolean startsSubscripts() {
+        if (_input.LA(1) != LPARENCHAR) {
+            return false;
+        }
+        int depth = 0;
+        for (int i = 1; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return false;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR && --depth == 0) {
+                return true;
+            } else if (type == COLONCHAR && depth == 1) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Whether the conditional phrase the word names starts here, past an optional AT or ON. A statement takes the
+     * phrases and the END- terminator that follow it before an enclosing statement can, as statement lists do at
+     * startsStatement. The context parameter, unused, makes ANTLR treat these predicates as context-dependent, so
+     * SLL evaluates each only in its own statement's decisions and the predicates of nested statements never combine.
+     */
+    boolean startsPhrase(ParserRuleContext statement, int word) {
+        return phraseWord(1) == word;
+    }
+
+    boolean startsNotPhrase(ParserRuleContext statement, int word) {
+        return _input.LA(1) == NOT && phraseWord(2) == word;
+    }
+
+    boolean ahead(ParserRuleContext statement, int type) {
+        return _input.LA(1) == type;
+    }
+
+    boolean ahead(ParserRuleContext statement, int first, int second) {
+        return _input.LA(1) == first && _input.LA(2) == second;
+    }
+
+    /**
+     * Whether the word ahead is one a JSON or XML statement reads as a keyword, though it names data elsewhere.
+     */
+    boolean jsonXmlKeywordAhead(ParserRuleContext statement) {
+        switch (_input.LA(1)) {
+            case NAME: case NAMESPACE: case NAMESPACE_PREFIX: case ATTRIBUTE: case ATTRIBUTES: case ELEMENT:
+            case NONNUMERIC: case XML_DECLARATION:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Whether WHEN and a figurative constant follow, which is how a SUPPRESS phrase names its condition.
+     */
+    boolean suppressWhenAhead(ParserRuleContext phrase) {
+        if (_input.LA(1) != WHEN) {
+            return false;
+        }
+        switch (_input.LA(2)) {
+            case ZERO: case ZEROS: case ZEROES: case SPACE: case SPACES:
+            case LOW_VALUE: case LOW_VALUES: case HIGH_VALUE: case HIGH_VALUES:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Whether the next word opens another ALL, LEADING or FIRST group of an INSPECT phrase. The operands of one
+     * group follow its word without repeating it, and INSPECT forbids a figurative constant beginning with ALL
+     * among them, so the word after an operand always opens a group.
+     */
+    boolean opensInspectGroup(ParserRuleContext group) {
+        int type = _input.LA(1);
+        return type == ALL || type == LEADING || type == FIRST;
+    }
+
+    private int phraseWord(int i) {
+        int type = _input.LA(i);
+        return type == AT || type == ON ? _input.LA(i + 1) : type;
+    }
+
+    static final int OPERAND = 1, EXPRESSION = 2, CONDITION = 3;
+    private static IntervalSet operandStart, cobolWordStart, integerLiteralStart, byReferenceStart, byValueStart;
+
+    private IntervalSet firstOf(int rule) {
+        return _ATN.nextTokens(_ATN.ruleToStartState[rule]);
+    }
+
+    /**
+     * What the tokens from LT(i) form before the construct around them goes on: a single operand, an identifier or
+     * a literal, an arithmetic expression of several operands, or a condition, which a comparison, class or sign
+     * word follows. The rules whose alternatives are one of these each (evaluateSelect, evaluateCondition, the
+     * abbreviated combined condition) take the alternative this names.
+     */
+    int operandKind(ParserRuleContext rule, int i) {
+        if (_input.LA(i) == LPARENCHAR && conditionInside(i)) {
+            return CONDITION;
+        }
+        int end = afterExpression(i);
+        if (end == i) {
+            return 0;
+        }
+        int next = _input.LA(end);
+        if (conditionFollows(next)) {
+            return CONDITION;
+        }
+        boolean operand = afterOperand(i) == end;
+        if ((next == AND || next == OR) && operand && cobolWordStart().contains(_input.LA(i))) {
+            return CONDITION;
+        }
+        return operand ? OPERAND : EXPRESSION;
+    }
+
+    private IntervalSet cobolWordStart() {
+        if (cobolWordStart == null) {
+            cobolWordStart = firstOf(RULE_cobolWord);
+        }
+        return cobolWordStart;
+    }
+
+    private int afterExpression(int i) {
+        int end = i;
+        while (true) {
+            int j = i;
+            if (_input.LA(j) == PLUSCHAR || _input.LA(j) == MINUSCHAR) {
+                j++;
+            }
+            if (_input.LA(j) == LPARENCHAR) {
+                j = afterParens(j);
+            } else {
+                int k = afterOperand(j);
+                if (k == j) {
+                    return end;
+                }
+                j = k;
+            }
+            end = j;
+            if (!isArithmeticOperator(_input.LA(j))) {
+                return end;
+            }
+            i = j + 1;
+        }
+    }
+
+    private int afterOperand(int i) {
+        if (operandStart == null) {
+            operandStart = firstOf(RULE_identifier).or(firstOf(RULE_literal));
+        }
+        int type = _input.LA(i);
+        if (type == FUNCTION) {
+            i += 2;
+        } else if ((type == LENGTH || type == ADDRESS) && _input.LA(i + 1) == OF) {
+            return afterOperand(i + 2);
+        } else if (type == ALL) {
+            return afterOperand(i + 1);
+        } else if (operandStart.contains(type)) {
+            i++;
+        } else {
+            return i;
+        }
+        while (true) {
+            type = _input.LA(i);
+            if (type == IN || type == OF) {
+                i += 2;
+            } else if (type == LPARENCHAR) {
+                i = afterParens(i);
+            } else {
+                return i;
+            }
+        }
+    }
+
+    private int afterParens(int i) {
+        for (int depth = 0; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return i;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR && --depth == 0) {
+                return i + 1;
+            }
+        }
+    }
+
+    private boolean conditionInside(int i) {
+        for (int depth = 0; ; i++) {
+            int type = _input.LA(i);
+            if (type == Token.EOF) {
+                return false;
+            } else if (type == LPARENCHAR) {
+                depth++;
+            } else if (type == RPARENCHAR) {
+                if (--depth == 0) {
+                    return false;
+                }
+            } else if (type == AND || type == OR || isComparison(type)) {
+                return true;
+            }
+        }
+    }
+
+    private boolean conditionFollows(int type) {
+        return isComparison(type) || type == POSITIVE || type == NEGATIVE || type == ZERO;
+    }
+
+    private static boolean isComparison(int type) {
+        switch (type) {
+            case IS: case ARE: case NOT: case GREATER: case LESS: case EQUAL: case MORETHANCHAR: case LESSTHANCHAR:
+            case EQUALCHAR: case NOTEQUALCHAR: case MORETHANOREQUAL: case LESSTHANOREQUAL:
+            case NUMERIC: case ALPHABETIC: case ALPHABETIC_LOWER: case ALPHABETIC_UPPER: case DBCS: case KANJI:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static boolean isArithmeticOperator(int type) {
+        return type == PLUSCHAR || type == MINUSCHAR || type == ASTERISKCHAR || type == SLASHCHAR || type == DOUBLEASTERISKCHAR;
+    }
+
+    boolean signAhead(ParserRuleContext rule) {
+        return _input.LA(1) == PLUSCHAR || _input.LA(1) == MINUSCHAR;
+    }
+
+    boolean startsIntegerLiteral(ParserRuleContext rule) {
+        if (integerLiteralStart == null) {
+            integerLiteralStart = firstOf(RULE_integerLiteral);
+        }
+        return integerLiteralStart.contains(_input.LA(1));
+    }
+
+    /**
+     * Whether the subscript ahead is a name, with qualifiers and a trailing signed integer, or an integer, and
+     * then the subscript list goes on. Such a subscript is not an arithmetic expression.
+     */
+    boolean plainSubscriptAhead(ParserRuleContext subscript) {
+        int i = 1;
+        if (startsIntegerLiteral(subscript)) {
+            i = 2;
+        } else if (cobolWordStart().contains(_input.LA(1))) {
+            i = 2;
+            while (_input.LA(i) == IN || _input.LA(i) == OF) {
+                i += 2;
+            }
+            if (integerLiteralStart.contains(_input.LA(i))) {
+                i++;
+            }
+        } else {
+            return false;
+        }
+        int next = _input.LA(i);
+        return next == RPARENCHAR || next == COMMACHAR || next == ALL || cobolWordStart().contains(next) ||
+               integerLiteralStart.contains(next);
+    }
+
+    /**
+     * Whether AND or OR is followed by a full condition, which the condition takes before an abbreviation can.
+     */
+    boolean combinableAhead(ParserRuleContext andOr) {
+        int i = _input.LA(1) == NOT ? 2 : 1;
+        int kind = operandKind(andOr, i);
+        return kind == CONDITION || kind == OPERAND && cobolWordStart().contains(_input.LA(i));
+    }
+
+    /**
+     * Whether GIVING follows the operand after INTO, which makes a DIVIDE INTO GIVING rather than a DIVIDE INTO
+     * with that operand as its first quotient.
+     */
+    boolean givingAhead(ParserRuleContext divide) {
+        return _input.LA(afterOperand(2)) == GIVING;
+    }
+
+    boolean prefixAhead(ParserRuleContext parameter) {
+        int type = _input.LA(1);
+        return type == ADDRESS && _input.LA(2) == OF || type == LENGTH || type == INTEGER || type == STRING;
+    }
+
+    boolean startsByReference(ParserRuleContext phrase) {
+        if (byReferenceStart == null) {
+            byReferenceStart = firstOf(RULE_procedureDivisionByReference);
+        }
+        return byReferenceStart.contains(_input.LA(1));
+    }
+
+    boolean startsByValue(ParserRuleContext phrase) {
+        if (byValueStart == null) {
+            byValueStart = firstOf(RULE_procedureDivisionByValue);
+        }
+        return byValueStart.contains(_input.LA(1));
+    }
+
+    boolean namedFunctionAhead(ParserRuleContext name) {
+        switch (_input.LA(1)) {
+            case INTEGER: case LENGTH: case RANDOM: case SUM: case WHEN_COMPILED:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
 
+// A batch is read flat and CobolParserVisitor nests its programs. Nesting them here would put a predicate on the
+// FOLLOW path of every division rule.
 compilationUnit
-   : programUnit* EOF
+   : (programUnit | endProgramStatement)* EOF
    ;
 
 programUnit
-   : identificationDivision environmentDivision? dataDivision? procedureDivision? programUnit* endProgramStatement?
+   : identificationDivision environmentDivision? dataDivision? procedureDivision?
    ;
 
 endProgramStatement
@@ -195,7 +494,11 @@ specialNamesParagraph
    ;
 
 specialNameClause
-   : channelClause | odtClause | alphabetClause | classClause | currencySignClause | decimalPointClause | symbolicCharactersClause | environmentSwitchNameClause | defaultDisplaySignClause | defaultComputationalSignClause | reserveNetworkClause
+   : channelClause | odtClause | alphabetClause | classClause | currencySignClause | decimalPointClause | symbolicCharactersClause | environmentSwitchNameClause | defaultDisplaySignClause | defaultComputationalSignClause | reserveNetworkClause | xmlSchemaClause
+   ;
+
+xmlSchemaClause
+   : XML_SCHEMA cobolWord IS? (NONNUMERICLITERAL | cobolWord)
    ;
 
 alphabetClause
@@ -308,7 +611,7 @@ inputOutputSectionParagraph
 // - file control paragraph ----------------------------------
 
 fileControlParagraph
-   : FILE_CONTROL? (DOT_FS? fileControlEntry)* DOT_FS
+   : FILE_CONTROL (DOT_FS? fileControlEntry)* DOT_FS
    ;
 
 fileControlEntry
@@ -1000,7 +1303,7 @@ dataDescriptionEntryFormat1
    ;
 
 dataDescriptionEntryFormat1Clause
-   : dataRedefinesClause | dataIntegerStringClause | dataExternalClause | dataGlobalClause | dataTypeDefClause | dataThreadLocalClause | dataPictureClause | dataCommonOwnLocalClause | dataTypeClause | dataUsingClause | dataUsageClause | dataValueClause | dataReceivedByClause | dataOccursClause | dataSignClause | dataSynchronizedClause | dataJustifiedClause | dataBlankWhenZeroClause | dataWithLowerBoundsClause | dataAlignedClause | dataRecordAreaClause
+   : dataRedefinesClause | dataIntegerStringClause | dataExternalClause | dataGlobalClause | dataTypeDefClause | dataThreadLocalClause | dataPictureClause | dataCommonOwnLocalClause | dataTypeClause | dataUsingClause | dataUsageClause | dataValueClause | dataReceivedByClause | dataOccursClause | dataSignClause | dataSynchronizedClause | dataJustifiedClause | dataBlankWhenZeroClause | dataWithLowerBoundsClause | dataAlignedClause | dataRecordAreaClause | dataGroupUsageClause | dataDynamicLengthClause | dataVolatileClause
    ;
 
 dataDescriptionEntryFormat2
@@ -1033,6 +1336,18 @@ dataExternalClause
 
 dataGlobalClause
    : IS? GLOBAL
+   ;
+
+dataGroupUsageClause
+   : GROUP_USAGE IS? (NATIONAL | UTF_8)
+   ;
+
+dataDynamicLengthClause
+   : DYNAMIC LENGTH? (LIMIT IS? integerLiteral)?
+   ;
+
+dataVolatileClause
+   : VOLATILE
    ;
 
 dataIntegerStringClause
@@ -1068,15 +1383,7 @@ dataPictureClause
    ;
 
 pictureString
-   : picture+
-   ;
-
-picture
-   : (pictureChars+ pictureCardinality?)
-   ;
-
-pictureChars
-   : DOLLARCHAR | IDENTIFIER | NUMERICLITERAL | SLASHCHAR | COMMACHAR | {pictureDot()}? DOT_FS | COLONCHAR | ASTERISKCHAR | DOUBLEASTERISKCHAR | LPARENCHAR | RPARENCHAR | PLUSCHAR | MINUSCHAR | LESSTHANCHAR | MORETHANCHAR | integerLiteral
+   : (PICTURE_SYMBOLS | pictureCardinality)+
    ;
 
 pictureCardinality
@@ -1112,7 +1419,7 @@ dataThreadLocalClause
    ;
 
 dataTypeClause
-   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME | (CLOB | BLOB | DBCLOB) LPARENCHAR integerLiteral RPARENCHAR)
+   : TYPE IS? (SHORT_DATE | LONG_DATE | NUMERIC_DATE | NUMERIC_TIME | LONG_TIME | (CLOB | BLOB | DBCLOB) LPARENCHAR (integerLiteral cobolWord? | cobolWord) RPARENCHAR)
    ;
 
 dataTypeDefClause
@@ -1120,7 +1427,7 @@ dataTypeDefClause
    ;
 
 dataUsageClause
-   : (USAGE IS?)? (BINARY (TRUNCATED | EXTENDED)? | BIT | COMP | COMP_1 | COMP_2 | COMP_3 | COMP_4 | COMP_5 | COMPUTATIONAL | COMPUTATIONAL_1 | COMPUTATIONAL_2 | COMPUTATIONAL_3 | COMPUTATIONAL_4 | COMPUTATIONAL_5 | CONTROL_POINT | DATE | DISPLAY | DISPLAY_1 | DOUBLE | EVENT | FUNCTION_POINTER | INDEX | KANJI | LOCK | NATIONAL | PACKED_DECIMAL | POINTER | PROCEDURE_POINTER | REAL | SQL | TASK)
+   : (USAGE IS?)? (BINARY (TRUNCATED | EXTENDED)? | BIT | COMP | COMP_1 | COMP_2 | COMP_3 | COMP_4 | COMP_5 | COMPUTATIONAL | COMPUTATIONAL_1 | COMPUTATIONAL_2 | COMPUTATIONAL_3 | COMPUTATIONAL_4 | COMPUTATIONAL_5 | CONTROL_POINT | DATE | DISPLAY | DISPLAY_1 | DOUBLE | EVENT | FUNCTION_POINTER | INDEX | KANJI | LOCK | NATIONAL | PACKED_DECIMAL | POINTER | POINTER_32 | PROCEDURE_POINTER | REAL | SQL | TASK | UTF_8)
    ;
 
 dataUsingClause
@@ -1128,7 +1435,7 @@ dataUsingClause
    ;
 
 dataValueClause
-   : ((VALUE | VALUES) (IS | ARE)?)? (dataValueInterval COMMACHAR?)+
+   : (VALUE | VALUES) (IS | ARE)? (dataValueInterval COMMACHAR?)+
    ;
 
 dataValueInterval
@@ -1166,15 +1473,15 @@ procedureDivisionUsingParameter
    ;
 
 procedureDivisionByReferencePhrase
-   : (BY? REFERENCE)? procedureDivisionByReference+
+   : (BY? REFERENCE)? procedureDivisionByReference+ {!startsByReference($ctx)}?
    ;
 
 procedureDivisionByReference
-   : (OPTIONAL? (identifier | fileName)) | ANY
+   : (OPTIONAL? identifier) | ANY
    ;
 
 procedureDivisionByValuePhrase
-   : BY? VALUE procedureDivisionByValue+
+   : BY? VALUE procedureDivisionByValue+ {!startsByValue($ctx)}?
    ;
 
 procedureDivisionByValue
@@ -1208,7 +1515,7 @@ paragraphs
    ;
 
 paragraph
-   : paragraphName DOT_FS? (alteredGoTo | sentence*)
+   : paragraphName DOT_FS (alteredGoTo | sentence*)
    ;
 
 sentence
@@ -1220,13 +1527,13 @@ imperativeStatements
    ;
 
 statement
-   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement
+   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement | jsonXmlStatement | allocateStatement | freeStatement
    ;
 
 // accept statement
 
 acceptStatement
-   : ACCEPT identifier (acceptFromDateStatement | acceptFromEscapeKeyStatement | acceptFromMnemonicStatement | acceptMessageCountStatement)? onExceptionClause? notOnExceptionClause? END_ACCEPT?
+   : ACCEPT identifier (acceptFromDateStatement | acceptFromEscapeKeyStatement | acceptFromMnemonicStatement | acceptMessageCountStatement)? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_ACCEPT | {!ahead($ctx, END_ACCEPT)}?)
    ;
 
 acceptFromDateStatement
@@ -1252,7 +1559,7 @@ roundable
 // add statement
 
 addStatement
-   : ADD (addToStatement | addToGivingStatement | addCorrespondingStatement) onSizeErrorPhrase? notOnSizeErrorPhrase? END_ADD?
+   : ADD (addToStatement | addToGivingStatement | addCorrespondingStatement) (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_ADD | {!ahead($ctx, END_ADD)}?)
    ;
 
 addToStatement
@@ -1302,23 +1609,27 @@ alterProceedTo
 // call statement
 
 callStatement
-   : CALL (identifier | literal) callUsingPhrase? callGivingPhrase? onOverflowPhrase? onExceptionClause? notOnExceptionClause? END_CALL?
+   : CALL (identifier | literal) callUsingPhrase? callGivingPhrase? (onOverflowPhrase | {!startsPhrase($ctx, OVERFLOW)}?) (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_CALL | {!ahead($ctx, END_CALL)}?)
    ;
 
 callUsingPhrase
-   : USING callUsingParameter+
+   : USING (callByReferenceBarePhrase callUsingParameter* | callUsingParameter+)
    ;
 
 callUsingParameter
    : callByReferencePhrase | callByValuePhrase | callByContentPhrase
    ;
 
+callByReferenceBarePhrase
+   : callByReference+
+   ;
+
 callByReferencePhrase
-   : (BY? REFERENCE)? callByReference+
+   : BY? REFERENCE callByReference+
    ;
 
 callByReference
-   : ((ADDRESS OF | INTEGER | STRING)? identifier | literal | fileName) | OMITTED
+   : ((ADDRESS OF | INTEGER | STRING | {!prefixAhead($ctx)}?) identifier | literal) | OMITTED
    ;
 
 callByValuePhrase
@@ -1326,7 +1637,7 @@ callByValuePhrase
    ;
 
 callByValue
-   : (ADDRESS OF | LENGTH OF?)? (identifier | literal)
+   : (ADDRESS OF | LENGTH OF? | {!prefixAhead($ctx)}?) (identifier | literal)
    ;
 
 callByContentPhrase
@@ -1334,7 +1645,7 @@ callByContentPhrase
    ;
 
 callByContent
-   : (ADDRESS OF | LENGTH OF?)? identifier | literal | OMITTED
+   : (ADDRESS OF | LENGTH OF? | {!prefixAhead($ctx)}?) identifier | literal | OMITTED
    ;
 
 callGivingPhrase
@@ -1391,7 +1702,7 @@ closePortFileIOUsingAssociatedDataLength
 // compute statement
 
 computeStatement
-   : COMPUTE computeStore+ (EQUALCHAR | EQUAL) arithmeticExpression onSizeErrorPhrase? notOnSizeErrorPhrase? END_COMPUTE?
+   : COMPUTE computeStore+ (EQUALCHAR | EQUAL) arithmeticExpression (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_COMPUTE | {!ahead($ctx, END_COMPUTE)}?)
    ;
 
 computeStore
@@ -1407,7 +1718,7 @@ continueStatement
 // delete statement
 
 deleteStatement
-   : DELETE fileName RECORD? invalidKeyPhrase? notInvalidKeyPhrase? END_DELETE?
+   : DELETE fileName RECORD? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_DELETE | {!ahead($ctx, END_DELETE)}?)
    ;
 
 // disable statement
@@ -1419,7 +1730,7 @@ disableStatement
 // display statement
 
 displayStatement
-   : DISPLAY (displayOperand COMMACHAR?)+ displayAt? displayUpon? displayWith? onExceptionClause? notOnExceptionClause? END_DISPLAY?
+   : DISPLAY (displayOperand COMMACHAR?)+ displayAt? displayUpon? displayWith? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_DISPLAY | {!ahead($ctx, END_DISPLAY)}?)
    ;
 
 displayOperand
@@ -1441,7 +1752,7 @@ displayWith
 // divide statement
 
 divideStatement
-   : DIVIDE (identifier | literal) (divideIntoStatement | divideIntoGivingStatement | divideByGivingStatement) divideRemainder? onSizeErrorPhrase? notOnSizeErrorPhrase? END_DIVIDE?
+   : DIVIDE (identifier | literal) (divideIntoStatement | divideIntoGivingStatement | divideByGivingStatement) divideRemainder? (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_DIVIDE | {!ahead($ctx, END_DIVIDE)}?)
    ;
 
 divideIntoStatement
@@ -1449,7 +1760,7 @@ divideIntoStatement
    ;
 
 divideIntoGivingStatement
-   : INTO (identifier | literal) divideGivingPhrase?
+   : {givingAhead($ctx)}? INTO (identifier | literal) divideGivingPhrase?
    ;
 
 divideByGivingStatement
@@ -1491,7 +1802,10 @@ evaluateStatement
    ;
 
 evaluateSelect
-   : identifier | literal | arithmeticExpression | condition
+   : {operandKind($ctx, 1) == OPERAND}? identifier
+   | {operandKind($ctx, 1) == OPERAND}? literal
+   | {operandKind($ctx, 1) == EXPRESSION}? arithmeticExpression
+   | {operandKind($ctx, 1) != OPERAND && operandKind($ctx, 1) != EXPRESSION}? condition
    ;
 
 evaluateAlsoSelect
@@ -1507,7 +1821,9 @@ evaluateWhen
    ;
 
 evaluateCondition
-   : ANY | NOT? evaluateValue evaluateThrough? | condition | booleanLiteral
+   : ANY
+   | {operandKind($ctx, _input.LA(1) == NOT ? 2 : 1) != CONDITION}? NOT? evaluateValue evaluateThrough?
+   | {operandKind($ctx, _input.LA(1) == NOT ? 2 : 1) == CONDITION}? condition
    ;
 
 evaluateThrough
@@ -1523,31 +1839,31 @@ evaluateWhenOther
    ;
 
 evaluateValue
-   : identifier | literal | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // exec cics statement
 
 execCicsStatement
-   : EXECCICSLINE+
+   : EXECCICSLINE+ {!ahead($ctx, EXECCICSLINE)}?
    ;
 
 // exec dli statement
 
 execDliStatement
-   : EXECDLILINE+
+   : EXECDLILINE+ {!ahead($ctx, EXECDLILINE)}?
    ;
 
 // exec sql statement
 
 execSqlStatement
-   : EXECSQLLINE+
+   : EXECSQLLINE+ {!ahead($ctx, EXECSQLLINE)}?
    ;
 
 // exec sql ims statement
 
 execSqlImsStatement
-   : EXECSQLIMSLINE+
+   : EXECSQLIMSLINE+ {!ahead($ctx, EXECSQLIMSLINE)}?
    ;
 
 // exhibit statement
@@ -1583,15 +1899,7 @@ gobackStatement
 // goto statement
 
 goToStatement
-   : GO TO? (goToStatementSimple | goToDependingOnStatement)
-   ;
-
-goToStatementSimple
-   : procedureName
-   ;
-
-goToDependingOnStatement
-   : MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?
+   : GO TO? (MORE_LABELS | procedureName+ (DEPENDING ON? identifier)?)
    ;
 
 // if statement
@@ -1601,17 +1909,30 @@ ifStatement
    ;
 
 ifThen
-   : THEN? (NEXT SENTENCE | imperativeStatements)
+   : THEN? (NEXT SENTENCE | {!ahead($ctx, NEXT)}? imperativeStatements)
    ;
 
 ifElse
-   : ELSE (NEXT SENTENCE | imperativeStatements)
+   : ELSE (NEXT SENTENCE | {!ahead($ctx, NEXT)}? imperativeStatements)
    ;
 
 // initialize statement
 
 initializeStatement
-   : INITIALIZE identifier+ initializeReplacingPhrase?
+   : INITIALIZE identifier+ initializeValuePhrase? (THEN? initializeReplacingPhrase)? initializeDefaultPhrase?
+   ;
+
+initializeValuePhrase
+   : WITH? FILLER ((ALL | initializeCategory) TO VALUE)?
+   | (ALL | initializeCategory) TO VALUE
+   ;
+
+initializeDefaultPhrase
+   : THEN? TO DEFAULT
+   ;
+
+initializeCategory
+   : ALPHABETIC | ALPHANUMERIC | ALPHANUMERIC_EDITED | NATIONAL | NATIONAL_EDITED | NUMERIC | NUMERIC_EDITED | DBCS | EGCS
    ;
 
 initializeReplacingPhrase
@@ -1619,7 +1940,7 @@ initializeReplacingPhrase
    ;
 
 initializeReplacingBy
-   : (ALPHABETIC | ALPHANUMERIC | ALPHANUMERIC_EDITED | NATIONAL | NATIONAL_EDITED | NUMERIC | NUMERIC_EDITED | DBCS | EGCS) DATA? BY (identifier | literal)
+   : initializeCategory DATA? BY (identifier | literal)
    ;
 
 // initiate statement
@@ -1663,11 +1984,11 @@ inspectReplacingCharacters
    ;
 
 inspectAllLeadings
-   : (ALL | LEADING) inspectAllLeading+
+   : (ALL | LEADING) inspectAllLeading ({!opensInspectGroup($ctx)}? inspectAllLeading)*
    ;
 
 inspectReplacingAllLeadings
-   : (ALL | LEADING | FIRST) inspectReplacingAllLeading+
+   : (ALL | LEADING | FIRST) inspectReplacingAllLeading ({!opensInspectGroup($ctx)}? inspectReplacingAllLeading)*
    ;
 
 inspectAllLeading
@@ -1735,7 +2056,7 @@ mergeGiving
 // move statement
 
 moveStatement
-   : MOVE ALL? (moveToStatement | moveCorrespondingToStatement)
+   : MOVE (ALL | {!ahead($ctx, ALL)}?) (moveToStatement | moveCorrespondingToStatement)
    ;
 
 moveToStatement
@@ -1757,7 +2078,7 @@ moveCorrespondingToSendingArea
 // multiply statement
 
 multiplyStatement
-   : MULTIPLY (identifier | literal) BY (multiplyRegular | multiplyGiving) onSizeErrorPhrase? notOnSizeErrorPhrase? END_MULTIPLY?
+   : MULTIPLY (identifier | literal) BY (multiplyRegular | multiplyGiving) (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_MULTIPLY | {!ahead($ctx, END_MULTIPLY)}?)
    ;
 
 multiplyRegular
@@ -1859,11 +2180,11 @@ performAfter
    ;
 
 performFrom
-   : FROM (identifier | literal | arithmeticExpression)
+   : FROM arithmeticExpression
    ;
 
 performBy
-   : BY (identifier | literal | arithmeticExpression)
+   : BY arithmeticExpression
    ;
 
 performTestClause
@@ -1879,7 +2200,7 @@ purgeStatement
 // read statement
 
 readStatement
-   : READ fileName NEXT? RECORD? readInto? readWith? readKey? invalidKeyPhrase? notInvalidKeyPhrase? atEndPhrase? notAtEndPhrase? END_READ?
+   : READ fileName NEXT? RECORD? readInto? readWith? readKey? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (atEndPhrase | {!startsPhrase($ctx, END)}?) (notAtEndPhrase | {!startsNotPhrase($ctx, END)}?) (END_READ | {!ahead($ctx, END_READ)}?)
    ;
 
 readInto
@@ -1897,7 +2218,7 @@ readKey
 // receive statement
 
 receiveStatement
-   : RECEIVE (receiveFromStatement | receiveIntoStatement) onExceptionClause? notOnExceptionClause? END_RECEIVE?
+   : RECEIVE (receiveFromStatement | receiveIntoStatement) (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_RECEIVE | {!ahead($ctx, END_RECEIVE)}?)
    ;
 
 receiveFromStatement
@@ -1909,7 +2230,7 @@ receiveFrom
    ;
 
 receiveIntoStatement
-   : cdName (MESSAGE | SEGMENT) INTO? identifier receiveNoData? receiveWithData?
+   : cdName (MESSAGE | SEGMENT) INTO? identifier (receiveNoData | {!ahead($ctx, NO, DATA)}?) (receiveWithData | {!ahead($ctx, WITH, DATA)}?)
    ;
 
 receiveNoData
@@ -1949,7 +2270,7 @@ releaseStatement
 // return statement
 
 returnStatement
-   : RETURN fileName RECORD? returnInto? atEndPhrase notAtEndPhrase? END_RETURN?
+   : RETURN fileName RECORD? returnInto? atEndPhrase (notAtEndPhrase | {!startsNotPhrase($ctx, END)}?) (END_RETURN | {!ahead($ctx, END_RETURN)}?)
    ;
 
 returnInto
@@ -1959,7 +2280,7 @@ returnInto
 // rewrite statement
 
 rewriteStatement
-   : REWRITE recordName rewriteFrom? invalidKeyPhrase? notInvalidKeyPhrase? END_REWRITE?
+   : REWRITE recordName rewriteFrom? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_REWRITE | {!ahead($ctx, END_REWRITE)}?)
    ;
 
 rewriteFrom
@@ -1969,7 +2290,7 @@ rewriteFrom
 // search statement
 
 searchStatement
-   : SEARCH ALL? qualifiedDataName searchVarying? atEndPhrase? searchWhen+ {_input.LA(1) != WHEN}? (END_SEARCH | {_input.LA(1) != END_SEARCH}?)
+   : SEARCH ALL? qualifiedDataName searchVarying? (atEndPhrase | {!startsPhrase($ctx, END)}?) searchWhen+ {_input.LA(1) != WHEN}? (END_SEARCH | {_input.LA(1) != END_SEARCH}?)
    ;
 
 searchVarying
@@ -1983,7 +2304,7 @@ searchWhen
 // send statement
 
 sendStatement
-   : SEND (sendStatementSync | sendStatementAsync) onExceptionClause? notOnExceptionClause?
+   : SEND (sendStatementSync | sendStatementAsync) (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?)
    ;
 
 sendStatementSync
@@ -2020,6 +2341,12 @@ sendAdvancingLines
 
 sendAdvancingMnemonic
    : mnemonicName
+   ;
+
+// service statement
+
+serviceStatement
+   : SERVICE (LABEL | RELOAD identifier)
    ;
 
 // set statement
@@ -2105,7 +2432,7 @@ sortGiving
 // start statement
 
 startStatement
-   : START fileName startKey? invalidKeyPhrase? notInvalidKeyPhrase? END_START?
+   : START fileName startKey? (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_START | {!ahead($ctx, END_START)}?)
    ;
 
 startKey
@@ -2125,7 +2452,7 @@ stopStatementGiving
 // string statement
 
 stringStatement
-   : STRING stringSendingPhrase+ stringIntoPhrase stringWithPointerPhrase? onOverflowPhrase? notOnOverflowPhrase? END_STRING?
+   : STRING stringSendingPhrase+ stringIntoPhrase stringWithPointerPhrase? (onOverflowPhrase | {!startsPhrase($ctx, OVERFLOW)}?) (notOnOverflowPhrase | {!startsNotPhrase($ctx, OVERFLOW)}?) (END_STRING | {!ahead($ctx, END_STRING)}?)
    ;
 
 stringSendingPhrase
@@ -2155,7 +2482,7 @@ stringWithPointerPhrase
 // subtract statement
 
 subtractStatement
-   : SUBTRACT (subtractFromStatement | subtractFromGivingStatement | subtractCorrespondingStatement) onSizeErrorPhrase? notOnSizeErrorPhrase? END_SUBTRACT?
+   : SUBTRACT (subtractFromStatement | subtractFromGivingStatement | subtractCorrespondingStatement) (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_SUBTRACT | {!ahead($ctx, END_SUBTRACT)}?)
    ;
 
 subtractFromStatement
@@ -2199,7 +2526,7 @@ terminateStatement
 // unstring statement
 
 unstringStatement
-   : UNSTRING unstringSendingPhrase unstringIntoPhrase unstringWithPointerPhrase? unstringTallyingPhrase? onOverflowPhrase? notOnOverflowPhrase? END_UNSTRING?
+   : UNSTRING unstringSendingPhrase unstringIntoPhrase unstringWithPointerPhrase? unstringTallyingPhrase? (onOverflowPhrase | {!startsPhrase($ctx, OVERFLOW)}?) (notOnOverflowPhrase | {!startsNotPhrase($ctx, OVERFLOW)}?) (END_UNSTRING | {!ahead($ctx, END_UNSTRING)}?)
    ;
 
 unstringSendingPhrase
@@ -2263,7 +2590,7 @@ useDebugOn
 // write statement
 
 writeStatement
-   : WRITE recordName writeFromPhrase? writeAdvancingPhrase? writeAtEndOfPagePhrase? writeNotAtEndOfPagePhrase? invalidKeyPhrase? notInvalidKeyPhrase? END_WRITE?
+   : WRITE recordName writeFromPhrase? writeAdvancingPhrase? (writeAtEndOfPagePhrase | {!startsPhrase($ctx, END_OF_PAGE) && !startsPhrase($ctx, EOP)}?) (writeNotAtEndOfPagePhrase | {!startsNotPhrase($ctx, END_OF_PAGE) && !startsNotPhrase($ctx, EOP)}?) (invalidKeyPhrase | {!startsPhrase($ctx, INVALID)}?) (notInvalidKeyPhrase | {!startsNotPhrase($ctx, INVALID)}?) (END_WRITE | {!ahead($ctx, END_WRITE)}?)
    ;
 
 writeFromPhrase
@@ -2292,6 +2619,56 @@ writeAtEndOfPagePhrase
 
 writeNotAtEndOfPagePhrase
    : NOT AT? (END_OF_PAGE | EOP) imperativeStatements
+   ;
+
+// xml parse statement
+
+xmlParseStatement
+   : XML PARSE identifier xmlEncodingPhrase? xmlReturningNationalPhrase? xmlValidatingPhrase? xmlProcessingProcedurePhrase (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_XML | {!ahead($ctx, END_XML)}?)
+   ;
+
+xmlEncodingPhrase
+   : WITH? ENCODING (identifier | integerLiteral)
+   ;
+
+xmlReturningNationalPhrase
+   : RETURNING NATIONAL
+   ;
+
+xmlValidatingPhrase
+   : VALIDATING WITH? (identifier | FILE cobolWord)
+   ;
+
+xmlProcessingProcedurePhrase
+   : PROCESSING PROCEDURE IS? procedureName ((THROUGH | THRU) procedureName)?
+   ;
+
+// JSON GENERATE, JSON PARSE and XML GENERATE convert between a document and a data item. Their phrases are read
+// loosely, as the words and operands each may hold, in any order. Inside them NAME, ELEMENT and the other phrase
+// words are keywords rather than data names, and a WHEN before a figurative constant is SUPPRESS's, not an EVALUATE's.
+
+jsonXmlStatement
+   : (JSON (GENERATE | PARSE) | XML GENERATE) identifier (FROM | INTO) identifier jsonXmlPhrase* (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_JSON | END_XML | {!ahead($ctx, END_JSON) && !ahead($ctx, END_XML)}?)
+   ;
+
+jsonXmlPhrase
+   : COUNT IN? identifier
+   | WITH? (DETAIL | XML_DECLARATION | ATTRIBUTES | ENCODING (identifier | integerLiteral))
+   | (NAMESPACE | NAMESPACE_PREFIX) IS? (identifier | literal)
+   | (NAME | TYPE) OF? ({!jsonXmlKeywordAhead($ctx)}? identifier IS? (literal | OMITTED | ATTRIBUTE | ELEMENT | CONTENT))+
+   | SUPPRESS ({!jsonXmlKeywordAhead($ctx)}? identifier | EVERY | NUMERIC | NONNUMERIC | ATTRIBUTE | CONTENT | ELEMENT
+       | (WHEN | OR) (ZERO | ZEROS | ZEROES | SPACE | SPACES | LOW_VALUE | LOW_VALUES | HIGH_VALUE | HIGH_VALUES))+ {!suppressWhenAhead($ctx)}?
+   | CONVERTING ({!jsonXmlKeywordAhead($ctx)}? identifier | TO | FROM | JSON | BOOLEAN | USING | ALSO | literal)+
+   ;
+
+// allocate and free statements
+
+allocateStatement
+   : ALLOCATE arithmeticExpression CHARACTERS? INITIALIZED? (LOC integerLiteral)? (RETURNING identifier)?
+   ;
+
+freeStatement
+   : FREE identifier+
    ;
 
 // statement phrases ----------------------------------
@@ -2341,7 +2718,7 @@ notOnExceptionClause
 // arithmetic expression ----------------------------------
 
 arithmeticExpression
-   : multDivs plusMinus*
+   : multDivs plusMinus* {!signAhead($ctx)}?
    ;
 
 plusMinus
@@ -2375,7 +2752,7 @@ condition
    ;
 
 andOrCondition
-   : (AND | OR) (combinableCondition | abbreviation+)
+   : (AND | OR) (combinableCondition | {!combinableAhead($ctx)}? abbreviation+)
    ;
 
 combinableCondition
@@ -2391,7 +2768,7 @@ classCondition
    ;
 
 conditionNameReference
-   : conditionName (inData* inFile? conditionNameSubscriptReference* | inMnemonic*)
+   : conditionName inData* conditionNameSubscriptReference*
    ;
 
 conditionNameSubscriptReference
@@ -2431,11 +2808,7 @@ abbreviation
 // identifier ----------------------------------
 
 identifier
-   : qualifiedDataName | tableCall | functionCall | specialRegister
-   ;
-
-tableCall
-   : qualifiedDataName tableCallSubscripts* referenceModifier?
+   : qualifiedDataName tableCallSubscripts* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}? | functionCall | specialRegister
    ;
 
 tableCallSubscripts
@@ -2443,7 +2816,7 @@ tableCallSubscripts
     ;
 
 functionCall
-   : FUNCTION functionName functionCallArguments* referenceModifier?
+   : FUNCTION functionName functionCallArguments* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}?
    ;
 
 functionCallArguments
@@ -2463,29 +2836,24 @@ length
    ;
 
 subscript
-   : ALL | integerLiteral | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : ALL
+   | {plainSubscriptAhead($ctx)}? integerLiteral
+   | {plainSubscriptAhead($ctx)}? qualifiedDataName (integerLiteral | {!startsIntegerLiteral($ctx)}?)
+   | {!plainSubscriptAhead($ctx)}? arithmeticExpression
    ;
 
 argument
-   : literal | identifier | qualifiedDataName integerLiteral? | indexName integerLiteral? | arithmeticExpression
+   : arithmeticExpression
    ;
 
 // qualified data name ----------------------------------
 
 qualifiedDataName
-   : qualifiedDataNameFormat1 | qualifiedDataNameFormat2 | qualifiedDataNameFormat3 | qualifiedDataNameFormat4
+   : qualifiedDataNameFormat1 | qualifiedDataNameFormat4
    ;
 
 qualifiedDataNameFormat1
-   : (dataName | conditionName) (qualifiedInData+ inFile? | inFile)?
-   ;
-
-qualifiedDataNameFormat2
-   : paragraphName inSection
-   ;
-
-qualifiedDataNameFormat3
-   : textName inLibrary
+   : dataName qualifiedInData*
    ;
 
 qualifiedDataNameFormat4
@@ -2493,7 +2861,7 @@ qualifiedDataNameFormat4
    ;
 
 qualifiedInData
-   : inData | inTable
+   : inData
    ;
 
 // in ----------------------------------
@@ -2512,14 +2880,6 @@ inMnemonic
 
 inSection
    : (IN | OF) sectionName
-   ;
-
-inLibrary
-   : (IN | OF) libraryName
-   ;
-
-inTable
-   : (IN | OF) tableCall
    ;
 
 // names ----------------------------------
@@ -2569,7 +2929,7 @@ fileName
    ;
 
 functionName
-   : INTEGER | LENGTH | RANDOM | SUM | WHEN_COMPILED | cobolWord
+   : INTEGER | LENGTH | RANDOM | SUM | WHEN_COMPILED | {!namedFunctionAhead($ctx)}? cobolWord
    ;
 
 indexName
@@ -2597,7 +2957,7 @@ paragraphName
    ;
 
 procedureName
-   : paragraphName inSection? | sectionName
+   : paragraphName inSection?
    ;
 
 programName
@@ -2632,18 +2992,15 @@ symbolicCharacter
    : cobolWord
    ;
 
-textName
-   : cobolWord
-   ;
-
 // literal ----------------------------------
 
 cobolWord
    : IDENTIFIER
+   | ATTRIBUTES | ELEMENT | INITIALIZED | LOC | NAME | NAMESPACE | NAMESPACE_PREFIX | NONNUMERIC | XML_DECLARATION
    | ABORT | AS | ASCII | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH | ATTRIBUTE | AUTO | AUTO_SKIP
    | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BINARY | BIT | BLINK | BLOB | BOUNDS
    | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CLOB | CLOSE_DISPOSITION | COBOL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR
-   | DBCLOB | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DFHRESP | DFHVALUE | DISK | DONTCARE | DOUBLE
+   | DBCLOB | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DISK | DONTCARE | DOUBLE
    | EBCDIC | EMPTY_CHECK | ENTER | ENTRY_PROCEDURE | EOL | EOS | ERASE | ESCAPE | EVENT | EXCLUSIVE | EXPORT | EXTENDED
    | FOREGROUND_COLOR | FOREGROUND_COLOUR | FULL | FUNCTIONNAME | FUNCTION_POINTER
    | GRID
@@ -2674,7 +3031,7 @@ booleanLiteral
    ;
 
 numericLiteral
-   : NUMERICLITERAL | ZERO | integerLiteral
+   : NUMERICLITERAL | integerLiteral
    ;
 
 integerLiteral
@@ -2711,625 +3068,3 @@ specialRegister
 commentEntry
    : COMMENTENTRYLINE+
    ;
-
-// lexer rules --------------------------------------------------------------------------------
-
-// keywords
-ABORT : 'ABORT';
-ACCEPT : 'ACCEPT';
-ACCESS : 'ACCESS';
-ADD : 'ADD';
-ADDRESS : 'ADDRESS';
-ADVANCING : 'ADVANCING';
-AFTER : 'AFTER';
-ALIGNED : 'ALIGNED';
-ALL : 'ALL';
-ALPHABET : 'ALPHABET';
-ALPHABETIC : 'ALPHABETIC';
-ALPHABETIC_LOWER : 'ALPHABETIC-LOWER';
-ALPHABETIC_UPPER : 'ALPHABETIC-UPPER';
-ALPHANUMERIC : 'ALPHANUMERIC';
-ALPHANUMERIC_EDITED : 'ALPHANUMERIC-EDITED';
-ALSO : 'ALSO';
-ALTER : 'ALTER';
-ALTERNATE : 'ALTERNATE';
-AND : 'AND';
-ANY : 'ANY';
-ARE : 'ARE';
-AREA : 'AREA';
-AREAS : 'AREAS';
-AS : 'AS';
-ASCENDING : 'ASCENDING';
-ASCII : 'ASCII';
-ASSIGN : 'ASSIGN';
-ASSOCIATED_DATA : 'ASSOCIATED-DATA';
-ASSOCIATED_DATA_LENGTH : 'ASSOCIATED-DATA-LENGTH';
-AT : 'AT';
-ATTRIBUTE : 'ATTRIBUTE';
-AUTHOR : 'AUTHOR';
-AUTO : 'AUTO';
-AUTO_SKIP : 'AUTO-SKIP';
-BACKGROUND_COLOR : 'BACKGROUND-COLOR';
-BACKGROUND_COLOUR : 'BACKGROUND-COLOUR';
-BASIS : 'BASIS';
-BEEP : 'BEEP';
-BEFORE : 'BEFORE';
-BEGINNING : 'BEGINNING';
-BELL : 'BELL';
-BINARY : 'BINARY';
-BIT : 'BIT';
-BLANK : 'BLANK';
-BLINK : 'BLINK';
-BLOB : 'BLOB';
-BLOCK : 'BLOCK';
-BOUNDS : 'BOUNDS';
-BOTTOM : 'BOTTOM';
-BY : 'BY';
-BYFUNCTION : 'BYFUNCTION';
-BYTITLE : 'BYTITLE';
-CALL : 'CALL';
-CANCEL : 'CANCEL';
-CAPABLE : 'CAPABLE';
-CCSVERSION : 'CCSVERSION';
-CD : 'CD';
-CF : 'CF';
-CH : 'CH';
-CHAINING : 'CHAINING';
-CHANGED : 'CHANGED';
-CHANNEL : 'CHANNEL';
-CHARACTER : 'CHARACTER';
-CHARACTERS : 'CHARACTERS';
-CLASS : 'CLASS';
-CLASS_ID : 'CLASS-ID';
-CLOB : 'CLOB';
-CLOCK_UNITS : 'CLOCK-UNITS';
-CLOSE : 'CLOSE';
-CLOSE_DISPOSITION : 'CLOSE-DISPOSITION';
-COBOL : 'COBOL';
-CODE : 'CODE';
-CODE_SET : 'CODE-SET';
-COLLATING : 'COLLATING';
-COL : 'COL';
-COLUMN : 'COLUMN';
-COM_REG : 'COM-REG';
-COMMA : 'COMMA';
-COMMITMENT : 'COMMITMENT';
-COMMON : 'COMMON';
-COMMUNICATION : 'COMMUNICATION';
-COMP : 'COMP';
-COMP_1 : 'COMP-1';
-COMP_2 : 'COMP-2';
-COMP_3 : 'COMP-3';
-COMP_4 : 'COMP-4';
-COMP_5 : 'COMP-5';
-COMPUTATIONAL : 'COMPUTATIONAL';
-COMPUTATIONAL_1 : 'COMPUTATIONAL-1';
-COMPUTATIONAL_2 : 'COMPUTATIONAL-2';
-COMPUTATIONAL_3 : 'COMPUTATIONAL-3';
-COMPUTATIONAL_4 : 'COMPUTATIONAL-4';
-COMPUTATIONAL_5 : 'COMPUTATIONAL-5';
-COMPUTE : 'COMPUTE';
-CONFIGURATION : 'CONFIGURATION';
-CONTAINS : 'CONTAINS';
-CONTENT : 'CONTENT';
-CONTINUE : 'CONTINUE';
-CONTROL : 'CONTROL';
-CONTROL_POINT : 'CONTROL-POINT';
-CONTROLS : 'CONTROLS';
-CONVENTION : 'CONVENTION';
-CONVERTING : 'CONVERTING';
-COPY : 'COPY';
-CORR : 'CORR';
-CORRESPONDING : 'CORRESPONDING';
-COUNT : 'COUNT';
-CRUNCH : 'CRUNCH';
-CURRENCY : 'CURRENCY';
-CURSOR : 'CURSOR';
-CYCLE : 'CYCLE';
-DATA : 'DATA';
-DATA_BASE : 'DATA-BASE';
-DATE : 'DATE';
-DATE_COMPILED : 'DATE-COMPILED';
-DATE_WRITTEN : 'DATE-WRITTEN';
-DAY : 'DAY';
-DAY_OF_WEEK : 'DAY-OF-WEEK';
-DBCS : 'DBCS';
-DBCLOB : 'DBCLOB';
-DE : 'DE';
-DEBUG_CONTENTS : 'DEBUG-CONTENTS';
-DEBUG_ITEM : 'DEBUG-ITEM';
-DEBUG_LINE : 'DEBUG-LINE';
-DEBUG_NAME : 'DEBUG-NAME';
-DEBUG_SUB_1 : 'DEBUG-SUB-1';
-DEBUG_SUB_2 : 'DEBUG-SUB-2';
-DEBUG_SUB_3 : 'DEBUG-SUB-3';
-DEBUGGING : 'DEBUGGING';
-DECIMAL_POINT : 'DECIMAL-POINT';
-DECLARATIVES : 'DECLARATIVES';
-DEFAULT : 'DEFAULT';
-DEFAULT_DISPLAY : 'DEFAULT-DISPLAY';
-DEFINITION : 'DEFINITION';
-DELETE : 'DELETE';
-DELIMITED : 'DELIMITED';
-DELIMITER : 'DELIMITER';
-DEPENDING : 'DEPENDING';
-DESCENDING : 'DESCENDING';
-DESTINATION : 'DESTINATION';
-DETAIL : 'DETAIL';
-DFHRESP : 'DFHRESP';
-DFHVALUE : 'DFHVALUE';
-DISABLE : 'DISABLE';
-DISK : 'DISK';
-DISPLAY : 'DISPLAY';
-DISPLAY_1 : 'DISPLAY-1';
-DIVIDE : 'DIVIDE';
-DIVISION : 'DIVISION';
-DONTCARE : 'DONTCARE';
-DOUBLE : 'DOUBLE';
-DOWN : 'DOWN';
-DUPLICATES : 'DUPLICATES';
-DYNAMIC : 'DYNAMIC';
-EBCDIC : 'EBCDIC';
-EGCS : 'EGCS'; // EXTENSION
-EGI : 'EGI';
-ELSE : 'ELSE';
-EMI : 'EMI';
-EMPTY_CHECK : 'EMPTY-CHECK';
-ENABLE : 'ENABLE';
-END : 'END';
-END_ACCEPT : 'END-ACCEPT';
-END_ADD : 'END-ADD';
-END_CALL : 'END-CALL';
-END_COMPUTE : 'END-COMPUTE';
-END_DELETE : 'END-DELETE';
-END_DISPLAY : 'END-DISPLAY';
-END_DIVIDE : 'END-DIVIDE';
-END_EVALUATE : 'END-EVALUATE';
-END_IF : 'END-IF';
-END_MULTIPLY : 'END-MULTIPLY';
-END_OF_PAGE : 'END-OF-PAGE';
-END_PERFORM : 'END-PERFORM';
-END_READ : 'END-READ';
-END_RECEIVE : 'END-RECEIVE';
-END_REMARKS : 'END-REMARKS';
-END_RETURN : 'END-RETURN';
-END_REWRITE : 'END-REWRITE';
-END_SEARCH : 'END-SEARCH';
-END_START : 'END-START';
-END_STRING : 'END-STRING';
-END_SUBTRACT : 'END-SUBTRACT';
-END_UNSTRING : 'END-UNSTRING';
-END_WRITE : 'END-WRITE';
-ENDING : 'ENDING';
-ENTER : 'ENTER';
-ENTRY : 'ENTRY';
-ENTRY_PROCEDURE : 'ENTRY-PROCEDURE';
-ENVIRONMENT : 'ENVIRONMENT';
-EOP : 'EOP';
-EQUAL : 'EQUAL';
-ERASE : 'ERASE';
-ERROR : 'ERROR';
-EOL : 'EOL';
-EOS : 'EOS';
-ESCAPE : 'ESCAPE';
-ESI : 'ESI';
-EVALUATE : 'EVALUATE';
-EVENT : 'EVENT';
-EVERY : 'EVERY';
-EXCEPTION : 'EXCEPTION';
-EXCLUSIVE : 'EXCLUSIVE';
-EXHIBIT : 'EXHIBIT';
-EXIT : 'EXIT';
-EXPORT : 'EXPORT';
-EXTEND : 'EXTEND';
-EXTENDED : 'EXTENDED';
-EXTERNAL : 'EXTERNAL';
-FALSE : 'FALSE';
-FD : 'FD';
-FILE : 'FILE';
-FILE_CONTROL : 'FILE-CONTROL';
-FILLER : 'FILLER';
-FINAL : 'FINAL';
-FIRST : 'FIRST';
-FOOTING : 'FOOTING';
-FOR : 'FOR';
-FOREGROUND_COLOR : 'FOREGROUND-COLOR';
-FOREGROUND_COLOUR : 'FOREGROUND-COLOUR';
-FROM : 'FROM';
-FULL : 'FULL';
-FUNCTION : 'FUNCTION';
-FUNCTIONNAME : 'FUNCTIONNAME';
-FUNCTION_POINTER : 'FUNCTION-POINTER';
-GENERATE : 'GENERATE';
-GOBACK : 'GOBACK';
-GIVING : 'GIVING';
-GLOBAL : 'GLOBAL';
-GO : 'GO';
-GREATER : 'GREATER';
-GRID : 'GRID';
-GROUP : 'GROUP';
-HEADING : 'HEADING';
-HIGHLIGHT : 'HIGHLIGHT';
-HIGH_VALUE : 'HIGH-VALUE';
-HIGH_VALUES : 'HIGH-VALUES';
-I_O : 'I-O';
-I_O_CONTROL : 'I-O-CONTROL';
-ID : 'ID';
-IDENTIFICATION : 'IDENTIFICATION';
-IF : 'IF';
-IMPLICIT : 'IMPLICIT';
-IMPORT : 'IMPORT';
-IN : 'IN';
-INDEX : 'INDEX';
-INDEXED : 'INDEXED';
-INDICATE : 'INDICATE';
-INITIAL : 'INITIAL';
-INITIALIZE : 'INITIALIZE';
-INITIATE : 'INITIATE';
-INPUT : 'INPUT';
-INPUT_OUTPUT : 'INPUT-OUTPUT';
-INSPECT : 'INSPECT';
-INSTALLATION : 'INSTALLATION';
-INTEGER : 'INTEGER';
-INTERFACE : 'INTERFACE';
-INTO : 'INTO';
-INTRINSIC : 'INTRINSIC';
-INVALID : 'INVALID';
-INVOKE : 'INVOKE';
-IS : 'IS';
-JUST : 'JUST';
-JUSTIFIED : 'JUSTIFIED';
-KANJI : 'KANJI';
-KEPT : 'KEPT';
-KEY : 'KEY';
-KEYBOARD : 'KEYBOARD';
-LABEL : 'LABEL';
-LANGUAGE : 'LANGUAGE';
-LAST : 'LAST';
-LB : 'LB';
-LD : 'LD';
-LEADING : 'LEADING';
-LEFT : 'LEFT';
-LEFTLINE : 'LEFTLINE';
-LENGTH : 'LENGTH';
-LENGTH_CHECK : 'LENGTH-CHECK';
-LESS : 'LESS';
-LIBACCESS : 'LIBACCESS';
-LIBPARAMETER : 'LIBPARAMETER';
-LIBRARY : 'LIBRARY';
-LIMIT : 'LIMIT';
-LIMITS : 'LIMITS';
-LINAGE : 'LINAGE';
-LINAGE_COUNTER : 'LINAGE-COUNTER';
-LINE : 'LINE';
-LINES : 'LINES';
-LINE_COUNTER : 'LINE-COUNTER';
-LINKAGE : 'LINKAGE';
-LIST : 'LIST';
-LOCAL : 'LOCAL';
-LOCAL_STORAGE : 'LOCAL-STORAGE';
-LOCK : 'LOCK';
-LONG_DATE : 'LONG-DATE';
-LONG_TIME : 'LONG-TIME';
-LOWER : 'LOWER';
-LOWLIGHT : 'LOWLIGHT';
-LOW_VALUE : 'LOW-VALUE';
-LOW_VALUES : 'LOW-VALUES';
-MEMORY : 'MEMORY';
-MERGE : 'MERGE';
-MESSAGE : 'MESSAGE';
-METHOD : 'METHOD';
-MMDDYYYY : 'MMDDYYYY';
-MODE : 'MODE';
-MODULES : 'MODULES';
-MORE_LABELS : 'MORE-LABELS';
-MOVE : 'MOVE';
-MULTIPLE : 'MULTIPLE';
-MULTIPLY : 'MULTIPLY';
-NAMED : 'NAMED';
-NATIONAL : 'NATIONAL';
-NATIONAL_EDITED : 'NATIONAL-EDITED';
-NATIVE : 'NATIVE';
-NEGATIVE : 'NEGATIVE';
-NETWORK : 'NETWORK';
-NEXT : 'NEXT';
-NO : 'NO';
-NO_ECHO : 'NO-ECHO';
-NOT : 'NOT';
-NULL : 'NULL';
-NULLS : 'NULLS';
-NUMBER : 'NUMBER';
-NUMERIC : 'NUMERIC';
-NUMERIC_DATE : 'NUMERIC-DATE';
-NUMERIC_EDITED : 'NUMERIC-EDITED';
-NUMERIC_TIME : 'NUMERIC-TIME';
-OBJECT_COMPUTER : 'OBJECT-COMPUTER';
-OCCURS : 'OCCURS';
-ODT : 'ODT';
-OF : 'OF';
-OFF : 'OFF';
-OMITTED : 'OMITTED';
-ON : 'ON';
-OPEN : 'OPEN';
-OPTIONAL : 'OPTIONAL';
-OR : 'OR';
-ORDER : 'ORDER';
-ORDERLY : 'ORDERLY';
-ORGANIZATION : 'ORGANIZATION';
-OTHER : 'OTHER';
-OUTPUT : 'OUTPUT';
-OVERFLOW : 'OVERFLOW';
-OVERLINE : 'OVERLINE';
-OWN : 'OWN';
-PACKED_DECIMAL : 'PACKED-DECIMAL';
-PADDING : 'PADDING';
-PAGE : 'PAGE';
-PAGE_COUNTER : 'PAGE-COUNTER';
-PARAGRAPH : 'PARAGRAPH';
-PASSWORD : 'PASSWORD';
-PERFORM : 'PERFORM';
-PF : 'PF';
-PH : 'PH';
-PIC : 'PIC';
-PICTURE : 'PICTURE';
-PLUS : 'PLUS';
-POINTER : 'POINTER';
-POSITION : 'POSITION';
-POSITIVE : 'POSITIVE';
-PORT : 'PORT';
-PRINTER : 'PRINTER';
-PRINTING : 'PRINTING';
-PRIVATE : 'PRIVATE';
-PROCEDURE : 'PROCEDURE';
-PROCEDURE_POINTER : 'PROCEDURE-POINTER';
-PROCEDURES : 'PROCEDURES';
-PROCEED : 'PROCEED';
-PROCESS : 'PROCESS';
-PROGRAM : 'PROGRAM';
-PROGRAM_ID : 'PROGRAM-ID';
-PROGRAM_LIBRARY : 'PROGRAM-LIBRARY';
-PROMPT : 'PROMPT';
-PURGE : 'PURGE';
-QUEUE : 'QUEUE';
-QUOTE : 'QUOTE';
-QUOTES : 'QUOTES';
-RANDOM : 'RANDOM';
-READER : 'READER';
-REMOTE : 'REMOTE';
-RD : 'RD';
-REAL : 'REAL';
-READ : 'READ';
-RECEIVE : 'RECEIVE';
-RECEIVED : 'RECEIVED';
-RECORD : 'RECORD';
-RECORDING : 'RECORDING';
-RECORDS : 'RECORDS';
-RECURSIVE : 'RECURSIVE';
-REDEFINES : 'REDEFINES';
-REEL : 'REEL';
-REF : 'REF';
-REFERENCE : 'REFERENCE';
-REFERENCES : 'REFERENCES';
-RELATIVE : 'RELATIVE';
-RELEASE : 'RELEASE';
-REMAINDER : 'REMAINDER';
-REMARKS : 'REMARKS';
-REMOVAL : 'REMOVAL';
-REMOVE : 'REMOVE';
-RENAMES : 'RENAMES';
-REPLACE : 'REPLACE';
-REPLACING : 'REPLACING';
-REPORT : 'REPORT';
-REPORTING : 'REPORTING';
-REPORTS : 'REPORTS';
-REPOSITORY : 'REPOSITORY';
-REQUIRED : 'REQUIRED';
-RERUN : 'RERUN';
-RESERVE : 'RESERVE';
-REVERSE_VIDEO : 'RESERVE-VIDEO';
-RESET : 'RESET';
-RETURN : 'RETURN';
-RETURN_CODE : 'RETURN-CODE';
-RETURNING : 'RETURNING';
-REVERSED : 'REVERSED';
-REWIND : 'REWIND';
-REWRITE : 'REWRITE';
-RF : 'RF';
-RH : 'RH';
-RIGHT : 'RIGHT';
-ROUNDED : 'ROUNDED';
-RUN : 'RUN';
-SAME : 'SAME';
-SAVE : 'SAVE';
-SCREEN : 'SCREEN';
-SD : 'SD';
-SEARCH : 'SEARCH';
-SECTION : 'SECTION';
-SECURE : 'SECURE';
-SECURITY : 'SECURITY';
-SEGMENT : 'SEGMENT';
-SEGMENT_LIMIT : 'SEGMENT-LIMIT';
-SELECT : 'SELECT';
-SEND : 'SEND';
-SENTENCE : 'SENTENCE';
-SEPARATE : 'SEPARATE';
-SEQUENCE : 'SEQUENCE';
-SEQUENTIAL : 'SEQUENTIAL';
-SET : 'SET';
-SHARED : 'SHARED';
-SHAREDBYALL : 'SHAREDBYALL';
-SHAREDBYRUNUNIT : 'SHAREDBYRUNUNIT';
-SHARING : 'SHARING';
-SHIFT_IN : 'SHIFT-IN';
-SHIFT_OUT : 'SHIFT-OUT';
-SHORT_DATE : 'SHORT-DATE';
-SIGN : 'SIGN';
-SIZE : 'SIZE';
-SORT : 'SORT';
-SORT_CONTROL : 'SORT-CONTROL';
-SORT_CORE_SIZE : 'SORT-CORE-SIZE';
-SORT_FILE_SIZE : 'SORT-FILE-SIZE';
-SORT_MERGE : 'SORT-MERGE';
-SORT_MESSAGE : 'SORT-MESSAGE';
-SORT_MODE_SIZE : 'SORT-MODE-SIZE';
-SORT_RETURN : 'SORT-RETURN';
-SOURCE : 'SOURCE';
-SOURCE_COMPUTER : 'SOURCE-COMPUTER';
-SPACE : 'SPACE';
-SPACES : 'SPACES';
-SPECIAL_NAMES : 'SPECIAL-NAMES';
-SQL : 'SQL';
-STANDARD : 'STANDARD';
-STANDARD_1 : 'STANDARD-1';
-STANDARD_2 : 'STANDARD-2';
-START : 'START';
-STATUS : 'STATUS';
-STOP : 'STOP';
-STRING : 'STRING';
-SUB_QUEUE_1 : 'SUB-QUEUE-1';
-SUB_QUEUE_2 : 'SUB-QUEUE-2';
-SUB_QUEUE_3 : 'SUB-QUEUE-3';
-SUBTRACT : 'SUBTRACT';
-SUM : 'SUM';
-SUPPRESS : 'SUPPRESS';
-SYMBOL : 'SYMBOL';
-SYMBOLIC : 'SYMBOLIC';
-SYNC : 'SYNC';
-SYNCHRONIZED : 'SYNCHRONIZED';
-TABLE : 'TABLE';
-TALLY : 'TALLY';
-TALLYING : 'TALLYING';
-TASK : 'TASK';
-TAPE : 'TAPE';
-TERMINAL : 'TERMINAL';
-TERMINATE : 'TERMINATE';
-TEST : 'TEST';
-TEXT : 'TEXT';
-THAN : 'THAN';
-THEN : 'THEN';
-THREAD : 'THREAD';
-THREAD_LOCAL : 'THREAD-LOCAL';
-THROUGH : 'THROUGH';
-THRU : 'THRU';
-TIME : 'TIME';
-TIMER : 'TIMER';
-TIMES : 'TIMES';
-TITLE : 'TITLE';
-TO : 'TO';
-TODAYS_DATE : 'TODAYS-DATE';
-TODAYS_NAME : 'TODAYS-NAME';
-TOP : 'TOP';
-TRAILING : 'TRAILING';
-TRUE : 'TRUE';
-TRUNCATED : 'TRUNCATED';
-TYPE : 'TYPE';
-TYPEDEF : 'TYPEDEF';
-UNDERLINE : 'UNDERLINE';
-UNIT : 'UNIT';
-UNSTRING : 'UNSTRING';
-UNTIL : 'UNTIL';
-UP : 'UP';
-UPON : 'UPON';
-USAGE : 'USAGE';
-USE : 'USE';
-USING : 'USING';
-VALUE : 'VALUE';
-VALUES : 'VALUES';
-VARYING : 'VARYING';
-VIRTUAL : 'VIRTUAL';
-WAIT : 'WAIT';
-WHEN : 'WHEN';
-WHEN_COMPILED : 'WHEN-COMPILED';
-WITH : 'WITH';
-WORDS : 'WORDS';
-WORKING_STORAGE : 'WORKING-STORAGE';
-WRITE : 'WRITE';
-YEAR : 'YEAR';
-YYYYMMDD : 'YYYYMMDD';
-YYYYDDD : 'YYYYDDD';
-ZERO : 'ZERO';
-ZERO_FILL : 'ZERO-FILL';
-ZEROS : 'ZEROS';
-ZEROES : 'ZEROES';
-
-// symbols
-AMPCHAR : '&';
-ASTERISKCHAR : '*';
-DOUBLEASTERISKCHAR : '**';
-COLONCHAR : ':';
-COMMACHAR : ',';
-COMMENTENTRYTAG : '*>CE';
-COMMENTTAG : '*>';
-DOLLARCHAR : '$';
-DOUBLEQUOTE : '"';
-// period full stop
-DOT_FS : '.' | '.' EOF;
-EQUALCHAR : '=';
-EXECCICSTAG : '*>EXECCICS';
-EXECDLITAG : '*>EXECDLI';
-EXECSQLTAG : '*>EXECSQL';
-EXECSQLIMSTAG : '*>EXECSQLIMS';
-LESSTHANCHAR : '<';
-LESSTHANOREQUAL : '<=';
-LPARENCHAR : '(';
-MINUSCHAR : '-';
-MORETHANCHAR : '>';
-MORETHANOREQUAL : '>=';
-NOTEQUALCHAR : '<>';
-PLUSCHAR : '+';
-SINGLEQUOTE : '\'';
-RPARENCHAR : ')';
-SLASHCHAR : '/';
-
-// literals
-NONNUMERICLITERAL : STRINGLITERAL | DBCSLITERAL | HEXNUMBER  | NULLTERMINATED;
-
-fragment HEXNUMBER
-    : 'X' '"' [0-9A-F]+ '"'
-    | 'X' '\'' [0-9A-F]+ '\''
-    ;
-
-fragment NULLTERMINATED
-    : 'Z' '"' (~["\n\r] | '""' | '\'')* '"'
-    | 'Z' '\'' (~['\n\r] | '\'\'' | '"')* '\''
-    ;
-
-fragment STRINGLITERAL
-    : '"' (~["\n\r] | '""' | '\'')* '"'
-    | '\'' (~['\n\r] | '\'\'' | '"')* '\''
-    ;
-
-fragment DBCSLITERAL
-    : [GN] '"' (~["\n\r] | '""' | '\'')* '"'
-    | [GN] '\'' (~['\n\r] | '\'\'' | '"')* '\''
-    ;
-
-LEVEL_NUMBER_66 : '66';
-LEVEL_NUMBER_77 : '77';
-LEVEL_NUMBER_88 : '88';
-
-INTEGERLITERAL : (PLUSCHAR | MINUSCHAR)? [0-9]+;
-
-NUMERICLITERAL : (PLUSCHAR | MINUSCHAR)? [0-9]* ('.' | COMMACHAR) [0-9]+ ('E' (PLUSCHAR | MINUSCHAR)? [0-9]+)?;
-
-// A :TAG: placeholder is part of a word; the colon of a reference modifier is not.
-IDENTIFIER : ([A-Z0-9]+ | COLONCHAR [A-Z0-9]+ COLONCHAR) ([-_]+ ([A-Z0-9]+ | COLONCHAR [A-Z0-9]+ COLONCHAR))*;
-
-// whitespace, line breaks, comments, ...
-
-/* Note:
- * The IBM-ANSI-85 spec defines a whitespace character as ' ', ', ', or `; `.
- * However, client code contains custom whitespace rules that do not match the language spec.
- * The customized whitespace allows for new lines to exist anywhere in the source code.
- *
- * SEPARATOR rule skips over the customized whitespace.
- */
-SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> skip;
-NEWLINE : '\r'? '\n' -> channel(HIDDEN);
-EXECCICSLINE : EXECCICSTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-EXECDLILINE : EXECDLITAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-EXECSQLIMSLINE : EXECSQLIMSTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-EXECSQLLINE : EXECSQLTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
-COMMENTENTRYLINE : COMMENTENTRYTAG WS ~('\n' | '\r')*;
-COMMENTLINE : COMMENTTAG WS ~('\n' | '\r')* -> channel(HIDDEN);
-WS : [ \t\f;]+ -> channel(HIDDEN);

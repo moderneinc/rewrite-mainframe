@@ -166,6 +166,13 @@ public class CobolPreprocessorVisitor<P> extends TreeVisitor<CobolPreprocessor, 
         return d.withName((CobolPreprocessor.Word) visit(d.getName(), p));
     }
 
+    public CobolPreprocessor visitCompilerDirective(CobolPreprocessor.CompilerDirective compilerDirective, P p) {
+        CobolPreprocessor.CompilerDirective c = compilerDirective;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.COMPILER_DIRECTIVE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        return c.withWord((CobolPreprocessor.Word) visit(c.getWord(), p));
+    }
+
     public CobolPreprocessor visitEjectStatement(CobolPreprocessor.EjectStatement ejectStatement, P p) {
         CobolPreprocessor.EjectStatement e = ejectStatement;
         e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.EJECT_STATEMENT_PREFIX, p));
@@ -236,10 +243,7 @@ public class CobolPreprocessorVisitor<P> extends TreeVisitor<CobolPreprocessor, 
         r = r.withMarkers(visitMarkers(r.getMarkers(), p));
         r = r.withReplaceable(visit(r.getReplaceable(), p));
         r = r.withBy((CobolPreprocessor.Word) visit(r.getBy(), p));
-        r = r.withReplacement(visit(r.getReplacement(), p));
-        r = r.withSubscript(ListUtils.map(r.getSubscript(), it -> visit(it, p)));
-        r = r.withDirectoryPhrases(ListUtils.map(r.getDirectoryPhrases(), it -> (CobolPreprocessor.DirectoryPhrase) visit(it, p)));
-        return r.withFamilyPhrase((CobolPreprocessor.FamilyPhrase) visit(r.getFamilyPhrase(), p));
+        return r.withReplacement(visit(r.getReplacement(), p));
     }
 
     public CobolPreprocessor visitReplaceOffStatement(CobolPreprocessor.ReplaceOffStatement replaceOffStatement, P p) {

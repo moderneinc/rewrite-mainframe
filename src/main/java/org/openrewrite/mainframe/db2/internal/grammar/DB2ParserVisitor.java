@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/openrewrite/rewrite-cobol/.claude/worktrees/ims-or-cics/src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.db2.internal.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -206,6 +206,12 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIndexOption(DB2Parser.IndexOptionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DB2Parser#namedIndexOption}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNamedIndexOption(DB2Parser.NamedIndexOptionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DB2Parser#createTablespace}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -217,6 +223,12 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitTablespaceOption(DB2Parser.TablespaceOptionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#namedTablespaceOption}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNamedTablespaceOption(DB2Parser.NamedTablespaceOptionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link DB2Parser#createDatabase}.
 	 * @param ctx the parse tree
@@ -326,6 +338,12 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTrustedContextOption(DB2Parser.TrustedContextOptionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DB2Parser#namedTrustedContextOption}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DB2Parser#trustedAttribute}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -391,6 +409,12 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitRoutineParameter(DB2Parser.RoutineParameterContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#parameterName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParameterName(DB2Parser.ParameterNameContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link DB2Parser#routineClause}.
 	 * @param ctx the parse tree
@@ -644,11 +668,53 @@ public interface DB2ParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitValuesRow(DB2Parser.ValuesRowContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DB2Parser#updateStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUpdateStatement(DB2Parser.UpdateStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#updateClauses}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUpdateClauses(DB2Parser.UpdateClausesContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#assignment}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAssignment(DB2Parser.AssignmentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#deleteStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDeleteStatement(DB2Parser.DeleteStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#deleteClauses}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDeleteClauses(DB2Parser.DeleteClausesContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#selectStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSelectStatement(DB2Parser.SelectStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DB2Parser#queryExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitQueryExpression(DB2Parser.QueryExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DB2Parser#commonTableExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCommonTableExpression(DB2Parser.CommonTableExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link DB2Parser#setOperator}.
 	 * @param ctx the parse tree

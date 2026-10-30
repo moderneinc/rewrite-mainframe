@@ -2,11 +2,134 @@ parser grammar DB2Parser;
 
 options { caseInsensitive = true; tokenVocab=DB2Lexer; }
 
+@members {
+    /**
+     * The predicates that take a rule's context are ones ANTLR treats as context-dependent. SLL prediction
+     * evaluates each only in its own rule's decisions, so the predicates of nested rules never combine.
+     */
+    boolean ahead(ParserRuleContext rule, int type) {
+        return _input.LA(1) == type;
+    }
+
+    private boolean startsIdentifier(int type) {
+        return _ATN.nextTokens(_ATN.ruleToStartState[RULE_identifier]).contains(type);
+    }
+
+    boolean starts(ParserRuleContext ctx, int rule) {
+        return _ATN.nextTokens(_ATN.ruleToStartState[rule]).contains(_input.LA(1));
+    }
+
+    /**
+     * Whether the END ahead closes the compound statement, rather than a control flow statement or a CASE
+     * expression in its body. A CASE expression ends with a bare END, so one is the block's only when every
+     * CASE the body has opened so far is closed.
+     */
+    boolean closesBlock(CompoundStatementContext block) {
+        if (_input.LA(1) != END) {
+            return false;
+        }
+        return !endsStatement(_input.LA(2)) && openCases(block) == 0;
+    }
+
+    private static boolean endsStatement(int wordAfterEnd) {
+        switch (wordAfterEnd) {
+            case IF: case WHILE: case FOR: case CASE: case LOOP: case REPEAT:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * The CASE expressions and CASE statements of the block's body that no END has closed yet. The block keeps
+     * the count, and each call brings it up to date over the body items added since the last one. A nested
+     * block closes its own.
+     */
+    private int openCases(CompoundStatementContext block) {
+        List<ParseTree> items = block.children;
+        for (int i = block.counted; i < items.size(); i++) {
+            int word = bodyWord(items.get(i));
+            if (word == CASE) {
+                block.openCases++;
+            } else if (word == END) {
+                int next = i + 1 < items.size() ? bodyWord(items.get(i + 1)) : _input.LA(1);
+                if (next == CASE) {
+                    i++;
+                    block.openCases--;
+                } else if (!endsStatement(next)) {
+                    block.openCases--;
+                }
+            }
+        }
+        block.counted = items.size();
+        return block.openCases;
+    }
+
+    private static int bodyWord(ParseTree item) {
+        if (item instanceof BodyItemContext && ((BodyItemContext) item).compoundStatement() == null) {
+            return ((BodyItemContext) item).getStart().getType();
+        }
+        return Token.INVALID_TYPE;
+    }
+
+    /**
+     * Whether a dot and another part continue the qualified name. The table of a COMMENT ON COLUMN or LABEL ON
+     * COLUMN target leaves its last part to the column, and a dot before a star belongs to the select item.
+     */
+    boolean continuesName(ParserRuleContext name) {
+        if (_input.LA(1) != DOT || !startsIdentifier(_input.LA(2))) {
+            return false;
+        }
+        ParserRuleContext target = name.getParent();
+        boolean columnTable = (target instanceof CommentTargetContext || target instanceof LabelTargetContext) &&
+                target.getStart().getType() == COLUMN;
+        return !columnTable || _input.LA(3) == DOT;
+    }
+
+    /**
+     * Whether a column's default value follows. A name only starts one as a function call, and anything else
+     * that could also be the next column attribute is taken as the value.
+     */
+    boolean startsDefaultValue(ParserRuleContext attribute) {
+        int type = _input.LA(1);
+        switch (type) {
+            case NUMBER: case PLUS: case MINUS: case STRING: case HEX_STRING: case PLACEHOLDER: case USER: case NULL:
+                return true;
+            case CURRENT:
+                return _input.LA(2) == SQLID;
+            default:
+                if (!startsIdentifier(type)) {
+                    return false;
+                }
+                int i = 2;
+                while (_input.LA(i) == DOT && startsIdentifier(_input.LA(i + 1))) {
+                    i += 2;
+                }
+                return _input.LA(i) == LPAREN;
+        }
+    }
+
+    /**
+     * Whether the index key ahead is a column name alone, which the key's expression alternative also matches.
+     */
+    boolean columnKeyAhead(ParserRuleContext key) {
+        if (!startsIdentifier(_input.LA(1))) {
+            return false;
+        }
+        switch (_input.LA(2)) {
+            case COMMA: case RPAREN: case ASC: case DESC: case RANDOM:
+                return true;
+            default:
+                return false;
+        }
+    }
+}
+
 // DB2 for z/OS DDL. Every statement is modelled: there is no catch-all, so a statement this grammar
 // cannot read is a syntax error rather than a node that says nothing.
 
 compilationUnit
-    : statement* EOF
+    : terminator* statement* EOF
     ;
 
 statement
@@ -56,18 +179,20 @@ statement
     | releaseSavepointStatement
     | lockStatement
     | insertStatement
+    | updateStatement
+    | deleteStatement
     | queryStatement
-    | terminator
     ;
 
 // A query standing on its own. The .sql files next to a schema are usually catalog queries.
 queryStatement
-    : queryExpression end
+    : selectStatement end
     ;
 
-// A semicolon of its own. DDL scripts written by a generator often end with one.
+// A terminator before the first statement. Every later one ends the statement before it.
 terminator
     : SEMI
+    | AT_SIGN
     ;
 
 //
@@ -104,8 +229,8 @@ columnDefinition
 columnAttribute
     : NOT NULL
     | NULL
-    | DEFAULT defaultValue?
-    | WITH DEFAULT defaultValue?
+    | DEFAULT (defaultValue | {!startsDefaultValue($ctx)}?)
+    | WITH DEFAULT (defaultValue | {!startsDefaultValue($ctx)}?)
     | GENERATED (ALWAYS | BY DEFAULT) generatedAs?
     | (CONSTRAINT identifier)? PRIMARY KEY
     | (CONSTRAINT identifier)? UNIQUE
@@ -243,10 +368,17 @@ indexModifier
     ;
 
 indexKey
-    : (identifier | expression) (ASC | DESC | RANDOM)?
+    : ({columnKeyAhead($ctx)}? identifier | {!columnKeyAhead($ctx)}? expression) (ASC | DESC | RANDOM)?
     ;
 
+// Any other word, so that an unknown option still parses. A named option's keyword is never one, or its
+// value word could read as an unknown option of its own.
 indexOption
+    : namedIndexOption
+    | {!starts($ctx, RULE_namedIndexOption)}? nonReserved
+    ;
+
+namedIndexOption
     : NOT? CLUSTER
     | NOT? PADDED
     | (INCLUDE | EXCLUDE) NULL KEYS
@@ -262,7 +394,6 @@ indexOption
     | COMPRESS (YES | NO)
     | PIECESIZE NUMBER identifier?
     | storageOption
-    | nonReserved
     ;
 
 //
@@ -274,6 +405,11 @@ createTablespace
     ;
 
 tablespaceOption
+    : namedTablespaceOption
+    | {!starts($ctx, RULE_namedTablespaceOption)}? nonReserved
+    ;
+
+namedTablespaceOption
     : USING (STOGROUP identifier | VCAT identifier)
     | SEGSIZE NUMBER
     | NUMPARTS NUMBER partitionClause*
@@ -291,8 +427,7 @@ tablespaceOption
     | MEMBER CLUSTER
     | PAGENUM (ABSOLUTE | RELATIVE)
     | MAXROWS NUMBER
-    | storageOption
-    | nonReserved
+    | {!ahead($ctx, USING)}? storageOption
     ;
 
 createDatabase
@@ -322,7 +457,7 @@ stogroupOption
     ;
 
 createView
-    : CREATE VIEW qualifiedName columnList? AS queryExpression viewOption* end
+    : CREATE VIEW qualifiedName columnList? AS selectStatement viewOption* end
     ;
 
 viewOption
@@ -386,19 +521,29 @@ createTrustedContext
     ;
 
 trustedContextOption
-    : ATTRIBUTES LPAREN trustedAttribute (COMMA trustedAttribute)* RPAREN
-    | (ENABLE | DISABLE)
-    | NO? DEFAULT ROLE identifier?
-    | WITH USE FOR trustedUser (COMMA trustedUser)*
-    | nonReserved
+    : namedTrustedContextOption
+    | {!starts($ctx, RULE_namedTrustedContextOption)}? nonReserved
+    ;
+
+namedTrustedContextOption
+    : (ALTER | ADD | DROP)? ATTRIBUTES LPAREN trustedAttribute (COMMA trustedAttribute)* RPAREN
+    | ALTER? (ENABLE | DISABLE)
+    | ALTER? NO? DEFAULT ROLE identifier?
+    | ALTER? (NO DEFAULT SECURITY LABEL | DEFAULT SECURITY LABEL identifier)
+    // OBJECT and OWNER are not tokens.
+    | ALTER? (WITH | WITHOUT) ROLE AS identifier identifier (AND QUALIFIER)?
+    | ALTER SYSTEM AUTHID identifier
+    | (WITH | ADD | REPLACE | DROP) USE FOR trustedUser (COMMA trustedUser)*
     ;
 
 trustedAttribute
-    : nonReserved (EQ | ) STRING
+    : identifier (EQ | ) STRING
     ;
 
+// PROFILE is not a token.
 trustedUser
-    : (identifier | PUBLIC) (ROLE identifier)? (WITH | WITHOUT)? AUTHENTICATION?
+    : (identifier | EXTERNAL SECURITY identifier identifier | PUBLIC)
+      (ROLE identifier)? (SECURITY LABEL identifier)? ((WITH | WITHOUT) AUTHENTICATION)?
     ;
 
 caseExpression
@@ -448,7 +593,13 @@ createFunction
     ;
 
 routineParameter
-    : (IN | OUT | INOUT)? identifier? dataType
+    : (IN | OUT | INOUT)? parameterName? dataType
+    ;
+
+// A parameter may be named DATABASE, a keyword everywhere else in this grammar.
+parameterName
+    : identifier
+    | DATABASE
     ;
 
 routineClause
@@ -478,20 +629,24 @@ routineClause
     ;
 
 // SQL PL is a procedural language of its own, not DDL. Its block structure is modelled so that a
-// nested BEGIN, or an END that closes a control flow statement rather than the block, does not end
-// the routine early; the statements inside it are not.
+// nested BEGIN, or an END that closes a control flow statement or a CASE expression rather than
+// the block, does not end the routine early; the statements inside it are not.
+//
+// Both sides of the body loop carry the predicate. One inside bodyItem would not reach the loop's
+// decision, since prediction evaluates a context-dependent predicate only in its own rule.
 compoundStatement
-    : BEGIN ATOMIC? bodyItem* END identifier?
+locals [int openCases, int counted]
+    : BEGIN ATOMIC? ({!closesBlock($ctx)}? bodyItem)* {closesBlock($ctx)}? END identifier?
     ;
 
 bodyItem
     : compoundStatement
-    | END (IF | WHILE | FOR | CASE | LOOP | REPEAT)
-    | ~(BEGIN | END)
+    | ~BEGIN
     ;
 
+// A trigger's single statement has no block for an END to close, and its terminator ends the trigger.
 triggeredStatement
-    : bodyItem+
+    : ~(BEGIN | SEMI | AT_SIGN)+
     ;
 
 //
@@ -692,7 +847,6 @@ setStatement
 
 specialRegister
     : CURRENT? nonReserved+
-    | CURRENT SQLID
     | CURRENT SCHEMA
     | CURRENT PATH
     | PATH
@@ -721,7 +875,7 @@ lockStatement
 
 insertStatement
     : INSERT INTO qualifiedName columnList?
-      (VALUES valuesRow (COMMA valuesRow)* | queryExpression) end
+      (VALUES valuesRow (COMMA valuesRow)* | selectStatement) end
     ;
 
 valuesRow
@@ -729,13 +883,45 @@ valuesRow
     | expression
     ;
 
+updateStatement
+    : UPDATE qualifiedName updateClauses end
+    ;
+
+updateClauses
+    : (AS? identifier)? SET assignment (COMMA assignment)* (WHERE searchCondition)?
+    ;
+
+assignment
+    : identifier EQ expression
+    | LPAREN identifier (COMMA identifier)* RPAREN EQ
+      LPAREN (expression (COMMA expression)* | queryExpression) RPAREN
+    ;
+
+deleteStatement
+    : DELETE FROM? qualifiedName deleteClauses? end
+    ;
+
+deleteClauses
+    : AS? identifier (WHERE searchCondition)?
+    | WHERE searchCondition
+    ;
+
 //
 // Queries. A view and a materialized query table are defined by one, and the relationship graph
 // wants the tables it names.
 //
 
+// A statement's query, which unlike a subquery may open by naming queries of its own.
+selectStatement
+    : (WITH commonTableExpression (COMMA commonTableExpression)*)? queryExpression
+    ;
+
 queryExpression
     : querySpecification (setOperator querySpecification)*
+    ;
+
+commonTableExpression
+    : identifier columnList? AS LPAREN queryExpression RPAREN
     ;
 
 setOperator
@@ -848,7 +1034,7 @@ signedNumber
 //
 
 qualifiedName
-    : identifier (DOT identifier)*
+    : identifier ({continuesName($ctx)}? DOT identifier)* {!continuesName($ctx)}?
     ;
 
 identifier
@@ -889,7 +1075,7 @@ storageOption
     ;
 
 end
-    : SEMI?
+    : (SEMI | AT_SIGN)*
     ;
 
 // DB2's non-reserved keywords. A word here is a keyword in the statements that use it and an

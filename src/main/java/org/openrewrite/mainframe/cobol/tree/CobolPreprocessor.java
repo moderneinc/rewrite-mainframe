@@ -188,6 +188,28 @@ public interface CobolPreprocessor extends Tree {
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
+    class CompilerDirective implements CobolPreprocessor {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        /**
+         * The whole directive, from >> to the end of its line.
+         */
+        Word word;
+
+        @Override
+        public <P> CobolPreprocessor acceptCobolPreprocessor(CobolPreprocessorVisitor<P> v, P p) {
+            return v.visitCompilerDirective(this, p);
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
     class CompilerOption implements CobolPreprocessor {
 
         @EqualsAndHashCode.Include
@@ -559,15 +581,6 @@ public interface CobolPreprocessor extends Tree {
         CobolPreprocessor replaceable;
         Word by;
         CobolPreprocessor replacement;
-
-        @Nullable
-        List<CobolPreprocessor> subscript;
-
-        @Nullable
-        List<DirectoryPhrase> directoryPhrases;
-
-        @Nullable
-        FamilyPhrase familyPhrase;
 
         @Override
         public <P> CobolPreprocessor acceptCobolPreprocessor(CobolPreprocessorVisitor<P> v, P p) {

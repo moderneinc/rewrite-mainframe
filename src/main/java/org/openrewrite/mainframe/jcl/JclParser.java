@@ -28,6 +28,7 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.mainframe.jcl.internal.JclParserVisitor;
 import org.openrewrite.mainframe.jcl.internal.grammar.JCLLexer;
 import org.openrewrite.mainframe.jcl.internal.grammar.JCLParser;
@@ -114,7 +115,8 @@ public class JclParser implements Parser {
                         // A member of the library was read for the expansion already; as a source of
                         // its own it is the same tree under its path from the root.
                         Jcl.CompilationUnit cu = library.get(sourceFile.getPath());
-                        if (cu != null) {
+                        boolean fromLibrary = cu != null;
+                        if (fromLibrary) {
                             cu = cu.withSourcePath(path);
                         } else {
                             cu = read(sourceFile, path, ctx);
@@ -132,7 +134,8 @@ public class JclParser implements Parser {
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
-                        return cu;
+                        // Reading the library checked each of its members against its file.
+                        return fromLibrary ? cu : requirePrintEqualsInput(cu, sourceFile, relativeTo, ctx);
                     } catch (Throwable t) {
                         sample.stop(MetricsHelper.errorTags(timer, t).register(Metrics.globalRegistry));
                         return ParseError.build(this, sourceFile, relativeTo, pctx, t);
@@ -155,6 +158,7 @@ public class JclParser implements Parser {
 
         parser.removeErrorListeners();
         parser.addErrorListener(new ForwardingErrorListener(sourceFile.getPath(), ctx));
+        PredictionListener.addTo(parser, ctx);
 
         return new JclParserVisitor(
                 path,

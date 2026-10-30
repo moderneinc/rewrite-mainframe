@@ -78,6 +78,38 @@ class EmbeddedSqlTest {
         assertThat(EmbeddedSql.read("DECLARE C1 CURSOR FOR SELECT POLICY_NO FROM CLM.POLICY").getTarget()).isNull();
     }
 
+    @Test
+    void readsAnInsertWhoseColumnsAQueryFills() {
+        EmbeddedSql read = EmbeddedSql.read("INSERT INTO CLM.LOG (ID, LOGGED) SELECT ID, :WS-NOW FROM CLM.CLAIM");
+        assertThat(read.getColumns()).containsExactly("ID", "LOGGED");
+        // A query fills the listed columns by position, as VALUES does.
+        assertThat(read.getHostVariables()).containsExactly("", "WS-NOW");
+
+        assertThat(EmbeddedSql.read("INSERT INTO CLM.LOG (ID, LOGGED) (SELECT ID, :WS-NOW FROM CLM.CLAIM)")
+          .getHostVariables()).containsExactly("", "WS-NOW");
+
+        assertThat(EmbeddedSql.read(
+          "INSERT INTO CLM.LOG (ID) WITH T AS (SELECT ID FROM CLM.CLAIM) SELECT ID FROM T").getTables())
+          .containsExactlyInAnyOrder("CLM.CLAIM", "CLM.LOG");
+    }
+
+    @Test
+    void readsAQueryThatIsNotAPlainSelect() {
+        assertThat(EmbeddedSql.read(
+          "DECLARE C1 CURSOR FOR SELECT ID, STATUS FROM CLM.CLAIM UNION ALL SELECT CLAIM_ID, STATE FROM CLM.CLAIM_HIST")
+          .getColumns()).containsExactly("ID", "STATUS");
+
+        EmbeddedSql values = EmbeddedSql.read("VALUES USER INTO :WS-USER");
+        assertThat(values.getColumns()).isEmpty();
+        assertThat(values.getHostVariables()).containsExactly("WS-USER");
+    }
+
+    @Test
+    void pairsAMultiRowInsertWithItsFirstRow() {
+        assertThat(EmbeddedSql.read("INSERT INTO CLM.LOG (ID, NOTE) VALUES (:WS-ID, :WS-NOTE), (:WS-ID2, 'X')")
+          .getHostVariables()).containsExactly("WS-ID", "WS-NOTE");
+    }
+
     /**
      * Every statement is parsed on one pool of daemon threads rather than on an executor built for
      * it, so reading an estate neither starts a thread a statement nor holds the JVM open.

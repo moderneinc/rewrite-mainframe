@@ -31,6 +31,7 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Space;
 import org.openrewrite.internal.EncodingDetectingInputStream;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.text.PlainText;
 import org.openrewrite.tree.ParseError;
@@ -94,6 +95,7 @@ public class CopybookParser implements Parser {
                     new org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorParser(new CommonTokenStream(lexer));
             parser.removeErrorListeners();
             parser.addErrorListener(new ForwardingErrorListener(input.getPath()));
+            PredictionListener.addTo(parser, ctx);
 
             CobolPreprocessorParserVisitor parserVisitor = new CobolPreprocessorParserVisitor(
                     input.getRelativePath(relativeTo),
@@ -122,7 +124,7 @@ public class CopybookParser implements Parser {
             );
 
             parsingListener.parsed(input, preprocessedCU);
-            return copybook;
+            return requirePrintEqualsInput(copybook, input, relativeTo, ctx);
         } catch (Throwable t) {
             ctx.getOnError().accept(t);
             return ParseError.build(this, input, relativeTo, ctx, t);

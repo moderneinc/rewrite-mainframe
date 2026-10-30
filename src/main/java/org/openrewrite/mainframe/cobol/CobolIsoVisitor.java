@@ -790,6 +790,46 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.Allocate visitAllocate(Cobol.Allocate allocate, P p) {
+        return (Cobol.Allocate) super.visitAllocate(allocate, p);
+    }
+
+    @Override
+    public Cobol.Free visitFree(Cobol.Free free, P p) {
+        return (Cobol.Free) super.visitFree(free, p);
+    }
+
+    @Override
+    public Cobol.JsonXml visitJsonXml(Cobol.JsonXml jsonXml, P p) {
+        return (Cobol.JsonXml) super.visitJsonXml(jsonXml, p);
+    }
+
+    @Override
+    public Cobol.JsonXmlPhrase visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, P p) {
+        return (Cobol.JsonXmlPhrase) super.visitJsonXmlPhrase(jsonXmlPhrase, p);
+    }
+
+    @Override
+    public Cobol.DataDynamicLengthClause visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, P p) {
+        return (Cobol.DataDynamicLengthClause) super.visitDataDynamicLengthClause(dataDynamicLengthClause, p);
+    }
+
+    @Override
+    public Cobol.DataGroupUsageClause visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, P p) {
+        return (Cobol.DataGroupUsageClause) super.visitDataGroupUsageClause(dataGroupUsageClause, p);
+    }
+
+    @Override
+    public Cobol.DataVolatileClause visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, P p) {
+        return (Cobol.DataVolatileClause) super.visitDataVolatileClause(dataVolatileClause, p);
+    }
+
+    @Override
+    public Cobol.XmlSchemaClause visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, P p) {
+        return (Cobol.XmlSchemaClause) super.visitXmlSchemaClause(xmlSchemaClause, p);
+    }
+
+    @Override
     public Cobol.Initialize visitInitialize(Cobol.Initialize initialize, P p) {
         return (Cobol.Initialize) super.visitInitialize(initialize, p);
     }
@@ -1970,6 +2010,11 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.Service visitService(Cobol.Service service, P p) {
+        return (Cobol.Service) super.visitService(service, p);
+    }
+
+    @Override
     public Cobol.Set visitSet(Cobol.Set set, P p) {
         return (Cobol.Set) super.visitSet(set, p);
     }
@@ -2297,5 +2342,20 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     @Override
     public Cobol.WriteFromPhrase visitWriteFromPhrase(Cobol.WriteFromPhrase writeFromPhrase, P p) {
         return (Cobol.WriteFromPhrase) super.visitWriteFromPhrase(writeFromPhrase, p);
+    }
+
+    @Override
+    public Cobol.XmlParse visitXmlParse(Cobol.XmlParse xmlParse, P p) {
+        return (Cobol.XmlParse) super.visitXmlParse(xmlParse, p);
+    }
+
+    @Override
+    public Cobol.XmlParsePhrase visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, P p) {
+        return (Cobol.XmlParsePhrase) super.visitXmlParsePhrase(xmlParsePhrase, p);
+    }
+
+    @Override
+    public Cobol.XmlParseProcessingProcedure visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, P p) {
+        return (Cobol.XmlParseProcessingProcedure) super.visitXmlParseProcessingProcedure(xmlParseProcessingProcedure, p);
     }
 }

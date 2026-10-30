@@ -13,10 +13,13 @@ val antlr by configurations.creating
 tasks.register<JavaExec>("generateAntlrSourcesCobol") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+        "-Xexact-output-dir",
         "-o", "src/main/java/org/openrewrite/mainframe/cobol/internal/grammar",
+        // CobolParser.g4 reads its token types from CobolLexer.tokens, so the sorted order generates the lexer first.
+        "-lib", "src/main/java/org/openrewrite/mainframe/cobol/internal/grammar",
         "-package", "org.openrewrite.mainframe.cobol.internal.grammar",
         "-visitor"
-    ) + fileTree("src/main/antlr-cobol").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-cobol").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }.sorted()
 
     classpath = configurations["antlr"]
 
@@ -26,10 +29,11 @@ tasks.register<JavaExec>("generateAntlrSourcesCobol") {
 tasks.register<JavaExec>("generateAntlrSourcesJcl") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/jcl/internal/grammar",
             "-package", "org.openrewrite.mainframe.jcl.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-jcl").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-jcl").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -39,10 +43,11 @@ tasks.register<JavaExec>("generateAntlrSourcesJcl") {
 tasks.register<JavaExec>("generateAntlrSourcesBms") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/bms/internal/grammar",
             "-package", "org.openrewrite.mainframe.bms.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-bms").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-bms").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -52,10 +57,11 @@ tasks.register<JavaExec>("generateAntlrSourcesBms") {
 tasks.register<JavaExec>("generateAntlrSourcesIms") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/ims/internal/grammar",
             "-package", "org.openrewrite.mainframe.ims.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-ims").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-ims").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -65,21 +71,25 @@ tasks.register<JavaExec>("generateAntlrSourcesIms") {
 tasks.register<JavaExec>("generateAntlrSourcesDb2") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/db2/internal/grammar",
             "-package", "org.openrewrite.mainframe.db2.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-db2").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-db2").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
+
+    finalizedBy("licenseFormat")
 }
 
 tasks.register<JavaExec>("generateAntlrSourcesBind") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/db2/bind/internal/grammar",
             "-package", "org.openrewrite.mainframe.db2.bind.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-bind").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-bind").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -89,10 +99,11 @@ tasks.register<JavaExec>("generateAntlrSourcesBind") {
 tasks.register<JavaExec>("generateAntlrSourcesLinkEdit") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/linkedit/internal/grammar",
             "-package", "org.openrewrite.mainframe.linkedit.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-linkedit").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-linkedit").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -102,10 +113,11 @@ tasks.register<JavaExec>("generateAntlrSourcesLinkEdit") {
 tasks.register<JavaExec>("generateAntlrSourcesSort") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/controlcard/sort/internal/grammar",
             "-package", "org.openrewrite.mainframe.controlcard.sort.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-sort").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-sort").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -115,10 +127,11 @@ tasks.register<JavaExec>("generateAntlrSourcesSort") {
 tasks.register<JavaExec>("generateAntlrSourcesIdcams") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/controlcard/idcams/internal/grammar",
             "-package", "org.openrewrite.mainframe.controlcard.idcams.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-idcams").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-idcams").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -128,10 +141,11 @@ tasks.register<JavaExec>("generateAntlrSourcesIdcams") {
 tasks.register<JavaExec>("generateAntlrSourcesUtility") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+            "-Xexact-output-dir",
             "-o", "src/main/java/org/openrewrite/mainframe/controlcard/utility/internal/grammar",
             "-package", "org.openrewrite.mainframe.controlcard.utility.internal.grammar",
             "-visitor"
-    ) + fileTree("src/main/antlr-utility").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-utility").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 
@@ -141,10 +155,11 @@ tasks.register<JavaExec>("generateAntlrSourcesUtility") {
 tasks.register<JavaExec>("generateAntlrSourcesControlM") {
     mainClass.set("org.antlr.v4.Tool")
     args = listOf(
+        "-Xexact-output-dir",
         "-o", "src/main/java/org/openrewrite/mainframe/controlm/internal/grammar",
         "-package", "org.openrewrite.mainframe.controlm.internal.grammar",
         "-visitor"
-    ) + fileTree("src/main/antlr-controlm").matching { include("**/*.g4") }.map { it.path }
+    ) + fileTree("src/main/antlr-controlm").matching { include("**/*.g4") }.map { it.relativeTo(projectDir).path }
 
     classpath = configurations["antlr"]
 

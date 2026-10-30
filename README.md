@@ -164,7 +164,7 @@ the variables are unset, so a normal `./gradlew test` does not need them:
 ```bash
 COBOL_CORPUS=/path/to/corpus JCL_CORPUS=/path/to/corpus BMS_CORPUS=/path/to/corpus \
   CONTROLM_CORPUS=/path/to/corpus DB2_CORPUS=/path/to/corpus IMS_CORPUS=/path/to/corpus \
-  ASM_CORPUS=/path/to/corpus SAS_CORPUS=/path/to/corpus ./gradlew test
+  ASM_CORPUS=/path/to/corpus SAS_CORPUS=/path/to/corpus MAINFRAME_CORPUS=/path/to/corpus ./gradlew test
 ```
 
 `IMS_CORPUS` reads 45 gen members — Bank of Z's 17, CardDemo's 8, DBB Samples' 1 and the fixture's 19

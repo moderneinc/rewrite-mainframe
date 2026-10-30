@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2026 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from java-escape by ANTLR 4.11.1
+// Generated from src/main/antlr-controlm/ControlMParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.controlm.internal.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 

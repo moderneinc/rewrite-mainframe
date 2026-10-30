@@ -466,11 +466,13 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
     /**
      * The DD statements written under an {@code EXEC} that calls a procedure. Each is kept with the
      * cards that belong to it — the DDs concatenated onto it and any data written in the stream —
-     * because an override that supplies a data set supplies its data too.
+     * because an override that supplies a data set supplies its data too. One written without a
+     * step name is for the step the override before it named.
      */
     private static List<DdOverride> overridesFollowing(List<Statement> statements, int index) {
         List<DdOverride> overrides = new ArrayList<>();
         DdOverride current = null;
+        String step = null;
         for (int i = index + 1; i < statements.size(); i++) {
             Statement statement = statements.get(i);
             if (isOperation(statement, "EXEC") || isOperation(statement, "JOB") ||
@@ -482,8 +484,11 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
                 String name = ((Jcl.JobControlStatement) statement).getName().getText();
                 name = name.startsWith("//") ? name.substring(2) : name;
                 int dot = name.indexOf('.');
-                current = new DdOverride(dot < 0 ? null : name.substring(0, dot),
-                        dot < 0 ? name : name.substring(dot + 1), (Jcl.JobControlStatement) statement);
+                if (dot >= 0) {
+                    step = name.substring(0, dot);
+                }
+                current = new DdOverride(step, dot < 0 ? name : name.substring(dot + 1),
+                        (Jcl.JobControlStatement) statement);
                 overrides.add(current);
             } else if (current != null && !(statement instanceof Jcl.Expansion)) {
                 current.following.add(statement);
@@ -495,15 +500,13 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
     /**
      * The procedure's own cards with the caller's overrides applied: a DD the caller names again is
      * merged parameter by parameter, and one the procedure does not have is added to the step the
-     * caller named. An unqualified override belongs to the one step of a one-step procedure, as
-     * z/OS allows.
+     * caller named. An override for which no step was named belongs to the first step, as in z/OS.
      */
     private static List<Statement> applyOverrides(List<Statement> body, List<DdOverride> overrides) {
         if (overrides.isEmpty()) {
             return body;
         }
-        List<String> steps = stepNames(body);
-        String onlyStep = steps.size() == 1 ? steps.get(0) : null;
+        String firstStep = firstStepName(body);
         Set<DdOverride> applied = new HashSet<>();
 
         List<Statement> out = new ArrayList<>(body.size());
@@ -511,7 +514,7 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
         for (int i = 0; i < body.size(); i++) {
             Statement statement = body.get(i);
             if (isOperation(statement, "EXEC")) {
-                addTo(out, step, overrides, applied, onlyStep);
+                addTo(out, step, overrides, applied, firstStep);
                 step = ((Jcl.JobControlStatement) statement).getSimpleName();
                 out.add(statement);
                 continue;
@@ -521,7 +524,7 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
                 continue;
             }
             Jcl.JobControlStatement dd = (Jcl.JobControlStatement) statement;
-            DdOverride override = find(overrides, step, dd.getSimpleName(), onlyStep);
+            DdOverride override = find(overrides, step, dd.getSimpleName(), firstStep);
             if (override == null) {
                 out.add(dd);
                 continue;
@@ -536,7 +539,7 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
                 }
             }
         }
-        addTo(out, step, overrides, applied, onlyStep);
+        addTo(out, step, overrides, applied, firstStep);
         return out;
     }
 
@@ -550,12 +553,12 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
      * The overrides for a step that named no DD the procedure has: z/OS adds them to the step.
      */
     private static void addTo(List<Statement> out, String step, List<DdOverride> overrides,
-                              Set<DdOverride> applied, @Nullable String onlyStep) {
+                              Set<DdOverride> applied, @Nullable String firstStep) {
         if (step.isEmpty()) {
             return;
         }
         for (DdOverride override : overrides) {
-            if (applied.contains(override) || !step.equalsIgnoreCase(named(override, onlyStep))) {
+            if (applied.contains(override) || !step.equalsIgnoreCase(named(override, firstStep))) {
                 continue;
             }
             applied.add(override);
@@ -566,9 +569,9 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
     }
 
     private static @Nullable DdOverride find(List<DdOverride> overrides, String step, String ddName,
-                                           @Nullable String onlyStep) {
+                                           @Nullable String firstStep) {
         for (DdOverride override : overrides) {
-            if (step.equalsIgnoreCase(named(override, onlyStep)) &&
+            if (step.equalsIgnoreCase(named(override, firstStep)) &&
                 override.ddName.equalsIgnoreCase(ddName)) {
                 return override;
             }
@@ -576,18 +579,17 @@ public class ExpandJobVisitor<P> extends JclIsoVisitor<P> {
         return null;
     }
 
-    private static @Nullable String named(DdOverride override, @Nullable String onlyStep) {
-        return override.step == null ? onlyStep : override.step;
+    private static @Nullable String named(DdOverride override, @Nullable String firstStep) {
+        return override.step == null ? firstStep : override.step;
     }
 
-    private static List<String> stepNames(List<Statement> body) {
-        List<String> names = new ArrayList<>();
+    private static @Nullable String firstStepName(List<Statement> body) {
         for (Statement statement : body) {
             if (isOperation(statement, "EXEC")) {
-                names.add(((Jcl.JobControlStatement) statement).getSimpleName());
+                return ((Jcl.JobControlStatement) statement).getSimpleName();
             }
         }
-        return names;
+        return null;
     }
 
     /**

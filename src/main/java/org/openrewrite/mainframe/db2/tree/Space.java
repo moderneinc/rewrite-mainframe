@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.EqualsAndHashCode;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.mainframe.internal.StringRange;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -48,6 +49,22 @@ public class Space {
 
     private Space(@Nullable String whitespace) {
         this.whitespace = whitespace == null || whitespace.isEmpty() ? null : whitespace;
+    }
+
+    /**
+     * The space for a range of a source string. An interned space is found without copying the range.
+     */
+    public static Space build(String source, int beginIndex, int endIndex) {
+        if (beginIndex == endIndex) {
+            return Space.EMPTY;
+        }
+        if (endIndex - beginIndex <= 100) {
+            Space existing = StringRange.get(flyweights, source, beginIndex, endIndex);
+            if (existing != null) {
+                return existing;
+            }
+        }
+        return build(source.substring(beginIndex, endIndex));
     }
 
     @JsonCreator
@@ -146,6 +163,7 @@ public class Space {
         DDL_EOF,
         DDL_PREFIX,
         DECLARE_GLOBAL_TEMPORARY_TABLE_PREFIX,
+        DELETE_PREFIX,
         DROP_PREFIX,
         EMPTY_PREFIX,
         GRANT_PREFIX,
@@ -169,6 +187,7 @@ public class Space {
         TABLE_AS_QUERY_PREFIX,
         TABLE_ELEMENTS_PREFIX,
         TABLE_LIKE_PREFIX,
+        UPDATE_PREFIX,
         WORD_PREFIX
     }
 }

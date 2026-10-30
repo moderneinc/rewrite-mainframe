@@ -18,6 +18,8 @@ package org.openrewrite.mainframe.db2;
 import lombok.Value;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.JdbcNamedParameter;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -25,9 +27,11 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.merge.Merge;
+import net.sf.jsqlparser.statement.select.ParenthesedSelect;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.Values;
 import net.sf.jsqlparser.statement.update.Update;
 import net.sf.jsqlparser.statement.update.UpdateSet;
@@ -281,20 +285,48 @@ public class EmbeddedSql {
     }
 
     private static List<String> selected(Select select) {
-        PlainSelect plain = select.getPlainSelect();
-        if (plain == null || plain.getSelectItems() == null) {
+        // A VALUES row reads no column, so a name in it is a special register such as USER.
+        if (select instanceof Values) {
             return emptyList();
         }
         List<String> columns = new ArrayList<>();
-        for (SelectItem<?> item : plain.getSelectItems()) {
+        for (Expression selected : firstRow(select)) {
             // SELECT * names no column this can pair a host variable with, and guessing at the
             // record's shape would put a name on the row that the database does not use.
-            if (!(item.getExpression() instanceof Column)) {
+            if (!(selected instanceof Column)) {
                 return emptyList();
             }
-            columns.add(((Column) item.getExpression()).getColumnName());
+            columns.add(((Column) selected).getColumnName());
         }
         return columns;
+    }
+
+    /**
+     * The expression in each position of a query's first row, where SQL takes a union's column
+     * names from. JSQLParser's {@link Select#getPlainSelect()} and {@link Select#getValues()} are
+     * unchecked casts that throw on any other shape.
+     */
+    private static List<Expression> firstRow(Select select) {
+        if (select instanceof ParenthesedSelect) {
+            return firstRow(((ParenthesedSelect) select).getSelect());
+        }
+        if (select instanceof SetOperationList && !((SetOperationList) select).getSelects().isEmpty()) {
+            return firstRow(((SetOperationList) select).getSelects().get(0));
+        }
+        List<Expression> row = new ArrayList<>();
+        if (select instanceof PlainSelect && ((PlainSelect) select).getSelectItems() != null) {
+            for (SelectItem<?> item : ((PlainSelect) select).getSelectItems()) {
+                row.add(item.getExpression());
+            }
+        } else if (select instanceof Values && ((Values) select).getExpressions() != null) {
+            ExpressionList<?> values = ((Values) select).getExpressions();
+            // Several rows parse to a list of parenthesized rows.
+            if (!values.isEmpty() && values.get(0) instanceof ParenthesedExpressionList) {
+                values = (ExpressionList<?>) values.get(0);
+            }
+            row.addAll(values);
+        }
+        return row;
     }
 
     private static EmbeddedSql inserted(Insert insert, Map<String, String> names, List<String> tables,
@@ -306,12 +338,8 @@ public class EmbeddedSql {
         for (Column column : insert.getColumns()) {
             columns.add(column.getColumnName());
         }
-        List<Expression> values = new ArrayList<>();
-        Values inserted = insert.getValues();
-        if (inserted != null && inserted.getExpressions() != null) {
-            values.addAll(inserted.getExpressions());
-        }
-        return new EmbeddedSql(columns, inEachPosition(values, columns.size(), names), emptyList(), tables, target);
+        List<String> variables = inEachPosition(firstRow(insert.getSelect()), columns.size(), names);
+        return new EmbeddedSql(columns, variables, emptyList(), tables, target);
     }
 
     private static EmbeddedSql updated(Update update, Map<String, String> names, List<String> tables,

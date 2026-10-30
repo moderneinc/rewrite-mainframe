@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.EqualsAndHashCode;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.mainframe.internal.StringRange;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -45,6 +46,22 @@ public class Space {
         this.whitespace = whitespace == null || whitespace.isEmpty() ? null : whitespace;
     }
 
+    /**
+     * The space for a range of a source string. An interned space is found without copying the range.
+     */
+    public static Space build(String source, int beginIndex, int endIndex) {
+        if (beginIndex == endIndex) {
+            return Space.EMPTY;
+        }
+        if (endIndex - beginIndex <= 100) {
+            Space existing = StringRange.get(flyweights, source, beginIndex, endIndex);
+            if (existing != null) {
+                return existing;
+            }
+        }
+        return build(source.substring(beginIndex, endIndex));
+    }
+
     @JsonCreator
     public static Space build(@Nullable String whitespace) {
 		if (whitespace == null || whitespace.isEmpty()) {
@@ -56,6 +73,7 @@ public class Space {
 		}
 		return new Space(whitespace);
 	}
+
 
     public String getIndent() {
         return getWhitespaceIndent(whitespace);
@@ -136,6 +154,7 @@ public class Space {
         // Cobol preprocessor prefixes
         CONTINUATION_PREFIX,
         COMPILER_OPTION_PREFIX,
+        COMPILER_DIRECTIVE_PREFIX,
         COMPILER_OPTIONS_PREFIX,
         COMPILER_XOPTS_PREFIX,
         COPY_BOOK_PREFIX,
@@ -171,6 +190,7 @@ public class Space {
         ADD_CORRESPONDING_PREFIX,
         ADD_TO_PREFIX,
         ADD_TO_GIVING_PREFIX,
+        ALLOCATE_PREFIX,
         ALPHABET_ALSO_PREFIX,
         ALPHABET_CLAUSE_PREFIX,
         ALPHABET_LITERAL_PREFIX,
@@ -228,8 +248,10 @@ public class Space {
         DATA_COMMON_OWN_LOCAL_CLAUSE_PREFIX,
         DATA_DESCRIPTION_ENTRY_PREFIX,
         DATA_DIVISION_PREFIX,
+        DATA_DYNAMIC_LENGTH_CLAUSE_PREFIX,
         DATA_EXTERNAL_CLAUSE_PREFIX,
         DATA_GLOBAL_CLAUSE_PREFIX,
+        DATA_GROUP_USAGE_CLAUSE_PREFIX,
         DATA_INTEGER_STRING_CLAUSE_PREFIX,
         DATA_JUSTIFIED_CLAUSE_PREFIX,
         DATA_OCCURS_CLAUSE_PREFIX,
@@ -253,6 +275,7 @@ public class Space {
         DATA_VALUE_CLAUSE_PREFIX,
         DATA_VALUE_INTERVAL_PREFIX,
         DATA_VALUE_INTERVAL_TO_PREFIX,
+        DATA_VOLATILE_CLAUSE_PREFIX,
         DATA_WITH_LOWER_BOUNDS_CLAUSE_PREFIX,
         DECIMAL_POINT_CLAUSE_PREFIX,
         DEFAULT_COMPUTATIONAL_SIGN_CLAUSE_PREFIX,
@@ -298,6 +321,7 @@ public class Space {
         FILE_DESCRIPTION_ENTRY_PREFIX,
         FILE_SECTION_PREFIX,
         FILE_STATUS_CLAUSE_PREFIX,
+        FREE_PREFIX,
         FUNCTION_CALL_PREFIX,
         GENERATE_PREFIX,
         GLOBAL_CLAUSE_PREFIX,
@@ -336,6 +360,8 @@ public class Space {
         INSPECT_TALLYING_REPLACING_PHRASE_PREFIX,
         INSPECT_TO_PREFIX,
         IO_CONTROL_PARAGRAPH_PREFIX,
+        JSON_XML_PREFIX,
+        JSON_XML_PHRASE_PREFIX,
         LABEL_RECORDS_CLAUSE_PREFIX,
         LIBRARY_ATTRIBUTE_CLAUSE_1_PREFIX,
         LIBRARY_ATTRIBUTE_CLAUSE_2_PREFIX,
@@ -552,6 +578,7 @@ public class Space {
         SEND_STATEMENT_SYNC_PREFIX,
         SENTENCE_PREFIX,
         SEQUENCE_AREA_PREFIX,
+        SERVICE_PREFIX,
         SET_PREFIX,
         SET_TO_PREFIX,
         SET_UP_DOWN_PREFIX,
@@ -618,5 +645,9 @@ public class Space {
         WRITE_ADVANCING_PAGE_PREFIX,
         WRITE_ADVANCING_PHRASE_PREFIX,
         WRITE_FROM_PHRASE_PREFIX,
+        XML_PARSE_PREFIX,
+        XML_PARSE_PHRASE_PREFIX,
+        XML_PARSE_PROCESSING_PROCEDURE_PREFIX,
+        XML_SCHEMA_CLAUSE_PREFIX,
     }
 }

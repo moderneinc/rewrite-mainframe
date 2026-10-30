@@ -96,7 +96,7 @@ public class CobolLineReader {
             // A paragraph header belongs in area A, and generated code begins it past the area's first column.
             String paragraph = beginsInAreaA(contentArea) ? trimLeadingWhitespace(contentArea) : contentArea;
             if (inCommentEntry && !line.isEmpty()) {
-                if (startsWithTrigger(paragraph, triggersEnd)) {
+                if (startsWithTrigger(paragraph, triggersEnd) || trimLeadingWhitespace(contentArea).startsWith(">>")) {
                     inCommentEntry = false;
                 } else {
                     // Mark the comment entry.
@@ -108,9 +108,9 @@ public class CobolLineReader {
             // Each comment entry needs to be marked uniquely to be recognized by the grammar.
             if (!isCommentLine && startsWithTrigger(paragraph, triggersStart)) {
                 inCommentEntry = true;
-                int header = contentArea.length() - paragraph.length() + getFirstWords(paragraph).length();
+                int header = contentArea.length() - paragraph.length() + firstWordEnd(paragraph);
                 // Comment entries in older COBOL dialects may start in line with the paragraph start.
-                if (!contentArea.substring(header).trim().isEmpty()) {
+                if (!isBlankFrom(contentArea, header)) {
                     contentArea = contentArea.substring(0, header) + " *>CE " + contentArea.substring(header);
                 }
             }
@@ -148,9 +148,9 @@ public class CobolLineReader {
             }
 
             cursor += line.length();
-            trailingWhitespaceLength = contentArea.length() - trimTrailingWhitespace(contentArea).length();
-            String endOfLine = source.substring(cursor).startsWith("\r\n") ? "\r\n" :
-                    source.substring(cursor).startsWith("\n") ? "\n" : null;
+            trailingWhitespaceLength = trailingWhitespaceLength(contentArea);
+            String endOfLine = source.startsWith("\r\n", cursor) ? "\r\n" :
+                    source.startsWith("\n", cursor) ? "\n" : null;
             previousNewLineLength = endOfLine == null ? 0 : endOfLine.length();
 
             if (endOfLine != null) {
@@ -170,7 +170,8 @@ public class CobolLineReader {
         int ticks = 0;
         int quotes = 0;
 
-        for (char c : contentArea.toCharArray()) {
+        for (int i = 0; i < contentArea.length(); i++) {
+            char c = contentArea.charAt(i);
             if (c == '\'') {
                 ticks++;
             } else if (c == '"') {
@@ -185,30 +186,35 @@ public class CobolLineReader {
      * area B may begin with {@code PROCEDURE} or {@code IDENTIFICATION} and still be a comment entry.
      */
     private static boolean beginsInAreaA(String contentArea) {
-        return contentArea.length() - trimLeadingWhitespace(contentArea).length() < AREA_A_WIDTH;
+        return leadingWhitespaceLength(contentArea) < AREA_A_WIDTH;
     }
 
-    private static String getFirstWords(String line) {
+    private static int firstWordEnd(String line) {
         int i = 0;
-        char[] charArray = line.toCharArray();
-        for (; i < charArray.length; i++) {
-            char c = charArray[i];
-            if (Character.isWhitespace(c)) {
-                break;
+        while (i < line.length() && !Character.isWhitespace(line.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    private static boolean isBlankFrom(String text, int index) {
+        for (int i = index; i < text.length(); i++) {
+            if (text.charAt(i) > ' ') {
+                return false;
             }
         }
-        return line.substring(0, i);
+        return true;
     }
 
     private static boolean startsWithTrigger(String line, List<String> triggers) {
-        String firstWordsUpper = getFirstWords(line).toUpperCase();
-        boolean isTrigger = false;
+        int wordEnd = firstWordEnd(line);
         for (String trigger : triggers) {
-            if (firstWordsUpper.equals(trigger) || firstWordsUpper.startsWith(trigger + ".")) {
-                isTrigger = true;
-                break;
+            int length = trigger.length();
+            if (line.regionMatches(true, 0, trigger, 0, length) &&
+                (wordEnd == length || wordEnd > length && line.charAt(length) == '.')) {
+                return true;
             }
         }
-        return isTrigger;
+        return false;
     }
 }

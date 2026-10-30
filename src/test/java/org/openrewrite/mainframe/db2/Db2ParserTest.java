@@ -24,6 +24,7 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
+import org.openrewrite.mainframe.db2.marker.AtSign;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.mainframe.db2.tree.Db2Container;
@@ -305,6 +306,27 @@ class Db2ParserTest {
           .containsExactly(Db2.Keyword.Type.Insert, Db2.Keyword.Type.Into, Db2.Keyword.Type.Values);
     }
 
+    @Test
+    void anUpdateAndADeleteNameTheTableTheyChange() {
+        Db2.Ddl ddl = parse(
+          """
+            UPDATE CARDDEMO.CARD_XREF X SET XREF_ACCT_ID = (SELECT MAX(ACCT_ID) FROM CARDDEMO.ACCOUNT),
+                   (XREF_CUST_ID, XREF_FLAG) = ('1', 'Y')
+              WHERE X.XREF_CARD_NUM IN (SELECT CARD_NUM FROM CARDDEMO.CARD);
+            update carddemo.account set acct_status = 'C';
+            DELETE FROM CARDDEMO.TRANSACTION_TYPE;
+            DELETE CARDDEMO.CARD AS C WHERE C.ACTIVE = 'N';
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.Update.class))
+          .extracting(update -> update.getTable().getFullName())
+          .containsExactly("CARDDEMO.CARD_XREF", "CARDDEMO.ACCOUNT");
+        List<Db2.Delete> deletes = Db2.elementsOf(ddl.getStatements(), Db2.Delete.class);
+        assertThat(deletes).extracting(delete -> delete.getTable().getFullName())
+          .containsExactly("CARDDEMO.TRANSACTION_TYPE", "CARDDEMO.CARD");
+        assertThat(deletes.get(0).getClauses()).isNull();
+    }
+
     /**
      * {@code FOR}, and the {@code TABLE} or {@code SEQUENCE} that may follow it, sit between an alias
      * and what it names, and print there.
@@ -327,6 +349,111 @@ class Db2ParserTest {
         assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateSynonym.class))
           .extracting(synonym -> synonym.getName().getFullName(), synonym -> synonym.getTarget().getElement().getFullName())
           .containsExactly(tuple("POLICY", "CLM.POLICY"));
+    }
+
+    @Test
+    void aMaskOrAPermissionPrintsEachKeywordBesideWhatItIntroduces() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE MASK CLM.SSN_MASK ON CLM.POLICY FOR COLUMN SSN RETURN CASE WHEN 1 = 1 THEN SSN ELSE 'X' END ENABLE;
+            CREATE MASK CLM.RATE_MASK ON CLM.POLICY AS P
+              FOR COLUMN RATE RETURN CASE WHEN P.RATE > 0 THEN P.RATE ELSE 0 END;
+            CREATE PERMISSION CLM.OWN_ROWS ON CLM.CLAIM AS C
+              FOR ROW ACCESS CONTROL WHEN (C.OWNER = SESSION_USER) ENFORCED FOR ALL ACCESS ENABLE;
+            CREATE PERMISSION CLM.ALL_ROWS ON CLM.POLICY FOR ROW ACCESS CONTROL WHEN (1 = 1);
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateMask.class))
+          .extracting(mask -> mask.getName().getFullName(), mask -> mask.getTable().getFullName(),
+            mask -> Db2.elementsOf(mask.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+          .containsExactly(tuple("CLM.SSN_MASK", "CLM.POLICY", List.of("SSN")),
+            tuple("CLM.RATE_MASK", "CLM.POLICY", List.of("P", "RATE")));
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreatePermission.class))
+          .extracting(permission -> permission.getName().getFullName(), permission -> permission.getTable().getFullName(),
+            permission -> Db2.elementsOf(permission.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+          .containsExactly(tuple("CLM.OWN_ROWS", "CLM.CLAIM", List.of("C")),
+            tuple("CLM.ALL_ROWS", "CLM.POLICY", List.of()));
+    }
+
+    @Test
+    void aTrustedContextPrintsItsAuthidAfterItsName() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TRUSTED CONTEXT CLMCTX BASED UPON CONNECTION USING SYSTEM AUTHID CLMADM
+              ATTRIBUTES (ADDRESS '10.0.0.1', ENCRYPTION 'LOW')
+              DEFAULT ROLE CLMROLE ENABLE
+              WITH USE FOR JOE, PUBLIC WITHOUT AUTHENTICATION;
+            """);
+
+        Db2.CreateTrustedContext context = (Db2.CreateTrustedContext) ddl.getStatements().get(0);
+        assertThat(context.getName().getFullName()).isEqualTo("CLMCTX");
+        assertThat(context.getOptions()).first().isInstanceOfSatisfying(Db2.Name.class,
+          authid -> assertThat(authid.getFullName()).isEqualTo("CLMADM"));
+    }
+
+    @Test
+    void anAuxiliaryTablePrintsEachKeywordBesideWhatItIntroduces() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE AUX TABLE CLM.POLICY_DOC_AUX IN CLMDB.TSDOCAUX STORES CLM.POLICY APPEND NO COLUMN DOC PART 1;
+            CREATE AUXILIARY TABLE CLM.CLAIM_NOTE_AUX STORES CLM.CLAIM COLUMN NOTE;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateAuxiliaryTable.class))
+          .extracting(aux -> aux.getName().getFullName(),
+            aux -> Db2.elementsOf(aux.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+          .containsExactly(tuple("CLM.POLICY_DOC_AUX", List.of("CLMDB.TSDOCAUX", "CLM.POLICY", "DOC")),
+            tuple("CLM.CLAIM_NOTE_AUX", List.of("CLM.CLAIM", "NOTE")));
+    }
+
+    @Test
+    void aTriggerPrintsEachKeywordBesideWhatItIntroduces() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TRIGGER CLM.STAMP NO CASCADE BEFORE INSERT OR UPDATE OF STATUS ON CLM.CLAIM
+              REFERENCING NEW AS N
+              FOR EACH ROW MODE DB2SQL
+              BEGIN ATOMIC
+                SET N.CHANGED = CURRENT TIMESTAMP;
+              END;
+            """);
+
+        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().get(0);
+        assertThat(trigger.getName().getFullName()).isEqualTo("CLM.STAMP");
+        assertThat(trigger.getTable().getFullName()).isEqualTo("CLM.CLAIM");
+        assertThat(trigger.getKeywords()).extracting(Db2.Keyword::getType)
+          .contains(Db2.Keyword.Type.No, Db2.Keyword.Type.Cascade, Db2.Keyword.Type.Before);
+        assertThat(Db2.elementsOf(trigger.getEvents(), Db2.Option.class))
+          .extracting(event -> Db2.has(event.getKeywords(), Db2.Keyword.Type.Insert),
+            event -> Db2.has(event.getKeywords(), Db2.Keyword.Type.Update))
+          .containsExactly(tuple(true, false), tuple(false, true));
+        assertThat(trigger.getBody()).isNotNull();
+        assertThat(trigger.getBody().getKeywords()).extracting(Db2.Keyword::getType)
+          .containsExactly(Db2.Keyword.Type.Begin, Db2.Keyword.Type.Atomic);
+        assertThat(trigger.getBody().getEnd()).isNotNull();
+    }
+
+    @Test
+    void aSingleStatementTriggerEndsAtItsSemicolon() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE TRIGGER CLM.RATED AFTER UPDATE ON CLM.POLICY
+              FOR EACH ROW UPDATE CLM.CLAIM SET STATUS = CASE WHEN STATUS = 'O' THEN 'A' ELSE 'P' END;
+            COMMIT;
+            """);
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("CreateTrigger", "Commit");
+        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().get(0);
+        assertThat(trigger.getName().getFullName()).isEqualTo("CLM.RATED");
+        assertThat(trigger.getTable().getFullName()).isEqualTo("CLM.POLICY");
+        assertThat(Db2.elementsOf(trigger.getEvents(), Db2.Option.class)).singleElement()
+          .satisfies(event -> assertThat(event.getKeywords()).extracting(Db2.Keyword::getType)
+            .containsExactly(Db2.Keyword.Type.Update));
+        assertThat(trigger.getBody()).isNotNull();
+        assertThat(trigger.getBody().getBody()).extracting(word -> ((Db2.Word) word).getText())
+          .startsWith("UPDATE", "CLM", ".", "CLAIM", "SET").endsWith("ELSE", "'P'", "END");
+        assertThat(trigger.getBody().getEnd()).isNull();
     }
 
     /**
@@ -379,6 +506,48 @@ class Db2ParserTest {
         Db2.Revoke revoke = (Db2.Revoke) ddl.getStatements().get(2);
         assertThat(revoke.getObjects().getElements()).extracting(Db2.Name::getFullName).containsExactly("CLM.POLICY");
         assertThat(revoke.getGrantees().getElements()).hasSize(1);
+    }
+
+    @Test
+    void aTrustedContextAltersAddsOrDropsAttributesNamedByOrdinaryWords() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TRUSTED CONTEXT CLMCTX ALTER ATTRIBUTES (ADDRESS '10.0.0.1', ENCRYPTION 'LOW');
+            ALTER TRUSTED CONTEXT CLMCTX ADD ATTRIBUTES (SERVAUTH 'EZB.NETACCESS.ZOS1.TCPIP.CLMZONE', JOBNAME 'CLMBAT*');
+            ALTER TRUSTED CONTEXT CLMCTX DROP ATTRIBUTES (ADDRESS '10.0.0.1');
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class))
+          .extracting(alter -> alter.getName().getFullName()).containsExactly("CLMCTX", "CLMCTX", "CLMCTX");
+    }
+
+    @Test
+    void aTrustedContextAltersEachOfItsOptions() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TRUSTED CONTEXT CLMCTX ALTER SYSTEM AUTHID CLMADM2 ALTER DISABLE;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER DEFAULT ROLE CLMROLE WITH ROLE AS OBJECT OWNER AND QUALIFIER;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER NO DEFAULT ROLE ALTER WITHOUT ROLE AS OBJECT OWNER ALTER ENABLE;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER DEFAULT SECURITY LABEL CLMLBL;
+            ALTER TRUSTED CONTEXT CLMCTX ALTER NO DEFAULT SECURITY LABEL;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class))
+          .extracting(alter -> alter.getOptions().size()).containsExactly(2, 2, 3, 1, 1);
+    }
+
+    @Test
+    void aTrustedContextAddsReplacesOrDropsItsUsers() {
+        Db2.Ddl ddl = parse(
+          """
+            ALTER TRUSTED CONTEXT CLMCTX ADD USE FOR BILL ROLE CLMROLE SECURITY LABEL CLMLBL WITH AUTHENTICATION,
+              EXTERNAL SECURITY PROFILE CLMPROF WITHOUT AUTHENTICATION, PUBLIC WITH AUTHENTICATION;
+            ALTER TRUSTED CONTEXT CLMCTX REPLACE USE FOR JOE WITHOUT AUTHENTICATION;
+            ALTER TRUSTED CONTEXT CLMCTX DROP USE FOR JOE, EXTERNAL SECURITY PROFILE CLMPROF, PUBLIC;
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class))
+          .extracting(alter -> alter.getOptions().size()).containsExactly(1, 1, 1);
     }
 
     /**
@@ -460,6 +629,63 @@ class Db2ParserTest {
         assertThat(money.getOptions()).singleElement().isInstanceOfSatisfying(Db2.Option.class, option ->
           assertThat(option.getKeywords()).extracting(Db2.Keyword::getType)
             .containsExactly(Db2.Keyword.Type.With, Db2.Keyword.Type.Comparisons));
+    }
+
+    @Test
+    void aCaseExpressionsEndDoesNotCloseTheBlock() {
+        Db2.Ddl ddl = parse(
+          """
+            CREATE PROCEDURE CLM.RATE (INOUT X INT) LANGUAGE SQL
+            BEGIN
+              SET X = CASE WHEN X = 1 THEN 2 ELSE 3 END;
+              SET X = CASE X WHEN 1 THEN CASE WHEN X > 0 THEN 1 END END;
+              CASE X
+                WHEN 1 THEN SET X = CASE WHEN X = 1 THEN 2 END;
+                ELSE SET X = 0;
+              END CASE;
+              RETURN X;
+            END;
+            """);
+
+        assertThat(ddl.getStatements()).hasSize(1);
+        Db2.CreateProcedure procedure = (Db2.CreateProcedure) ddl.getStatements().get(0);
+        assertThat(procedure.getBody().getEnd()).isNotNull();
+        assertThat(procedure.getBody().getBody()).extracting(word -> ((Db2.Word) word).getText())
+          .endsWith("END", "CASE", ";", "RETURN", "X", ";");
+    }
+
+    @Test
+    void aCommentAfterTheLastColumnStaysBeforeTheClosingParenthesis() {
+        parse("""
+          CREATE TABLE T (
+              A CHAR(1),      -- the first
+              B VARCHAR(20)   -- the last
+            );
+          """);
+    }
+
+    @Test
+    void aParameterNamedLikeAKeywordKeepsItsMode() {
+        Db2.Ddl ddl = parse("""
+          CREATE PROCEDURE P (
+                IN SCHEMA_PREFIX VARCHAR(128),
+                IN DATABASE VARCHAR(24),
+                INOUT RETCODE INTEGER
+              )
+            LANGUAGE SQL;
+          """);
+
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(0)).getParameters().getElements())
+          .extracting(parameter -> parameter.getMode().getText())
+          .containsExactly("IN", "IN", "INOUT");
+    }
+
+    @Test
+    void aSetMayLeaveOutItsEquals() {
+        Db2.Ddl ddl = parse("SET CURRENT SQLID 'SYSADM';\nSET SCHEMA = CLM;\nSET SCHEMA CLM;\n");
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("Set", "Set", "Set");
     }
 
     /**
@@ -616,9 +842,8 @@ class Db2ParserTest {
      */
     @Test
     void whatTheGrammarCannotReadIsAnError() {
-        // Neither is DDL. A DML UPDATE or DELETE changes rows, which is a program's business.
-        assertThat(errorsIn("UPDATE CARDDEMO.ACCOUNT SET ACCT_STATUS = 'N';\n")).isNotEmpty();
-        assertThat(errorsIn("DELETE FROM CARDDEMO.ACCOUNT WHERE ACCT_ID = 1;\n")).isNotEmpty();
+        assertThat(errorsIn("MERGE INTO CARDDEMO.ACCOUNT A USING CARDDEMO.ACCOUNT_STAGE S ON A.ACCT_ID = S.ACCT_ID\n" +
+          "  WHEN MATCHED THEN UPDATE SET ACCT_STATUS = S.ACCT_STATUS;\n")).isNotEmpty();
         assertThat(errorsIn("CREATE TABLE CARDDEMO.ACCOUNT (ACCT_ID INTEGER;\n")).isNotEmpty();
     }
 
@@ -626,7 +851,6 @@ class Db2ParserTest {
     @ValueSource(strings = {
       "CREATE TABLE T(COMMENT VARCHAR(10));\n",
       "CREATE TABLE T(DATA VARCHAR(10));\n",
-      "CREATE TABLE T(CONSTRAINT VARCHAR(10));\n",
       "ALTER TABLE T ADD COLUMN DATA VARCHAR(10);\n",
       "CREATE TABLE T(ID);\n"})
     void aTableElementThatCannotBeReadDoesNotFailTheWholeFile(String source) {
@@ -635,6 +859,23 @@ class Db2ParserTest {
         assertThat(parsed).isInstanceOf(Db2.Ddl.class);
         assertThat(parsed.getMarkers().findFirst(ParseExceptionResult.class)).isEmpty();
         assertThat(errorsIn(source)).isNotEmpty();
+    }
+
+    @Test
+    void aProcedureMayLeaveOutItsParameterList() {
+        Db2.Ddl ddl = parse("CREATE PROCEDURE P LANGUAGE SQL;\nCREATE PROCEDURE Q () LANGUAGE SQL;\n");
+
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(0)).getParameters()).isNull();
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(1)).getParameters()).isNotNull();
+    }
+
+    @Test
+    void aConstraintNamedLikeATypeIsAParseErrorForNotPrintingBack() {
+        SourceFile parsed = parseIgnoringErrors("CREATE TABLE T(CONSTRAINT VARCHAR(10));\n");
+
+        assertThat(parsed).isInstanceOf(ParseError.class);
+        assertThat(parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow().getMessage())
+          .contains("is not print idempotent");
     }
 
     @ParameterizedTest
@@ -854,6 +1095,38 @@ class Db2ParserTest {
         Db2.Ddl bare = parse("COMMIT\n");
         assertThat(bare.getPadding().getStatements().get(0).getMarkers()
           .findFirst(Semicolon.class)).isEmpty();
+    }
+
+    @Test
+    void anAtSignEndsAStatementInAScriptThatSetsItAsTheTerminator() {
+        Db2.Ddl ddl = parse(
+          """
+            --#SET TERMINATOR @
+            CREATE VARIABLE CLM.C_TABLE VARCHAR(10) DEFAULT 'table'@
+            COMMIT @
+            CREATE TRIGGER CLM.RATED AFTER UPDATE ON CLM.POLICY
+              FOR EACH ROW UPDATE CLM.CLAIM SET STATUS = 'A' @
+            CREATE PROCEDURE CLM.PURGE (INOUT X INT)
+            BEGIN
+              SET X = 1;
+            END @ @
+            """);
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("CreateVariable", "Commit", "CreateTrigger", "CreateProcedure", "Empty");
+        assertThat(ddl.getPadding().getStatements())
+          .allSatisfy(s -> assertThat(s.getMarkers().findFirst(AtSign.class)).isPresent());
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(3)).getBody().getLabel()).isNull();
+    }
+
+    @Test
+    void aStraySemicolonIsAnEmptyStatement() {
+        Db2.Ddl ddl = parse(";\nCOMMENT ON TABLE T IS 'x';;\n  ;\nCOMMENT ON TABLE U IS 'y';\n");
+
+        assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
+          .containsExactly("Empty", "Comment", "Empty", "Empty", "Comment");
+        assertThat(ddl.getPadding().getStatements())
+          .allSatisfy(s -> assertThat(s.getMarkers().findFirst(Semicolon.class)).isPresent());
     }
 
     /**

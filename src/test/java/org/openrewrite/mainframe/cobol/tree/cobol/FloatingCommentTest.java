@@ -48,14 +48,20 @@ class FloatingCommentTest extends CobolTest {
                   return super.visitDataDescriptionEntry(entry, ctx);
               }
 
+              // Words copied in from a copybook print in the copybook, not here, so the entry is built from their text.
               @Override
               public Cobol.Picture visitPicture(Cobol.Picture picture, ExecutionContext ctx) {
                   StringBuilder chars = new StringBuilder();
                   for (Cobol.Word word : picture.getWords()) {
                       chars.append(word.getWord());
                   }
-                  entries.add("PIC " + chars + (picture.getParenthesized() == null ? "" :
-                    picture.getParenthesized().print(getCursor())));
+                  Cobol.Parenthesized cardinality = picture.getParenthesized();
+                  if (cardinality != null) {
+                      chars.append(cardinality.getLeftParen().getWord());
+                      cardinality.getContents().forEach(c -> chars.append(((Cobol.Word) c).getWord()));
+                      chars.append(cardinality.getRightParen().getWord());
+                  }
+                  entries.add("PIC " + chars);
                   return super.visitPicture(picture, ctx);
               }
           })),

@@ -31,6 +31,7 @@ import org.openrewrite.mainframe.bms.tree.Bms;
 import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -78,6 +79,7 @@ public class BmsParser implements Parser {
 
                         parser.removeErrorListeners();
                         parser.addErrorListener(new ForwardingErrorListener(sourceFile.getPath(), ctx));
+                        PredictionListener.addTo(parser, ctx);
 
                         Bms.CompilationUnit cu = new BmsParserVisitor(
                                 path,
@@ -90,7 +92,7 @@ public class BmsParser implements Parser {
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
-                        return cu;
+                        return requirePrintEqualsInput(cu, sourceFile, relativeTo, ctx);
                     } catch (Throwable t) {
                         sample.stop(MetricsHelper.errorTags(timer, t).register(Metrics.globalRegistry));
                         return ParseError.build(this, sourceFile, relativeTo, pctx, t);

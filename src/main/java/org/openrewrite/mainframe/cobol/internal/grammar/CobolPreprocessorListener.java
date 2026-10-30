@@ -233,6 +233,26 @@ public interface CobolPreprocessorListener extends ParseTreeListener {
 	 */
 	void exitReplacement(CobolPreprocessorParser.ReplacementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolPreprocessorParser#identifierWords}.
+	 * @param ctx the parse tree
+	 */
+	void enterIdentifierWords(CobolPreprocessorParser.IdentifierWordsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolPreprocessorParser#identifierWords}.
+	 * @param ctx the parse tree
+	 */
+	void exitIdentifierWords(CobolPreprocessorParser.IdentifierWordsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolPreprocessorParser#compilerDirective}.
+	 * @param ctx the parse tree
+	 */
+	void enterCompilerDirective(CobolPreprocessorParser.CompilerDirectiveContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolPreprocessorParser#compilerDirective}.
+	 * @param ctx the parse tree
+	 */
+	void exitCompilerDirective(CobolPreprocessorParser.CompilerDirectiveContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolPreprocessorParser#ejectStatement}.
 	 * @param ctx the parse tree
 	 */
@@ -292,16 +312,6 @@ public interface CobolPreprocessorListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitCharDataSql(CobolPreprocessorParser.CharDataSqlContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link CobolPreprocessorParser#charDataLineNoDot}.
-	 * @param ctx the parse tree
-	 */
-	void enterCharDataLineNoDot(CobolPreprocessorParser.CharDataLineNoDotContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolPreprocessorParser#charDataLineNoDot}.
-	 * @param ctx the parse tree
-	 */
-	void exitCharDataLineNoDot(CobolPreprocessorParser.CharDataLineNoDotContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolPreprocessorParser#charDataLine}.
 	 * @param ctx the parse tree

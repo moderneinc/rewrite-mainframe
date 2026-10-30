@@ -110,6 +110,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     private final CobolSourcePrinter<ExecutionContext> cobolStatementPrinter = new CobolSourcePrinter<>(false);
 
     private boolean inUnknownIndicator = false;
+    private boolean inCopybook = false;
 
     private final Set<UUID> elidedExecs = new LinkedHashSet<>();
     private boolean inProcedureDivision = false;
@@ -126,7 +127,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     @Override
     public CobolPreprocessor visitCompilerOptions(CobolPreprocessor.CompilerOptions compilerOptions, PrintOutputCapture<P> p) {
         if (printColumns) {
-            int curIndex = getCurrentIndex(p.getOut());
+            int curIndex = getCurrentIndex(p.out);
             curIndex = curIndex == -1 ? 0 : curIndex;
             addStartKey(getCompilerOptionsStartComment(), curIndex, p);
             addUuidKey(getUuidComment(), compilerOptions.getId(), p);
@@ -155,8 +156,11 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     public CobolPreprocessor visitCopybook(CobolPreprocessor.Copybook copybook, PrintOutputCapture<P> p) {
         visitSpace(copybook.getPrefix(), Space.Location.COPY_BOOK_PREFIX, p);
         visitMarkers(copybook.getMarkers(), p);
+        boolean enclosing = inCopybook;
+        inCopybook = true;
         for (CobolPreprocessor cobolPreprocessor : copybook.getLst()) {
             if (!(cobolPreprocessor instanceof CobolPreprocessor.CompilerOptions ||
+                    cobolPreprocessor instanceof CobolPreprocessor.CompilerDirective ||
                     cobolPreprocessor instanceof CobolPreprocessor.EjectStatement ||
                     cobolPreprocessor instanceof CobolPreprocessor.ExecStatement ||
                     cobolPreprocessor instanceof CobolPreprocessor.SkipStatement ||
@@ -166,6 +170,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         }
 
         visit(copybook.getEof(), p);
+        inCopybook = enclosing;
         return copybook;
     }
 
@@ -182,7 +187,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     private void printCopybookSource(CopybookSource copybookSource, PrintOutputCapture<P> p) {
         if (!printColumns) {
             visit(copybookSource.getCopybook(), p);
-            if (!p.getOut().endsWith("\n")) {
+            if (!endsWithNewline(p.out)) {
                 p.append("\n");
             }
             return;
@@ -215,17 +220,17 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         if (copybookSource instanceof CobolPreprocessor.CopyStatement) {
             CobolPreprocessor.CopyStatement cs = (CobolPreprocessor.CopyStatement) copybookSource;
             visit(cs.getWord(), p);
-            p.out.delete(p.getOut().length() - cs.getWord().getCobolWord().getWord().length() -
-                    cs.getWord().getPrefix().getWhitespace().length(), p.getOut().length());
+            p.out.delete(p.out.length() - cs.getWord().getCobolWord().getWord().length() -
+                    cs.getWord().getPrefix().getWhitespace().length(), p.out.length());
         } else {
             CobolPreprocessor.ExecSqlIncludeStatement es = (CobolPreprocessor.ExecSqlIncludeStatement) copybookSource;
             visit(es.getWords().get(0), p);
-            p.out.delete(p.getOut().length() - es.getWords().get(0).getCobolWord().getWord().length() -
-                    es.getWords().get(0).getPrefix().getWhitespace().length(), p.getOut().length());
+            p.out.delete(p.out.length() - es.getWords().get(0).getCobolWord().getWord().length() -
+                    es.getWords().get(0).getPrefix().getWhitespace().length(), p.out.length());
         }
 
         // Save the current index to ensure the text that follows the COPY will be aligned correctly.
-        int curIndex = getCurrentIndex(p.getOut());
+        int curIndex = getCurrentIndex(p.out);
 
         addStartKey(getCopyStartComment(), curIndex, p);
         addUuidKey(getCopyUuidKey(), ((CobolPreprocessor) copybookSource).getId(), p);
@@ -237,12 +242,18 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         } else {
             visit(copybookSource.getCopybook(), p);
         }
-        if (!p.getOut().endsWith("\n")) {
+        if (!endsWithNewline(p.out)) {
             // Add a new line character if the copied source does not end with one already.
             p.append("\n");
         }
 
         addStopComment(getCopyStopComment(), (CobolPreprocessor) copybookSource, curIndex, p);
+    }
+
+    @Override
+    public CobolPreprocessor visitCompilerDirective(CobolPreprocessor.CompilerDirective compilerDirective, PrintOutputCapture<P> p) {
+        addPreprocessorStatementTemplate(compilerDirective, p);
+        return compilerDirective;
     }
 
     @Override
@@ -347,7 +358,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
 
     private void addPreprocessorStatementTemplate(CobolPreprocessor cobolPreprocessor, PrintOutputCapture<P> p) {
         if (printColumns) {
-            int curIndex = getCurrentIndex(p.getOut());
+            int curIndex = getCurrentIndex(p.out);
             curIndex = curIndex == -1 ? 0 : curIndex;
             addStartKey(getPreprocessorStartComment(), curIndex, p);
             addUuidKey(getUuidComment(), cobolPreprocessor.getId(), p);
@@ -362,6 +373,12 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
             inProcedureDivision = "PROCEDURE".equalsIgnoreCase(previousWord);
         }
         previousWord = currentWord;
+
+        if (inCopybook && isSubstituteCharacter(currentWord)) {
+            // A copied word prints from the copybook's own tree, so its end-of-file mark stays out of the source
+            // the COBOL parser reads. The program's own mark has no other tree to print from.
+            return word;
+        }
 
         if (!printColumns) {
             // Do not print words on lines with an unknown indicator until we know how to handle them.
@@ -380,7 +397,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
                     for (Replacement.OriginalWord additionalWord : replaceAdditiveType.getOriginalWords()) {
                         cobolSourcePrinter.visit(additionalWord.getOriginal(), p);
                     }
-                    int curIndex = getCurrentIndex(p.getOut());
+                    int curIndex = getCurrentIndex(p.out);
                     int contentEnd = cobolDialect.getColumns().getOtherArea();
                     int untilEndOfLine = curIndex >= contentEnd ? 0 : cobolDialect.getColumns().getOtherArea() - curIndex;
                     String whitespace = generateWhitespace(untilEndOfLine) + "\n";
@@ -425,7 +442,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         } else if (replacement != null && replacement.getType() == Replacement.Type.ADDITIVE) {
             replaceAdditiveTemplate(replacement, p);
             super.visitWord(word, p);
-        } else if (!isSubstituteCharacter(word.getCobolWord().getWord())) {
+        } else {
             super.visitWord(word, p);
         }
         return word;
@@ -433,20 +450,20 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
 
     private void replaceAdditiveTemplate(Replacement replaceAdditiveType, PrintOutputCapture<P> p) {
         // Fill the remaining line with whitespace to align the column areas.
-        int curIndex = getCurrentIndex(p.getOut());
+        int curIndex = getCurrentIndex(p.out);
         int contentEnd = cobolDialect.getColumns().getOtherArea();
         int untilEndOfLine = curIndex >= contentEnd ? 0 : cobolDialect.getColumns().getOtherArea() - curIndex;
         String whitespace = generateWhitespace(untilEndOfLine) + "\n";
         p.append(whitespace);
 
-        int startKeyIndex = getCurrentIndex(p.getOut());
+        int startKeyIndex = getCurrentIndex(p.out);
         addStartKey(getReplaceTypeAdditiveStartComment(), startKeyIndex, p);
         addUuidKey(getUuidComment(), replaceAdditiveType.getId(), p);
         for (Replacement.OriginalWord additionalWord : replaceAdditiveType.getOriginalWords()) {
             p.append(getReplaceAddWordStartComment());
             String addedWord = getDialectSequenceArea() + " " + additionalWord.getOriginal().getPrefix().getWhitespace() + additionalWord.getOriginal().getWord();
             p.append(addedWord);
-            int addedIndex = getCurrentIndex(p.getOut());
+            int addedIndex = getCurrentIndex(p.out);
             untilEndOfLine = addedIndex >= contentEnd ? 0 : cobolDialect.getColumns().getOtherArea() - addedIndex;
             String addWhitespace = generateWhitespace(untilEndOfLine) + "\n";
             p.append(addWhitespace);
@@ -482,7 +499,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         }
 
         // Save the current index to ensure the text that follows the REPLACE will be aligned correctly.
-        int curIndex = getCurrentIndex(p.getOut());
+        int curIndex = getCurrentIndex(p.out);
         if (curIndex == -1) {
             throw new UnsupportedOperationException("Unknown case: Detected a ReplaceTypeReductive at the start of the source code.");
         }
@@ -513,7 +530,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
 
     private void replaceTemplate(CobolPreprocessor.Word word, PrintOutputCapture<P> p, Replacement replacement) {
         // Save the current index to ensure the text that follows the REPLACE will be aligned correctly.
-        int curIndex = getCurrentIndex(p.getOut());
+        int curIndex = getCurrentIndex(p.out);
         if (curIndex == -1) {
             throw new UnsupportedOperationException("Unknown case: Detected a Replace at the start of the source code.");
         }
@@ -527,11 +544,11 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         boolean isContinuedLiteral = isLiteral && (curIndex + replacedWord.length()) > contentAreaLength;
 
         // Add Start key.
-        int insertIndex = getInsertIndex(p.getOut());
+        int insertIndex = getInsertIndex(p.out);
         p.out.insert(insertIndex, getReplaceStartComment());
 
         if (isLongerWord && !isContinuedLiteral) {
-            insertIndex = getInsertIndex(p.getOut());
+            insertIndex = getInsertIndex(p.out);
             p.out.insert(insertIndex, getReplaceAddedWhitespaceComment());
         }
 
@@ -667,7 +684,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
                 fullWord = fullWord.substring(lastIndex + 1);
 
                 if (fullWord.length() - word.getCobolWord().getWord().length() < curIndex) {
-                    p.out.delete(p.getOut().length() - (curIndex - (fullWord.length() - word.getCobolWord().getWord().length())), p.getOut().length());
+                    p.out.delete(p.out.length() - (curIndex - (fullWord.length() - word.getCobolWord().getWord().length())), p.out.length());
                 } else {
                     p.append(StringUtils.repeat(" ", fullWord.length() - word.getCobolWord().getWord().length() - curIndex));
                 }
@@ -696,7 +713,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
             throw new UnsupportedOperationException("Negative index detected for: " + startComment);
         }
 
-        int insertIndex = getInsertIndex(p.getOut());
+        int insertIndex = getInsertIndex(p.out);
         p.out.insert(insertIndex, startComment);
 
         // Fill the remaining line with whitespace to align the column areas.

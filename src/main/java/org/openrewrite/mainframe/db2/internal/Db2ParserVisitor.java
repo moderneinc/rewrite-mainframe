@@ -18,14 +18,18 @@ package org.openrewrite.mainframe.db2.internal;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.misc.IntervalSet;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2ParserBaseVisitor;
+import org.openrewrite.mainframe.db2.marker.AtSign;
+import org.openrewrite.mainframe.db2.marker.OmitEquals;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.*;
+import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
 import java.nio.charset.Charset;
@@ -75,28 +79,39 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
 
     @Override
     public Db2.Ddl visitCompilationUnit(DB2Parser.CompilationUnitContext ctx) {
-        List<Db2RightPadded<Statement>> statements = new ArrayList<>(ctx.statement().size());
+        List<Db2RightPadded<Statement>> statements = new ArrayList<>(ctx.getChildCount());
+        for (DB2Parser.TerminatorContext terminator : ctx.terminator()) {
+            statements.add(terminated((Statement) visit(terminator)));
+        }
         for (DB2Parser.StatementContext statement : ctx.statement()) {
             statements.add(terminated((Statement) visit(statement.getChild(0))));
+            // A statement's end holds every terminator up to the next statement, and each after the first is a
+            // statement of its own.
+            List<TerminalNode> terminators = terminators(statement);
+            for (int i = 1; i < terminators.size(); i++) {
+                Space prefix = prefix(terminators.get(i).getSymbol());
+                statements.add(terminated(new Db2.Empty(randomId(), prefix, Markers.EMPTY)));
+            }
         }
         return new Db2.Ddl(randomId(), path, fileAttributes, EMPTY, Markers.EMPTY,
                 charset.name(), charsetBomMarked, null, statements,
-                Space.build(source.substring(cursor)));
+                Space.build(source, cursor, source.length()));
     }
 
     /**
-     * A statement with the space before its terminator, and a {@link Semicolon} marker when it has
-     * one. Where it does not, the cursor goes back so the white space flows to the next statement's
-     * prefix instead of being eaten here.
+     * A statement with the space before its terminator, and a {@link Semicolon} or {@link AtSign}
+     * marker when it has one. Where it does not, the cursor goes back so the white space flows to the
+     * next statement's prefix instead of being eaten here.
      */
     private Db2RightPadded<Statement> terminated(Statement statement) {
         Db2RightPadded<Statement> padded = Db2RightPadded.build(statement);
         int saveCursor = cursor;
-        Space before = whitespace();
-        if (cursor < source.length() && source.charAt(cursor) == ';') {
+        Space before = space();
+        char next = cursor < source.length() ? source.charAt(cursor) : 0;
+        if (next == ';' || next == '@') {
             cursor++;
-            return padded.withAfter(before)
-                    .withMarkers(padded.getMarkers().add(new Semicolon(randomId())));
+            Marker terminator = next == ';' ? new Semicolon(randomId()) : new AtSign(randomId());
+            return padded.withAfter(before).withMarkers(padded.getMarkers().add(terminator));
         }
         cursor = saveCursor;
         return padded;
@@ -157,6 +172,16 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             for (int i = fromName; i < names.size(); i++) {
                 tail.add(names.get(i));
             }
+            return tail;
+        }
+
+        /**
+         * The names from {@code fromName} on, then the options, which is source order for a statement
+         * that writes all its names before its first option.
+         */
+        List<Db2> namesThenOptions(int fromName) {
+            List<Db2> tail = new ArrayList<>(names.subList(fromName, names.size()));
+            tail.addAll(options);
             return tail;
         }
     }
@@ -233,7 +258,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             List<Db2RightPadded<Db2.Word>> args = new ArrayList<>(2);
             Space before = sourceBefore("(");
             for (TerminalNode number : ctx.NUMBER()) {
-                args.add(Db2RightPadded.build(word(number)).withAfter(whitespace()));
+                args.add(Db2RightPadded.build(word(number)).withAfter(space()));
                 if (args.size() < ctx.NUMBER().size()) {
                     skip(",");
                 }
@@ -415,28 +440,28 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     public Db2 visitCreateAuxiliaryTable(DB2Parser.CreateAuxiliaryTableContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreateAuxiliaryTable(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.tail(1));
+                p.nameAt(0), p.namesThenOptions(1));
     }
 
     @Override
     public Db2 visitCreateTrustedContext(DB2Parser.CreateTrustedContextContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreateTrustedContext(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.tail(1));
+                p.nameAt(0), p.namesThenOptions(1));
     }
 
     @Override
     public Db2 visitCreateMask(DB2Parser.CreateMaskContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreateMask(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.nameAt(1), p.tail(2));
+                p.nameAt(0), p.nameAt(1), p.namesThenOptions(2));
     }
 
     @Override
     public Db2 visitCreatePermission(DB2Parser.CreatePermissionContext ctx) {
         Parts p = new Parts(ctx);
         return new Db2.CreatePermission(randomId(), p.prefix, Markers.EMPTY, p.keywords,
-                p.nameAt(0), p.nameAt(1), p.tail(2));
+                p.nameAt(0), p.nameAt(1), p.namesThenOptions(2));
     }
 
     @Override
@@ -561,7 +586,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Db2Container<Db2.Name> columns = ctx.columnList() == null ? null : columnList(ctx.columnList());
         // AS joins the keyword run, as written, rather than being printed as the operator of the query.
         keywords.add(keyword(ctx.AS()));
-        Db2LeftPadded<Db2.Query> query = Db2LeftPadded.build(query(ctx.queryExpression()));
+        Db2LeftPadded<Db2.Query> query = Db2LeftPadded.build(query(ctx.selectStatement()));
         return new Db2.CreateView(randomId(), prefix, Markers.EMPTY, keywords, name, columns, query,
                 options(ctx.viewOption()));
     }
@@ -636,7 +661,9 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2> options = new ArrayList<>();
         Db2.Block body = null;
 
-        for (ParseTree child : children(ctx)) {
+        List<ParseTree> children = children(ctx);
+        for (int i = 0; i < children.size(); i++) {
+            ParseTree child = children.get(i);
             if (child instanceof DB2Parser.QualifiedNameContext) {
                 Db2.Name qualified = name((DB2Parser.QualifiedNameContext) child);
                 if (name == null) {
@@ -646,12 +673,23 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
                 }
             } else if (child instanceof DB2Parser.TriggerEventContext) {
                 events.add(option((ParserRuleContext) child));
+            } else if (ctx.OR().contains(child)) {
+                // OR is the first keyword of the event it introduces, so it prints between the two.
+                List<Db2.Keyword> eventKeywords = new ArrayList<>();
+                eventKeywords.add(keyword((TerminalNode) child));
+                List<Db2> values = new ArrayList<>();
+                collectOption(children.get(++i), eventKeywords, values);
+                events.add(new Db2.Option(randomId(), EMPTY, Markers.EMPTY, eventKeywords, values));
             } else if (child instanceof DB2Parser.CompoundStatementContext) {
                 body = block((DB2Parser.CompoundStatementContext) child);
             } else if (child instanceof DB2Parser.TriggeredStatementContext) {
-                // A trigger whose body is a single statement has no BEGIN and no END.
+                // A trigger whose body is a single statement is a block with no BEGIN or END of its own.
+                List<Token> tokens = new ArrayList<>(child.getChildCount());
+                for (ParseTree word : children((ParserRuleContext) child)) {
+                    tokens.add(((TerminalNode) word).getSymbol());
+                }
                 body = new Db2.Block(randomId(), prefix((ParserRuleContext) child), Markers.EMPTY,
-                        emptyList(), new ArrayList<>(words((ParserRuleContext) child)), null, null);
+                        emptyList(), bodyParts(tokens), null, null);
             } else if (child instanceof DB2Parser.EndContext) {
                 // read by `terminated`
             } else if (child instanceof TerminalNode) {
@@ -694,7 +732,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2.Keyword> keywords = new ArrayList<>();
         Db2.Name name = null;
         List<Db2RightPadded<Db2.Parameter>> parameters = new ArrayList<>();
-        Space beforeParameters = Space.EMPTY;
+        Space beforeParameters = null;
         List<Db2> clauses = new ArrayList<>();
         Db2.Block body = null;
 
@@ -703,7 +741,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
                 name = name((DB2Parser.QualifiedNameContext) child);
             } else if (child instanceof DB2Parser.RoutineParameterContext) {
                 Db2.Parameter parameter = parameter((DB2Parser.RoutineParameterContext) child);
-                parameters.add(Db2RightPadded.build(parameter).withAfter(whitespace()));
+                parameters.add(Db2RightPadded.build(parameter).withAfter(space()));
             } else if (child instanceof DB2Parser.RoutineClauseContext) {
                 clauses.add(option((ParserRuleContext) child));
             } else if (child instanceof DB2Parser.CompoundStatementContext) {
@@ -713,7 +751,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             } else if (child instanceof TerminalNode) {
                 Token token = ((TerminalNode) child).getSymbol();
                 if (token.getType() == DB2Parser.LPAREN) {
-                    beforeParameters = Space.build(source.substring(cursor, token.getStartIndex()));
+                    beforeParameters = Space.build(source, cursor, token.getStartIndex());
                     cursor = token.getStopIndex() + 1;
                 } else if (token.getType() == DB2Parser.COMMA || token.getType() == DB2Parser.RPAREN) {
                     skip(token.getText());
@@ -722,7 +760,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
                 }
             }
         }
-        Db2Container<Db2.Parameter> container =
+        Db2Container<Db2.Parameter> container = beforeParameters == null ? null :
                 Db2Container.build(beforeParameters, parameters, Markers.EMPTY);
         if (creating) {
             return procedure ?
@@ -742,7 +780,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
                 mode = keyword((TerminalNode) child);
             }
         }
-        Db2.Name name = ctx.identifier() == null ? null : name(ctx.identifier());
+        Db2.Name name = ctx.parameterName() == null ? null : name(ctx.parameterName());
         return new Db2.Parameter(randomId(), prefix, Markers.EMPTY, mode, name, dataType(ctx.dataType()));
     }
 
@@ -750,16 +788,133 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Space prefix = prefix(ctx);
         List<Db2.Keyword> keywords = keywords(ctx.BEGIN(), ctx.ATOMIC());
         List<Db2> body = new ArrayList<>();
+        List<Token> tokens = new ArrayList<>();
         for (DB2Parser.BodyItemContext item : ctx.bodyItem()) {
             if (item.compoundStatement() != null) {
+                body.addAll(bodyParts(tokens));
+                tokens.clear();
                 body.add(block(item.compoundStatement()));
             } else {
-                body.addAll(words(item));
+                tokens.add(item.getStart());
             }
         }
+        body.addAll(bodyParts(tokens));
         Db2.Keyword end = keyword(ctx.END());
         Db2.Name label = ctx.identifier() == null ? null : name(ctx.identifier());
         return new Db2.Block(randomId(), prefix, Markers.EMPTY, keywords, body, end, label);
+    }
+
+    /**
+     * The words of a SQL PL body, with each query made a {@link Db2.Query}. A query starts at a
+     * SELECT, or at the WITH that names its common table expressions. A string literal is one token,
+     * so every SELECT token starts a query.
+     */
+    private List<Db2> bodyParts(List<Token> tokens) {
+        List<Db2> parts = new ArrayList<>(tokens.size());
+        int i = 0;
+        while (i < tokens.size()) {
+            int type = tokens.get(i).getType();
+            if (type == DB2Parser.SELECT || type == DB2Parser.WITH && namesCommonTable(tokens, i)) {
+                int end = queryEnd(tokens, i);
+                parts.add(bodyQuery(tokens.subList(i, end)));
+                i = end;
+            } else {
+                parts.add(word(tokens.get(i++)));
+            }
+        }
+        return parts;
+    }
+
+    /**
+     * Whether the WITH at {@code with} opens {@code WITH name [(columns)] AS (}, as against the WITH
+     * of a cursor's {@code WITH RETURN} or a query's {@code WITH UR}.
+     */
+    private static boolean namesCommonTable(List<Token> tokens, int with) {
+        int i = with + 1;
+        if (i >= tokens.size() || !IDENTIFIER_START.contains(tokens.get(i).getType())) {
+            return false;
+        }
+        i++;
+        if (i < tokens.size() && tokens.get(i).getType() == DB2Parser.LPAREN) {
+            while (i < tokens.size() && tokens.get(i).getType() != DB2Parser.RPAREN) {
+                i++;
+            }
+            i++;
+        }
+        return i + 1 < tokens.size() && tokens.get(i).getType() == DB2Parser.AS &&
+               tokens.get(i + 1).getType() == DB2Parser.LPAREN;
+    }
+
+    /**
+     * Where the query starting at {@code start} ends. That is the parenthesis that closes the one it
+     * stands in, the semicolon that ends its statement, or the {@code DO} of a FOR statement.
+     */
+    private static int queryEnd(List<Token> tokens, int start) {
+        int depth = 0;
+        for (int i = start; i < tokens.size(); i++) {
+            switch (tokens.get(i).getType()) {
+                case DB2Parser.LPAREN:
+                    depth++;
+                    break;
+                case DB2Parser.RPAREN:
+                    if (depth-- == 0) {
+                        return i;
+                    }
+                    break;
+                case DB2Parser.SEMI:
+                    return i;
+                case DB2Parser.DO:
+                    if (depth == 0) {
+                        return i;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        return tokens.size();
+    }
+
+    /**
+     * A query of a SQL PL body, with every identifier in it, qualified or not, a {@link Db2.Name}.
+     */
+    private Db2.Query bodyQuery(List<Token> tokens) {
+        Space prefix = prefix(tokens.get(0));
+        List<Db2> parts = new ArrayList<>(tokens.size());
+        int i = 0;
+        while (i < tokens.size()) {
+            int end = nameEnd(tokens, i);
+            if (end == i) {
+                parts.add(word(tokens.get(i++)));
+                continue;
+            }
+            Space namePrefix = prefix(tokens.get(i));
+            List<Db2.Word> words = new ArrayList<>(end - i);
+            while (i < end) {
+                words.add(word(tokens.get(i++)));
+            }
+            parts.add(new Db2.Name(randomId(), namePrefix, Markers.EMPTY, words));
+        }
+        return new Db2.Query(randomId(), prefix, Markers.EMPTY, parts);
+    }
+
+    private static final IntervalSet IDENTIFIER_START =
+            DB2Parser._ATN.nextTokens(DB2Parser._ATN.ruleToStartState[DB2Parser.RULE_identifier]);
+
+    private static int nameEnd(List<Token> tokens, int start) {
+        if (!IDENTIFIER_START.contains(tokens.get(start).getType())) {
+            return start;
+        }
+        int end = start + 1;
+        if (end < tokens.size() && tokens.get(end).getType() == DB2Parser.TABLE) {
+            // The FINAL, NEW or OLD of a data change table reference.
+            return start;
+        }
+        while (end + 1 < tokens.size() && tokens.get(end).getType() == DB2Parser.DOT &&
+               IDENTIFIER_START.contains(tokens.get(end + 1).getType())) {
+            end += 2;
+        }
+        return end;
     }
 
     @Override
@@ -849,18 +1004,18 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         for (ParseTree child : children(ctx)) {
             if (child instanceof DB2Parser.PrivilegeContext) {
                 privileges.add(Db2RightPadded.build((Db2) option((ParserRuleContext) child))
-                        .withAfter(whitespace()));
+                        .withAfter(space()));
             } else if (child instanceof DB2Parser.PrivilegeObjectContext) {
                 collectKeywords(child, on);
             } else if (child instanceof DB2Parser.QualifiedNameListContext) {
                 for (DB2Parser.QualifiedNameContext q :
                         ((DB2Parser.QualifiedNameListContext) child).qualifiedName()) {
-                    objects.add(Db2RightPadded.build(name(q)).withAfter(whitespace()));
+                    objects.add(Db2RightPadded.build(name(q)).withAfter(space()));
                     skip(",");
                 }
             } else if (child instanceof DB2Parser.GranteeContext) {
                 grantees.add(Db2RightPadded.build((Db2) option((ParserRuleContext) child))
-                        .withAfter(whitespace()));
+                        .withAfter(space()));
             } else if (child instanceof DB2Parser.EndContext) {
                 // read by `terminated`
             } else if (child instanceof TerminalNode) {
@@ -899,6 +1054,9 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         // which alternative matched, so they are collected rather than cast.
         collectKeywords(ctx.specialRegister(), keywords);
         Db2LeftPadded<Db2> value = leftPadded(ctx.EQ(), () -> (Db2) query(ctx.expression()));
+        if (ctx.EQ() == null) {
+            value = value.withMarkers(value.getMarkers().add(new OmitEquals(randomId())));
+        }
         return new Db2.Set(randomId(), prefix, Markers.EMPTY, keywords, value);
     }
 
@@ -913,7 +1071,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
 
     @Override
     public Db2 visitQueryStatement(DB2Parser.QueryStatementContext ctx) {
-        return query(ctx.queryExpression());
+        return query(ctx.selectStatement());
     }
 
     @Override
@@ -927,14 +1085,31 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         }
         List<Db2RightPadded<Db2>> values = new ArrayList<>();
         for (DB2Parser.ValuesRowContext row : ctx.valuesRow()) {
-            values.add(Db2RightPadded.build((Db2) query(row)).withAfter(whitespace()));
+            values.add(Db2RightPadded.build((Db2) query(row)).withAfter(space()));
             skip(",");
         }
-        if (ctx.queryExpression() != null) {
-            values.add(Db2RightPadded.build((Db2) query(ctx.queryExpression())));
+        if (ctx.selectStatement() != null) {
+            values.add(Db2RightPadded.build((Db2) query(ctx.selectStatement())));
         }
         return new Db2.Insert(randomId(), prefix, Markers.EMPTY, keywords, table, columns,
                 Db2Container.build(values));
+    }
+
+    @Override
+    public Db2 visitUpdateStatement(DB2Parser.UpdateStatementContext ctx) {
+        Space prefix = prefix(ctx);
+        List<Db2.Keyword> keywords = keywords(ctx.UPDATE());
+        Db2.Name table = name(ctx.qualifiedName());
+        return new Db2.Update(randomId(), prefix, Markers.EMPTY, keywords, table, query(ctx.updateClauses()));
+    }
+
+    @Override
+    public Db2 visitDeleteStatement(DB2Parser.DeleteStatementContext ctx) {
+        Space prefix = prefix(ctx);
+        List<Db2.Keyword> keywords = keywords(ctx.DELETE(), ctx.FROM());
+        Db2.Name table = name(ctx.qualifiedName());
+        Db2.Query clauses = ctx.deleteClauses() == null ? null : query(ctx.deleteClauses());
+        return new Db2.Delete(randomId(), prefix, Markers.EMPTY, keywords, table, clauses);
     }
 
     /**
@@ -950,7 +1125,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         if (operator == null) {
             return Db2LeftPadded.build(element.get());
         }
-        Space before = Space.build(source.substring(cursor, operator.getSymbol().getStartIndex()));
+        Space before = Space.build(source, cursor, operator.getSymbol().getStartIndex());
         cursor = operator.getSymbol().getStopIndex() + 1;
         return new Db2LeftPadded<>(before, element.get(), Markers.EMPTY);
     }
@@ -963,12 +1138,6 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         for (int i = 0; i < tree.getChildCount(); i++) {
             collectKeywords(tree.getChild(i), into);
         }
-    }
-
-    private List<Db2.Word> words(ParseTree tree) {
-        List<Db2.Word> words = new ArrayList<>();
-        collectWords(tree, words);
-        return words;
     }
 
     //
@@ -1033,14 +1202,14 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     private <T extends ParserRuleContext, R extends Db2> Db2Container<R> container(
             @Nullable TerminalNode open, List<T> elements, List<TerminalNode> separators,
             @Nullable TerminalNode close, java.util.function.Function<T, R> map) {
-        Space before = whitespace();
+        Space before = space();
         if (open != null) {
             skip("(");
         }
         List<Db2RightPadded<R>> padded = new ArrayList<>(elements.size());
         for (int i = 0; i < elements.size(); i++) {
             R element = map.apply(elements.get(i));
-            Space after = whitespace();
+            Space after = space();
             if (i < separators.size()) {
                 skip(",");
             }
@@ -1077,7 +1246,15 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         return new Db2.Name(randomId(), prefix, Markers.EMPTY, parts);
     }
 
+    private Db2.Name name(DB2Parser.ParameterNameContext ctx) {
+        return ctx.identifier() != null ? name(ctx.identifier()) : oneWordName(ctx);
+    }
+
     private Db2.Name name(DB2Parser.IdentifierContext ctx) {
+        return oneWordName(ctx);
+    }
+
+    private Db2.Name oneWordName(ParserRuleContext ctx) {
         Space prefix = prefix(ctx);
         List<Db2.Word> parts = new ArrayList<>(1);
         parts.add(word(ctx.getStart()));
@@ -1103,7 +1280,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     }
 
     private Db2.Keyword keyword(Token token) {
-        Space prefix = Space.build(source.substring(cursor, token.getStartIndex()));
+        Space prefix = Space.build(source, cursor, token.getStartIndex());
         cursor = token.getStopIndex() + 1;
         return new Db2.Keyword(randomId(), prefix, Markers.EMPTY, typeOf(token), token.getText());
     }
@@ -1154,9 +1331,24 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
     }
 
     private Db2.Word word(Token token) {
-        Space prefix = Space.build(source.substring(cursor, token.getStartIndex()));
+        Space prefix = Space.build(source, cursor, token.getStartIndex());
         cursor = token.getStopIndex() + 1;
         return new Db2.Word(randomId(), prefix, Markers.EMPTY, token.getText());
+    }
+
+    private static List<TerminalNode> terminators(DB2Parser.StatementContext statement) {
+        ParseTree last = statement;
+        while (!(last instanceof DB2Parser.EndContext)) {
+            if (last.getChildCount() == 0) {
+                return emptyList();
+            }
+            last = last.getChild(last.getChildCount() - 1);
+        }
+        List<TerminalNode> terminators = new ArrayList<>(last.getChildCount());
+        for (int i = 0; i < last.getChildCount(); i++) {
+            terminators.add((TerminalNode) last.getChild(i));
+        }
+        return terminators;
     }
 
     /**
@@ -1164,24 +1356,41 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
      * carries the indentation and its first child carries nothing.
      */
     private Space prefix(ParserRuleContext ctx) {
-        int start = ctx.getStart().getStartIndex();
-        Space prefix = Space.build(source.substring(cursor, start));
+        return prefix(ctx.getStart());
+    }
+
+    private Space prefix(Token token) {
+        int start = token.getStartIndex();
+        Space prefix = Space.build(source, cursor, start);
         cursor = start;
         return prefix;
     }
 
-    private Space whitespace() {
+    /**
+     * The white space and comments at the cursor, all that lies between it and the next token.
+     */
+    private Space space() {
         int end = cursor;
-        while (end < source.length() && Character.isWhitespace(source.charAt(end))) {
-            end++;
+        while (end < source.length()) {
+            if (Character.isWhitespace(source.charAt(end))) {
+                end++;
+            } else if (source.startsWith("--", end)) {
+                int newline = source.indexOf('\n', end);
+                end = newline < 0 ? source.length() : newline;
+            } else if (source.startsWith("/*", end)) {
+                int close = source.indexOf("*/", end + 2);
+                end = close < 0 ? source.length() : close + 2;
+            } else {
+                break;
+            }
         }
-        Space space = Space.build(source.substring(cursor, end));
+        Space space = Space.build(source, cursor, end);
         cursor = end;
         return space;
     }
 
     private Space sourceBefore(String token) {
-        Space prefix = whitespace();
+        Space prefix = space();
         skip(token);
         return prefix;
     }

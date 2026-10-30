@@ -39,8 +39,9 @@ import java.util.UUID;
  * nothing.
  * <p>
  * No node holds a delimiter, a separator or a terminator. Brackets and commas belong to
- * {@link Db2Container}, an operator's space to {@link Db2LeftPadded}, and a semicolon to the
- * {@code Semicolon} marker on a statement's padding — so a recipe adding a column adds a column.
+ * {@link Db2Container}, an operator's space to {@link Db2LeftPadded}, and a terminator to the
+ * {@code Semicolon} or {@code AtSign} marker on a statement's padding — so a recipe adding a column
+ * adds a column.
  */
 public interface Db2 extends Tree {
 
@@ -126,7 +127,8 @@ public interface Db2 extends Tree {
 
         /**
          * Each statement with the space before its terminator. Whether it has one at all is the
-         * {@code Semicolon} marker on the padding, the way Groovy records an optional semicolon.
+         * {@code Semicolon} or {@code AtSign} marker on the padding, the way Groovy records an optional
+         * semicolon.
          */
         List<Db2RightPadded<Statement>> statements;
 
@@ -660,6 +662,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
@@ -688,6 +691,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
@@ -916,6 +920,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
@@ -944,6 +949,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
@@ -1390,7 +1396,63 @@ public interface Db2 extends Tree {
     }
 
     /**
-     * A statement with nothing in it. The semicolon is the marker on its padding, so a bare terminator has no field at all.
+     * A searched {@code UPDATE}. What follows the table, its correlation name, {@code SET} and
+     * {@code WHERE}, is kept as a query's words, so the tables its subqueries read are found as a
+     * query's are.
+     */
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class Update implements Db2, Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        List<Keyword> keywords;
+
+        Name table;
+
+        Query clauses;
+
+        @Override
+        public <P> Db2 acceptDb2(Db2Visitor<P> v, P p) {
+            return v.visitUpdate(this, p);
+        }
+    }
+
+    /**
+     * A searched {@code DELETE}, whose correlation name and {@code WHERE} are kept as an
+     * {@code UPDATE}'s clauses are.
+     */
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class Delete implements Db2, Statement {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        List<Keyword> keywords;
+
+        Name table;
+
+        @Nullable
+        Query clauses;
+
+        @Override
+        public <P> Db2 acceptDb2(Db2Visitor<P> v, P p) {
+            return v.visitDelete(this, p);
+        }
+    }
+
+    /**
+     * A statement with nothing in it. The terminator is the marker on its padding, so a bare terminator has no field at all.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -1675,7 +1737,7 @@ public interface Db2 extends Tree {
     }
 
     /**
-     * A SQL PL body. Only its nesting is modelled - so that an inner END cannot close the routine early - and not the statements between BEGIN and END.
+     * A SQL PL body. Its nesting is modelled, so that an inner END cannot close the routine early. Each query in it is a {@link Query}, and the rest of its statements are words.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)

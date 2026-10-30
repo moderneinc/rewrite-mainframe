@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// Generated from /Users/jon/Projects/github/openrewrite/rewrite-cobol/.claude/worktrees/ims-or-cics/src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
+// Generated from src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.db2.internal.grammar;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -392,6 +392,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterNamedIndexOption(DB2Parser.NamedIndexOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNamedIndexOption(DB2Parser.NamedIndexOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCreateTablespace(DB2Parser.CreateTablespaceContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -411,6 +423,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitTablespaceOption(DB2Parser.TablespaceOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNamedTablespaceOption(DB2Parser.NamedTablespaceOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNamedTablespaceOption(DB2Parser.NamedTablespaceOptionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -632,6 +656,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNamedTrustedContextOption(DB2Parser.NamedTrustedContextOptionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterTrustedAttribute(DB2Parser.TrustedAttributeContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -759,6 +795,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitRoutineParameter(DB2Parser.RoutineParameterContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterParameterName(DB2Parser.ParameterNameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitParameterName(DB2Parser.ParameterNameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1268,6 +1316,78 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterUpdateStatement(DB2Parser.UpdateStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUpdateStatement(DB2Parser.UpdateStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterUpdateClauses(DB2Parser.UpdateClausesContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUpdateClauses(DB2Parser.UpdateClausesContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterAssignment(DB2Parser.AssignmentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAssignment(DB2Parser.AssignmentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDeleteStatement(DB2Parser.DeleteStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDeleteStatement(DB2Parser.DeleteStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDeleteClauses(DB2Parser.DeleteClausesContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDeleteClauses(DB2Parser.DeleteClausesContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSelectStatement(DB2Parser.SelectStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSelectStatement(DB2Parser.SelectStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterQueryExpression(DB2Parser.QueryExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1275,6 +1395,18 @@ public class DB2ParserBaseListener implements DB2ParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitQueryExpression(DB2Parser.QueryExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterCommonTableExpression(DB2Parser.CommonTableExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCommonTableExpression(DB2Parser.CommonTableExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -232,7 +232,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));
@@ -246,7 +248,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));
@@ -347,7 +351,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));
@@ -361,7 +367,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withParameters(visitContainer(x.getParameters(), p));
+        if (x.getParameters() != null) {
+            x = x.withParameters(visitContainer(x.getParameters(), p));
+        }
         x = x.withClauses(ListUtils.map(x.getClauses(), e -> visitAndCast(e, p)));
         if (x.getBody() != null) {
             x = x.withBody(visitAndCast(x.getBody(), p));
@@ -547,6 +555,28 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
             x = x.withColumns(visitContainer(x.getColumns(), p));
         }
         x = x.withValues(visitContainer(x.getValues(), p));
+        return x;
+    }
+
+    public Db2 visitUpdate(Db2.Update update, P p) {
+        Db2.Update x = update;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.UPDATE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
+        x = x.withTable(visitAndCast(x.getTable(), p));
+        x = x.withClauses(visitAndCast(x.getClauses(), p));
+        return x;
+    }
+
+    public Db2 visitDelete(Db2.Delete delete, P p) {
+        Db2.Delete x = delete;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.DELETE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
+        x = x.withTable(visitAndCast(x.getTable(), p));
+        if (x.getClauses() != null) {
+            x = x.withClauses(visitAndCast(x.getClauses(), p));
+        }
         return x;
     }
 

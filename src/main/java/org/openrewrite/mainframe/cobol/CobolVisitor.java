@@ -636,6 +636,28 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return d.withSections(ListUtils.map(d.getSections(), it -> (DataDivisionSection) visit(it, p)));
     }
 
+    public Cobol visitDataDynamicLengthClause(Cobol.DataDynamicLengthClause dataDynamicLengthClause, P p) {
+        Cobol.DataDynamicLengthClause c = dataDynamicLengthClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.DATA_DYNAMIC_LENGTH_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        c = c.withWords(ListUtils.map(c.getWords(), t -> (Cobol.Word) visit(t, p)));
+        return c.withLimit(visit(c.getLimit(), p));
+    }
+
+    public Cobol visitDataGroupUsageClause(Cobol.DataGroupUsageClause dataGroupUsageClause, P p) {
+        Cobol.DataGroupUsageClause c = dataGroupUsageClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.DATA_GROUP_USAGE_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        return c.withWords(ListUtils.map(c.getWords(), t -> (Cobol.Word) visit(t, p)));
+    }
+
+    public Cobol visitDataVolatileClause(Cobol.DataVolatileClause dataVolatileClause, P p) {
+        Cobol.DataVolatileClause c = dataVolatileClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.DATA_VOLATILE_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        return c.withWords(ListUtils.map(c.getWords(), t -> (Cobol.Word) visit(t, p)));
+    }
+
     public Cobol visitDataExternalClause(Cobol.DataExternalClause dataExternalClause, P p) {
         Cobol.DataExternalClause d = dataExternalClause;
         d = d.withPrefix(visitSpace(d.getPrefix(), Space.Location.DATA_EXTERNAL_CLAUSE_PREFIX, p));
@@ -1361,13 +1383,55 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return i.withTableCall((Cobol.TableCall) visit(i.getTableCall(), p));
     }
 
+    public Cobol visitAllocate(Cobol.Allocate allocate, P p) {
+        Cobol.Allocate a = allocate;
+        a = a.withPrefix(visitSpace(a.getPrefix(), Space.Location.ALLOCATE_PREFIX, p));
+        a = a.withMarkers(visitMarkers(a.getMarkers(), p));
+        a = a.withAllocate((Cobol.Word) visit(a.getAllocate(), p));
+        a = a.withSubject(visit(a.getSubject(), p));
+        a = a.withOptions(ListUtils.map(a.getOptions(), t -> visit(t, p)));
+        a = a.withReturning((Cobol.Word) visit(a.getReturning(), p));
+        return a.withPointer((Name) visit(a.getPointer(), p));
+    }
+
+    public Cobol visitFree(Cobol.Free free, P p) {
+        Cobol.Free f = free;
+        f = f.withPrefix(visitSpace(f.getPrefix(), Space.Location.FREE_PREFIX, p));
+        f = f.withMarkers(visitMarkers(f.getMarkers(), p));
+        f = f.withFree((Cobol.Word) visit(f.getFree(), p));
+        return f.withPointers(ListUtils.map(f.getPointers(), t -> visit(t, p)));
+    }
+
+    public Cobol visitJsonXml(Cobol.JsonXml jsonXml, P p) {
+        Cobol.JsonXml j = jsonXml;
+        j = j.withPrefix(visitSpace(j.getPrefix(), Space.Location.JSON_XML_PREFIX, p));
+        j = j.withMarkers(visitMarkers(j.getMarkers(), p));
+        j = j.withWords(ListUtils.map(j.getWords(), t -> (Cobol.Word) visit(t, p)));
+        j = j.withDocument((Name) visit(j.getDocument(), p));
+        j = j.withPreposition((Cobol.Word) visit(j.getPreposition(), p));
+        j = j.withData((Name) visit(j.getData(), p));
+        j = j.withPhrases(ListUtils.map(j.getPhrases(), t -> (Cobol.JsonXmlPhrase) visit(t, p)));
+        j = j.withOnException((Cobol.StatementPhrase) visit(j.getOnException(), p));
+        j = j.withNotOnException((Cobol.StatementPhrase) visit(j.getNotOnException(), p));
+        return j.withEnd((Cobol.Word) visit(j.getEnd(), p));
+    }
+
+    public Cobol visitJsonXmlPhrase(Cobol.JsonXmlPhrase jsonXmlPhrase, P p) {
+        Cobol.JsonXmlPhrase j = jsonXmlPhrase;
+        j = j.withPrefix(visitSpace(j.getPrefix(), Space.Location.JSON_XML_PHRASE_PREFIX, p));
+        j = j.withMarkers(visitMarkers(j.getMarkers(), p));
+        return j.withElements(ListUtils.map(j.getElements(), t -> visit(t, p)));
+    }
+
     public Cobol visitInitialize(Cobol.Initialize initialize, P p) {
         Cobol.Initialize i = initialize;
         i = i.withPrefix(visitSpace(i.getPrefix(), Space.Location.INITIALIZE_PREFIX, p));
         i = i.withMarkers(visitMarkers(i.getMarkers(), p));
         i = i.withInitialize((Cobol.Word) visit(i.getInitialize(), p));
         i = i.withIdentifiers(ListUtils.map(i.getIdentifiers(), t -> visit(t, p)));
-        return i.withInitializeReplacingPhrase((Cobol.InitializeReplacingPhrase) visit(i.getInitializeReplacingPhrase(), p));
+        i = i.withValuePhrase(ListUtils.map(i.getValuePhrase(), t -> (Cobol.Word) visit(t, p)));
+        i = i.withInitializeReplacingPhrase((Cobol.InitializeReplacingPhrase) visit(i.getInitializeReplacingPhrase(), p));
+        return i.withDefaultPhrase(ListUtils.map(i.getDefaultPhrase(), t -> (Cobol.Word) visit(t, p)));
     }
 
     public Cobol visitInitializeReplacingBy(Cobol.InitializeReplacingBy initializeReplacingBy, P p) {
@@ -3367,6 +3431,14 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return s.withDot((Cobol.Word) visit(s.getDot(), p));
     }
 
+    public Cobol visitService(Cobol.Service service, P p) {
+        Cobol.Service s = service;
+        s = s.withPrefix(visitSpace(s.getPrefix(), Space.Location.SERVICE_PREFIX, p));
+        s = s.withMarkers(visitMarkers(s.getMarkers(), p));
+        s = s.withWords(ListUtils.map(s.getWords(), it -> (Cobol.Word) visit(it, p)));
+        return s.withIdentifier((Name) visit(s.getIdentifier(), p));
+    }
+
     public Cobol visitSet(Cobol.Set set, P p) {
         Cobol.Set s = set;
         s = s.withPrefix(visitSpace(s.getPrefix(), Space.Location.SET_PREFIX, p));
@@ -3964,6 +4036,49 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         w = w.withMarkers(visitMarkers(w.getMarkers(), p));
         w = w.withFrom((Cobol.Word) visit(w.getFrom(), p));
         return w.withName((Name) visit(w.getName(), p));
+    }
+
+    public Cobol visitXmlSchemaClause(Cobol.XmlSchemaClause xmlSchemaClause, P p) {
+        Cobol.XmlSchemaClause c = xmlSchemaClause;
+        c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.XML_SCHEMA_CLAUSE_PREFIX, p));
+        c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        c = c.withXmlSchema((Cobol.Word) visit(c.getXmlSchema(), p));
+        c = c.withName(visit(c.getName(), p));
+        c = c.withIs((Cobol.Word) visit(c.getIs(), p));
+        return c.withLocation(visit(c.getLocation(), p));
+    }
+
+    public Cobol visitXmlParse(Cobol.XmlParse xmlParse, P p) {
+        Cobol.XmlParse x = xmlParse;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.XML_PARSE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withWords(ListUtils.map(x.getWords(), it -> (Cobol.Word) visit(it, p)));
+        x = x.withIdentifier((Name) visit(x.getIdentifier(), p));
+        x = x.withEncoding((Cobol.XmlParsePhrase) visit(x.getEncoding(), p));
+        x = x.withReturningNational((Cobol.XmlParsePhrase) visit(x.getReturningNational(), p));
+        x = x.withValidating((Cobol.XmlParsePhrase) visit(x.getValidating(), p));
+        x = x.withProcessingProcedure((Cobol.XmlParseProcessingProcedure) visit(x.getProcessingProcedure(), p));
+        x = x.withOnExceptionClause((Cobol.StatementPhrase) visit(x.getOnExceptionClause(), p));
+        x = x.withNotOnExceptionClause((Cobol.StatementPhrase) visit(x.getNotOnExceptionClause(), p));
+        return x.withEndXml((Cobol.Word) visit(x.getEndXml(), p));
+    }
+
+    public Cobol visitXmlParsePhrase(Cobol.XmlParsePhrase xmlParsePhrase, P p) {
+        Cobol.XmlParsePhrase x = xmlParsePhrase;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.XML_PARSE_PHRASE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withWords(ListUtils.map(x.getWords(), it -> (Cobol.Word) visit(it, p)));
+        return x.withValue((Name) visit(x.getValue(), p));
+    }
+
+    public Cobol visitXmlParseProcessingProcedure(Cobol.XmlParseProcessingProcedure xmlParseProcessingProcedure, P p) {
+        Cobol.XmlParseProcessingProcedure x = xmlParseProcessingProcedure;
+        x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.XML_PARSE_PROCESSING_PROCEDURE_PREFIX, p));
+        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
+        x = x.withWords(ListUtils.map(x.getWords(), it -> (Cobol.Word) visit(it, p)));
+        x = x.withProcedureName((Cobol.ProcedureName) visit(x.getProcedureName(), p));
+        x = x.withThrough((Cobol.Word) visit(x.getThrough(), p));
+        return x.withThroughProcedure((Cobol.ProcedureName) visit(x.getThroughProcedure(), p));
     }
 
     public CobolLine visitLine(CobolLine line, P p) {

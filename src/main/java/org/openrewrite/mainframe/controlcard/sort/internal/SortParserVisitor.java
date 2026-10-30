@@ -78,7 +78,7 @@ public class SortParserVisitor extends SortCardParserBaseVisitor<Sort> {
                 charsetBomMarked,
                 null,
                 statements,
-                Space.build(source.substring(cursor))
+                Space.build(source, cursor, source.length())
         );
     }
 
@@ -285,7 +285,7 @@ public class SortParserVisitor extends SortCardParserBaseVisitor<Sort> {
                 break;
             }
         }
-        return Space.build(source.substring(start, cursor));
+        return Space.build(source, start, cursor);
     }
 
     private Space sourceBefore(String untilDelim) {
