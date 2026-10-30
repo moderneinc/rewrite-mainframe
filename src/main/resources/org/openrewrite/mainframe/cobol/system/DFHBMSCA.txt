@@ -1,4 +1,7 @@
-      * CICS BMS field attributes and printer controls, in EBCDIC.
+      * CICS BMS field attributes, flags and printer controls, named as
+      * IBM's "BMS constants" lists them. An attribute value sets
+      * protected X'20', numeric X'10', bright X'08' or dark X'0C', and
+      * MDT X'01', and the 3270 table converts the result to EBCDIC.
        01  DFHBMSCA.
            02  DFHBMPEM   PIC X VALUE X'19'.
            02  DFHBMPNL   PIC X VALUE X'15'.
@@ -20,7 +23,6 @@
            02  DFHBMFLG   PIC X.
                88  DFHERASE  VALUES X'80' X'82'.
                88  DFHCURSR  VALUES X'02' X'82'.
-           02  DFHBMDET   PIC X VALUE X'FF'.
            02  DFHUNNOD   PIC X VALUE X'4D'.
            02  DFHUNIMD   PIC X VALUE X'C9'.
            02  DFHUNNUM   PIC X VALUE X'D1'.

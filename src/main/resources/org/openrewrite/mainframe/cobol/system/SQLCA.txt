@@ -1,4 +1,5 @@
-      * SQLCA as the Db2 for z/OS precompiler declares it for COBOL.
+      * The SQLCA the Db2 for z/OS precompiler declares for COBOL, from
+      * IBM's "Description of SQLCA fields". It is 136 bytes long.
        01  SQLCA.
            05  SQLCAID     PIC X(8).
            05  SQLCABC     PIC S9(9) COMP-4.

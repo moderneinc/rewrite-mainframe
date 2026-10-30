@@ -1,5 +1,6 @@
-      * The CICS EXEC interface block. The two FILLER items hold the
-      * offsets of fields IBM does not document.
+      * The EXEC interface block the CICS translator inserts, from
+      * IBM's "EXEC interface block (EIB) fields". Each FILLER keeps the
+      * offset of a field IBM does not document.
        01  DFHEIBLK.
            02  EIBTIME     PIC S9(7) COMP-3.
            02  EIBDATE     PIC S9(7) COMP-3.

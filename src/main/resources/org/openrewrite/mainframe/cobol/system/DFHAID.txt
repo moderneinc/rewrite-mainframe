@@ -1,6 +1,6 @@
-      * CICS attention identifiers, the values EIBAID takes, in EBCDIC.
+      * The CICS attention identifiers EIBAID holds. Each value is the
+      * 3270 AID byte of its key, as the 3270 data stream defines it.
        01  DFHAID.
-           02  DFHNULL    PIC X VALUE X'00'.
            02  DFHENTER   PIC X VALUE X'7D'.
            02  DFHCLEAR   PIC X VALUE X'6D'.
            02  DFHCLRP    PIC X VALUE X'6A'.
