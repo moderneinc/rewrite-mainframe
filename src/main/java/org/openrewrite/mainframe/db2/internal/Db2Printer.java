@@ -178,12 +178,14 @@ public class Db2Printer<P> extends Db2Visitor<PrintOutputCapture<P>> {
         visit(createAuxiliaryTable.getName(), p);
         for (Db2.Keyword keyword : keywords.subList(clauses, keywords.size())) {
             visit(keyword, p);
-            // IN, STORES, COLUMN and PART each introduce one option. APPEND's YES or NO is a keyword.
-            if (keyword.getType() != Db2.Keyword.Type.Append && keyword.getType() != Db2.Keyword.Type.Yes &&
-                keyword.getType() != Db2.Keyword.Type.No) {
+            Db2.Keyword.Type type = keyword.getType();
+            boolean introducesOption = type == Db2.Keyword.Type.In || type == Db2.Keyword.Type.Stores ||
+                                       type == Db2.Keyword.Type.Column || type == Db2.Keyword.Type.Part;
+            if (introducesOption && options.hasNext()) {
                 visit(options.next(), p);
             }
         }
+        options.forEachRemaining(option -> visit(option, p));
         afterSyntax(createAuxiliaryTable, p);
         return createAuxiliaryTable;
     }
