@@ -124,7 +124,7 @@ public class CobolParser implements Parser {
                         timeout
                 ).visitCompilationUnit(tokenizedCU);
                 parserListener.parsed(input, compilationUnit);
-                return compilationUnit;
+                return requirePrintEqualsInput(compilationUnit, input, relativeTo, ctx);
             } catch (ParseCancellationException e) {
                 throw new CobolParsingTimeoutException(relativeTo == null ? input.getPath() :
                         relativeTo.relativize(input.getPath()));

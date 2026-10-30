@@ -726,7 +726,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         List<Db2.Keyword> keywords = new ArrayList<>();
         Db2.Name name = null;
         List<Db2RightPadded<Db2.Parameter>> parameters = new ArrayList<>();
-        Space beforeParameters = Space.EMPTY;
+        Space beforeParameters = null;
         List<Db2> clauses = new ArrayList<>();
         Db2.Block body = null;
 
@@ -754,7 +754,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
                 }
             }
         }
-        Db2Container<Db2.Parameter> container =
+        Db2Container<Db2.Parameter> container = beforeParameters == null ? null :
                 Db2Container.build(beforeParameters, parameters, Markers.EMPTY);
         if (creating) {
             return procedure ?

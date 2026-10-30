@@ -662,6 +662,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
@@ -690,6 +691,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
@@ -918,6 +920,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
@@ -946,6 +949,7 @@ public interface Db2 extends Tree {
 
         Name name;
 
+        @Nullable
         Db2Container<Parameter> parameters;
 
         List<Db2> clauses;
