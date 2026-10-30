@@ -20,6 +20,7 @@ import io.micrometer.core.instrument.Timer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
@@ -124,7 +125,7 @@ public class Db2Parser implements Parser {
     }
 
     /**
-     * DDL a shop keeps with its control cards, as a deck a {@code DSNTEP2} or {@code DSNTIAD} step
+     * SQL a shop keeps with its control cards, as a deck a {@code DSNTEP2} or {@code DSNTIAD} step
      * runs, carries a control card's extension or none, and is known by its first statement.
      */
     private static final List<String> CONTROL_CARD_EXTENSIONS = singletonList(".ctl");
@@ -140,7 +141,8 @@ public class Db2Parser implements Parser {
     public boolean accept(Path path) {
         String name = path.toString().toLowerCase();
         if (!name.endsWith(".ddl") && !name.endsWith(".sql")) {
-            return ControlCards.accept(path, CONTROL_CARD_EXTENSIONS, Db2Parser::opensWithDdl);
+            return ControlCards.accept(path, CONTROL_CARD_EXTENSIONS,
+                    head -> opensWithDdl(head) || opensWithDml(head, path));
         }
         String source;
         try {
@@ -170,12 +172,7 @@ public class Db2Parser implements Parser {
      * before an object DB2 alters.
      */
     static boolean opensWithDdl(String source) {
-        StringBuilder code = new StringBuilder();
-        for (String line : source.replaceAll("(?s)/\\*.*?\\*/", " ").split("\n")) {
-            int comment = line.indexOf("--");
-            code.append(comment < 0 ? line : line.substring(0, comment)).append(' ');
-        }
-        String[] words = code.toString().trim().toUpperCase(Locale.ROOT).split("[\\s;(=]+", 4);
+        String[] words = firstWords(source);
         switch (words[0]) {
             case "CREATE":
             case "DROP":
@@ -193,6 +190,47 @@ public class Db2Parser implements Parser {
         }
     }
 
+    /**
+     * Whether a member opens with DML and reads as Db2 whole. ICETOOL has a {@code SELECT} of its own
+     * and a member without an extension may be a note that opens "Insert", so the opening word alone
+     * settles nothing. IDCAMS has a {@code DELETE} too, which names its entry without {@code FROM}.
+     */
+    private static boolean opensWithDml(String head, Path path) {
+        String[] words = firstWords(head);
+        switch (words[0]) {
+            case "DELETE":
+                return words.length > 1 && "FROM".equals(words[1]) && readsAsDb2(path);
+            case "INSERT":
+            case "UPDATE":
+            case "SELECT":
+            case "WITH":
+                return readsAsDb2(path);
+            default:
+                return false;
+        }
+    }
+
+    private static String[] firstWords(String source) {
+        StringBuilder code = new StringBuilder();
+        for (String line : source.replaceAll("(?s)/\\*.*?\\*/", " ").split("\n")) {
+            int comment = line.indexOf("--");
+            code.append(comment < 0 ? line : line.substring(0, comment)).append(' ');
+        }
+        return code.toString().trim().toUpperCase(Locale.ROOT).split("[\\s;(=]+", 4);
+    }
+
+    /**
+     * Whether the whole member reads as Db2, where the head a control card is typed by may end
+     * mid-statement.
+     */
+    private static boolean readsAsDb2(Path path) {
+        try {
+            return readsAsDb2(read(path));
+        } catch (IOException | UncheckedIOException e) {
+            return false;
+        }
+    }
+
     private static boolean readsAsDb2(String source) {
         BufferingErrorListener errorListener = new BufferingErrorListener(Paths.get(""));
         DB2Lexer lexer = new DB2Lexer(CharStreams.fromString(source));
@@ -201,7 +239,12 @@ public class Db2Parser implements Parser {
         DB2Parser parser = new DB2Parser(new CommonTokenStream(lexer));
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
-        parser.compilationUnit();
+        parser.setErrorHandler(new BailErrorStrategy());
+        try {
+            parser.compilationUnit();
+        } catch (ParseCancellationException e) {
+            return false;
+        }
         return errorListener.errors.isEmpty();
     }
 

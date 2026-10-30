@@ -130,6 +130,42 @@ class Db2FullContextPredictionTest {
     }
 
     @Test
+    void aWithClauseOpensTheNextStatement() {
+        // With no terminator, a WITH may end one statement or open the next one's query, named by a non-reserved word.
+        String ddl = """
+          GRANT CLMROLE TO JOE WITH ADMIN OPTION
+          WITH ADMIN AS (SELECT * FROM SYSIBM.SYSDUMMY1) SELECT * FROM ADMIN
+          GRANT CLMROLE TO JOE
+          WITH ADMIN AS (SELECT * FROM SYSIBM.SYSDUMMY1) SELECT * FROM ADMIN
+          CREATE TABLE CLM.C AS (SELECT * FROM CLM.T) WITH NO DATA
+          WITH D AS (SELECT * FROM CLM.T) SELECT * FROM D
+          CREATE TYPE CLM.MONEY AS DECIMAL(9, 2) WITH COMPARISONS
+          WITH D AS (SELECT * FROM CLM.T) SELECT * FROM D
+          CREATE TRUSTED CONTEXT CLMCTX BASED UPON CONNECTION USING SYSTEM AUTHID CLMADM ENABLE
+          WITH USE AS (SELECT * FROM CLM.T) SELECT * FROM USE
+          CREATE VIEW CLM.V AS WITH D (A) AS (SELECT A FROM CLM.T), E AS (SELECT * FROM D) SELECT * FROM E
+            WITH CHECK OPTION
+          INSERT INTO CLM.T (A) WITH D AS (SELECT * FROM SYSIBM.SYSDUMMY1) SELECT '1' FROM D
+          """;
+        assertThat(fallbacks(ddl, "statement", "end", "grantStatement", "createView", "insertStatement",
+          "selectStatement", "commonTableExpression", "tableContents", "copyOption", "createType",
+          "createTrustedContext", "trustedContextOption")).isZero();
+    }
+
+    @Test
+    void anUpdateOrADeleteEndsWithItsClauses() {
+        String ddl = """
+          DELETE FROM CLM.T
+          DELETE CLM.T X WHERE X.A = 1
+          UPDATE CLM.T SET A = 1, (B, C) = (SELECT B, C FROM CLM.U) WHERE A IN (SELECT A FROM CLM.U)
+          UPDATE CLM.T X SET (B, C) = (2, 3)
+          COMMIT
+          """;
+        assertThat(fallbacks(ddl, "statement", "end", "updateStatement", "updateClauses", "assignment",
+          "deleteStatement", "deleteClauses")).isZero();
+    }
+
+    @Test
     void aSemicolonAfterAStatementIsItsEnd() {
         String ddl = """
           ;

@@ -306,6 +306,27 @@ class Db2ParserTest {
           .containsExactly(Db2.Keyword.Type.Insert, Db2.Keyword.Type.Into, Db2.Keyword.Type.Values);
     }
 
+    @Test
+    void anUpdateAndADeleteNameTheTableTheyChange() {
+        Db2.Ddl ddl = parse(
+          """
+            UPDATE CARDDEMO.CARD_XREF X SET XREF_ACCT_ID = (SELECT MAX(ACCT_ID) FROM CARDDEMO.ACCOUNT),
+                   (XREF_CUST_ID, XREF_FLAG) = ('1', 'Y')
+              WHERE X.XREF_CARD_NUM IN (SELECT CARD_NUM FROM CARDDEMO.CARD);
+            update carddemo.account set acct_status = 'C';
+            DELETE FROM CARDDEMO.TRANSACTION_TYPE;
+            DELETE CARDDEMO.CARD AS C WHERE C.ACTIVE = 'N';
+            """);
+
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.Update.class))
+          .extracting(update -> update.getTable().getFullName())
+          .containsExactly("CARDDEMO.CARD_XREF", "CARDDEMO.ACCOUNT");
+        List<Db2.Delete> deletes = Db2.elementsOf(ddl.getStatements(), Db2.Delete.class);
+        assertThat(deletes).extracting(delete -> delete.getTable().getFullName())
+          .containsExactly("CARDDEMO.TRANSACTION_TYPE", "CARDDEMO.CARD");
+        assertThat(deletes.get(0).getClauses()).isNull();
+    }
+
     /**
      * {@code FOR}, and the {@code TABLE} or {@code SEQUENCE} that may follow it, sit between an alias
      * and what it names, and print there.
@@ -821,9 +842,8 @@ class Db2ParserTest {
      */
     @Test
     void whatTheGrammarCannotReadIsAnError() {
-        // Neither is DDL. A DML UPDATE or DELETE changes rows, which is a program's business.
-        assertThat(errorsIn("UPDATE CARDDEMO.ACCOUNT SET ACCT_STATUS = 'N';\n")).isNotEmpty();
-        assertThat(errorsIn("DELETE FROM CARDDEMO.ACCOUNT WHERE ACCT_ID = 1;\n")).isNotEmpty();
+        assertThat(errorsIn("MERGE INTO CARDDEMO.ACCOUNT A USING CARDDEMO.ACCOUNT_STAGE S ON A.ACCT_ID = S.ACCT_ID\n" +
+          "  WHEN MATCHED THEN UPDATE SET ACCT_STATUS = S.ACCT_STATUS;\n")).isNotEmpty();
         assertThat(errorsIn("CREATE TABLE CARDDEMO.ACCOUNT (ACCT_ID INTEGER;\n")).isNotEmpty();
     }
 

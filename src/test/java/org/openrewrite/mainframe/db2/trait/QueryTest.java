@@ -103,6 +103,36 @@ class QueryTest implements RewriteTest {
         );
     }
 
+    @Test
+    void aCommonTableExpressionIsNoTable() {
+        rewriteRun(
+          db2(
+            """
+              WITH OPENED (CLAIM_NO) AS (SELECT CLAIM_NO FROM CLM.CLAIM WHERE STATUS = 'O'),
+                   PAID AS (SELECT CLAIM_NO FROM CLM.PAYMENT)
+              SELECT O.CLAIM_NO FROM OPENED O, PAID P, CLM.POLICY WHERE O.CLAIM_NO = P.CLAIM_NO;
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(tables(cu))
+              .containsExactly("CLM.CLAIM", "CLM.PAYMENT", "CLM.POLICY"))
+          )
+        );
+    }
+
+    @Test
+    void anUpdateOrADeleteReadsTheTablesOfItsSubqueries() {
+        rewriteRun(
+          db2(
+            """
+              UPDATE CLM.CLAIM C SET STATUS = (SELECT S.CODE FROM CLM.STATUS S WHERE S.FLAG = 'C')
+                WHERE C.POLICY_NO IN (SELECT POLICY_NO FROM CLM.POLICY);
+              DELETE FROM CLM.CLAIM_HIST WHERE CLAIM_NO NOT IN (SELECT CLAIM_NO FROM CLM.ARCHIVE);
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(tables(cu))
+              .containsExactly("CLM.STATUS", "CLM.POLICY", "CLM.ARCHIVE"))
+          )
+        );
+    }
+
     private static List<String> tables(Db2.Ddl cu) {
         return new Query.Matcher().lower(cu)
           .flatMap(query -> query.getTables().stream())
