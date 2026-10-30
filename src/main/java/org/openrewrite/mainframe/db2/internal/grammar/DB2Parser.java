@@ -395,7 +395,7 @@ public class DB2Parser extends Parser {
 	     * expression in its body. A CASE expression ends with a bare END, so one is the block's only when every
 	     * CASE the body has opened so far is closed.
 	     */
-	    boolean closesBlock(ParserRuleContext block) {
+	    boolean closesBlock(CompoundStatementContext block) {
 	        if (_input.LA(1) != END) {
 	            return false;
 	        }
@@ -412,27 +412,28 @@ public class DB2Parser extends Parser {
 	    }
 
 	    /**
-	     * The CASE expressions and CASE statements of the block's body that no END has closed yet. A nested block
-	     * closes its own.
+	     * The CASE expressions and CASE statements of the block's body that no END has closed yet. The block keeps
+	     * the count, and each call brings it up to date over the body items added since the last one. A nested
+	     * block closes its own.
 	     */
-	    private int openCases(ParserRuleContext block) {
-	        int open = 0;
+	    private int openCases(CompoundStatementContext block) {
 	        List<ParseTree> items = block.children;
-	        for (int i = 0; i < items.size(); i++) {
+	        for (int i = block.counted; i < items.size(); i++) {
 	            int word = bodyWord(items.get(i));
 	            if (word == CASE) {
-	                open++;
+	                block.openCases++;
 	            } else if (word == END) {
-	                int next = i + 1 < items.size() ? bodyWord(items.get(i + 1)) : Token.INVALID_TYPE;
+	                int next = i + 1 < items.size() ? bodyWord(items.get(i + 1)) : _input.LA(1);
 	                if (next == CASE) {
 	                    i++;
-	                    open--;
+	                    block.openCases--;
 	                } else if (!endsStatement(next)) {
-	                    open--;
+	                    block.openCases--;
 	                }
 	            }
 	        }
-	        return open;
+	        block.counted = items.size();
+	        return block.openCases;
 	    }
 
 	    private static int bodyWord(ParseTree item) {
@@ -10279,6 +10280,8 @@ public class DB2Parser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class CompoundStatementContext extends ParserRuleContext {
+		public int openCases;
+		public int counted;
 		public TerminalNode BEGIN() { return getToken(DB2Parser.BEGIN, 0); }
 		public TerminalNode END() { return getToken(DB2Parser.END, 0); }
 		public TerminalNode ATOMIC() { return getToken(DB2Parser.ATOMIC, 0); }

@@ -469,7 +469,7 @@ class Db2ParserTest {
             CREATE PROCEDURE CLM.RATE (INOUT X INT) LANGUAGE SQL
             BEGIN
               SET X = CASE WHEN X = 1 THEN 2 ELSE 3 END;
-              SET X = CASE X WHEN 1 THEN CASE WHEN X > 0 THEN 1 END ELSE 0 END;
+              SET X = CASE X WHEN 1 THEN CASE WHEN X > 0 THEN 1 END END;
               CASE X
                 WHEN 1 THEN SET X = CASE WHEN X = 1 THEN 2 END;
                 ELSE SET X = 0;
