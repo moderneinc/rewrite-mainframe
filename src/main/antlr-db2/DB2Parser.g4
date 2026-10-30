@@ -526,7 +526,7 @@ trustedContextOption
 namedTrustedContextOption
     : (ALTER | ADD | DROP)? ATTRIBUTES LPAREN trustedAttribute (COMMA trustedAttribute)* RPAREN
     | ALTER? (ENABLE | DISABLE)
-    | ALTER? (NO DEFAULT ROLE | DEFAULT ROLE identifier)
+    | ALTER? NO? DEFAULT ROLE identifier?
     | ALTER? (NO DEFAULT SECURITY LABEL | DEFAULT SECURITY LABEL identifier)
     // OBJECT and OWNER are not tokens.
     | ALTER? (WITH | WITHOUT) ROLE AS identifier identifier (AND QUALIFIER)?

@@ -511,7 +511,8 @@ class Db2ParserTest {
             ALTER TRUSTED CONTEXT CLMCTX ALTER NO DEFAULT SECURITY LABEL;
             """);
 
-        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class)).hasSize(5);
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class))
+          .extracting(alter -> alter.getOptions().size()).containsExactly(2, 2, 3, 1, 1);
     }
 
     @Test
@@ -524,7 +525,8 @@ class Db2ParserTest {
             ALTER TRUSTED CONTEXT CLMCTX DROP USE FOR JOE, EXTERNAL SECURITY PROFILE CLMPROF, PUBLIC;
             """);
 
-        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class)).hasSize(3);
+        assertThat(Db2.elementsOf(ddl.getStatements(), Db2.AlterTrustedContext.class))
+          .extracting(alter -> alter.getOptions().size()).containsExactly(1, 1, 1);
     }
 
     /**
