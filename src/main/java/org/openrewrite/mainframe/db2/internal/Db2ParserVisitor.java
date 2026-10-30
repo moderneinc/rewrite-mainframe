@@ -25,6 +25,7 @@ import org.openrewrite.FileAttributes;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2ParserBaseVisitor;
 import org.openrewrite.mainframe.db2.marker.AtSign;
+import org.openrewrite.mainframe.db2.marker.OmitEquals;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.*;
 import org.openrewrite.marker.Marker;
@@ -931,6 +932,9 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         // which alternative matched, so they are collected rather than cast.
         collectKeywords(ctx.specialRegister(), keywords);
         Db2LeftPadded<Db2> value = leftPadded(ctx.EQ(), () -> (Db2) query(ctx.expression()));
+        if (ctx.EQ() == null) {
+            value = value.withMarkers(value.getMarkers().add(new OmitEquals(randomId())));
+        }
         return new Db2.Set(randomId(), prefix, Markers.EMPTY, keywords, value);
     }
 
