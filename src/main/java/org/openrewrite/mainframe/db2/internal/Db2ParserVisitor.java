@@ -18,6 +18,7 @@ package org.openrewrite.mainframe.db2.internal;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.misc.IntervalSet;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jspecify.annotations.Nullable;
@@ -683,8 +684,12 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
                 body = block((DB2Parser.CompoundStatementContext) child);
             } else if (child instanceof DB2Parser.TriggeredStatementContext) {
                 // A trigger whose body is a single statement is a block with no BEGIN or END of its own.
+                List<Token> tokens = new ArrayList<>(child.getChildCount());
+                for (ParseTree word : children((ParserRuleContext) child)) {
+                    tokens.add(((TerminalNode) word).getSymbol());
+                }
                 body = new Db2.Block(randomId(), prefix((ParserRuleContext) child), Markers.EMPTY,
-                        emptyList(), new ArrayList<>(words((ParserRuleContext) child)), null, null);
+                        emptyList(), bodyParts(tokens), null, null);
             } else if (child instanceof DB2Parser.EndContext) {
                 // read by `terminated`
             } else if (child instanceof TerminalNode) {
@@ -783,16 +788,133 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Space prefix = prefix(ctx);
         List<Db2.Keyword> keywords = keywords(ctx.BEGIN(), ctx.ATOMIC());
         List<Db2> body = new ArrayList<>();
+        List<Token> tokens = new ArrayList<>();
         for (DB2Parser.BodyItemContext item : ctx.bodyItem()) {
             if (item.compoundStatement() != null) {
+                body.addAll(bodyParts(tokens));
+                tokens.clear();
                 body.add(block(item.compoundStatement()));
             } else {
-                body.addAll(words(item));
+                tokens.add(item.getStart());
             }
         }
+        body.addAll(bodyParts(tokens));
         Db2.Keyword end = keyword(ctx.END());
         Db2.Name label = ctx.identifier() == null ? null : name(ctx.identifier());
         return new Db2.Block(randomId(), prefix, Markers.EMPTY, keywords, body, end, label);
+    }
+
+    /**
+     * The words of a SQL PL body, with each query made a {@link Db2.Query}. A query starts at a
+     * SELECT, or at the WITH that names its common table expressions. A string literal is one token,
+     * so every SELECT token starts a query.
+     */
+    private List<Db2> bodyParts(List<Token> tokens) {
+        List<Db2> parts = new ArrayList<>(tokens.size());
+        int i = 0;
+        while (i < tokens.size()) {
+            int type = tokens.get(i).getType();
+            if (type == DB2Parser.SELECT || type == DB2Parser.WITH && namesCommonTable(tokens, i)) {
+                int end = queryEnd(tokens, i);
+                parts.add(bodyQuery(tokens.subList(i, end)));
+                i = end;
+            } else {
+                parts.add(word(tokens.get(i++)));
+            }
+        }
+        return parts;
+    }
+
+    /**
+     * Whether the WITH at {@code with} opens {@code WITH name [(columns)] AS (}, as against the WITH
+     * of a cursor's {@code WITH RETURN} or a query's {@code WITH UR}.
+     */
+    private static boolean namesCommonTable(List<Token> tokens, int with) {
+        int i = with + 1;
+        if (i >= tokens.size() || !IDENTIFIER_START.contains(tokens.get(i).getType())) {
+            return false;
+        }
+        i++;
+        if (i < tokens.size() && tokens.get(i).getType() == DB2Parser.LPAREN) {
+            while (i < tokens.size() && tokens.get(i).getType() != DB2Parser.RPAREN) {
+                i++;
+            }
+            i++;
+        }
+        return i + 1 < tokens.size() && tokens.get(i).getType() == DB2Parser.AS &&
+               tokens.get(i + 1).getType() == DB2Parser.LPAREN;
+    }
+
+    /**
+     * Where the query starting at {@code start} ends. That is the parenthesis that closes the one it
+     * stands in, the semicolon that ends its statement, or the {@code DO} of a FOR statement.
+     */
+    private static int queryEnd(List<Token> tokens, int start) {
+        int depth = 0;
+        for (int i = start; i < tokens.size(); i++) {
+            switch (tokens.get(i).getType()) {
+                case DB2Parser.LPAREN:
+                    depth++;
+                    break;
+                case DB2Parser.RPAREN:
+                    if (depth-- == 0) {
+                        return i;
+                    }
+                    break;
+                case DB2Parser.SEMI:
+                    return i;
+                case DB2Parser.DO:
+                    if (depth == 0) {
+                        return i;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        return tokens.size();
+    }
+
+    /**
+     * A query of a SQL PL body, with every identifier in it, qualified or not, a {@link Db2.Name}.
+     */
+    private Db2.Query bodyQuery(List<Token> tokens) {
+        Space prefix = prefix(tokens.get(0));
+        List<Db2> parts = new ArrayList<>(tokens.size());
+        int i = 0;
+        while (i < tokens.size()) {
+            int end = nameEnd(tokens, i);
+            if (end == i) {
+                parts.add(word(tokens.get(i++)));
+                continue;
+            }
+            Space namePrefix = prefix(tokens.get(i));
+            List<Db2.Word> words = new ArrayList<>(end - i);
+            while (i < end) {
+                words.add(word(tokens.get(i++)));
+            }
+            parts.add(new Db2.Name(randomId(), namePrefix, Markers.EMPTY, words));
+        }
+        return new Db2.Query(randomId(), prefix, Markers.EMPTY, parts);
+    }
+
+    private static final IntervalSet IDENTIFIER_START =
+            DB2Parser._ATN.nextTokens(DB2Parser._ATN.ruleToStartState[DB2Parser.RULE_identifier]);
+
+    private static int nameEnd(List<Token> tokens, int start) {
+        if (!IDENTIFIER_START.contains(tokens.get(start).getType())) {
+            return start;
+        }
+        int end = start + 1;
+        if (end < tokens.size() && tokens.get(end).getType() == DB2Parser.TABLE) {
+            // The FINAL, NEW or OLD of a data change table reference.
+            return start;
+        }
+        while (end + 1 < tokens.size() && tokens.get(end).getType() == DB2Parser.DOT &&
+               IDENTIFIER_START.contains(tokens.get(end + 1).getType())) {
+            end += 2;
+        }
+        return end;
     }
 
     @Override
@@ -1016,12 +1138,6 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         for (int i = 0; i < tree.getChildCount(); i++) {
             collectKeywords(tree.getChild(i), into);
         }
-    }
-
-    private List<Db2.Word> words(ParseTree tree) {
-        List<Db2.Word> words = new ArrayList<>();
-        collectWords(tree, words);
-        return words;
     }
 
     //

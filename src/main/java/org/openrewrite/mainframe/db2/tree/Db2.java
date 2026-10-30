@@ -1737,7 +1737,7 @@ public interface Db2 extends Tree {
     }
 
     /**
-     * A SQL PL body. Only its nesting is modelled - so that an inner END cannot close the routine early - and not the statements between BEGIN and END.
+     * A SQL PL body. Its nesting is modelled, so that an inner END cannot close the routine early. Each query in it is a {@link Query}, and the rest of its statements are words.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
