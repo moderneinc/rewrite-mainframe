@@ -815,16 +815,18 @@ public class CobolParser extends Parser {
 	     * without END-IF say, takes every statement that follows: COBOL's rule, and SLL prediction's greedy choice.
 	     * Without the predicate on the list's exit SLL cannot rule out leaving the statement to an enclosing list,
 	     * and retries with full context, which scans ahead as far as the sentence period. The predicates on the
-	     * other optional endings, ELSE and END-IF say, settle the same question for the keyword.
+	     * other optional endings, ELSE and END-IF say, settle the same question for the keyword. The context
+	     * parameter, unused, makes ANTLR treat each of these predicates as context-dependent. SLL then evaluates it
+	     * only in its own rule's decisions, so the predicates of nested statements never combine.
 	     */
-	    boolean startsStatement() {
+	    boolean startsStatement(ParserRuleContext list) {
 	        if (statementStart == null) {
 	            statementStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_statement]);
 	        }
 	        return statementStart.contains(_input.LA(1));
 	    }
 
-	    boolean startsWhenCondition() {
+	    boolean startsWhenCondition(ParserRuleContext phrase) {
 	        return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
 	    }
 
@@ -860,8 +862,7 @@ public class CobolParser extends Parser {
 	    /**
 	     * Whether the conditional phrase the word names starts here, past an optional AT or ON. A statement takes the
 	     * phrases and the END- terminator that follow it before an enclosing statement can, as statement lists do at
-	     * startsStatement. The context parameter, unused, makes ANTLR treat these predicates as context-dependent, so
-	     * SLL evaluates each only in its own statement's decisions and the predicates of nested statements never combine.
+	     * startsStatement.
 	     */
 	    boolean startsPhrase(ParserRuleContext statement, int word) {
 	        return phraseWord(1) == word;
@@ -29115,7 +29116,7 @@ public class CobolParser extends Parser {
 				_alt = getInterpreter().adaptivePredict(_input,476,_ctx);
 			}
 			setState(3706);
-			if (!(!startsStatement())) throw new FailedPredicateException(this, "!startsStatement()");
+			if (!(!startsStatement(_localctx))) throw new FailedPredicateException(this, "!startsStatement($ctx)");
 			}
 		}
 		catch (RecognitionException re) {
@@ -37358,7 +37359,7 @@ public class CobolParser extends Parser {
 			case 2:
 				{
 				setState(4338);
-				if (!(_input.LA(1) != WHEN)) throw new FailedPredicateException(this, "_input.LA(1) != WHEN");
+				if (!(!ahead(_localctx, WHEN))) throw new FailedPredicateException(this, "!ahead($ctx, WHEN)");
 				}
 				break;
 			}
@@ -37374,7 +37375,7 @@ public class CobolParser extends Parser {
 			case 2:
 				{
 				setState(4342);
-				if (!(_input.LA(1) != END_EVALUATE)) throw new FailedPredicateException(this, "_input.LA(1) != END_EVALUATE");
+				if (!(!ahead(_localctx, END_EVALUATE))) throw new FailedPredicateException(this, "!ahead($ctx, END_EVALUATE)");
 				}
 				break;
 			}
@@ -37586,7 +37587,7 @@ public class CobolParser extends Parser {
 				_alt = getInterpreter().adaptivePredict(_input,597,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
 			setState(4363);
-			if (!(!startsWhenCondition())) throw new FailedPredicateException(this, "!startsWhenCondition()");
+			if (!(!startsWhenCondition(_localctx))) throw new FailedPredicateException(this, "!startsWhenCondition($ctx)");
 			setState(4364);
 			imperativeStatements();
 			}
@@ -39117,7 +39118,7 @@ public class CobolParser extends Parser {
 			case 2:
 				{
 				setState(4482);
-				if (!(_input.LA(1) != ELSE)) throw new FailedPredicateException(this, "_input.LA(1) != ELSE");
+				if (!(!ahead(_localctx, ELSE))) throw new FailedPredicateException(this, "!ahead($ctx, ELSE)");
 				}
 				break;
 			}
@@ -39133,7 +39134,7 @@ public class CobolParser extends Parser {
 			case 2:
 				{
 				setState(4486);
-				if (!(_input.LA(1) != END_IF)) throw new FailedPredicateException(this, "_input.LA(1) != END_IF");
+				if (!(!ahead(_localctx, END_IF))) throw new FailedPredicateException(this, "!ahead($ctx, END_IF)");
 				}
 				break;
 			}
@@ -49309,7 +49310,7 @@ public class CobolParser extends Parser {
 				_alt = getInterpreter().adaptivePredict(_input,760,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
 			setState(5228);
-			if (!(_input.LA(1) != WHEN)) throw new FailedPredicateException(this, "_input.LA(1) != WHEN");
+			if (!(!ahead(_localctx, WHEN))) throw new FailedPredicateException(this, "!ahead($ctx, WHEN)");
 			setState(5231);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,761,_ctx) ) {
@@ -49322,7 +49323,7 @@ public class CobolParser extends Parser {
 			case 2:
 				{
 				setState(5230);
-				if (!(_input.LA(1) != END_SEARCH)) throw new FailedPredicateException(this, "_input.LA(1) != END_SEARCH");
+				if (!(!ahead(_localctx, END_SEARCH))) throw new FailedPredicateException(this, "!ahead($ctx, END_SEARCH)");
 				}
 				break;
 			}
@@ -68539,7 +68540,7 @@ public class CobolParser extends Parser {
 	private boolean imperativeStatements_sempred(ImperativeStatementsContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 2:
-			return !startsStatement();
+			return !startsStatement(_localctx);
 		}
 		return true;
 	}
@@ -68653,9 +68654,9 @@ public class CobolParser extends Parser {
 	private boolean evaluateStatement_sempred(EvaluateStatementContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 29:
-			return _input.LA(1) != WHEN;
+			return !ahead(_localctx, WHEN);
 		case 30:
-			return _input.LA(1) != END_EVALUATE;
+			return !ahead(_localctx, END_EVALUATE);
 		}
 		return true;
 	}
@@ -68675,7 +68676,7 @@ public class CobolParser extends Parser {
 	private boolean evaluateWhenPhrase_sempred(EvaluateWhenPhraseContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 35:
-			return !startsWhenCondition();
+			return !startsWhenCondition(_localctx);
 		}
 		return true;
 	}
@@ -68719,9 +68720,9 @@ public class CobolParser extends Parser {
 	private boolean ifStatement_sempred(IfStatementContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 42:
-			return _input.LA(1) != ELSE;
+			return !ahead(_localctx, ELSE);
 		case 43:
-			return _input.LA(1) != END_IF;
+			return !ahead(_localctx, END_IF);
 		}
 		return true;
 	}
@@ -68831,9 +68832,9 @@ public class CobolParser extends Parser {
 		case 67:
 			return !startsPhrase(_localctx, END);
 		case 68:
-			return _input.LA(1) != WHEN;
+			return !ahead(_localctx, WHEN);
 		case 69:
-			return _input.LA(1) != END_SEARCH;
+			return !ahead(_localctx, END_SEARCH);
 		}
 		return true;
 	}
@@ -71997,7 +71998,7 @@ public class CobolParser extends Parser {
 		"\u0003\u0228\u0114\u0000\u0e75\u0e74\u0001\u0000\u0000\u0000\u0e76\u0e79"+
 		"\u0001\u0000\u0000\u0000\u0e77\u0e75\u0001\u0000\u0000\u0000\u0e77\u0e78"+
 		"\u0001\u0000\u0000\u0000\u0e78\u0e7a\u0001\u0000\u0000\u0000\u0e79\u0e77"+
-		"\u0001\u0000\u0000\u0000\u0e7a\u0e7b\u0004\u0113\u0002\u0000\u0e7b\u0227"+
+		"\u0001\u0000\u0000\u0000\u0e7a\u0e7b\u0004\u0113\u0002\u0001\u0e7b\u0227"+
 		"\u0001\u0000\u0000\u0000\u0e7c\u0eb5\u0003\u022a\u0115\u0000\u0e7d\u0eb5"+
 		"\u0003\u0236\u011b\u0000\u0e7e\u0eb5\u0003\u0248\u0124\u0000\u0e7f\u0eb5"+
 		"\u0003\u024c\u0126\u0000\u0e80\u0eb5\u0003\u0262\u0131\u0000\u0e81\u0eb5"+
@@ -72409,10 +72410,10 @@ public class CobolParser extends Parser {
 		"\u0000\u0000\u0000\u10ed\u10f0\u0001\u0000\u0000\u0000\u10ee\u10ec\u0001"+
 		"\u0000\u0000\u0000\u10ee\u10ef\u0001\u0000\u0000\u0000\u10ef\u10f3\u0001"+
 		"\u0000\u0000\u0000\u10f0\u10ee\u0001\u0000\u0000\u0000\u10f1\u10f4\u0003"+
-		"\u02b0\u0158\u0000\u10f2\u10f4\u0004\u0150\u001d\u0000\u10f3\u10f1\u0001"+
+		"\u02b0\u0158\u0000\u10f2\u10f4\u0004\u0150\u001d\u0001\u10f3\u10f1\u0001"+
 		"\u0000\u0000\u0000\u10f3\u10f2\u0001\u0000\u0000\u0000\u10f4\u10f7\u0001"+
 		"\u0000\u0000\u0000\u10f5\u10f8\u0005\u00b6\u0000\u0000\u10f6\u10f8\u0004"+
-		"\u0150\u001e\u0000\u10f7\u10f5\u0001\u0000\u0000\u0000\u10f7\u10f6\u0001"+
+		"\u0150\u001e\u0001\u10f7\u10f5\u0001\u0000\u0000\u0000\u10f7\u10f6\u0001"+
 		"\u0000\u0000\u0000\u10f8\u02a1\u0001\u0000\u0000\u0000\u10f9\u10fa\u0004"+
 		"\u0151\u001f\u0001\u10fa\u1102\u0003\u0462\u0231\u0000\u10fb\u10fc\u0004"+
 		"\u0151 \u0001\u10fc\u1102\u0003\u04bc\u025e\u0000\u10fd\u10fe\u0004\u0151"+
@@ -72424,7 +72425,7 @@ public class CobolParser extends Parser {
 		"\u0000\u1105\u02a5\u0001\u0000\u0000\u0000\u1106\u1108\u0003\u02a8\u0154"+
 		"\u0000\u1107\u1106\u0001\u0000\u0000\u0000\u1108\u1109\u0001\u0000\u0000"+
 		"\u0000\u1109\u1107\u0001\u0000\u0000\u0000\u1109\u110a\u0001\u0000\u0000"+
-		"\u0000\u110a\u110b\u0001\u0000\u0000\u0000\u110b\u110c\u0004\u0153#\u0000"+
+		"\u0000\u110a\u110b\u0001\u0000\u0000\u0000\u110b\u110c\u0004\u0153#\u0001"+
 		"\u110c\u110d\u0003\u0226\u0113\u0000\u110d\u02a7\u0001\u0000\u0000\u0000"+
 		"\u110e\u110f\u0005\u0232\u0000\u0000\u110f\u1113\u0003\u02aa\u0155\u0000"+
 		"\u1110\u1112\u0003\u02ae\u0157\u0000\u1111\u1110\u0001\u0000\u0000\u0000"+
@@ -72497,9 +72498,9 @@ public class CobolParser extends Parser {
 		"\u0000\u0000\u117d\u02c7\u0001\u0000\u0000\u0000\u117e\u117f\u0005\u0103"+
 		"\u0000\u0000\u117f\u1180\u0003\u0446\u0223\u0000\u1180\u1183\u0003\u02ca"+
 		"\u0165\u0000\u1181\u1184\u0003\u02cc\u0166\u0000\u1182\u1184\u0004\u0164"+
-		"*\u0000\u1183\u1181\u0001\u0000\u0000\u0000\u1183\u1182\u0001\u0000\u0000"+
+		"*\u0001\u1183\u1181\u0001\u0000\u0000\u0000\u1183\u1182\u0001\u0000\u0000"+
 		"\u0000\u1184\u1187\u0001\u0000\u0000\u0000\u1185\u1188\u0005\u00b7\u0000"+
-		"\u0000\u1186\u1188\u0004\u0164+\u0000\u1187\u1185\u0001\u0000\u0000\u0000"+
+		"\u0000\u1186\u1188\u0004\u0164+\u0001\u1187\u1185\u0001\u0000\u0000\u0000"+
 		"\u1187\u1186\u0001\u0000\u0000\u0000\u1188\u02c9\u0001\u0000\u0000\u0000"+
 		"\u1189\u118b\u0005\u020e\u0000\u0000\u118a\u1189\u0001\u0000\u0000\u0000"+
 		"\u118a\u118b\u0001\u0000\u0000\u0000\u118b\u1190\u0001\u0000\u0000\u0000"+
@@ -72945,8 +72946,8 @@ public class CobolParser extends Parser {
 		"\u0003\u037c\u01be\u0000\u1468\u1467\u0001\u0000\u0000\u0000\u1469\u146a"+
 		"\u0001\u0000\u0000\u0000\u146a\u1468\u0001\u0000\u0000\u0000\u146a\u146b"+
 		"\u0001\u0000\u0000\u0000\u146b\u146c\u0001\u0000\u0000\u0000\u146c\u146f"+
-		"\u0004\u01bcD\u0000\u146d\u1470\u0005\u00c1\u0000\u0000\u146e\u1470\u0004"+
-		"\u01bcE\u0000\u146f\u146d\u0001\u0000\u0000\u0000\u146f\u146e\u0001\u0000"+
+		"\u0004\u01bcD\u0001\u146d\u1470\u0005\u00c1\u0000\u0000\u146e\u1470\u0004"+
+		"\u01bcE\u0001\u146f\u146d\u0001\u0000\u0000\u0000\u146f\u146e\u0001\u0000"+
 		"\u0000\u0000\u1470\u0379\u0001\u0000\u0000\u0000\u1471\u1472\u0005\u022e"+
 		"\u0000\u0000\u1472\u1473\u0003\u0474\u023a\u0000\u1473\u037b\u0001\u0000"+
 		"\u0000\u0000\u1474\u1475\u0005\u0232\u0000\u0000\u1475\u1479\u0003\u0446"+

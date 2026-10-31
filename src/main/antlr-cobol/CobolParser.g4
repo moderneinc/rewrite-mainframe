@@ -29,16 +29,18 @@ options { tokenVocab = CobolLexer; }
      * without END-IF say, takes every statement that follows: COBOL's rule, and SLL prediction's greedy choice.
      * Without the predicate on the list's exit SLL cannot rule out leaving the statement to an enclosing list,
      * and retries with full context, which scans ahead as far as the sentence period. The predicates on the
-     * other optional endings, ELSE and END-IF say, settle the same question for the keyword.
+     * other optional endings, ELSE and END-IF say, settle the same question for the keyword. The context
+     * parameter, unused, makes ANTLR treat each of these predicates as context-dependent. SLL then evaluates it
+     * only in its own rule's decisions, so the predicates of nested statements never combine.
      */
-    boolean startsStatement() {
+    boolean startsStatement(ParserRuleContext list) {
         if (statementStart == null) {
             statementStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_statement]);
         }
         return statementStart.contains(_input.LA(1));
     }
 
-    boolean startsWhenCondition() {
+    boolean startsWhenCondition(ParserRuleContext phrase) {
         return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
     }
 
@@ -74,8 +76,7 @@ options { tokenVocab = CobolLexer; }
     /**
      * Whether the conditional phrase the word names starts here, past an optional AT or ON. A statement takes the
      * phrases and the END- terminator that follow it before an enclosing statement can, as statement lists do at
-     * startsStatement. The context parameter, unused, makes ANTLR treat these predicates as context-dependent, so
-     * SLL evaluates each only in its own statement's decisions and the predicates of nested statements never combine.
+     * startsStatement.
      */
     boolean startsPhrase(ParserRuleContext statement, int word) {
         return phraseWord(1) == word;
@@ -1577,7 +1578,7 @@ sentence
    ;
 
 imperativeStatements
-   : statement* {!startsStatement()}?
+   : statement* {!startsStatement($ctx)}?
    ;
 
 statement
@@ -1852,7 +1853,7 @@ entryStatement
 // evaluate statement
 
 evaluateStatement
-   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase* (evaluateWhenOther | {_input.LA(1) != WHEN}?) (END_EVALUATE | {_input.LA(1) != END_EVALUATE}?)
+   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase* (evaluateWhenOther | {!ahead($ctx, WHEN)}?) (END_EVALUATE | {!ahead($ctx, END_EVALUATE)}?)
    ;
 
 evaluateSelect
@@ -1867,7 +1868,7 @@ evaluateAlsoSelect
    ;
 
 evaluateWhenPhrase
-   : evaluateWhen+ {!startsWhenCondition()}? imperativeStatements
+   : evaluateWhen+ {!startsWhenCondition($ctx)}? imperativeStatements
    ;
 
 evaluateWhen
@@ -1959,7 +1960,7 @@ goToStatement
 // if statement
 
 ifStatement
-   : IF condition ifThen (ifElse | {_input.LA(1) != ELSE}?) (END_IF | {_input.LA(1) != END_IF}?)
+   : IF condition ifThen (ifElse | {!ahead($ctx, ELSE)}?) (END_IF | {!ahead($ctx, END_IF)}?)
    ;
 
 ifThen
@@ -2344,7 +2345,7 @@ rewriteFrom
 // search statement
 
 searchStatement
-   : SEARCH ALL? qualifiedDataName searchVarying? (atEndPhrase | {!startsPhrase($ctx, END)}?) searchWhen+ {_input.LA(1) != WHEN}? (END_SEARCH | {_input.LA(1) != END_SEARCH}?)
+   : SEARCH ALL? qualifiedDataName searchVarying? (atEndPhrase | {!startsPhrase($ctx, END)}?) searchWhen+ {!ahead($ctx, WHEN)}? (END_SEARCH | {!ahead($ctx, END_SEARCH)}?)
    ;
 
 searchVarying
