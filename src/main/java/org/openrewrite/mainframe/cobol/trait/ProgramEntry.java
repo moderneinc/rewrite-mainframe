@@ -29,10 +29,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.nCopies;
+import static java.util.Collections.singleton;
 
 /**
  * The point at which a program is handed its PCBs.
@@ -182,8 +184,8 @@ public class ProgramEntry implements Trait<Cobol> {
     }
 
     /**
-     * The arguments of each call in {@code division} to {@code program}, or null where a call's
-     * target cannot be read.
+     * The arguments of each call in {@code division} that can reach {@code program}, or null where a
+     * call's targets cannot all be read.
      */
     private static @Nullable List<List<@Nullable String>> callsTo(String program, Cursor division) {
         List<List<@Nullable String>> calls = new ArrayList<>();
@@ -192,13 +194,12 @@ public class ProgramEntry implements Trait<Cobol> {
             @Override
             public Cobol.Call visitCall(Cobol.Call call, Integer p) {
                 String target = Names.of(call.getIdentifier());
-                String name = target == null ? null : Literals.valueOf(target);
-                if (name == null) {
-                    name = LiteralAssignment.resolve(getCursor(), target);
-                }
-                if (name == null) {
+                String literal = target == null ? null : Literals.valueOf(target);
+                Set<String> names = literal != null ? singleton(literal) :
+                        LiteralAssignment.candidates(getCursor(), target);
+                if (names == null) {
                     unreadable.set(true);
-                } else if (name.trim().equalsIgnoreCase(program)) {
+                } else if (names.stream().anyMatch(name -> name.trim().equalsIgnoreCase(program))) {
                     calls.add(DliCall.argumentsByPosition(call));
                 }
                 return super.visitCall(call, p);

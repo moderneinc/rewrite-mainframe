@@ -199,6 +199,7 @@ class DliCallTest implements RewriteTest {
             000000 77 WS-UTIL PIC X(8) VALUE 'DATEUTIL'.                           \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB HIST-PCB.             \s
+            000000     MOVE 'TIMEUTIL' TO WS-UTIL.                                 \s
             000000     CALL WS-UTIL USING ACCT-PCB.                                \s
             000000     CALL 'MIDPGM' USING OMITTED HIST-PCB IO-PCB.                \s
             000000     GOBACK.                                                     \s
@@ -232,7 +233,7 @@ class DliCallTest implements RewriteTest {
             """
         );
 
-        // CALL WS-UTIL reads as DATEUTIL, so it is no caller of MIDPGM.
+        // CALL WS-UTIL can only call DATEUTIL or TIMEUTIL, so it is no caller of MIDPGM.
         assertThat(calls)
           .extracting(call -> Program.nameOf(call.getCursor()), DliCall::getPcbPosition, DliCall::isMessageCall)
           .containsExactly(
@@ -378,10 +379,10 @@ class DliCallTest implements RewriteTest {
             000000 DATA DIVISION.                                                  \s
             000000 WORKING-STORAGE SECTION.                                        \s
             000000 77 WS-PGM PIC X(8).                                             \s
+            000000 77 WS-INPUT PIC X(8).                                           \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB.                      \s
-            000000     MOVE 'PGMA' TO WS-PGM.                                      \s
-            000000     MOVE 'PGMB' TO WS-PGM.                                      \s
+            000000     MOVE WS-INPUT TO WS-PGM.                                    \s
             000000     CALL WS-PGM USING IO-PCB.                                   \s
             000000     CALL 'INNERPGM' USING ACCT-PCB.                             \s
             000000     GOBACK.                                                     \s
