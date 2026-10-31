@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol.trait;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
@@ -80,6 +81,9 @@ public class CicsCommand implements Trait<Cobol.Word> {
      */
     Map<String, String> options;
 
+    @Getter(AccessLevel.NONE)
+    Map<String, Cobol.@Nullable Word> operandStarts;
+
     public boolean isVerb(String candidate) {
         return verb.equalsIgnoreCase(candidate);
     }
@@ -90,6 +94,16 @@ public class CicsCommand implements Trait<Cobol.Word> {
 
     public boolean hasOption(String name) {
         return options.containsKey(name.toUpperCase(Locale.ROOT));
+    }
+
+    /**
+     * The option's operand as the data name it is written as, whose definition is the declaration it
+     * names. Null for a literal, a word the program does not declare, and an operand starting with
+     * anything else, such as {@code LENGTH OF}.
+     */
+    public @Nullable DataName getOptionDataName(String name) {
+        Cobol.Word start = operandStarts.get(name.toUpperCase(Locale.ROOT));
+        return start == null ? null : new DataName.Matcher().get(new Cursor(cursor, start)).orElse(null);
     }
 
     /**
@@ -265,7 +279,7 @@ public class CicsCommand implements Trait<Cobol.Word> {
         List<Cobol.Word> words = Execs.wordsOf(exec);
         List<String> tokens = textOf(words);
         if (tokens.isEmpty()) {
-            return new CicsCommand(cursor, exec, "", null, emptyMap());
+            return new CicsCommand(cursor, exec, "", null, emptyMap(), emptyMap());
         }
 
         String verb = tokens.get(0).toUpperCase(Locale.ROOT);
@@ -286,11 +300,13 @@ public class CicsCommand implements Trait<Cobol.Word> {
         }
 
         Map<String, String> options = new LinkedHashMap<>();
+        Map<String, Cobol.@Nullable Word> operandStarts = new HashMap<>();
         while (i < tokens.size()) {
             String name = tokens.get(i++);
             if ("(".equals(name) || ")".equals(name)) {
                 continue;
             }
+            Cobol.Word start = null;
             if (i < tokens.size() && "(".equals(tokens.get(i))) {
                 StringBuilder operand = new StringBuilder();
                 int depth = 0;
@@ -310,6 +326,8 @@ public class CicsCommand implements Trait<Cobol.Word> {
                     }
                     if (operand.length() > 0) {
                         operand.append(separator(words, at));
+                    } else {
+                        start = words.get(at);
                     }
                     operand.append(token);
                 } while (i < tokens.size());
@@ -317,8 +335,9 @@ public class CicsCommand implements Trait<Cobol.Word> {
             } else {
                 options.put(name.toUpperCase(Locale.ROOT), "");
             }
+            operandStarts.put(name.toUpperCase(Locale.ROOT), start);
         }
-        return new CicsCommand(cursor, exec, verb, qualifier, options);
+        return new CicsCommand(cursor, exec, verb, qualifier, options, operandStarts);
     }
 
     /**
