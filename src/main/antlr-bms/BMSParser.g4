@@ -21,7 +21,7 @@ bmsWord
     ;
 
 bmsSequenceArea
-    : CA_START (BMS_TEXT | BMS_STRINGLITERAL)
+    : BMS_CA_START
     ;
 
 comment
@@ -33,7 +33,7 @@ commentWord
     ;
 
 commentSequenceArea
-    : CA_START COMMENT_TEXT
+    : COMMENT_CA_START
     ;
 
 unknown
@@ -46,5 +46,5 @@ unknownWord
     ;
 
 unknownSequenceArea
-    : CA_START (UNKNOWN_TEXT | UNKNOWN_STRINGLITERAL)
+    : UNKNOWN_CA_START
     ;

@@ -14,10 +14,15 @@ BMS_CONTINUATION : '^^BMS_CONT^^' -> channel(HIDDEN), pushMode(INSIDE_BMS);
 COMMENT : '^^COMMENT^^' -> skip, pushMode(INSIDE_COMMENT);
 UNKNOWN : '^^UNKNOWN^^' -> skip, pushMode(INSIDE_UNKNOWN);
 
-CA_START : '^^CA_START^^';
-STRINGLITERAL : '\'' (~['\n\r] | '\'\'')* '\'';
+// The whole of columns 73-80 in one token, blanks and quotes included. A token type per mode, so
+// that the parser can tell a line's sequence area from a blank line holding nothing else.
+fragment CA_START : '^^CA_START^^' ~[\r\n]*;
+// No literal holds a ^, so none runs on into the line reader's marker for columns 73-80. A literal
+// open at column 71 is continued on the next card, and one holding a ^ of its own arrives in pieces
+// that the visitor joins back into its operand.
+STRINGLITERAL : '\'' (~['\n\r^] | '\'\'')* '\'';
 
-TEXT : ~[ \r\n^']+ | '^' | '\'';
+TEXT : ~[ \t\f\r\n^']+ | '^' | '\'';
 
 fragment LF : '\n';
 fragment CR : '\r';
@@ -27,7 +32,7 @@ mode INSIDE_BMS;
 BMS_WS : WS -> type(WS), channel(HIDDEN);
 BMS_EOL : EOL -> type(EOL), channel(HIDDEN), popMode;
 
-BMS_CA_START : CA_START -> type(CA_START);
+BMS_CA_START : CA_START;
 
 BMS_STRINGLITERAL : STRINGLITERAL;
 BMS_TEXT : TEXT;
@@ -35,7 +40,7 @@ BMS_TEXT : TEXT;
 mode INSIDE_COMMENT;
 COMMENT_EOL : EOL -> type(EOL), channel(HIDDEN), popMode;
 
-COMMENT_CA_START : CA_START -> type(CA_START);
+COMMENT_CA_START : CA_START;
 
 // The whole line as one token. A comment says nothing that is worth breaking into words, and a
 // banner of asterisks broken into words would be one statement per word.
@@ -45,7 +50,7 @@ mode INSIDE_UNKNOWN;
 UNKNOWN_WS : [ \t\f]+ -> channel(HIDDEN);
 UNKNOWN_EOL : EOL -> type(EOL), channel(HIDDEN), popMode;
 
-UNKNOWN_CA_START : CA_START -> type(CA_START);
+UNKNOWN_CA_START : CA_START;
 
 UNKNOWN_STRINGLITERAL : STRINGLITERAL;
 UNKNOWN_TEXT : TEXT;

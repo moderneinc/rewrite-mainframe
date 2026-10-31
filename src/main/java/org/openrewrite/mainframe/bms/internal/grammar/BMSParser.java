@@ -33,9 +33,9 @@ public class BMSParser extends Parser {
 		new PredictionContextCache();
 	public static final int
 		UTF_8_BOM=1, WS=2, EOL=3, BMS_NAMED=4, BMS_STATEMENT=5, BMS_CONTINUATION=6, 
-		COMMENT=7, UNKNOWN=8, CA_START=9, STRINGLITERAL=10, TEXT=11, BMS_STRINGLITERAL=12, 
-		BMS_TEXT=13, COMMENT_TEXT=14, UNKNOWN_WS=15, UNKNOWN_STRINGLITERAL=16, 
-		UNKNOWN_TEXT=17;
+		COMMENT=7, UNKNOWN=8, STRINGLITERAL=9, TEXT=10, BMS_CA_START=11, BMS_STRINGLITERAL=12, 
+		BMS_TEXT=13, COMMENT_CA_START=14, COMMENT_TEXT=15, UNKNOWN_WS=16, UNKNOWN_CA_START=17, 
+		UNKNOWN_STRINGLITERAL=18, UNKNOWN_TEXT=19;
 	public static final int
 		RULE_compilationUnit = 0, RULE_statement = 1, RULE_bms = 2, RULE_bmsWord = 3, 
 		RULE_bmsSequenceArea = 4, RULE_comment = 5, RULE_commentWord = 6, RULE_commentSequenceArea = 7, 
@@ -51,16 +51,16 @@ public class BMSParser extends Parser {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'\\uFEFF'", null, null, null, null, null, "'^^COMMENT^^'", "'^^UNKNOWN^^'", 
-			"'^^CA_START^^'"
+			null, "'\\uFEFF'", null, null, null, null, null, "'^^COMMENT^^'", "'^^UNKNOWN^^'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
 			null, "UTF_8_BOM", "WS", "EOL", "BMS_NAMED", "BMS_STATEMENT", "BMS_CONTINUATION", 
-			"COMMENT", "UNKNOWN", "CA_START", "STRINGLITERAL", "TEXT", "BMS_STRINGLITERAL", 
-			"BMS_TEXT", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
+			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "BMS_CA_START", "BMS_STRINGLITERAL", 
+			"BMS_TEXT", "COMMENT_CA_START", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_CA_START", 
+			"UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -152,7 +152,7 @@ public class BMSParser extends Parser {
 			setState(25);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 225792L) != 0)) {
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 962560L) != 0)) {
 				{
 				{
 				setState(22);
@@ -230,7 +230,7 @@ public class BMSParser extends Parser {
 				comment();
 				}
 				break;
-			case CA_START:
+			case UNKNOWN_CA_START:
 			case UNKNOWN_STRINGLITERAL:
 			case UNKNOWN_TEXT:
 				enterOuterAlt(_localctx, 3);
@@ -344,14 +344,14 @@ public class BMSParser extends Parser {
 			}
 			setState(39);
 			_errHandler.sync(this);
-			switch ( getInterpreter().adaptivePredict(_input,2,_ctx) ) {
-			case 1:
+			_la = _input.LA(1);
+			if (_la==BMS_CA_START) {
 				{
 				setState(38);
 				bmsSequenceArea();
 				}
-				break;
 			}
+
 			}
 		}
 		catch (RecognitionException re) {
@@ -367,9 +367,7 @@ public class BMSParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class BmsSequenceAreaContext extends ParserRuleContext {
-		public TerminalNode CA_START() { return getToken(BMSParser.CA_START, 0); }
-		public TerminalNode BMS_TEXT() { return getToken(BMSParser.BMS_TEXT, 0); }
-		public TerminalNode BMS_STRINGLITERAL() { return getToken(BMSParser.BMS_STRINGLITERAL, 0); }
+		public TerminalNode BMS_CA_START() { return getToken(BMSParser.BMS_CA_START, 0); }
 		public BmsSequenceAreaContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -392,22 +390,11 @@ public class BMSParser extends Parser {
 	public final BmsSequenceAreaContext bmsSequenceArea() throws RecognitionException {
 		BmsSequenceAreaContext _localctx = new BmsSequenceAreaContext(_ctx, getState());
 		enterRule(_localctx, 8, RULE_bmsSequenceArea);
-		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(41);
-			match(CA_START);
-			setState(42);
-			_la = _input.LA(1);
-			if ( !(_la==BMS_STRINGLITERAL || _la==BMS_TEXT) ) {
-			_errHandler.recoverInline(this);
-			}
-			else {
-				if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
-				_errHandler.reportMatch(this);
-				consume();
-			}
+			match(BMS_CA_START);
 			}
 		}
 		catch (RecognitionException re) {
@@ -451,7 +438,7 @@ public class BMSParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(44);
+			setState(43);
 			commentWord();
 			}
 		}
@@ -494,21 +481,22 @@ public class BMSParser extends Parser {
 	public final CommentWordContext commentWord() throws RecognitionException {
 		CommentWordContext _localctx = new CommentWordContext(_ctx, getState());
 		enterRule(_localctx, 12, RULE_commentWord);
+		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(46);
+			setState(45);
 			match(COMMENT_TEXT);
-			setState(48);
+			setState(47);
 			_errHandler.sync(this);
-			switch ( getInterpreter().adaptivePredict(_input,3,_ctx) ) {
-			case 1:
+			_la = _input.LA(1);
+			if (_la==COMMENT_CA_START) {
 				{
-				setState(47);
+				setState(46);
 				commentSequenceArea();
 				}
-				break;
 			}
+
 			}
 		}
 		catch (RecognitionException re) {
@@ -524,8 +512,7 @@ public class BMSParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class CommentSequenceAreaContext extends ParserRuleContext {
-		public TerminalNode CA_START() { return getToken(BMSParser.CA_START, 0); }
-		public TerminalNode COMMENT_TEXT() { return getToken(BMSParser.COMMENT_TEXT, 0); }
+		public TerminalNode COMMENT_CA_START() { return getToken(BMSParser.COMMENT_CA_START, 0); }
 		public CommentSequenceAreaContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -551,10 +538,8 @@ public class BMSParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(50);
-			match(CA_START);
-			setState(51);
-			match(COMMENT_TEXT);
+			setState(49);
+			match(COMMENT_CA_START);
 			}
 		}
 		catch (RecognitionException re) {
@@ -598,7 +583,7 @@ public class BMSParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(53);
+			setState(51);
 			unknownWord();
 			}
 		}
@@ -644,14 +629,14 @@ public class BMSParser extends Parser {
 		enterRule(_localctx, 18, RULE_unknownWord);
 		int _la;
 		try {
-			setState(60);
+			setState(58);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case UNKNOWN_STRINGLITERAL:
 			case UNKNOWN_TEXT:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(55);
+				setState(53);
 				_la = _input.LA(1);
 				if ( !(_la==UNKNOWN_STRINGLITERAL || _la==UNKNOWN_TEXT) ) {
 				_errHandler.recoverInline(this);
@@ -661,22 +646,22 @@ public class BMSParser extends Parser {
 					_errHandler.reportMatch(this);
 					consume();
 				}
-				setState(57);
+				setState(55);
 				_errHandler.sync(this);
 				switch ( getInterpreter().adaptivePredict(_input,4,_ctx) ) {
 				case 1:
 					{
-					setState(56);
+					setState(54);
 					unknownSequenceArea();
 					}
 					break;
 				}
 				}
 				break;
-			case CA_START:
+			case UNKNOWN_CA_START:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(59);
+				setState(57);
 				unknownSequenceArea();
 				}
 				break;
@@ -697,9 +682,7 @@ public class BMSParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class UnknownSequenceAreaContext extends ParserRuleContext {
-		public TerminalNode CA_START() { return getToken(BMSParser.CA_START, 0); }
-		public TerminalNode UNKNOWN_TEXT() { return getToken(BMSParser.UNKNOWN_TEXT, 0); }
-		public TerminalNode UNKNOWN_STRINGLITERAL() { return getToken(BMSParser.UNKNOWN_STRINGLITERAL, 0); }
+		public TerminalNode UNKNOWN_CA_START() { return getToken(BMSParser.UNKNOWN_CA_START, 0); }
 		public UnknownSequenceAreaContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -722,22 +705,11 @@ public class BMSParser extends Parser {
 	public final UnknownSequenceAreaContext unknownSequenceArea() throws RecognitionException {
 		UnknownSequenceAreaContext _localctx = new UnknownSequenceAreaContext(_ctx, getState());
 		enterRule(_localctx, 20, RULE_unknownSequenceArea);
-		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(62);
-			match(CA_START);
-			setState(63);
-			_la = _input.LA(1);
-			if ( !(_la==UNKNOWN_STRINGLITERAL || _la==UNKNOWN_TEXT) ) {
-			_errHandler.recoverInline(this);
-			}
-			else {
-				if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
-				_errHandler.reportMatch(this);
-				consume();
-			}
+			setState(60);
+			match(UNKNOWN_CA_START);
 			}
 		}
 		catch (RecognitionException re) {
@@ -752,43 +724,42 @@ public class BMSParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\u0004\u0001\u0011B\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
+		"\u0004\u0001\u0013?\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
 		"\u0002\u0007\u0002\u0002\u0003\u0007\u0003\u0002\u0004\u0007\u0004\u0002"+
 		"\u0005\u0007\u0005\u0002\u0006\u0007\u0006\u0002\u0007\u0007\u0007\u0002"+
 		"\b\u0007\b\u0002\t\u0007\t\u0002\n\u0007\n\u0001\u0000\u0005\u0000\u0018"+
 		"\b\u0000\n\u0000\f\u0000\u001b\t\u0000\u0001\u0000\u0001\u0000\u0001\u0001"+
 		"\u0001\u0001\u0001\u0001\u0003\u0001\"\b\u0001\u0001\u0002\u0001\u0002"+
 		"\u0001\u0003\u0001\u0003\u0003\u0003(\b\u0003\u0001\u0004\u0001\u0004"+
-		"\u0001\u0004\u0001\u0005\u0001\u0005\u0001\u0006\u0001\u0006\u0003\u0006"+
-		"1\b\u0006\u0001\u0007\u0001\u0007\u0001\u0007\u0001\b\u0001\b\u0001\t"+
-		"\u0001\t\u0003\t:\b\t\u0001\t\u0003\t=\b\t\u0001\n\u0001\n\u0001\n\u0001"+
-		"\n\u0000\u0000\u000b\u0000\u0002\u0004\u0006\b\n\f\u000e\u0010\u0012\u0014"+
-		"\u0000\u0002\u0001\u0000\f\r\u0001\u0000\u0010\u0011=\u0000\u0019\u0001"+
-		"\u0000\u0000\u0000\u0002!\u0001\u0000\u0000\u0000\u0004#\u0001\u0000\u0000"+
-		"\u0000\u0006%\u0001\u0000\u0000\u0000\b)\u0001\u0000\u0000\u0000\n,\u0001"+
-		"\u0000\u0000\u0000\f.\u0001\u0000\u0000\u0000\u000e2\u0001\u0000\u0000"+
-		"\u0000\u00105\u0001\u0000\u0000\u0000\u0012<\u0001\u0000\u0000\u0000\u0014"+
-		">\u0001\u0000\u0000\u0000\u0016\u0018\u0003\u0002\u0001\u0000\u0017\u0016"+
-		"\u0001\u0000\u0000\u0000\u0018\u001b\u0001\u0000\u0000\u0000\u0019\u0017"+
-		"\u0001\u0000\u0000\u0000\u0019\u001a\u0001\u0000\u0000\u0000\u001a\u001c"+
-		"\u0001\u0000\u0000\u0000\u001b\u0019\u0001\u0000\u0000\u0000\u001c\u001d"+
-		"\u0005\u0000\u0000\u0001\u001d\u0001\u0001\u0000\u0000\u0000\u001e\"\u0003"+
-		"\u0004\u0002\u0000\u001f\"\u0003\n\u0005\u0000 \"\u0003\u0010\b\u0000"+
-		"!\u001e\u0001\u0000\u0000\u0000!\u001f\u0001\u0000\u0000\u0000! \u0001"+
-		"\u0000\u0000\u0000\"\u0003\u0001\u0000\u0000\u0000#$\u0003\u0006\u0003"+
-		"\u0000$\u0005\u0001\u0000\u0000\u0000%\'\u0007\u0000\u0000\u0000&(\u0003"+
-		"\b\u0004\u0000\'&\u0001\u0000\u0000\u0000\'(\u0001\u0000\u0000\u0000("+
-		"\u0007\u0001\u0000\u0000\u0000)*\u0005\t\u0000\u0000*+\u0007\u0000\u0000"+
-		"\u0000+\t\u0001\u0000\u0000\u0000,-\u0003\f\u0006\u0000-\u000b\u0001\u0000"+
-		"\u0000\u0000.0\u0005\u000e\u0000\u0000/1\u0003\u000e\u0007\u00000/\u0001"+
-		"\u0000\u0000\u000001\u0001\u0000\u0000\u00001\r\u0001\u0000\u0000\u0000"+
-		"23\u0005\t\u0000\u000034\u0005\u000e\u0000\u00004\u000f\u0001\u0000\u0000"+
-		"\u000056\u0003\u0012\t\u00006\u0011\u0001\u0000\u0000\u000079\u0007\u0001"+
-		"\u0000\u00008:\u0003\u0014\n\u000098\u0001\u0000\u0000\u00009:\u0001\u0000"+
-		"\u0000\u0000:=\u0001\u0000\u0000\u0000;=\u0003\u0014\n\u0000<7\u0001\u0000"+
-		"\u0000\u0000<;\u0001\u0000\u0000\u0000=\u0013\u0001\u0000\u0000\u0000"+
-		">?\u0005\t\u0000\u0000?@\u0007\u0001\u0000\u0000@\u0015\u0001\u0000\u0000"+
-		"\u0000\u0006\u0019!\'09<";
+		"\u0001\u0005\u0001\u0005\u0001\u0006\u0001\u0006\u0003\u00060\b\u0006"+
+		"\u0001\u0007\u0001\u0007\u0001\b\u0001\b\u0001\t\u0001\t\u0003\t8\b\t"+
+		"\u0001\t\u0003\t;\b\t\u0001\n\u0001\n\u0001\n\u0000\u0000\u000b\u0000"+
+		"\u0002\u0004\u0006\b\n\f\u000e\u0010\u0012\u0014\u0000\u0002\u0001\u0000"+
+		"\f\r\u0001\u0000\u0012\u0013:\u0000\u0019\u0001\u0000\u0000\u0000\u0002"+
+		"!\u0001\u0000\u0000\u0000\u0004#\u0001\u0000\u0000\u0000\u0006%\u0001"+
+		"\u0000\u0000\u0000\b)\u0001\u0000\u0000\u0000\n+\u0001\u0000\u0000\u0000"+
+		"\f-\u0001\u0000\u0000\u0000\u000e1\u0001\u0000\u0000\u0000\u00103\u0001"+
+		"\u0000\u0000\u0000\u0012:\u0001\u0000\u0000\u0000\u0014<\u0001\u0000\u0000"+
+		"\u0000\u0016\u0018\u0003\u0002\u0001\u0000\u0017\u0016\u0001\u0000\u0000"+
+		"\u0000\u0018\u001b\u0001\u0000\u0000\u0000\u0019\u0017\u0001\u0000\u0000"+
+		"\u0000\u0019\u001a\u0001\u0000\u0000\u0000\u001a\u001c\u0001\u0000\u0000"+
+		"\u0000\u001b\u0019\u0001\u0000\u0000\u0000\u001c\u001d\u0005\u0000\u0000"+
+		"\u0001\u001d\u0001\u0001\u0000\u0000\u0000\u001e\"\u0003\u0004\u0002\u0000"+
+		"\u001f\"\u0003\n\u0005\u0000 \"\u0003\u0010\b\u0000!\u001e\u0001\u0000"+
+		"\u0000\u0000!\u001f\u0001\u0000\u0000\u0000! \u0001\u0000\u0000\u0000"+
+		"\"\u0003\u0001\u0000\u0000\u0000#$\u0003\u0006\u0003\u0000$\u0005\u0001"+
+		"\u0000\u0000\u0000%\'\u0007\u0000\u0000\u0000&(\u0003\b\u0004\u0000\'"+
+		"&\u0001\u0000\u0000\u0000\'(\u0001\u0000\u0000\u0000(\u0007\u0001\u0000"+
+		"\u0000\u0000)*\u0005\u000b\u0000\u0000*\t\u0001\u0000\u0000\u0000+,\u0003"+
+		"\f\u0006\u0000,\u000b\u0001\u0000\u0000\u0000-/\u0005\u000f\u0000\u0000"+
+		".0\u0003\u000e\u0007\u0000/.\u0001\u0000\u0000\u0000/0\u0001\u0000\u0000"+
+		"\u00000\r\u0001\u0000\u0000\u000012\u0005\u000e\u0000\u00002\u000f\u0001"+
+		"\u0000\u0000\u000034\u0003\u0012\t\u00004\u0011\u0001\u0000\u0000\u0000"+
+		"57\u0007\u0001\u0000\u000068\u0003\u0014\n\u000076\u0001\u0000\u0000\u0000"+
+		"78\u0001\u0000\u0000\u00008;\u0001\u0000\u0000\u00009;\u0003\u0014\n\u0000"+
+		":5\u0001\u0000\u0000\u0000:9\u0001\u0000\u0000\u0000;\u0013\u0001\u0000"+
+		"\u0000\u0000<=\u0005\u0011\u0000\u0000=\u0015\u0001\u0000\u0000\u0000"+
+		"\u0006\u0019!\'/7:";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
