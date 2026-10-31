@@ -141,10 +141,17 @@ public class DliCall implements Trait<Cobol> {
     }
 
     /**
-     * The entry point that handed this program its PCBs, or null where it takes none.
+     * The entry point that handed this call's PCB to the program declaring it, or null where that
+     * program takes none. A nested program can name a PCB that a containing program declares GLOBAL.
+     * A PCB declared nowhere is taken to be one the call's own program was handed.
      */
     public @Nullable ProgramEntry getEntry() {
-        return ProgramEntry.of(cursor);
+        return entryOf(cursor, pcb);
+    }
+
+    private static @Nullable ProgramEntry entryOf(Cursor cursor, @Nullable String pcb) {
+        Cursor declaring = pcb == null ? null : DataName.declaringProgram(cursor, pcb);
+        return ProgramEntry.of(declaring == null ? cursor : declaring);
     }
 
     /**
@@ -295,7 +302,7 @@ public class DliCall implements Trait<Cobol> {
 
         // Against a message PCB the fourth argument is the MOD, not an SSA. Read as one it resolves to
         // a plausible segment name — CLMI1O — and the CRUD matrix gains a segment no database has.
-        ProgramEntry entry = ProgramEntry.of(cursor);
+        ProgramEntry entry = entryOf(cursor, pcb);
         String modOperand = "ISRT".equals(function) && !trailing.isEmpty() &&
                             entry != null && entry.isMessagePcb(pcb) ? trailing.get(0) : null;
         List<String> ssas = modOperand == null ? trailing : trailing.subList(1, trailing.size());

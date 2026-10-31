@@ -242,6 +242,46 @@ class DliCallTest implements RewriteTest {
     }
 
     @Test
+    void readsAGlobalPcbsPositionFromTheEntryOfTheProgramDeclaringIt() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 TERM-PCB PIC X(40) GLOBAL.                                   \s
+            000000 01 ACCT-PCB PIC X(40) GLOBAL.                                   \s
+            000000 01 HIST-PCB PIC X(40).                                          \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING TERM-PCB ACCT-PCB HIST-PCB.           \s
+            000000     CALL 'INNERPGM' USING HIST-PCB.                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 77 ISRT-FUNC PIC X(4) VALUE 'ISRT'.                             \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC ACCT-PCB IO-AREA.              \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     CALL 'CBLTDLI' USING ISRT-FUNC TERM-PCB MSG-AREA WS-MOD.    \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getPcbPosition, DliCall::isMessageCall, DliCall::getModOperand)
+          .containsExactly(
+            tuple(1, false, null),
+            tuple(2, false, null),
+            tuple(0, true, "WS-MOD"));
+    }
+
+    @Test
     void keepsADatabasePcbPassedToANestedProgramOffTheMessageQueue() {
         List<DliCall> calls = parse(
           """

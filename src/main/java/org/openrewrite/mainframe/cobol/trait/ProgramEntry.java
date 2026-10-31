@@ -126,21 +126,13 @@ public class ProgramEntry implements Trait<Cobol> {
 
     /**
      * The name the outermost program's entry gives the PSB's first PCB, which a nested program may
-     * know by another name. Kept on the outermost program's cursor.
+     * know by another name.
      */
     private @Nullable String firstPsbPcb() {
         Program program = Program.of(cursor);
-        if (program == null) {
-            return null;
-        }
-        Cursor outermost = program.outermost().getCursor();
-        Optional<String> first = outermost.computeMessageIfAbsent("cobol.firstPsbPcb", k -> {
-            Cobol.ProcedureDivision division = outermost.<Cobol.ProgramUnit>getValue().getProcedureDivision();
-            ProgramEntry entry = division == null ? null : of(new Cursor(outermost, division));
-            List<String> names = entry == null ? emptyList() : entry.getPcbNames();
-            return names.isEmpty() ? Optional.empty() : Optional.of(names.get(0));
-        });
-        return first.orElse(null);
+        ProgramEntry entry = program == null ? null : of(program.outermost().getCursor());
+        List<String> names = entry == null ? emptyList() : entry.getPcbNames();
+        return names.isEmpty() ? null : names.get(0);
     }
 
     /**
@@ -177,9 +169,9 @@ public class ProgramEntry implements Trait<Cobol> {
                 attributes != null && attributes.stream().anyMatch(word -> "COMMON".equalsIgnoreCase(word.getWord()))) {
                 return positions;
             }
-            Cursor callers = new Cursor(containing, division);
-            ProgramEntry entry = of(callers);
-            List<List<@Nullable String>> calls = callsTo(Literals.unquote(new Program(nested).getName()), callers);
+            ProgramEntry entry = of(containing);
+            List<List<@Nullable String>> calls = callsTo(Literals.unquote(new Program(nested).getName()),
+                    new Cursor(containing, division));
             if (entry != null && calls != null) {
                 for (int parameter = 0; parameter < parameters; parameter++) {
                     positions.set(parameter, agreed(calls, parameter, entry));
@@ -245,24 +237,26 @@ public class ProgramEntry implements Trait<Cobol> {
     }
 
     /**
-     * The entry point of the program {@code cursor} is inside, or null for one that takes nothing.
+     * The entry point of the program {@code cursor} is in or at, or null for one that takes nothing.
      * <p>
-     * {@code PROCEDURE DIVISION USING} is the entry point where a program has one, and it hangs off
-     * an ancestor of every statement, so no search is needed to reach it. Only an IMS batch program,
-     * which is entered at {@code ENTRY 'DLITCBL' USING} instead, has to be looked through — and the
-     * answer is kept on the division's cursor, because every DL/I call in the program asks for it.
+     * {@code PROCEDURE DIVISION USING} is the entry point where a program has one, so no search is
+     * needed to reach it. Only an IMS batch program, which is entered at {@code ENTRY 'DLITCBL' USING}
+     * instead, has to be looked through — and the answer is kept on the program's cursor, because
+     * every DL/I call in the program asks for it.
      */
     public static @Nullable ProgramEntry of(Cursor cursor) {
-        Cursor division = enclosing(cursor, Cobol.ProcedureDivision.class);
-        if (division == null) {
+        Cursor program = enclosing(cursor, Cobol.ProgramUnit.class);
+        Cobol.ProcedureDivision procedureDivision = program == null ? null :
+                program.<Cobol.ProgramUnit>getValue().getProcedureDivision();
+        if (program == null || procedureDivision == null) {
             return null;
         }
-        Cobol.ProcedureDivision procedureDivision = division.getValue();
+        Cursor division = new Cursor(program, procedureDivision);
         if (procedureDivision.getProcedureDivisionUsingClause() != null) {
             return new ProgramEntry(new Cursor(division,
                     procedureDivision.getProcedureDivisionUsingClause()));
         }
-        Optional<ProgramEntry> entry = division.computeMessageIfAbsent("cobol.programEntry",
+        Optional<ProgramEntry> entry = program.computeMessageIfAbsent("cobol.programEntry",
                 k -> new Matcher().lower(division).findFirst());
         return entry.orElse(null);
     }
