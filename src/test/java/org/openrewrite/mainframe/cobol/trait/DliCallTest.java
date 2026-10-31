@@ -141,6 +141,32 @@ class DliCallTest implements RewriteTest {
     }
 
     @Test
+    void recoversPcbOrderFromProcedureDivisionUsing() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. IMSPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 IO-PCB PIC X(40).                                            \s
+            000000 01 ACCT-DB-PCB PIC X(40).                                       \s
+            000000 01 HIST-DB-PCB PIC X(40).                                       \s
+            000000 PROCEDURE DIVISION USING IO-PCB                                 \s
+            000000     BY REFERENCE ACCT-DB-PCB HIST-DB-PCB.                       \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC HIST-DB-PCB IO-AREA.           \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        ProgramEntry pcbs = calls.get(0).getEntry();
+        assertThat(pcbs).isNotNull();
+        assertThat(pcbs.getPcbNames()).containsExactly("IO-PCB", "ACCT-DB-PCB", "HIST-DB-PCB");
+        assertThat(calls.get(0).getPcbPosition()).isEqualTo(2);
+    }
+
+    @Test
     void distinguishesMessageCallsFromDatabaseCalls() {
         List<DliCall> calls = parse(
           """

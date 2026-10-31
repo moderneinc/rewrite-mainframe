@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.Identifier;
+import org.openrewrite.mainframe.cobol.tree.Name;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
@@ -58,9 +59,17 @@ public class ProgramEntry implements Trait<Cobol> {
                 }
             }
         } else {
-            for (Cobol parameter :
-                    ((Cobol.ProcedureDivisionUsingClause) tree).getProcedureDivisionUsingParameter()) {
-                add(names, parameter);
+            for (Cobol phrase : ((Cobol.ProcedureDivisionUsingClause) tree).getProcedureDivisionUsingParameter()) {
+                if (phrase instanceof Cobol.ProcedureDivisionByReferencePhrase) {
+                    for (Cobol.ProcedureDivisionByReference parameter :
+                            ((Cobol.ProcedureDivisionByReferencePhrase) phrase).getProcedureDivisionByReference()) {
+                        add(names, parameter.getReference());
+                    }
+                } else if (phrase instanceof Cobol.ProcedureDivisionByValuePhrase) {
+                    for (Name parameter : ((Cobol.ProcedureDivisionByValuePhrase) phrase).getPhrases()) {
+                        add(names, parameter);
+                    }
+                }
             }
         }
         return names;
