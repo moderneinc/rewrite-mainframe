@@ -84,13 +84,22 @@ public class Database implements Trait<Ims.MacroStatement> {
     }
 
     /**
-     * The DD names a job step has to supply to open this database, across every data set group.
-     * These are DD names and not data sets: only the JCL says what each is bound to.
+     * The DD names a job step has to supply to open this database, across every data set group, or
+     * every area of a DEDB. These are DD names and not data sets: only the JCL says what each is
+     * bound to.
      */
     public List<String> getDdNames() {
         List<String> ddNames = new ArrayList<>();
         for (DataSetGroup group : getDataSetGroups()) {
             ddNames.addAll(group.getDdNames());
+        }
+        for (Statement statement : Definitions.withinDatabase(cursor)) {
+            if (Definitions.isOperation(statement, "AREA")) {
+                String area = Operands.firstOf((Ims.MacroStatement) statement, "DD1");
+                if (area != null) {
+                    ddNames.add(area);
+                }
+            }
         }
         return ddNames;
     }

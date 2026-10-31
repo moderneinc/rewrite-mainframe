@@ -117,11 +117,22 @@ class ImsParserTest {
     void aSequenceAreaIsKeptAndPrintedBack() {
         String source =
           "         DBD   NAME=CLMDBD01" + blanks(44) + "CLMDBD01\n" +
+          "* CLAIMS DATABASE" + blanks(55) + " 010208\n" +
           "         SEGM  NAME=CLMROOT" + blanks(45) + "CLMDBD02\n";
 
         Ims.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
-        assertThat(sequenceAreasIn(cu)).containsExactly("CLMDBD01", "CLMDBD02");
+        assertThat(sequenceAreasIn(cu)).containsExactly("CLMDBD01", "010208", "CLMDBD02");
+    }
+
+    @Test
+    void aLiteralRunningIntoTheSequenceArea() {
+        String source =
+          "CLMF01   FMT\n" +
+          "         DFLD  'CLAIM INQUIRY',POS=(1,2),ATTR=PROT,REMARKS='AB CD EF GH IJ KLM'\n" +
+          "         FMTEND\n";
+
+        assertThat(parse("CLMF01.mfs", source).printAll()).isEqualTo(source);
     }
 
     @Test
@@ -235,6 +246,118 @@ class ImsParserTest {
         assertThat(cu.getStatements()).hasSize(3);
     }
 
+    @Test
+    void tabsBetweenWords() {
+        String source =
+          "CLMF01\tFMT\n" +
+          "\t\tDFLD 'CLAIM INQUIRY',POS=(1,2)\t\t\n" +
+          "         FMTEND\n";
+
+        Ims.CompilationUnit cu = parse("CLMF01.mfs", source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(cu.getStatements()).hasSize(3);
+        assertThat(((Ims.MacroStatement) cu.getStatements().get(1)).getParameter("POS")).isNotNull();
+    }
+
+    @Test
+    void aMacroCommentIsAComment() {
+        String source =
+          ".* CLAIMS DATABASE\n" +
+          "         DBD   NAME=CLMDBD01\n";
+
+        Ims.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(cu.getStatements().get(0)).isInstanceOf(Ims.Comment.class);
+    }
+
+    @Test
+    void aStage1DeckOpensWithImsctrl() {
+        String source =
+          "         IMSCTRL SYSTEM=(VS/2,(ALL,DB/DC)),IMSID=IMSA\n" +
+          "         APPLCTN PSB=CLMPSB02,PGMTYPE=TP\n" +
+          "         IMSGEN\n";
+
+        Ims.CompilationUnit cu = parse("STAGE1.gen", source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(cu.getStatements()).hasSize(3);
+    }
+
+    @Test
+    void aSublistBrokenAfterACommaCarriesOnToTheNextCard() {
+        String source =
+          "         DBD   NAME=CLMDBD01\n" +
+          continued("         SEGM  NAME=CLMPLNK,PARENT=((CLMROOT,SNGL),   LOGICAL PARENT") +
+          "                  (POLROOT,PHYSICAL,CLMDBD02)),BYTES=12\n";
+
+        Ims.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        Ims.MacroStatement segm = (Ims.MacroStatement) cu.getStatements().get(1);
+        assertThat(segm.getParameter("PARENT").getValueText())
+          .isEqualTo("((CLMROOT,SNGL),(POLROOT,PHYSICAL,CLMDBD02))");
+        assertThat(segm.getParameter("BYTES").getValueText()).isEqualTo("12");
+    }
+
+    @Test
+    void aLiteralContinuedOntoTheNextCard() {
+        String first = "         DFLD  'CLAIM INQUIRY - ENTER A CLAIM NUMBER AND PRESS";
+        String source =
+          "CLMF01   FMT\n" +
+          continued(first) +
+          "               ENTER',POS=(1,2),ATTR=PROT\n";
+
+        Ims.CompilationUnit cu = parse("CLMF01.mfs", source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        Ims.MacroStatement dfld = (Ims.MacroStatement) cu.getStatements().get(1);
+        // The literal runs to column 71, blanks and all, and picks up again in column 16.
+        assertThat(((Ims.PositionalOperand) dfld.getParameters().get(0)).getValueText())
+          .isEqualTo(first.substring(15) + blanks(71 - first.length()) + "ENTER'");
+        assertThat(dfld.getParameter("POS").getValueText()).isEqualTo("(1,2)");
+    }
+
+    @Test
+    void anOperandFilledToColumn71ResumesMidWord() {
+        String source =
+          "         TRANSACT CODE=(CLMINQ,CLMDTL,CLMUPD,CLMADD,CLMDEL,CLMLST,CLMPRX\n" +
+          "               T),MODE=SNGL\n" +
+          "         TRANSACT CODE=CLMLST,PROCLIM=(15,100),SEGSIZE=600,SEGNO=12,PRTX\n" +
+          "               Y=(1),MODE=SNGL\n" +
+          "         SEGM  NAME=CLMDETL1,BYTES=1200,POINTER=(TWIN),FREQ=5000,PARENTX\n" +
+          "               =CLMROOT\n";
+
+        Ims.CompilationUnit cu = parse("CLMGEN01.gen", source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        Ims.MacroStatement transact = (Ims.MacroStatement) cu.getStatements().get(0);
+        assertThat(transact.getParameter("CODE").getValueText())
+          .isEqualTo("(CLMINQ,CLMDTL,CLMUPD,CLMADD,CLMDEL,CLMLST,CLMPRT)");
+        assertThat(transact.getParameter("MODE").getValueText()).isEqualTo("SNGL");
+
+        // Column 71 may fall inside a keyword, or just before its =.
+        assertThat(((Ims.MacroStatement) cu.getStatements().get(1)).getParameter("PRTY").getValueText())
+          .isEqualTo("(1)");
+        assertThat(((Ims.MacroStatement) cu.getStatements().get(2)).getParameter("PARENT").getValueText())
+          .isEqualTo("CLMROOT");
+    }
+
+    @Test
+    void anOperationAloneOnAContinuedCard() {
+        String source =
+          "         DBD   NAME=CLMDBD01\n" +
+          continued("         SEGM") +
+          "               NAME=CLMROOT,PARENT=0,BYTES=12\n";
+
+        Ims.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(((Ims.MacroStatement) cu.getStatements().get(1)).getParameter("NAME").getValueText())
+          .isEqualTo("CLMROOT");
+    }
+
+    /**
+     * A card padded out to column 71 with an {@code X} in column 72.
+     */
+    private static String continued(String card) {
+        return card + blanks(71 - card.length()) + "X\n";
+    }
+
     private static Path write(Path dir, String name, String source) throws IOException {
         Path member = dir.resolve(name);
         Files.write(member, source.getBytes(StandardCharsets.UTF_8));
@@ -244,6 +367,13 @@ class ImsParserTest {
     private static List<String> sequenceAreasIn(Ims.CompilationUnit cu) {
         List<String> areas = new ArrayList<>();
         new ImsIsoVisitor<Integer>() {
+            @Override
+            public Ims.Comment visitComment(Ims.Comment comment, Integer p) {
+                comment.getMarkers().findFirst(SequenceArea.class)
+                  .ifPresent(area -> areas.add(area.getText()));
+                return super.visitComment(comment, p);
+            }
+
             @Override
             public Ims.Word visitWord(Ims.Word word, Integer p) {
                 word.getMarkers().findFirst(SequenceArea.class)

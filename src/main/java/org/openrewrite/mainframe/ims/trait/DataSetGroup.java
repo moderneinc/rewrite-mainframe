@@ -52,24 +52,24 @@ public class DataSetGroup implements Trait<Ims.MacroStatement> {
     }
 
     /**
-     * The DD name of the overflow data set, from {@code DD2=}. Only HISAM has one.
+     * The DD name of the overflow data set, from {@code OVFLW=}. A HISAM database has one, and so
+     * does an index whose keys need not be unique.
      */
     public @Nullable String getOverflowDdName() {
-        return Operands.firstOf(getTree(), "DD2");
+        return Operands.firstOf(getTree(), "OVFLW");
     }
 
     /**
-     * Every DD name this group needs, primary first.
+     * Every DD name this group needs, primary first. {@code DD2=} is the output data set of a GSAM or
+     * HSAM database.
      */
     public List<String> getDdNames() {
-        List<String> ddNames = new ArrayList<>();
-        String primary = getPrimaryDdName();
-        if (primary != null) {
-            ddNames.add(primary);
-        }
-        String overflow = getOverflowDdName();
-        if (overflow != null) {
-            ddNames.add(overflow);
+        List<String> ddNames = new ArrayList<>(3);
+        for (String keyword : new String[]{"DD1", "DD2", "OVFLW"}) {
+            String ddName = Operands.firstOf(getTree(), keyword);
+            if (ddName != null) {
+                ddNames.add(ddName);
+            }
         }
         return ddNames;
     }

@@ -82,16 +82,20 @@ public class ScheduledJob implements Trait<ControlM> {
     public @Nullable String getGroup() {
         ControlM.Element element = element();
         if (element == null) {
-            return Schedules.panelValue(definition(), "GROUP");
+            String group = Schedules.panelValue(definition(), "GROUP");
+            return group == null ? Schedules.panelValue(definition(), "TBL") : group;
         }
         Cursor parent = cursor.getParent();
         if (parent != null && parent.getValue() instanceof ControlM.Element) {
-            String folder = ((ControlM.Element) parent.getValue()).getAttributeText("FOLDER_NAME");
+            String folder = Schedules.folderName((ControlM.Element) parent.getValue());
             if (folder != null) {
                 return folder;
             }
         }
         String group = element.getAttributeText("PARENT_FOLDER");
+        if (group == null) {
+            group = element.getAttributeText("PARENT_TABLE");
+        }
         return group == null ? element.getAttributeText("SUB_APPLICATION") : group;
     }
 
@@ -132,7 +136,7 @@ public class ScheduledJob implements Trait<ControlM> {
      */
     public boolean isTable() {
         ControlM.Element element = element();
-        return element != null && element.isName("SMART_FOLDER");
+        return element != null && Schedules.isSmartTable(element);
     }
 
     /**
@@ -252,7 +256,7 @@ public class ScheduledJob implements Trait<ControlM> {
                 return new ScheduledJob(cursor);
             }
             return value instanceof ControlM.Element &&
-                   (((ControlM.Element) value).isName("JOB") || ((ControlM.Element) value).isName("SMART_FOLDER")) ?
+                   (((ControlM.Element) value).isName("JOB") || Schedules.isSmartTable((ControlM.Element) value)) ?
                     new ScheduledJob(cursor) : null;
         }
     }

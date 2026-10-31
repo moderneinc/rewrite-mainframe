@@ -185,6 +185,102 @@ class ScheduledJobTest implements RewriteTest {
         );
     }
 
+    @Test
+    void readsEveryWayThePanelWritesACondition() {
+        rewriteRun(
+          controlM(
+            """
+              +---------------------------------- BROWSE -----------------------------------+
+              | MEMNAME CLMJ030         MEMLIB CLM.PROD.JCL                                 |
+              | =========================================================================== |
+              | SCHEDULE RBC                                                                |
+              | =========================================================================== |
+              | IN       CLMNIGHT_CLMJ020_OK  0101      CLMNIGHT_CLMJ010_OK  $$$$           |
+              |          (L) CLMNIGHT_CLMJ025_RESERVE_UPDATE_DONE        PREV               |
+              | CONTROL                                                                     |
+              | =========================================================================== |
+              | OUT      CLMNIGHT_CLMJ020_OK  **** -  CLMNIGHT_CLMJ030_OK  NEXT +           |
+              |          (L) CLMNIGHT_CLMJ030_RESERVE_UPDATE_DONE        ODAT +             |
+              | AUTO-ARCHIVE Y          SYSDB    Y      MAXDAYS      MAXRUNS                |
+              | =========================================================================== |
+              | APPL TYPE                                  APPL VER                         |
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                ScheduledJob job = jobsOf(cu).get(0);
+                assertThat(job.getInConditions())
+                  .extracting(InCondition::toString)
+                  .containsExactly("IN CLMNIGHT_CLMJ020_OK 0101", "IN CLMNIGHT_CLMJ010_OK $$$$",
+                    "IN CLMNIGHT_CLMJ025_RESERVE_UPDATE_DONE PREV");
+                assertThat(job.getOutConditions())
+                  .extracting(OutCondition::toString)
+                  .containsExactly("OUT CLMNIGHT_CLMJ020_OK **** -", "OUT CLMNIGHT_CLMJ030_OK NEXT +",
+                    "OUT CLMNIGHT_CLMJ030_RESERVE_UPDATE_DONE ODAT +");
+            })
+          )
+        );
+    }
+
+    @Test
+    void readsTheLogicOffAPanelConditionName() {
+        rewriteRun(
+          controlM(
+            PANEL.replace(
+              "| IN       CLMMAST-CLOSED       ODAT                                          |",
+              "| IN      (CLMNIGHT_CLMJ010_OK  0101      |CLMNIGHT_CLMJ020_OK) 0101          |\n" +
+              "|          ¬CLMHOLD             ODAT                                          |"),
+            spec -> spec.afterRecipe(cu -> assertThat(jobsOf(cu).get(0).getInConditions())
+              .extracting(InCondition::getName)
+              .containsExactly("CLMNIGHT_CLMJ010_OK", "CLMNIGHT_CLMJ020_OK", "CLMHOLD")))
+        );
+    }
+
+    @Test
+    void readsTheTableAPanelLabelsTbl() {
+        rewriteRun(
+          controlM(
+            PANEL.replace(
+              "| APPL    CLAIMS                          GROUP CLMNIGHT                      |",
+              "| APPL    CLAIMS                  TBL CLMNIGHT             RBC CLMWORKDAYS    |"),
+            spec -> spec.afterRecipe(cu -> {
+                ScheduledJob job = jobsOf(cu).get(0);
+                assertThat(job.getApplication()).isEqualTo("CLAIMS");
+                assertThat(job.getGroup()).isEqualTo("CLMNIGHT");
+            }))
+        );
+    }
+
+    @Test
+    void readsTheExportsOlderVocabulary() {
+        rewriteRun(
+          controlM(
+            """
+              <DEFTABLE>
+                <SCHED_TABLE TABLE_NAME="CLMDAY" DATACENTER="CTMPROD">
+                  <JOB JOBNAME="CLMJ110" MEMNAME="CLMJ110">
+                    <OUTCOND NAME="CLMDAY_CLMJ100_OK" ODATE="ODAT" SIGN="DEL" />
+                    <OUTCOND NAME="CLMDAY_CLMJ110_OK" ODATE="ODAT" SIGN="ADD" />
+                  </JOB>
+                </SCHED_TABLE>
+                <SMART_TABLE TABLE_NAME="CLMNIGHT" JOBNAME="CLMNIGHT">
+                  <JOB JOBNAME="CLMJ010" MEMNAME="CLMJ010" />
+                </SMART_TABLE>
+              </DEFTABLE>
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<ScheduledJob> jobs = jobsOf(cu);
+                assertThat(jobs).extracting(ScheduledJob::toString)
+                  .containsExactly("JOB CLMJ110", "TABLE CLMNIGHT", "JOB CLMJ010");
+                assertThat(jobs.get(0).getGroup()).isEqualTo("CLMDAY");
+                assertThat(jobs.get(0).getOutConditions()).extracting(OutCondition::isDeleted)
+                  .containsExactly(true, false);
+                assertThat(jobs.get(2).getGroupMembership()).satisfies(membership -> {
+                    assertThat(membership.getGroup()).isEqualTo("CLMNIGHT");
+                    assertThat(membership.isSmartTable()).isTrue();
+                });
+            }))
+        );
+    }
+
     /**
      * A condition is the only thing either job names, so a chain is found across files the same way
      * it is found within one.

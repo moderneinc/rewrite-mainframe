@@ -138,7 +138,8 @@ public class ControlMVisitor<P> extends TreeVisitor<ControlM, P> {
         e = e.withAttributes(ListUtils.map(e.getAttributes(), a -> visitAndCast(a, p)));
         e = e.withBeforeTagEnd(visitSpace(e.getBeforeTagEnd(), Space.Location.ELEMENT_BEFORE_TAG_END, p));
         e = e.withElements(e.getElements() == null ? null : ListUtils.map(e.getElements(), it -> visitAndCast(it, p)));
-        return e.withBeforeEndTag(visitSpace(e.getBeforeEndTag(), Space.Location.ELEMENT_BEFORE_END_TAG, p));
+        e = e.withBeforeEndTag(visitSpace(e.getBeforeEndTag(), Space.Location.ELEMENT_BEFORE_END_TAG, p));
+        return e.withBeforeEndTagEnd(visitSpace(e.getBeforeEndTagEnd(), Space.Location.ELEMENT_BEFORE_END_TAG_END, p));
     }
 
     public ControlM visitAttribute(ControlM.Attribute attribute, P p) {
