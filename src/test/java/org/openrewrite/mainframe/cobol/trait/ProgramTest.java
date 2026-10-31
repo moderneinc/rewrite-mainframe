@@ -72,4 +72,35 @@ class ProgramTest {
             """
         ).getExecInterfaceBlock()).isNull();
     }
+
+    @Test
+    void listsEveryIncludeOfItsOwnCodeAndNoneOfANestedProgram() {
+        Program outer = program(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 COPY DFHAID.                                                    \s
+            000000 COPY NOSUCHBOOK.                                                \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 COPY INNERBOOK.                                                 \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+        Program inner = new Program(new Cursor(outer.getCursor(), outer.getTree().getProgramUnits().get(0)));
+
+        assertThat(outer.getCopybookReferences()).extracting(CopybookReference::toString)
+          .containsExactly("COPY DFHAID", "COPY NOSUCHBOOK (missing)");
+        assertThat(inner.getCopybookReferences()).extracting(CopybookReference::toString)
+          .containsExactly("COPY INNERBOOK (missing)");
+    }
 }

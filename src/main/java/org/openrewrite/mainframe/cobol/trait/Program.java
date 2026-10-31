@@ -23,6 +23,7 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,6 +49,23 @@ public class Program implements Trait<Cobol.ProgramUnit> {
     public String getName() {
         String name = Names.of(getTree().getIdentificationDivision().getProgramIdParagraph().getProgramName());
         return name == null ? "" : name;
+    }
+
+    /**
+     * Every {@code COPY} and {@code EXEC SQL INCLUDE} in this program's own code, read or not, in
+     * source order. That includes one a copybook copies. A nested program's are its own and not
+     * among them.
+     */
+    public List<CopybookReference> getCopybookReferences() {
+        List<CopybookReference> references = new ArrayList<>();
+        new CopybookReference.Matcher().<List<CopybookReference>>asVisitor((reference, found) -> {
+            Program program = of(reference.getCursor());
+            if (program != null && program.getTree() == getTree()) {
+                found.add(reference);
+            }
+            return reference.getTree();
+        }).visit(getTree(), references, cursor.getParentOrThrow());
+        return references;
     }
 
     /**

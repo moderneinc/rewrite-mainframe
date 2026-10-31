@@ -572,6 +572,50 @@ class DataNameTest implements RewriteTest {
     }
 
     @Test
+    void tellsWhyAUsageResolvesToNothing() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  GRP-A.                                                      \s
+            000000     05  AMOUNT     PIC 9.                                       \s
+            000000 01  GRP-B.                                                      \s
+            000000     05  AMOUNT     PIC 9.                                       \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE 1 TO ORDER-ID.                                         \s
+            000000     MOVE 1 TO AMOUNT.                                           \s
+            000000     MOVE 1 TO AMOUNT OF GRP-A.                                  \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. MIDPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 COPY NOSUCHBOOK.                                                \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE 1 TO CUST-ID.                                          \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE 1 TO CUST-NAME.                                        \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM MIDPGM.                                             \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        // MIDPGM's unread copybook declares nothing OUTERPGM can see.
+        assertThat(usagesOf(names, "ORDER-ID").get(0).getUnresolvedReason())
+          .isEqualTo(DataName.UnresolvedReason.UNDECLARED);
+        assertThat(usagesOf(names, "AMOUNT")).extracting(DataName::getUnresolvedReason)
+          .containsExactly(DataName.UnresolvedReason.AMBIGUOUS, null);
+        assertThat(usagesOf(names, "CUST-ID").get(0).getUnresolvedReason())
+          .isEqualTo(DataName.UnresolvedReason.COPYBOOK_NOT_READ);
+        assertThat(usagesOf(names, "CUST-NAME").get(0).getUnresolvedReason())
+          .isEqualTo(DataName.UnresolvedReason.CONTAINER_COPYBOOK_NOT_READ);
+    }
+
+    @Test
     void resolvesANestedEibFieldToTheOuterProgramsGlobalDfheiblk() {
         List<DataName> names = names(
           """

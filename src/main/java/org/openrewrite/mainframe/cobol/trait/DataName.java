@@ -135,6 +135,59 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
+     * Why this usage resolves to no definition, or null where it resolves to one and for a
+     * definition.
+     */
+    public @Nullable UnresolvedReason getUnresolvedReason() {
+        if (isDefinition()) {
+            return null;
+        }
+        Index index = index();
+        int candidates = candidates(index).size();
+        if (candidates == 1) {
+            return null;
+        }
+        if (candidates > 1) {
+            return UnresolvedReason.AMBIGUOUS;
+        }
+        if (!index.readsEveryCopybook()) {
+            return UnresolvedReason.COPYBOOK_NOT_READ;
+        }
+        for (Index outer = index.container; outer != null; outer = outer.container) {
+            if (!outer.readsEveryCopybook()) {
+                return UnresolvedReason.CONTAINER_COPYBOOK_NOT_READ;
+            }
+        }
+        return UnresolvedReason.UNDECLARED;
+    }
+
+    /**
+     * Why a usage resolves to no definition. Where more than one applies, the first listed is given.
+     */
+    public enum UnresolvedReason {
+
+        /**
+         * More than one declaration matches the name and the qualifiers written.
+         */
+        AMBIGUOUS,
+
+        /**
+         * A copybook the usage's own program copies was not read, and may declare the name.
+         */
+        COPYBOOK_NOT_READ,
+
+        /**
+         * A copybook a containing program copies was not read, and may declare the name GLOBAL.
+         */
+        CONTAINER_COPYBOOK_NOT_READ,
+
+        /**
+         * Nothing the program can see declares the name, and every copybook that could was read.
+         */
+        UNDECLARED
+    }
+
+    /**
      * The item the definition is declared under — the group of an elementary item, the conditional
      * variable of a level-88 — read through the definition for a usage. Null for a level 01 or 77
      * and for an occurrence resolving to nothing.
@@ -514,7 +567,9 @@ public class DataName implements Trait<Cobol.Word> {
      */
     private static class Index {
 
-        static final Index EMPTY = new Index(null, emptySet());
+        static final Index EMPTY = new Index(null, null, emptySet());
+
+        private final @Nullable Cursor program;
 
         final @Nullable Index container;
 
@@ -522,9 +577,20 @@ public class DataName implements Trait<Cobol.Word> {
         final Map<UUID, Definition> byWord = new HashMap<>();
         final Set<UUID> referenced;
 
-        private Index(@Nullable Index container, Set<UUID> referenced) {
+        private @Nullable Boolean readsEveryCopybook;
+
+        private Index(@Nullable Cursor program, @Nullable Index container, Set<UUID> referenced) {
+            this.program = program;
             this.container = container;
             this.referenced = referenced;
+        }
+
+        boolean readsEveryCopybook() {
+            if (readsEveryCopybook == null) {
+                readsEveryCopybook = program == null ||
+                                     new Program(program).getCopybookReferences().stream().allMatch(CopybookReference::isResolved);
+            }
+            return readsEveryCopybook;
         }
 
         /**
@@ -533,7 +599,7 @@ public class DataName implements Trait<Cobol.Word> {
          */
         static void of(Cursor program, @Nullable Index container, Set<UUID> referenced, Map<UUID, Index> byProgram) {
             Cobol.ProgramUnit unit = program.getValue();
-            Index index = new Index(container, referenced);
+            Index index = new Index(program, container, referenced);
             byProgram.put(unit.getId(), index);
             List<Cursor> usages = index.walk(program, false);
 
