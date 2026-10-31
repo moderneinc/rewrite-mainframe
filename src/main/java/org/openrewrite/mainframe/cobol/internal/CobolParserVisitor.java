@@ -6474,6 +6474,20 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         // as well prints them twice over.
                         lines.clear();
                     } else if (preprocessorStartComment.equals(contentArea)) {
+                        parseComment(preprocessorStartComment);
+                        removeTemplateCommentArea = true;
+                        // The template may follow ordinary words on the same source line. Those words still
+                        // need to be consumed by their own COBOL nodes before the command's UUID is reached.
+                        int prefixStart = cursor;
+                        sequenceArea();
+                        indicatorArea();
+                        int prefixEnd = source.indexOf('\n', cursor);
+                        if (isBlank(cursor, prefixEnd == -1 ? source.length() : prefixEnd)) {
+                            cursor = prefixEnd == -1 ? source.length() : prefixEnd + 1;
+                        } else {
+                            cursor = prefixStart;
+                        }
+                    } else if (uuidComment.equals(contentArea)) {
                         objects.add(getPreprocessorStatement());
                         if (pendingElidedExec) {
                             // The words that follow stand in for this EXEC; a later one gets its own statement.
@@ -6840,12 +6854,6 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         this.replaceAdditiveType = null;
     }
 
-    private void parseFully(String comment) {
-        parseComment(comment);
-
-        cursor = afterNextNewline();
-    }
-
     private Replacement getReplace() {
         parseComment(replaceUuidComment);
 
@@ -6932,8 +6940,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     private CobolPreprocessor getPreprocessorStatement() {
-        parseFully(preprocessorStartComment);
-
+        removeTemplateCommentArea = false;
         parseComment(uuidComment);
 
         String uuid = getUuid();
@@ -6949,6 +6956,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         nextIndex = Integer.valueOf(numberOfSpaces.trim());
 
         CobolPreprocessor statement = preprocessorMap.get(uuid.trim());
+        if (statement instanceof CobolPreprocessor.ExecStatement && nextIndex > 0) {
+            int endOfLine = source.indexOf('\n', cursor);
+            int end = endOfLine < 0 ? source.length() : endOfLine;
+            if (isBlank(cursor, end)) {
+                // Remove only alignment inserted by the template. The remaining spaces belong to the source EOF.
+                int alignment = nextIndex + cobolDialect.getColumns().getContentArea();
+                cursor += Math.min(alignment, end - cursor);
+                nextIndex = null;
+            }
+        }
         if (statement != null && elidedExecs.contains(statement.getId())) {
             pendingElidedExec = true;
             pendingElidedDot = ((CobolPreprocessor.ExecStatement) statement).getDot() != null;
