@@ -480,4 +480,51 @@ class LiteralAssignmentTest implements RewriteTest {
         assertThat(found.get("WS-LINKED")).containsExactly("PGMC");
         assertThat(found.get("WS-OWN")).containsExactly("PGMD");
     }
+
+    @Test
+    void seesWhatANestedProgramWritesToAGlobalItem() {
+        Map<String, @Nullable Set<String>> found = candidates(
+          """
+            000000 IDENTIFICATION DIVISION.
+            000000 PROGRAM-ID. OUTERPGM.
+            000000 DATA DIVISION.
+            000000 WORKING-STORAGE SECTION.
+            000000 01 WS-ASSIGNED PIC X(8) GLOBAL VALUE 'PGMA'.
+            000000 01 WS-WRITTEN PIC X(8) GLOBAL VALUE 'PGMB'.
+            000000 01 WS-SHADOWED PIC X(8) GLOBAL VALUE 'PGMC'.
+            000000 01 WS-SAVED PIC X(8) GLOBAL VALUE 'PGMD'.
+            000000 01 WS-SSA PIC X(9) GLOBAL VALUE 'ACCOUNT '.
+            000000 01 WS-FUNC PIC X(4) VALUE 'GU  '.
+            000000 PROCEDURE DIVISION.
+            000000     EXEC CICS XCTL PROGRAM(WS-ASSIGNED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-WRITTEN) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-SHADOWED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-SAVED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-SSA) END-EXEC.
+            000000 IDENTIFICATION DIVISION.
+            000000 PROGRAM-ID. INNERPGM.
+            000000 DATA DIVISION.
+            000000 WORKING-STORAGE SECTION.
+            000000 77 WS-SHADOWED PIC X(8).
+            000000 77 WS-INPUT PIC X(8).
+            000000 77 WS-FUNC PIC X(4) VALUE 'XRST'.
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.
+            000000 PROCEDURE DIVISION.
+            000000     MOVE 'PGMX' TO WS-ASSIGNED.
+            000000     MOVE WS-INPUT TO WS-WRITTEN WS-SHADOWED.
+            000000     CALL 'CBLTDLI' USING WS-FUNC IO-PCB WS-IO WS-SAVED.
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB WS-IO WS-SSA.
+            000000 END PROGRAM INNERPGM.
+            000000 END PROGRAM OUTERPGM.
+            """
+        );
+
+        assertThat(found.get("WS-ASSIGNED")).containsExactlyInAnyOrder("PGMA", "PGMX");
+        assertThat(found).containsEntry("WS-WRITTEN", null);
+        // The nested program's WS-SHADOWED hides the GLOBAL one.
+        assertThat(found.get("WS-SHADOWED")).containsExactly("PGMC");
+        // Its restart call reads a WS-FUNC of its own.
+        assertThat(found).containsEntry("WS-SAVED", null);
+        assertThat(found.get("WS-SSA")).containsExactly("ACCOUNT");
+    }
 }
