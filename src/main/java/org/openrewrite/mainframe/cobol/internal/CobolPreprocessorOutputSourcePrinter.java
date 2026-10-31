@@ -362,7 +362,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
             curIndex = curIndex == -1 ? 0 : curIndex;
             addStartKey(getPreprocessorStartComment(), curIndex, p);
             addUuidKey(getUuidComment(), cobolPreprocessor.getId(), p);
-            addStopComment(getPreprocessorStopComment(), null, curIndex, p);
+            addStopComment(getPreprocessorStopComment(), cobolPreprocessor instanceof CobolPreprocessor.ExecStatement ? cobolPreprocessor : null, curIndex, p);
         }
     }
 
@@ -743,7 +743,11 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         p.append(stopComment);
 
         PrintOutputCapture<ExecutionContext> outputCapture = new PrintOutputCapture<>(new InMemoryExecutionContext());
-        statementPrinter.visit(statement, outputCapture);
+        if (statement instanceof CobolPreprocessor.ExecStatement) {
+            new CobolPreprocessorSourcePrinter<ExecutionContext>(true).visit(statement, outputCapture);
+        } else {
+            statementPrinter.visit(statement, outputCapture);
+        }
 
         String output = outputCapture.getOut();
         boolean isEndOfLine = output.endsWith("\n");
@@ -753,7 +757,15 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         int contentAreaLength = getContentAreaLength(cobolDialect);
 
         int numberOfSpaces;
-        if (!isEndOfLine && totalChars > contentAreaLength) {
+        if (statement instanceof CobolPreprocessor.ExecStatement) {
+            // A multiline command can end before more COBOL on its last line. Align that next word
+            // to the last source line, not to the command's total length or its starting column.
+            int newline = output.lastIndexOf('\n');
+            numberOfSpaces = newline < 0 ? curIndex + output.length() : output.length() - newline - 1;
+            if (numberOfSpaces >= cobolDialect.getColumns().getOtherArea()) {
+                numberOfSpaces = 0;
+            }
+        } else if (!isEndOfLine && totalChars > contentAreaLength) {
             numberOfSpaces = 0;
         } else {
             numberOfSpaces = isEndOfLine ? 0 : output.length() + curIndex;
