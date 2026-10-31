@@ -183,7 +183,7 @@ class DatabaseTest {
     void aSequentialDatabaseHasNoSegments() {
         Database gsam = database(
           "         DBD   NAME=CLMDBG01,ACCESS=(GSAM,BSAM)\n" +
-          "         DATASET DD1=CLMGSIN,RECFM=FB,RECORD=(200,27800)\n" +
+          "         DATASET DD1=CLMGSIN,DD2=CLMGSOUT,RECFM=FB,RECORD=(200,27800)\n" +
           "         DBDGEN\n" +
           "         FINISH\n" +
           "         END\n");
@@ -192,6 +192,7 @@ class DatabaseTest {
         assertThat(gsam.getSegments()).isEmpty();
         assertThat(gsam.getRootSegment()).isNull();
         assertThat(gsam.getReferences()).isEmpty();
+        assertThat(gsam.getDdNames()).containsExactly("CLMGSIN", "CLMGSOUT");
         assertThat(gsam.getDataSetGroups()).singleElement()
           .satisfies(group -> assertThat(group.getRecordLengths()).containsExactly(200, 27800));
     }
@@ -204,7 +205,7 @@ class DatabaseTest {
     void anOverflowDataSetIsASecondDdName() {
         Database hisam = database(
           "         DBD   NAME=CLMDBD03,ACCESS=(HISAM,VSAM)\n" +
-          "         DATASET DD1=CLMTYP1,DD2=CLMTYP2,DEVICE=3390," + blanks(18) + "X\n" +
+          "         DATASET DD1=CLMTYP1,OVFLW=CLMTYP2,DEVICE=3390," + blanks(16) + "X\n" +
           "               RECORD=(80,80)\n" +
           "         SEGM  NAME=TYPROOT,PARENT=0,BYTES=80\n" +
           "         DBDGEN\n");
@@ -215,6 +216,18 @@ class DatabaseTest {
             assertThat(group.getOverflowDdName()).isEqualTo("CLMTYP2");
             assertThat(group.getRecordLengths()).containsExactly(80, 80);
         });
+    }
+
+    @Test
+    void theAreasOfADedbAreItsDdNames() {
+        Database dedb = database(
+          "         DBD   NAME=CLMFPDB,ACCESS=DEDB,RMNAME=DBFHDC44\n" +
+          "         AREA  DD1=CLMAR01,SIZE=4096,UOW=(10,5),ROOT=(20,10)\n" +
+          "         AREA  DD1=CLMAR02,SIZE=4096,UOW=(10,5),ROOT=(20,10)\n" +
+          "         SEGM  NAME=CLMROOT,PARENT=0,BYTES=100\n" +
+          "         DBDGEN\n");
+
+        assertThat(dedb.getDdNames()).containsExactly("CLMAR01", "CLMAR02");
     }
 
     /**

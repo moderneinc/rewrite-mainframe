@@ -103,8 +103,12 @@ public final class MacroLines {
         return p.toString();
     }
 
+    /**
+     * The assembler takes {@code .*} in column 1 as a comment too, outside a macro definition as well
+     * as inside one.
+     */
     public static boolean isComment(String line) {
-        return line.startsWith("*");
+        return line.startsWith("*") || line.startsWith(".*");
     }
 
     /**

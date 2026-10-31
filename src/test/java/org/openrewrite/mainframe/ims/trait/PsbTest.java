@@ -269,6 +269,20 @@ class PsbTest {
         assertThat(psb.getPcb("PAUTBPCB")).isNotNull();
     }
 
+    @Test
+    void aDatabasePcbNamingItsDbdWithName() {
+        Psb psb = psb(
+          "         PCB   TYPE=TP,NAME=CLMPRT01\n" +
+          "         PCB   TYPE=TP,LTERM=CLMPRT02\n" +
+          "         PCB   TYPE=DB,NAME=CLMDBD01,PROCOPT=A,KEYLEN=14\n" +
+          "         SENSEG NAME=CLMROOT,PARENT=0\n" +
+          "         PSBGEN LANG=COBOL,PSBNAME=CLMPSB07\n" +
+          "         END\n");
+
+        assertThat(psb.getPcbs()).extracting(Pcb::getDatabaseName, Pcb::getDestination)
+          .containsExactly(tuple(null, "CLMPRT01"), tuple(null, "CLMPRT02"), tuple("CLMDBD01", null));
+    }
+
     /**
      * Every PCB knows the PSB that closes it, which is the only place the PSB's name is written.
      */

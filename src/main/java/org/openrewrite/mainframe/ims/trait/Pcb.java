@@ -83,18 +83,26 @@ public class Pcb implements Trait<Ims.MacroStatement> {
     }
 
     /**
-     * The DBD the PCB opens, from {@code DBDNAME=}. Null for a TP PCB, which names a destination
-     * instead.
+     * The DBD the PCB opens, from {@code DBDNAME=} or its synonym {@code NAME=}. Null for a TP PCB,
+     * whose {@code NAME=} is a destination.
      */
     public @Nullable String getDatabaseName() {
-        return Operands.firstOf(getTree(), "DBDNAME");
+        if (isMessage()) {
+            return null;
+        }
+        String dbd = Operands.firstOf(getTree(), "DBDNAME");
+        return dbd == null ? Operands.firstOf(getTree(), "NAME") : dbd;
     }
 
     /**
-     * The logical terminal or transaction a TP PCB sends to, from {@code NAME=}.
+     * The logical terminal or transaction a TP PCB sends to, from {@code NAME=} or {@code LTERM=}.
      */
     public @Nullable String getDestination() {
-        return Operands.firstOf(getTree(), "NAME");
+        if (!isMessage()) {
+            return null;
+        }
+        String name = Operands.firstOf(getTree(), "NAME");
+        return name == null ? Operands.firstOf(getTree(), "LTERM") : name;
     }
 
     /**
