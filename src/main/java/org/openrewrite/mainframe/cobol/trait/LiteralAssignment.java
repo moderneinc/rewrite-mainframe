@@ -56,7 +56,8 @@ public class LiteralAssignment implements Trait<Cobol> {
     Cursor cursor;
 
     /**
-     * The data items the literal lands in. A {@code MOVE} names more than one.
+     * The data items the literal lands in. A {@code MOVE} names more than one, and a {@code VALUE} on
+     * a {@code FILLER} or a nameless entry names none.
      */
     public List<String> getTargets() {
         Cobol tree = getTree();
@@ -73,10 +74,8 @@ public class LiteralAssignment implements Trait<Cobol> {
         // A VALUE clause names nothing. The item it belongs to is the one it hangs off, which is
         // what the cursor is for.
         Object entry = cursor.getParentTreeCursor().getValue();
-        String name = entry instanceof Cobol.DataDescriptionEntry &&
-                      ((Cobol.DataDescriptionEntry) entry).getName() != null ?
-                ((Cobol.DataDescriptionEntry) entry).getName().getWord() : null;
-        return name == null ? emptyList() : singletonList(name);
+        Cobol.Word name = entry instanceof Cobol.DataDescriptionEntry ? ((Cobol.DataDescriptionEntry) entry).getName() : null;
+        return name == null || "FILLER".equalsIgnoreCase(name.getWord()) ? emptyList() : singletonList(name.getWord());
     }
 
     /**

@@ -20,10 +20,14 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
@@ -526,5 +530,31 @@ class LiteralAssignmentTest implements RewriteTest {
         // Its restart call reads a WS-FUNC of its own.
         assertThat(found).containsEntry("WS-SAVED", null);
         assertThat(found.get("WS-SSA")).containsExactly("ACCOUNT");
+    }
+
+    @Test
+    void aValueOnAFillerLandsInNothingANameReaches() {
+        List<List<String>> targets = new ArrayList<>();
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new LiteralAssignment.Matcher().<ExecutionContext>asVisitor((assignment, ctx) -> {
+              targets.add(assignment.getTargets());
+              return assignment.getTree();
+          }))),
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.
+              000000 PROGRAM-ID. FILLERS.
+              000000 DATA DIVISION.
+              000000 WORKING-STORAGE SECTION.
+              000000 01 WS-SSA.
+              000000    05 FILLER PIC X(8) VALUE 'ACCOUNT '.
+              000000    05 WS-KEY PIC X(8) VALUE 'K1'.
+              000000 PROCEDURE DIVISION.
+              000000     GOBACK.
+              """
+          )
+        );
+
+        assertThat(targets).containsExactly(emptyList(), singletonList("WS-KEY"));
     }
 }
