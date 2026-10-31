@@ -44,10 +44,20 @@ public final class MacroLines {
     private static final int CONTINUATION_COLUMN = 71;
 
     /**
+     * Column 16, where a continuation line begins.
+     */
+    private static final int CONTINUE_COLUMN = 15;
+
+    /**
      * Columns 73-80, the identification-sequence field. Ignored by the assembler, so it is carried as a
      * marker rather than as operands.
      */
     private static final int SEQUENCE_AREA = 72;
+
+    /**
+     * Put in front of columns 73-80 when they hold something.
+     */
+    public static final String SEQUENCE_AREA_MARKER = "^^CA_START^^";
 
     /**
      * The assembler listing controls, which say nothing about what a member is. CardDemo opens both
@@ -68,6 +78,7 @@ public final class MacroLines {
         StringBuilder p = new StringBuilder();
         int cursor = 0;
         boolean continued = false;
+        boolean commentedOut = false;
         Scanner scanner = new Scanner(source);
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
@@ -82,18 +93,27 @@ public final class MacroLines {
             }
 
             boolean continues = continuesOnNextLine(line);
-            if (isComment(line) || line.trim().isEmpty()) {
-                p.append(isComment(line) ? "^^COMMENT^^" : "^^UNKNOWN^^");
-                // Neither carries operands, so neither can be the continuation of anything.
+            if (isComment(line)) {
+                p.append("^^COMMENT^^");
+                commentedOut |= continued;
+            } else if (line.trim().isEmpty()) {
+                p.append("^^UNKNOWN^^");
                 continued = false;
+                commentedOut = false;
             } else {
-                p.append(continued ? continuation : hasNameField(line) ? named : statement);
+                // HLASM forbids a comment card inside a continued statement, but rehosted map sets
+                // comment out a card that way. The statement stays open for a line beginning in
+                // column 16. Any other line is a statement of its own, and the mark in column 72
+                // above it an accident, such as a literal run into that column.
+                boolean continuing = continued && (!commentedOut || beginsInContinueColumn(line));
+                p.append(continuing ? continuation : hasNameField(line) ? named : statement);
                 continued = continues;
+                commentedOut = false;
             }
 
             p.append(line);
             if (sequenceArea != null) {
-                p.append("^^CA_START^^");
+                p.append(SEQUENCE_AREA_MARKER);
                 p.append(sequenceArea);
             }
 
@@ -144,6 +164,11 @@ public final class MacroLines {
     public static boolean hasNameField(String line) {
         char c = line.charAt(0);
         return c != ' ' && c != '\t';
+    }
+
+    private static boolean beginsInContinueColumn(String line) {
+        return line.length() > CONTINUE_COLUMN && line.substring(0, CONTINUE_COLUMN).trim().isEmpty() &&
+               line.charAt(CONTINUE_COLUMN) != ' ';
     }
 
     private static boolean continuesOnNextLine(String line) {

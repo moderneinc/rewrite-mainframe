@@ -73,6 +73,84 @@ class BmsParserTest {
     }
 
     @Test
+    void aSequenceAreaIsReadWhole() {
+        String source =
+          // Numbered from column 74, so the field opens with a blank.
+          "* A COMMENT CARD" + blanks(56) + " 010208\n" +
+          padTo72("         DFHMDF POS=(1,1),LENGTH=40,INITIAL='A LITERAL WRITTEN OVER") + "MAP 0010\n" +
+          "               TWO CARDS'\n";
+
+        Bms.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(sequenceAreasIn(cu)).containsExactly("010208", "MAP 0010");
+    }
+
+    @Test
+    void aLiteralDoesNotRunIntoTheSequenceArea() {
+        String source =
+          // The literal's closing quote falls in column 73.
+          "         DFHMDF POS=(1,1),LENGTH=16,ATTRB=PROT,INITIAL='Account balance:'\n" +
+          "ACCTBAL  DFHMDF POS=(1,18),LENGTH=10\n";
+
+        Bms.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(sequenceAreasIn(cu)).containsExactly("'");
+    }
+
+    @Test
+    void aCommentCardInsideAContinuedStatement() {
+        String source =
+          padTo72("         DFHMDF POS=(2,50),LENGTH=11,ATTRB=(ASKIP,NORM),") + "\n" +
+          "*              INITIAL='OLD LABEL:'\n" +
+          "               INITIAL='NEW LABEL:'\n" +
+          "CRDCARD  DFHMDF POS=(2,62),LENGTH=16\n";
+
+        Bms.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(cu.getStatements()).hasSize(2);
+        Bms.MacroStatement field = (Bms.MacroStatement) cu.getStatements().get(0);
+        assertThat(field.getParameter("INITIAL").getValueText()).isEqualTo("'NEW LABEL:'");
+        assertThat(field.getOperands()).anySatisfy(operand -> assertThat(operand).isInstanceOf(Bms.Comment.class));
+    }
+
+    @Test
+    void aCommentCardBeforeAnyOperationEndsTheStatement() {
+        String source =
+          // A name running into column 72, so the line is continued with no operation on it.
+          blanks(71).replace(' ', 'A') + "X\n" +
+          "* A COMMENT CARD\n" +
+          "               DFHMDF POS=(1,1),LENGTH=5\n";
+
+        Bms.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(((Bms.MacroStatement) cu.getStatements().get(2)).isOperation("DFHMDF")).isTrue();
+    }
+
+    @Test
+    void aTabSeparatesFieldsAsABlankDoes() {
+        String source = "COSGN00\tDFHMSD\tLANG=COBOL\n";
+
+        Bms.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        Bms.MacroStatement mapset = (Bms.MacroStatement) cu.getStatements().get(0);
+        assertThat(mapset.getSimpleName()).isEqualTo("COSGN00");
+        assertThat(mapset.isOperation("DFHMSD")).isTrue();
+    }
+
+    @Test
+    void aSourceTheReaderCannotFollowIsAParseError() {
+        // A carriage return with no line feed ends a line for the line reader but not for the lexer.
+        Parser.Input input = new Parser.Input(Paths.get("COSGN00.bms"), () -> new ByteArrayInputStream(
+          "COSGN00 DFHMSD LANG=COBOL\r        DFHMDF POS=(1,1)\n".getBytes(StandardCharsets.UTF_8)));
+        SourceFile parsed = BmsParser.builder().build()
+          .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
+
+        assertThat(parsed).isInstanceOf(ParseError.class);
+        ParseExceptionResult failure = parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow();
+        assertThat(failure.getMessage()).doesNotContain("not print idempotent").doesNotContain("^^");
+    }
+
+    @Test
     void windowsLineEndings() {
         String source =
           "COSGN00 DFHMSD LANG=COBOL,                                             -\r\n" +
@@ -160,10 +238,10 @@ class BmsParserTest {
         List<String> areas = new ArrayList<>();
         new BmsIsoVisitor<Integer>() {
             @Override
-            public Bms.Word visitWord(Bms.Word word, Integer p) {
-                word.getMarkers().findFirst(SequenceArea.class)
+            public Bms preVisit(Bms tree, Integer p) {
+                tree.getMarkers().findFirst(SequenceArea.class)
                   .ifPresent(sequenceArea -> areas.add(sequenceArea.getText()));
-                return super.visitWord(word, p);
+                return tree;
             }
         }.visit(cu, 0);
         return areas;
@@ -176,6 +254,13 @@ class BmsParserTest {
         assertThat(parsed).hasSize(1);
         assertThat(parsed.get(0)).isInstanceOf(Bms.CompilationUnit.class);
         return (Bms.CompilationUnit) parsed.get(0);
+    }
+
+    /**
+     * The line padded out to column 71 with an {@code X} in column 72, saying the next line continues it.
+     */
+    private static String padTo72(String line) {
+        return line + blanks(71 - line.length()) + "X";
     }
 
     private static String blanks(int n) {

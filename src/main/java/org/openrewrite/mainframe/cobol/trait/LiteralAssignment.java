@@ -144,11 +144,16 @@ public class LiteralAssignment implements Trait<Cobol> {
      * <p>
      * It is flow insensitive by choice. It collects what is assigned anywhere, not what holds at a
      * point, and leaves out what an item without a {@code VALUE} holds before its first assignment.
+     * <p>
+     * {@code dataName} is resolved as if written at {@code cursor}, so in a nested program it can name
+     * a GLOBAL item of a containing program.
      */
     public static @Nullable Set<String> candidates(Cursor cursor, @Nullable String dataName) {
-        Cursor program = enclosing(cursor);
-        return dataName == null || program == null ? null :
-                Storage.of(program).candidates(dataName.toUpperCase(Locale.ROOT));
+        if (dataName == null) {
+            return null;
+        }
+        Cursor program = DataName.declaringProgram(cursor, dataName);
+        return program == null ? null : Storage.of(program).candidates(dataName.toUpperCase(Locale.ROOT));
     }
 
     private static @Nullable Cursor enclosing(Cursor cursor) {
@@ -195,22 +200,13 @@ public class LiteralAssignment implements Trait<Cobol> {
 
         /**
          * Kept on the program's cursor, so that the program is walked once for every operand any
-         * call site in it resolves. A nested program's entries and statements belong to its own storage.
+         * call site in it resolves. A nested program's entries and statements belong to its own
+         * storage, except where a statement names a GLOBAL item declared here.
          */
         static Storage of(Cursor program) {
             return program.computeMessageIfAbsent("cobol.literalAssignments", k -> {
                 Storage storage = new Storage();
                 storage.declare(program);
-                new Matcher().lower(program).forEach(assignment -> {
-                    if (!belongsTo(assignment.getCursor(), program)) {
-                        return;
-                    }
-                    List<String> literals = assignment.getValues();
-                    for (String target : assignment.getTargets()) {
-                        storage.literals.computeIfAbsent(target.toUpperCase(Locale.ROOT), t -> new HashSet<>(2))
-                                .addAll(literals);
-                    }
-                });
                 storage.write(program);
                 return storage;
             });
@@ -219,6 +215,15 @@ public class LiteralAssignment implements Trait<Cobol> {
         private static boolean belongsTo(Cursor at, Cursor program) {
             Program enclosing = Program.of(at);
             return enclosing != null && enclosing.getTree() == program.getValue();
+        }
+
+        private static boolean resolvesTo(DataName usage, Cursor program) {
+            DataName definition = usage.getDefinition();
+            return definition != null && belongsTo(definition.getCursor(), program);
+        }
+
+        private void assign(String name, List<String> values) {
+            literals.computeIfAbsent(name, t -> new HashSet<>(2)).addAll(values);
         }
 
         @Nullable Set<String> candidates(String name) {
@@ -236,9 +241,10 @@ public class LiteralAssignment implements Trait<Cobol> {
         }
 
         /**
-         * Builds the item hierarchy the way {@link DataName} does. An item the program does not own
-         * is open from the start. That is anything outside working and local storage, anything
-         * {@code EXTERNAL}, and a {@code RENAMES}, which spans items it does not nest.
+         * Builds the item hierarchy the way {@link DataName} does, with the literals each item's
+         * {@code VALUE} clause gives it. An item the program does not own is open from the start.
+         * That is anything outside working and local storage, anything {@code EXTERNAL}, and a
+         * {@code RENAMES}, which spans items it does not nest.
          */
         private void declare(Cursor program) {
             Deque<Item> nesting = new ArrayDeque<>();
@@ -256,6 +262,15 @@ public class LiteralAssignment implements Trait<Cobol> {
                                     section instanceof Cobol.LocalStorageSection;
                     declare(entry, owned, nesting, initialized);
                     return super.visitDataDescriptionEntry(entry, p);
+                }
+
+                @Override
+                public Cobol.DataValueClause visitDataValueClause(Cobol.DataValueClause clause, Integer p) {
+                    LiteralAssignment value = new LiteralAssignment(getCursor());
+                    for (String target : value.getTargets()) {
+                        assign(target.toUpperCase(Locale.ROOT), value.getValues());
+                    }
+                    return clause;
                 }
             }.visit(program.getValue(), 0, program.getParentOrThrow());
             initialized.forEach(item -> write(item, true));
@@ -327,6 +342,8 @@ public class LiteralAssignment implements Trait<Cobol> {
         }
 
         /**
+         * Credits each literal {@code MOVE} to its target and opens what anything else writes.
+         * <p>
          * A restart call writes the areas after its I/O area. They count as written unless the first
          * argument holds a function code other than {@code XRST}, since one holding no literal may be
          * the optional parameter count that moves the I/O area along. Writing them can open another
@@ -335,12 +352,18 @@ public class LiteralAssignment implements Trait<Cobol> {
         private void write(Cursor program) {
             Map<String, List<String>> restorable = new HashMap<>();
             new DataName.Matcher().lower(program).forEach(usage -> {
-                if (usage.isDefinition() || !belongsTo(usage.getCursor(), program)) {
+                if (usage.isDefinition()) {
+                    return;
+                }
+                boolean own = belongsTo(usage.getCursor(), program);
+                if (!own && !resolvesTo(usage, program)) {
                     return;
                 }
                 String name = Names.upperOf(usage.getTree());
                 switch (accessOf(usage)) {
                     case LITERAL:
+                        Cursor move = usage.getCursor().dropParentUntil(Cobol.MoveToStatement.class::isInstance);
+                        assign(name, new LiteralAssignment(move).getValues());
                         write(name, true);
                         break;
                     case WRITE:
@@ -348,7 +371,17 @@ public class LiteralAssignment implements Trait<Cobol> {
                         break;
                     case RESTORED:
                         Cobol.Call call = usage.getCursor().firstEnclosing(Cobol.Call.class);
-                        restorable.computeIfAbsent(DliCall.arguments(call).get(0), k -> new ArrayList<>()).add(name);
+                        String function = DliCall.arguments(call).get(0);
+                        if (own) {
+                            restorable.computeIfAbsent(function, k -> new ArrayList<>()).add(name);
+                        } else {
+                            // Resolving the function code further out than the program holding the call
+                            // could reach this storage while it is being built.
+                            Cursor nested = enclosing(usage.getCursor());
+                            if (canRestore(function, nested == null ? null : Storage.of(nested).candidates(function))) {
+                                write(name, false);
+                            }
+                        }
                         break;
                     default:
                 }
@@ -357,7 +390,7 @@ public class LiteralAssignment implements Trait<Cobol> {
                 changed = false;
                 for (Iterator<Map.Entry<String, List<String>>> calls = restorable.entrySet().iterator(); calls.hasNext(); ) {
                     Map.Entry<String, List<String>> call = calls.next();
-                    if (canRestore(call.getKey())) {
+                    if (canRestore(call.getKey(), candidates(call.getKey()))) {
                         call.getValue().forEach(name -> write(name, false));
                         calls.remove();
                         changed = true;
@@ -366,12 +399,11 @@ public class LiteralAssignment implements Trait<Cobol> {
             }
         }
 
-        private boolean canRestore(String function) {
+        private static boolean canRestore(String function, @Nullable Set<String> candidates) {
             String literal = Literals.valueOf(function);
             if (literal != null) {
                 return "XRST".equalsIgnoreCase(literal);
             }
-            Set<String> candidates = candidates(function);
             return candidates == null || candidates.isEmpty() || candidates.contains("XRST");
         }
 

@@ -33,7 +33,9 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -105,6 +107,16 @@ public class DataName implements Trait<Cobol.Word> {
 
     public boolean isConditionName() {
         return getLevel() == 88;
+    }
+
+    /**
+     * Whether a program nested in the one declaring the definition can name it, read through the
+     * definition for a usage. An entry is GLOBAL when it says so, when an entry it is under does, or
+     * when the FD it is a record of does. False for an occurrence resolving to nothing.
+     */
+    public boolean isGlobal() {
+        Definition definition = definition(index());
+        return definition != null && definition.isGlobal();
     }
 
     /**
@@ -264,8 +276,10 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     private List<Definition> candidates(Index index) {
-        String name = Names.upperOf(getTree());
-        List<String> qualifiers = getQualifiers();
+        return candidates(index, Names.upperOf(getTree()), getQualifiers());
+    }
+
+    private static List<Definition> candidates(Index index, String name, List<String> qualifiers) {
         List<Definition> matching = index.matching(name, qualifiers, false);
         for (Index outer = index.container; matching.isEmpty() && outer != null; outer = outer.container) {
             matching = outer.matching(name, qualifiers, true);
@@ -273,7 +287,29 @@ public class DataName implements Trait<Cobol.Word> {
         return matching;
     }
 
+    /**
+     * The program on {@code at}'s path whose declaration an unqualified {@code name} written there
+     * resolves to, by the rule {@link #getDefinition()} follows. Null where no program it can see
+     * declares the name.
+     */
+    static @Nullable Cursor declaringProgram(Cursor at, String name) {
+        List<Definition> matching = candidates(index(at), name.toUpperCase(Locale.ROOT), emptyList());
+        Cursor word = matching.isEmpty() ? null : matching.get(0).getWord();
+        Program declaring = word == null ? null : Program.of(word);
+        for (Iterator<Cursor> path = at.getPathAsCursors(); declaring != null && path.hasNext(); ) {
+            Cursor enclosing = path.next();
+            if (enclosing.getValue() == declaring.getTree()) {
+                return enclosing;
+            }
+        }
+        return null;
+    }
+
     private Index index() {
+        return index(cursor);
+    }
+
+    private static Index index(Cursor cursor) {
         Program program = Program.of(cursor);
         if (program == null) {
             return Index.EMPTY;
@@ -394,10 +430,6 @@ public class DataName implements Trait<Cobol.Word> {
         @Nullable
         Definition parent;
 
-        /**
-         * Whether a nested program can name it. Anything under a GLOBAL entry is global, condition
-         * names included.
-         */
         boolean global;
 
         @Nullable String getName() {

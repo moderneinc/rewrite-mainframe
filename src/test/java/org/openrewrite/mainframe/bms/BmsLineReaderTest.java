@@ -47,6 +47,16 @@ class BmsLineReaderTest {
     }
 
     @Test
+    void aStatementAfterACommentCardIsNotTakenAsAContinuation() {
+        String source =
+          // The literal runs into column 72, which marks the line continued.
+          "         DFHMDF POS=(1,1),LENGTH=60,INITIAL='A LITERAL RUN INTO COLUMN 72'\n" +
+          "*----------------------------------------------------------------------\n" +
+          "MENMAP   DFHMDI SIZE=(24,80)\n";
+        assertThat(BmsLineReader.readLines(source)).endsWith("^^BMS_NAMED^^MENMAP   DFHMDI SIZE=(24,80)\n");
+    }
+
+    @Test
     void sequenceAreaIsSplitOffOnlyWhenItHoldsSomething() {
         String padded = "        DFHMDF POS=(1,1)" + blanks(56) + "\n";
         assertThat(BmsLineReader.readLines(padded)).doesNotContain("^^CA_START^^");
