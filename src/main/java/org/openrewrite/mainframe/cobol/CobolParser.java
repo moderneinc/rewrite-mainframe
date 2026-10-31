@@ -257,6 +257,9 @@ public class CobolParser implements Parser {
         }
     }
 
+    // TODO Remove OPERAND_ORDER, inOperandOrder and the predTransition override once an ANTLR release fixes
+    //  antlr/antlr4#4990. If the fix keeps the operands in an order of its own and stores a hash over it, sorting
+    //  them in place into another order would leave that hash stale.
     private static final Comparator<SemanticContext> OPERAND_ORDER = Comparator
             .comparing((SemanticContext c) -> c.getClass().getName())
             .thenComparingInt(c -> c instanceof SemanticContext.Predicate ? ((SemanticContext.Predicate) c).ruleIndex : 0)
