@@ -189,6 +189,11 @@ public class DataName implements Trait<Cobol.Word> {
      */
     public List<String> getQualifiers() {
         Cursor parent = cursor.getParentTreeCursor();
+        if (parent.getValue() instanceof Cobol.Word) {
+            CobolPreprocessor.ExecStatement exec = Execs.blockOn((Cobol.Word) parent.getValue());
+            Execs.Option option = exec == null ? null : Execs.optionHolding(exec, getTree());
+            return option == null ? emptyList() : qualifiersIn(option.getOperand(), getTree());
+        }
         Cobol.Word from = null;
         if (parent.getValue() instanceof Cobol.InData) {
             from = getTree();
@@ -218,6 +223,34 @@ public class DataName implements Trait<Cobol.Word> {
             } else if (in instanceof Cobol.InData && is(((Cobol.InData) in).getName(), from)) {
                 after = true;
             }
+        }
+        return qualifiers;
+    }
+
+    /**
+     * The occurrence an operand of a CICS or DLI block starts with, read under {@code standIn}, the
+     * word the block hangs off.
+     */
+    static @Nullable DataName ofOperand(Cursor standIn, List<Cobol.Word> operand) {
+        return operand.isEmpty() ? null : new Matcher().get(new Cursor(standIn, operand.get(0))).orElse(null);
+    }
+
+    /**
+     * The name after each {@code OF} or {@code IN} in the run that directly follows {@code word} in
+     * its operand.
+     */
+    private static List<String> qualifiersIn(List<Cobol.Word> operand, Cobol.Word word) {
+        int at = 0;
+        while (at < operand.size() && !operand.get(at).getId().equals(word.getId())) {
+            at++;
+        }
+        List<String> qualifiers = new ArrayList<>(1);
+        for (int i = at + 2; i < operand.size(); i += 2) {
+            String keyword = operand.get(i - 1).getWord();
+            if (!"OF".equalsIgnoreCase(keyword) && !"IN".equalsIgnoreCase(keyword)) {
+                break;
+            }
+            qualifiers.add(operand.get(i).getWord().toUpperCase(Locale.ROOT));
         }
         return qualifiers;
     }
@@ -397,21 +430,15 @@ public class DataName implements Trait<Cobol.Word> {
      * an option's parentheses in CICS and DLI.
      */
     private static boolean isOperand(CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
-        List<CobolPreprocessor.Word> header = exec.getWords();
-        boolean sql = header.size() > 1 && header.get(1).getCobolWord().getWord().regionMatches(true, 0, "SQL", 0, 3);
-        int depth = 0;
+        if (!Execs.isSql(exec)) {
+            return Execs.optionHolding(exec, word) != null;
+        }
         String previous = "";
         for (Cobol.Word each : Execs.wordsOf(exec)) {
             if (each.getId().equals(word.getId())) {
-                return sql ? ":".equals(previous) : depth > 0;
+                return ":".equals(previous);
             }
-            String text = each.getWord();
-            if ("(".equals(text)) {
-                depth++;
-            } else if (")".equals(text)) {
-                depth--;
-            }
-            previous = text;
+            previous = each.getWord();
         }
         return false;
     }

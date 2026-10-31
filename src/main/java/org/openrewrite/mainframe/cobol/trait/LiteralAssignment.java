@@ -566,8 +566,7 @@ public class LiteralAssignment implements Trait<Cobol> {
                 return Access.WRITE;
             }
             String verb = words.get(0).getWord().toUpperCase(Locale.ROOT);
-            List<CobolPreprocessor.Word> header = exec.getWords();
-            if (header.size() > 1 && header.get(1).getCobolWord().getWord().regionMatches(true, 0, "SQL", 0, 3)) {
+            if (Execs.isSql(exec)) {
                 boolean into = false;
                 for (Cobol.Word each : words) {
                     if (each.getId().equals(word.getId())) {
@@ -583,32 +582,14 @@ public class LiteralAssignment implements Trait<Cobol> {
                 return Access.WRITE;
             }
             Set<String> options = new HashSet<>();
-            int depth = 0;
-            for (Cobol.Word each : words) {
-                String text = each.getWord();
-                depth += "(".equals(text) ? 1 : ")".equals(text) ? -1 : 0;
-                if (depth == 0) {
-                    options.add(text.toUpperCase(Locale.ROOT));
+            Execs.Option holding = null;
+            for (Execs.Option option : Execs.optionsOf(words)) {
+                options.add(option.getName());
+                if (option.holds(word)) {
+                    holding = option;
                 }
             }
-            String option = null;
-            String last = null;
-            depth = 0;
-            for (Cobol.Word each : words) {
-                String text = each.getWord();
-                if ("(".equals(text)) {
-                    if (depth++ == 0) {
-                        option = last;
-                    }
-                } else if (")".equals(text)) {
-                    depth--;
-                } else if (depth == 0) {
-                    last = text.toUpperCase(Locale.ROOT);
-                } else if (each.getId().equals(word.getId())) {
-                    return option != null && reads(verb, option, options) ? Access.READ : Access.WRITE;
-                }
-            }
-            return Access.WRITE;
+            return holding != null && reads(verb, holding.getName(), options) ? Access.READ : Access.WRITE;
         }
 
         private static boolean reads(String verb, String option, Set<String> options) {

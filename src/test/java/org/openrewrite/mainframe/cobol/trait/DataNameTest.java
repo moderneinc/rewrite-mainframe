@@ -429,6 +429,29 @@ class DataNameTest implements RewriteTest {
     }
 
     @Test
+    void resolvesAQualifiedOperandInAnExecBlock() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. EXECPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  MAPAO.                                                      \s
+            000000     05  APPLIDO   PIC X(8).                                     \s
+            000000 01  MAPS.                                                       \s
+            000000     05  MAPBO.                                                  \s
+            000000         10  APPLIDO   PIC X(8).                                 \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     EXEC CICS ASSIGN APPLID(APPLIDO IN MAPBO OF MAPS) END-EXEC. \s
+            """
+        );
+
+        DataName usage = usagesOf(names, "APPLIDO").get(0);
+        assertThat(usage.getQualifiers()).containsExactly("MAPBO", "MAPS");
+        assertThat(usage.getParent()).extracting(DataName::getName).isEqualTo("MAPBO");
+    }
+
+    @Test
     void readsACicsResponseValueAsALiteral() {
         List<DataName> names = names(
           """

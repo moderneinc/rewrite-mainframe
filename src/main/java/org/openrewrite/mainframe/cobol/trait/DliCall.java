@@ -368,43 +368,33 @@ public class DliCall implements Trait<Cobol> {
      * call level form nothing has to be inferred from argument position.
      */
     private static @Nullable DliCall fromExec(Cursor cursor, CobolPreprocessor.ExecStatement exec) {
-        List<String> tokens = CicsCommand.tokens(exec);
-        if (tokens.isEmpty()) {
+        List<Cobol.Word> words = Execs.wordsOf(exec);
+        if (words.isEmpty()) {
             return null;
         }
 
-        String function = tokens.get(0).toUpperCase(Locale.ROOT);
+        String function = words.get(0).getWord().toUpperCase(Locale.ROOT);
         String pcb = null;
         String ioArea = null;
+        DataName areaName = null;
         List<String> segments = new ArrayList<>(1);
-        for (int i = 1; i < tokens.size(); i++) {
-            String option = tokens.get(i).toUpperCase(Locale.ROOT);
-            String operand = operandAfter(tokens, i);
-            if (operand == null) {
+        for (Execs.Option option : Execs.optionsOf(words.subList(1, words.size()))) {
+            if (option.getOperand().isEmpty()) {
                 continue;
             }
-            if ("PCB".equals(option)) {
+            String operand = option.getOperand().get(0).getWord();
+            if ("PCB".equals(option.getName())) {
                 pcb = operand;
-            } else if ("SEGMENT".equals(option)) {
+            } else if ("SEGMENT".equals(option.getName())) {
                 segments.add(Literals.unquote(operand).toUpperCase(Locale.ROOT));
-            } else if ("INTO".equals(option) || "FROM".equals(option)) {
+            } else if ("INTO".equals(option.getName()) || "FROM".equals(option.getName())) {
                 ioArea = operand;
+                areaName = DataName.ofOperand(cursor, option.getOperand());
             }
         }
-        String area = ioArea;
-        DataName areaName = area == null ? null : new DataName.Matcher().lower(cursor)
-                .filter(name -> name.getName().equalsIgnoreCase(area))
-                .findFirst().orElse(null);
         // Command level DL/I has no message call, so it never names a MOD.
         return new DliCall(cursor, "EXEC DLI", function, function, pcb, ioArea, emptyList(), null, null,
                 segments, emptyList(), null, null, areaName, emptyList());
-    }
-
-    private static @Nullable String operandAfter(List<String> tokens, int i) {
-        if (i + 2 < tokens.size() && "(".equals(tokens.get(i + 1))) {
-            return tokens.get(i + 2);
-        }
-        return null;
     }
 
     /**
