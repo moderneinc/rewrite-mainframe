@@ -75,7 +75,12 @@ public class ControlMLineReader {
                 // LINE_START and LINE_END are used to mark the beginning and end of a line
                 // so that the `|` is not converted to a NAME token and simplify parsing whitespace.
                 p.append("<<LINE_START>>");
-                p.append(line);
+                if (line.length() > 1 && line.endsWith("|") && !Character.isWhitespace(line.charAt(line.length() - 2))) {
+                    // A value written up to the closing border is lexed apart from it.
+                    p.append(line, 0, line.length() - 1).append(" |");
+                } else {
+                    p.append(line);
+                }
                 p.append("<<LINE_END>>");
             }
 

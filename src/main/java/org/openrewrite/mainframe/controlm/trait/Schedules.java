@@ -138,6 +138,22 @@ public final class Schedules {
     }
 
     /**
+     * Whether an export element is a SMART table. The export schema has two more names for one,
+     * {@code SMART_TABLE} and {@code SCHED_GROUP}.
+     */
+    static boolean isSmartTable(ControlM.Element element) {
+        return element.isName("SMART_FOLDER") || element.isName("SMART_TABLE") || element.isName("SCHED_GROUP");
+    }
+
+    /**
+     * The name of a folder element, which an older export writes as {@code TABLE_NAME}.
+     */
+    static @Nullable String folderName(ControlM.Element folder) {
+        String name = folder.getAttributeText("FOLDER_NAME");
+        return name == null ? folder.getAttributeText("TABLE_NAME") : name;
+    }
+
+    /**
      * Whether a word of the panel's schedule section names a field rather than a value.
      */
     static boolean isScheduleField(String word) {

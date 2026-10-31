@@ -161,6 +161,7 @@ public class Space {
         ELEMENT_PREFIX,
         ELEMENT_BEFORE_TAG_END,
         ELEMENT_BEFORE_END_TAG,
+        ELEMENT_BEFORE_END_TAG_END,
         INPUT_PREFIX,
         INPUT_SECTION_PREFIX,
         LINE_PREFIX,

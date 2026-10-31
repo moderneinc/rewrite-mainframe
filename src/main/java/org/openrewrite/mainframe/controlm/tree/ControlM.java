@@ -441,6 +441,11 @@ public interface ControlM extends Tree {
 
         Space beforeEndTag;
 
+        /**
+         * Between the closing tag's name and its {@code >}, which XML allows blanks in.
+         */
+        Space beforeEndTagEnd;
+
         public boolean isName(String name) {
             return this.name.equalsIgnoreCase(name);
         }
@@ -506,12 +511,52 @@ public interface ControlM extends Tree {
                 text.charAt(text.length() - 1) == text.charAt(0)) {
                 text = text.substring(1, text.length() - 1);
             }
-            return text.indexOf('&') < 0 ? text : text
-                    .replace("&lt;", "<")
-                    .replace("&gt;", ">")
-                    .replace("&quot;", "\"")
-                    .replace("&apos;", "'")
-                    .replace("&amp;", "&");
+            return text.indexOf('&') < 0 ? text : unescape(text);
+        }
+
+        private static String unescape(String text) {
+            StringBuilder unescaped = new StringBuilder(text.length());
+            for (int i = 0; i < text.length(); i++) {
+                int semicolon = text.charAt(i) == '&' ? text.indexOf(';', i) : -1;
+                String reference = semicolon < 0 ? null : reference(text.substring(i + 1, semicolon));
+                if (reference == null) {
+                    unescaped.append(text.charAt(i));
+                } else {
+                    unescaped.append(reference);
+                    i = semicolon;
+                }
+            }
+            return unescaped.toString();
+        }
+
+        /**
+         * What an entity or character reference stands for, or null for one XML does not define.
+         * A multi-line value is written with {@code &#13;&#10;} between its lines.
+         */
+        private static @Nullable String reference(String name) {
+            switch (name) {
+                case "lt":
+                    return "<";
+                case "gt":
+                    return ">";
+                case "quot":
+                    return "\"";
+                case "apos":
+                    return "'";
+                case "amp":
+                    return "&";
+                default:
+                    try {
+                        if (name.startsWith("#x") || name.startsWith("#X")) {
+                            return new String(Character.toChars(Integer.parseInt(name.substring(2), 16)));
+                        } else if (name.startsWith("#")) {
+                            return new String(Character.toChars(Integer.parseInt(name.substring(1))));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        // not a character reference after all
+                    }
+                    return null;
+            }
         }
 
         @Override

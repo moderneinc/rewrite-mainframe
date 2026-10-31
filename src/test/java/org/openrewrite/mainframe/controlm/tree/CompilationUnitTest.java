@@ -20,6 +20,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlm.tree.ParserAssertions.controlM;
 
 class CompilationUnitTest implements RewriteTest {
@@ -278,6 +282,58 @@ class CompilationUnitTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Test
+    void definitionLinesHoldingValues() {
+        rewriteRun(
+          controlM(
+            """
+              +---------------------------------- BROWSE -----------------------------------+
+              | MEMNAME CLMJ030         MEMLIB CLM.PROD.JCL                                 |
+              | SET VAR %%RUNDATE=%%$CALCDATE %%ODATE -1                                    |
+              | SET VAR %%LIBS=CLM.PROD.LOADLIB,CLM.PROD.PARMLIB,CLM.TEST.LOADLIB,CLMQA.LIBS|
+              | SET VAR                                                                     |
+              | CTB STEP AT START   NAME CLMRUL01   TYPE RULE                               |
+              |   ARGUMENTS MODE = FULL                                                     |
+              | CTB STEP AT         NAME            TYPE                                    |
+              | =========================================================================== |
+              | SCHEDULE RBC                                                                |
+              | =========================================================================== |
+              | IN       CLMNIGHT_CLMJ020_OK  ODAT                                          |
+              | CONTROL                                                                     |
+              | =========================================================================== |
+              | OUT      CLMNIGHT_CLMJ030_OK  ODAT +                                        |
+              | AUTO-ARCHIVE Y          SYSDB    Y      MAXDAYS      MAXRUNS                |
+              | =========================================================================== |
+              | APPL TYPE                                  APPL VER                         |
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<ControlM> lines = ((ControlM.DefinitionSection) cu.getSections().get(0)).getLines();
+                assertThat(fieldsOf(lines.get(1))).containsExactly("SET VAR=%%RUNDATE=%%$CALCDATE %%ODATE -1");
+                // A value written up to the border is still a value of its own line.
+                assertThat(fieldsOf(lines.get(2)))
+                  .containsExactly("SET VAR=%%LIBS=CLM.PROD.LOADLIB,CLM.PROD.PARMLIB,CLM.TEST.LOADLIB,CLMQA.LIBS");
+                assertThat(fieldsOf(lines.get(3))).containsExactly("SET VAR");
+                assertThat(fieldsOf(lines.get(4))).containsExactly("CTB STEP", "AT=START", "NAME=CLMRUL01", "TYPE=RULE");
+                assertThat(fieldsOf(lines.get(5))).containsExactly("ARGUMENTS=MODE = FULL");
+                assertThat(fieldsOf(lines.get(6))).containsExactly("CTB STEP", "AT", "NAME", "TYPE");
+            })
+          )
+        );
+    }
+
+    private static List<String> fieldsOf(ControlM line) {
+        List<String> fields = new ArrayList<>();
+        for (ControlM field : ((ControlM.Line) line).getParameters()) {
+            if (field instanceof ControlM.Parameter) {
+                ControlM.Parameter parameter = (ControlM.Parameter) field;
+                fields.add(parameter.getOption() + (parameter.getValue() == null ? "" : "=" + parameter.getValue().getText()));
+            } else {
+                fields.add(((ControlM.Word) field).getText());
+            }
+        }
+        return fields;
     }
 
     @Test
