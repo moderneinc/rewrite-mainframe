@@ -127,7 +127,7 @@ public class Psb implements Trait<Ims.MacroStatement> {
      * The PCB a program's {@code mask}th argument is, one based, or null where the mask is the I/O
      * PCB or the PSB codes no such PCB.
      * <p>
-     * {@code ProgramEntry.indexOf} gives the position of a mask among the ones the program is handed,
+     * {@code ProgramEntry.indexOf} gives the position of a mask among the ones IMS hands the program,
      * zero based, so a caller passes that plus one. Which PCB it is depends on the program: a message
      * driven program and a BMP are handed the I/O PCB first though no statement here codes it, so
      * every mask after it is one place along.

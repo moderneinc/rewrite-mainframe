@@ -310,11 +310,11 @@ public class DliCall implements Trait<Cobol> {
                 ssas, resolveMod(modOperand, cursor), modOperand, named(ssaSegments), ssaSegments);
     }
 
-    private static List<String> named(List<@Nullable String> segments) {
-        List<String> named = new ArrayList<>(segments.size());
-        for (String segment : segments) {
-            if (segment != null) {
-                named.add(segment);
+    private static List<String> named(List<@Nullable String> names) {
+        List<String> named = new ArrayList<>(names.size());
+        for (String name : names) {
+            if (name != null) {
+                named.add(name);
             }
         }
         return named;
@@ -361,21 +361,25 @@ public class DliCall implements Trait<Cobol> {
     }
 
     /**
-     * The {@code USING} arguments of a call, in order. The grammar nests the argument list inside a
-     * second {@code CallPhrase} and wraps each argument in a {@code CallBy}, so the names are read
-     * back by walking for those.
+     * The {@code USING} arguments of a call, in order, less any {@code OMITTED}.
      */
     static List<String> arguments(Cobol.Call call) {
+        return named(argumentsByPosition(call));
+    }
+
+    /**
+     * The {@code USING} arguments of a call, with null in an {@code OMITTED} argument's place. The
+     * grammar nests the argument list inside a second {@code CallPhrase} and wraps each argument in a
+     * {@code CallBy}, so the names are read back by walking for those.
+     */
+    static List<@Nullable String> argumentsByPosition(Cobol.Call call) {
         if (call.getCallUsingPhrase() == null) {
             return emptyList();
         }
-        return new CobolIsoVisitor<List<String>>() {
+        return new CobolIsoVisitor<List<@Nullable String>>() {
             @Override
-            public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<String> acc) {
-                String name = Names.upperOf(callBy.getIdentifier());
-                if (name != null) {
-                    acc.add(name);
-                }
+            public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<@Nullable String> acc) {
+                acc.add(Names.upperOf(callBy.getIdentifier()));
                 return callBy;
             }
         }.reduce(call.getCallUsingPhrase(), new ArrayList<>(4));

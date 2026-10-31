@@ -31,6 +31,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.nCopies;
 
 /**
@@ -116,7 +117,30 @@ public class ProgramEntry implements Trait<Cobol> {
             upper.contains("TP-PCB") || upper.contains("TPPCB")) {
             return true;
         }
-        return indexOf(upper) == 0 && !upper.contains("DB-PCB") && !upper.contains("DBPCB");
+        return indexOf(upper) == 0 && !namesDatabasePcb(upper) && !namesDatabasePcb(firstPsbPcb());
+    }
+
+    private static boolean namesDatabasePcb(@Nullable String name) {
+        return name != null && (name.contains("DB-PCB") || name.contains("DBPCB"));
+    }
+
+    /**
+     * The name the outermost program's entry gives the PSB's first PCB, which a nested program may
+     * know by another name. Kept on the outermost program's cursor.
+     */
+    private @Nullable String firstPsbPcb() {
+        Program program = Program.of(cursor);
+        if (program == null) {
+            return null;
+        }
+        Cursor outermost = program.outermost().getCursor();
+        Optional<String> first = outermost.computeMessageIfAbsent("cobol.firstPsbPcb", k -> {
+            Cobol.ProcedureDivision division = outermost.<Cobol.ProgramUnit>getValue().getProcedureDivision();
+            ProgramEntry entry = division == null ? null : of(new Cursor(outermost, division));
+            List<String> names = entry == null ? emptyList() : entry.getPcbNames();
+            return names.isEmpty() ? Optional.empty() : Optional.of(names.get(0));
+        });
+        return first.orElse(null);
     }
 
     /**
@@ -155,7 +179,7 @@ public class ProgramEntry implements Trait<Cobol> {
             }
             Cursor callers = new Cursor(containing, division);
             ProgramEntry entry = of(callers);
-            List<List<String>> calls = callsTo(programName(id), callers);
+            List<List<@Nullable String>> calls = callsTo(Literals.unquote(new Program(nested).getName()), callers);
             if (entry != null && calls != null) {
                 for (int parameter = 0; parameter < parameters; parameter++) {
                     positions.set(parameter, agreed(calls, parameter, entry));
@@ -169,8 +193,8 @@ public class ProgramEntry implements Trait<Cobol> {
      * The arguments of each call in {@code division} to {@code program}, or null where a call's
      * target cannot be read.
      */
-    private static @Nullable List<List<String>> callsTo(String program, Cursor division) {
-        List<List<String>> calls = new ArrayList<>();
+    private static @Nullable List<List<@Nullable String>> callsTo(String program, Cursor division) {
+        List<List<@Nullable String>> calls = new ArrayList<>();
         AtomicBoolean unreadable = new AtomicBoolean();
         new CopybookSkippingVisitor<Integer>() {
             @Override
@@ -183,7 +207,7 @@ public class ProgramEntry implements Trait<Cobol> {
                 if (name == null) {
                     unreadable.set(true);
                 } else if (name.trim().equalsIgnoreCase(program)) {
-                    calls.add(DliCall.arguments(call));
+                    calls.add(DliCall.argumentsByPosition(call));
                 }
                 return super.visitCall(call, p);
             }
@@ -191,15 +215,9 @@ public class ProgramEntry implements Trait<Cobol> {
         return unreadable.get() ? null : calls;
     }
 
-    private static String programName(Cobol.ProgramIdParagraph id) {
-        String name = Names.of(id.getProgramName());
-        String literal = name == null ? null : Literals.valueOf(name);
-        return literal != null ? literal.trim() : name == null ? "" : name;
-    }
-
-    private static int agreed(List<List<String>> calls, int parameter, ProgramEntry caller) {
+    private static int agreed(List<List<@Nullable String>> calls, int parameter, ProgramEntry caller) {
         int agreed = -1;
-        for (List<String> arguments : calls) {
+        for (List<@Nullable String> arguments : calls) {
             int position = parameter < arguments.size() ? caller.indexOf(arguments.get(parameter)) : -1;
             if (position < 0 || agreed >= 0 && position != agreed) {
                 return -1;

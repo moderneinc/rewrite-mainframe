@@ -200,7 +200,7 @@ class DliCallTest implements RewriteTest {
             000000 PROCEDURE DIVISION.                                             \s
             000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB HIST-PCB.             \s
             000000     CALL WS-UTIL USING ACCT-PCB.                                \s
-            000000     CALL 'MIDPGM' USING HIST-PCB IO-PCB.                        \s
+            000000     CALL 'MIDPGM' USING OMITTED HIST-PCB IO-PCB.                \s
             000000     GOBACK.                                                     \s
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. MIDPGM.                                             \s
@@ -208,9 +208,10 @@ class DliCallTest implements RewriteTest {
             000000 WORKING-STORAGE SECTION.                                        \s
             000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
             000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-OPT PIC X(8).                                             \s
             000000 01 LK-HIST PIC X(40).                                           \s
             000000 01 LK-TERM PIC X(40).                                           \s
-            000000 PROCEDURE DIVISION USING LK-HIST LK-TERM.                       \s
+            000000 PROCEDURE DIVISION USING LK-OPT LK-HIST LK-TERM.                \s
             000000     CALL 'CBLTDLI' USING GU-FUNC LK-HIST IO-AREA.               \s
             000000     CALL 'CBLTDLI' USING GU-FUNC LK-TERM MSG-AREA.              \s
             000000     CALL 'INNERPGM' USING LK-HIST.                              \s
@@ -238,6 +239,35 @@ class DliCallTest implements RewriteTest {
             tuple("MIDPGM", 2, false),
             tuple("MIDPGM", 0, true),
             tuple("INNERPGM", 2, false));
+    }
+
+    @Test
+    void keepsADatabasePcbPassedToANestedProgramOffTheMessageQueue() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. BATCHPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING ACCT-DB-PCB HIST-DB-PCB.              \s
+            000000     CALL 'INNERPGM' USING ACCT-DB-PCB.                          \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM BATCHPGM.                                           \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getPcbPosition, DliCall::isMessageCall)
+          .containsExactly(tuple(0, false));
     }
 
     @Test
