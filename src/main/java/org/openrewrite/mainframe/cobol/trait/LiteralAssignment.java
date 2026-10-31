@@ -365,11 +365,12 @@ public class LiteralAssignment implements Trait<Cobol> {
                         write(name, false);
                         break;
                     case RESTORED:
+                        Cobol.Call call = usage.getCursor().firstEnclosing(Cobol.Call.class);
+                        String function = DliCall.arguments(call).get(0);
                         if (own) {
-                            Cobol.Call call = usage.getCursor().firstEnclosing(Cobol.Call.class);
-                            restorable.computeIfAbsent(DliCall.arguments(call).get(0), k -> new ArrayList<>()).add(name);
-                        } else {
-                            // Its function code may name an item of the nested program's own.
+                            restorable.computeIfAbsent(function, k -> new ArrayList<>()).add(name);
+                        } else if (canRestore(function, LiteralAssignment.candidates(usage.getCursor(), function))) {
+                            // Its function code may name an item of the nested program's own, so it is read there.
                             write(name, false);
                         }
                         break;
@@ -380,7 +381,7 @@ public class LiteralAssignment implements Trait<Cobol> {
                 changed = false;
                 for (Iterator<Map.Entry<String, List<String>>> calls = restorable.entrySet().iterator(); calls.hasNext(); ) {
                     Map.Entry<String, List<String>> call = calls.next();
-                    if (canRestore(call.getKey())) {
+                    if (canRestore(call.getKey(), candidates(call.getKey()))) {
                         call.getValue().forEach(name -> write(name, false));
                         calls.remove();
                         changed = true;
@@ -389,12 +390,11 @@ public class LiteralAssignment implements Trait<Cobol> {
             }
         }
 
-        private boolean canRestore(String function) {
+        private static boolean canRestore(String function, @Nullable Set<String> candidates) {
             String literal = Literals.valueOf(function);
             if (literal != null) {
                 return "XRST".equalsIgnoreCase(literal);
             }
-            Set<String> candidates = candidates(function);
             return candidates == null || candidates.isEmpty() || candidates.contains("XRST");
         }
 
