@@ -30,6 +30,7 @@ import org.openrewrite.mainframe.bms.marker.SequenceArea;
 import org.openrewrite.mainframe.bms.tree.Bms;
 import org.openrewrite.mainframe.bms.tree.Space;
 import org.openrewrite.mainframe.bms.tree.Statement;
+import org.openrewrite.mainframe.cobol.MacroLines;
 import org.openrewrite.marker.Markers;
 
 import java.nio.charset.Charset;
@@ -70,11 +71,24 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
 
     @Override
     public Bms.CompilationUnit visitCompilationUnit(BMSParser.CompilationUnitContext ctx) {
-        List<Statement> statements = new ArrayList<>(ctx.statement().size());
-        List<BMSParser.BmsContext> pending = new ArrayList<>();
+        List<BMSParser.StatementContext> lines = ctx.statement();
+        List<Statement> statements = new ArrayList<>(lines.size());
+        List<BMSParser.StatementContext> pending = new ArrayList<>();
 
-        for (BMSParser.StatementContext statement : ctx.statement()) {
+        for (int i = 0; i < lines.size(); i++) {
+            BMSParser.StatementContext statement = lines.get(i);
             if (statement.bms() == null) {
+                if (statement.comment() != null && hasOperation(pending)) {
+                    int next = i;
+                    while (next < lines.size() && lines.get(next).comment() != null) {
+                        next++;
+                    }
+                    if (continuesStatement(lines, next)) {
+                        pending.addAll(lines.subList(i, next));
+                        i = next - 1;
+                        continue;
+                    }
+                }
                 flush(pending, statements);
                 statements.add((Statement) visitStatement(statement));
                 continue;
@@ -82,7 +96,7 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
             if (beginsStatement(statement.bms())) {
                 flush(pending, statements);
             }
-            pending.add(statement.bms());
+            pending.add(statement);
         }
         flush(pending, statements);
 
@@ -109,34 +123,43 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
      * operand list as plain words rather than becoming operands, so that the statement still prints
      * back exactly while only the parts that mean something are typed.
      */
-    private void flush(List<BMSParser.BmsContext> pending, List<Statement> statements) {
+    private void flush(List<BMSParser.StatementContext> pending, List<Statement> statements) {
         if (pending.isEmpty()) {
             return;
         }
-        boolean named = isNamed(pending.get(0));
+        boolean named = isNamed(pending.get(0).bms());
         Space prefix = whitespace();
-        List<Bms.Word> words = new ArrayList<>(pending.size());
+        List<Bms> words = new ArrayList<>(pending.size());
         List<Boolean> startsLine = new ArrayList<>(pending.size());
-        for (BMSParser.BmsContext bms : pending) {
-            words.add(word(bms));
-            startsLine.add(beginsLine(bms));
+        for (BMSParser.StatementContext line : pending) {
+            if (line.bms() == null) {
+                words.add(visitStatement(line));
+                startsLine.add(true);
+            } else {
+                words.add(word(line.bms()));
+                startsLine.add(beginsLine(line.bms()));
+            }
         }
         pending.clear();
 
-        Bms.Word name = named ? words.get(0).withPrefix(EMPTY) : null;
+        Bms.Word first = (Bms.Word) words.get(0);
+        Bms.Word name = named ? first.withPrefix(EMPTY) : null;
         int operationIndex = named ? 1 : 0;
         if (operationIndex >= words.size()) {
             // A name field with nothing after it. Not a macro invocation, so it is not typed as one.
-            statements.add(new Bms.Unknown(randomId(), prefix, Markers.EMPTY,
-                    words.get(0).withPrefix(EMPTY)));
+            statements.add(new Bms.Unknown(randomId(), prefix, Markers.EMPTY, first.withPrefix(EMPTY)));
             return;
         }
-        Bms.Word operation = named ? words.get(operationIndex) : words.get(0).withPrefix(EMPTY);
+        Bms.Word operation = named ? (Bms.Word) words.get(operationIndex) : first.withPrefix(EMPTY);
 
         List<Bms> operands = new ArrayList<>();
         boolean expectOperand = true;
         for (int i = operationIndex + 1; i < words.size(); i++) {
-            Bms.Word word = words.get(i);
+            if (words.get(i) instanceof Bms.Comment) {
+                operands.add(words.get(i));
+                continue;
+            }
+            Bms.Word word = (Bms.Word) words.get(i);
             if (startsLine.get(i)) {
                 // A continuation line resumes the operand field. Unlike JCL there is no punctuation
                 // opening it — the line simply picks up where the one above left off.
@@ -151,8 +174,8 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
                 StringBuilder card = new StringBuilder(word.getText());
                 Markers cardMarkers = word.getMarkers();
                 boolean quoted = crossesQuote(word.getText());
-                while (i + 1 < words.size()) {
-                    Bms.Word next = words.get(i + 1);
+                while (i + 1 < words.size() && words.get(i + 1) instanceof Bms.Word) {
+                    Bms.Word next = (Bms.Word) words.get(i + 1);
                     String blanks = next.getPrefix().getWhitespace();
                     if (!quoted && !blanks.isEmpty()) {
                         break;
@@ -356,9 +379,27 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
         return w;
     }
 
+    /**
+     * The token carries the line reader's marker, which is not in the source. Blanks opening the
+     * field go to the prefix with those padding the card out to column 72.
+     */
     private SequenceArea mapSequenceArea(ParserRuleContext ctx) {
-        String text = ctx.getChild(ctx.getChildCount() - 1).getText();
+        String field = ctx.getStart().getText().substring(MacroLines.SEQUENCE_AREA_MARKER.length());
+        String text = field.substring(indexOfNextNonWhitespace(0, field));
         return new SequenceArea(randomId(), sourceBefore(text), text);
+    }
+
+    /**
+     * Whether the words gathered so far reach the operation, past the name field if there is one. A
+     * comment card is kept among the operands, so it cannot come before the operation.
+     */
+    private boolean hasOperation(List<BMSParser.StatementContext> pending) {
+        return pending.size() > (!pending.isEmpty() && isNamed(pending.get(0).bms()) ? 1 : 0);
+    }
+
+    private boolean continuesStatement(List<BMSParser.StatementContext> lines, int index) {
+        return index < lines.size() && lines.get(index).bms() != null &&
+               lineMarker(lines.get(index).bms()) == BMSLexer.BMS_CONTINUATION;
     }
 
     /**
@@ -397,10 +438,12 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
         return -1;
     }
 
-    private void skip(@Nullable String token) {
-        if (token != null && source.startsWith(token, cursor)) {
-            cursor += token.length();
+    private void skip(String token) {
+        if (!source.startsWith(token, cursor)) {
+            throw new IllegalStateException("Expected '" + token + "' at offset " + cursor + " but found '" +
+                    source.substring(cursor, Math.min(source.length(), cursor + token.length())) + "'");
         }
+        cursor += token.length();
     }
 
     private Space whitespace() {

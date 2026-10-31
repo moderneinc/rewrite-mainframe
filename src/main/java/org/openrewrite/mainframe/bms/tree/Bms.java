@@ -136,10 +136,10 @@ public interface Bms extends Tree {
         Word operation;
 
         /**
-         * Everything after the operation, in source order: the {@link Operand}s of the operand
-         * field, the words of any comment field, and the character in column 72 ending each
-         * continued line. Keeping them in one ordered list is what lets the statement print back
-         * exactly, however it was laid out.
+         * Everything after the operation, in source order. That is the {@link Operand}s of the
+         * operand field, the words of any comment field, the character in column 72 ending each
+         * continued line, and any {@link Comment} card written among the lines. Keeping them in one
+         * ordered list is what lets the statement print back exactly, however it was laid out.
          */
         List<Bms> operands;
 
