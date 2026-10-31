@@ -189,6 +189,10 @@ public class DataName implements Trait<Cobol.Word> {
      */
     public List<String> getQualifiers() {
         Cursor parent = cursor.getParentTreeCursor();
+        if (parent.getValue() instanceof Cobol.Word) {
+            CobolPreprocessor.ExecStatement exec = Execs.blockOn((Cobol.Word) parent.getValue());
+            return exec == null ? emptyList() : qualifiersIn(exec, getTree());
+        }
         Cobol.Word from = null;
         if (parent.getValue() instanceof Cobol.InData) {
             from = getTree();
@@ -218,6 +222,29 @@ public class DataName implements Trait<Cobol.Word> {
             } else if (in instanceof Cobol.InData && is(((Cobol.InData) in).getName(), from)) {
                 after = true;
             }
+        }
+        return qualifiers;
+    }
+
+    /**
+     * The name after each {@code OF} or {@code IN} in the run that directly follows {@code word} in
+     * the block.
+     */
+    private static List<String> qualifiersIn(CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
+        List<Cobol.Word> words = Execs.wordsOf(exec);
+        int at = 0;
+        while (at < words.size() && !words.get(at).getId().equals(word.getId())) {
+            at++;
+        }
+        List<String> qualifiers = new ArrayList<>(1);
+        for (int i = at + 2; i < words.size(); i += 2) {
+            String keyword = words.get(i - 1).getWord();
+            String name = words.get(i).getWord();
+            if (!"OF".equalsIgnoreCase(keyword) && !"IN".equalsIgnoreCase(keyword) ||
+                "(".equals(name) || ")".equals(name)) {
+                break;
+            }
+            qualifiers.add(name.toUpperCase(Locale.ROOT));
         }
         return qualifiers;
     }
