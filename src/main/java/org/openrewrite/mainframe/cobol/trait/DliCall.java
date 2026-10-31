@@ -33,14 +33,12 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 
 /**
  * An IMS DL/I database or message call, however it was written: {@code CALL 'CBLTDLI'},
@@ -427,7 +425,8 @@ public class DliCall implements Trait<Cobol> {
         for (String ssa : ssas) {
             String name = segmentIn(LiteralAssignment.resolve(cursor, ssa));
             if (name == null) {
-                name = segmentIn(firstValues(cursor).get(ssa.toUpperCase(Locale.ROOT)));
+                Cursor program = DataName.declaringProgram(cursor, ssa);
+                name = program == null ? null : segmentIn(firstValues(program).get(ssa.toUpperCase(Locale.ROOT)));
             }
             if (name == null && ssa.endsWith(SSA_SUFFIX) && ssa.length() > SSA_SUFFIX.length()) {
                 name = ssa.substring(0, ssa.length() - SSA_SUFFIX.length());
@@ -451,19 +450,7 @@ public class DliCall implements Trait<Cobol> {
      * the group's name upper cased. Kept on the program's cursor, as {@link LiteralAssignment} keeps
      * what it reads, since every call in a program asks.
      */
-    private static Map<String, String> firstValues(Cursor cursor) {
-        Cursor program = null;
-        for (Iterator<Cursor> path = cursor.getPathAsCursors(); path.hasNext(); ) {
-            Cursor enclosing = path.next();
-            if (enclosing.getValue() instanceof Cobol.ProgramUnit) {
-                program = enclosing;
-                break;
-            }
-        }
-        if (program == null) {
-            return emptyMap();
-        }
-        Cursor unit = program;
+    private static Map<String, String> firstValues(Cursor unit) {
         return unit.computeMessageIfAbsent("cobol.firstValues", k -> {
             Map<String, String> values = new HashMap<>();
             // Groups opened and still waiting for their first elementary item, innermost last.

@@ -238,34 +238,38 @@ class DliCallTest implements RewriteTest {
     }
 
     @Test
-    void readsANestedProgramsSsasFromItsOwnData() {
+    void readsANestedProgramsCallFromTheDataItCanSee() {
         List<DliCall> calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
             000000 DATA DIVISION.                                                  \s
             000000 WORKING-STORAGE SECTION.                                        \s
-            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 01  GU-FUNC PIC X(4) GLOBAL VALUE 'GU  '.                       \s
+            000000 01  CHILD-QUAL GLOBAL.                                          \s
+            000000     05  FILLER        PIC X(8)  VALUE 'CLMCHILD'.               \s
+            000000     05  FILLER        PIC X     VALUE ' '.                      \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB IO-AREA ROOT-QUAL.      \s
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. INNERPGM.                                           \s
             000000 DATA DIVISION.                                                  \s
             000000 WORKING-STORAGE SECTION.                                        \s
-            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
             000000 01  ROOT-QUAL.                                                  \s
             000000     05  FILLER        PIC X(8)  VALUE 'CLMROOT '.               \s
             000000     05  FILLER        PIC X     VALUE ' '.                      \s
             000000 PROCEDURE DIVISION.                                             \s
-            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB IO-AREA ROOT-QUAL.      \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB IO-AREA ROOT-QUAL       \s
+            000000                          CHILD-QUAL.                            \s
             000000 END PROGRAM INNERPGM.                                           \s
             000000 END PROGRAM OUTERPGM.                                           \s
             """
         );
 
         // Only the nested program declares ROOT-QUAL, so the outer program's call names no segment.
-        assertThat(calls).extracting(DliCall::getSegments)
-          .containsExactly(emptyList(), singletonList("CLMROOT"));
+        assertThat(calls).extracting(DliCall::getFunction, DliCall::getSegments).containsExactly(
+          tuple("GU", emptyList()),
+          tuple("GU", List.of("CLMROOT", "CLMCHILD")));
     }
 
     /**
