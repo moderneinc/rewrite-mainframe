@@ -110,6 +110,16 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
+     * Whether a program nested in the one declaring the definition can name it, read through the
+     * definition for a usage. An entry is GLOBAL when it says so, when an entry it is under does, or
+     * when the FD it is a record of does. False for an occurrence resolving to nothing.
+     */
+    public boolean isGlobal() {
+        Definition definition = definition(index());
+        return definition != null && definition.isGlobal();
+    }
+
+    /**
      * The definition this occurrence resolves to. A definition answers itself. A name the program
      * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
      * inserts. Failing that, it resolves to a GLOBAL item of the nearest program containing it that
@@ -420,10 +430,6 @@ public class DataName implements Trait<Cobol.Word> {
         @Nullable
         Definition parent;
 
-        /**
-         * Whether a nested program can name it. Anything under a GLOBAL entry is global, condition
-         * names included.
-         */
         boolean global;
 
         @Nullable String getName() {
