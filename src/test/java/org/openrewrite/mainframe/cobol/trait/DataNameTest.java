@@ -530,6 +530,8 @@ class DataNameTest implements RewriteTest {
 
         assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
           .containsExactly("FLAG-ON", "WS-REC", "CUST-REC", "EIBCALEN", "WS-NEAR");
+        // INNERPGM declares nothing, so each usage reads through to a GLOBAL item of a containing program.
+        assertThat(names).filteredOn(n -> !n.isDefinition()).allMatch(DataName::isGlobal);
         assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull();
         assertThat(usagesOf(names, "EIBCALEN").get(0).getDefinition()).isNotNull()
           .extracting(DataName::isSystemSupplied).isEqualTo(true);
@@ -537,6 +539,8 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-FLAG").isReferenced()).isTrue();
 
         // MIDPGM's WS-REC is not GLOBAL, so it neither reaches INNERPGM nor hides OUTERPGM's.
+        assertThat(names).filteredOn(n -> n.isDefinition() && n.getName().equals("WS-REC"))
+          .extracting(DataName::isGlobal).containsExactly(true, false);
         assertThat(usagesOf(names, "WS-REC").get(0).getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
         assertThat(usagesOf(names, "WS-NEAR").get(0).getDefinition()).isNotNull()
