@@ -262,6 +262,7 @@ class DataNameTest implements RewriteTest {
         assertThat(usages.get(1).getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-B");
         assertThat(usages.get(2).getQualifiers()).isEmpty();
         assertThat(usages.get(2).getDefinition()).isNull();
+        assertThat(usages.get(2).isGlobal()).isFalse();
 
         DataName qualifier = usagesOf(names, "REC-A").get(0);
         assertThat(qualifier.getQualifiers()).isEmpty();
