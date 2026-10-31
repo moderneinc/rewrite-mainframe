@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.Identifier;
+import org.openrewrite.mainframe.cobol.tree.Name;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
@@ -28,6 +29,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.nCopies;
+import static java.util.Collections.singleton;
 
 /**
  * The point at which a program is handed its PCBs.
@@ -45,7 +52,8 @@ public class ProgramEntry implements Trait<Cobol> {
     Cursor cursor;
 
     /**
-     * PCB names in the order the PSB supplies them.
+     * PCB names in the order this program receives them, which is the PSB's order in a program that
+     * no other contains.
      */
     public List<String> getPcbNames() {
         List<String> names = new ArrayList<>();
@@ -58,9 +66,17 @@ public class ProgramEntry implements Trait<Cobol> {
                 }
             }
         } else {
-            for (Cobol parameter :
-                    ((Cobol.ProcedureDivisionUsingClause) tree).getProcedureDivisionUsingParameter()) {
-                add(names, parameter);
+            for (Cobol phrase : ((Cobol.ProcedureDivisionUsingClause) tree).getProcedureDivisionUsingParameter()) {
+                if (phrase instanceof Cobol.ProcedureDivisionByReferencePhrase) {
+                    for (Cobol.ProcedureDivisionByReference parameter :
+                            ((Cobol.ProcedureDivisionByReferencePhrase) phrase).getProcedureDivisionByReference()) {
+                        add(names, parameter.getReference());
+                    }
+                } else if (phrase instanceof Cobol.ProcedureDivisionByValuePhrase) {
+                    for (Name parameter : ((Cobol.ProcedureDivisionByValuePhrase) phrase).getPhrases()) {
+                        add(names, parameter);
+                    }
+                }
             }
         }
         return names;
@@ -68,11 +84,21 @@ public class ProgramEntry implements Trait<Cobol> {
 
     /**
      * The zero based position of {@code pcbName} in the PSB, or -1 when the name is not a PCB the
-     * program was handed. The position is what a PSB listing has to be joined on to name the
-     * database.
+     * program was handed or its position cannot be told. The position is what a PSB listing has to
+     * be joined on to name the database. A nested program is handed its parameters by a call in the
+     * program containing it, so a parameter takes the position of the argument passed in its place.
      */
     public int indexOf(@Nullable String pcbName) {
-        return pcbName == null ? -1 : getPcbNames().indexOf(pcbName.toUpperCase(Locale.ROOT));
+        List<String> names = getPcbNames();
+        int parameter = pcbName == null ? -1 : names.indexOf(pcbName.toUpperCase(Locale.ROOT));
+        if (parameter < 0) {
+            return -1;
+        }
+        Cursor program = enclosing(cursor, Cobol.ProgramUnit.class);
+        Cursor above = program == null ? null : program.getParent();
+        Cursor containing = above == null ? null : enclosing(above, Cobol.ProgramUnit.class);
+        return program == null || containing == null ? parameter :
+                psbPositions(program, containing, names.size()).get(parameter);
     }
 
     /**
@@ -93,9 +119,22 @@ public class ProgramEntry implements Trait<Cobol> {
             upper.contains("TP-PCB") || upper.contains("TPPCB")) {
             return true;
         }
-        List<String> names = getPcbNames();
-        return !names.isEmpty() && names.get(0).equals(upper) &&
-               !upper.contains("DB-PCB") && !upper.contains("DBPCB");
+        return indexOf(upper) == 0 && !namesDatabasePcb(upper) && !namesDatabasePcb(firstPsbPcb());
+    }
+
+    private static boolean namesDatabasePcb(@Nullable String name) {
+        return name != null && (name.contains("DB-PCB") || name.contains("DBPCB"));
+    }
+
+    /**
+     * The name the outermost program's entry gives the PSB's first PCB, which a nested program may
+     * know by another name.
+     */
+    private @Nullable String firstPsbPcb() {
+        Program program = Program.of(cursor);
+        ProgramEntry entry = program == null ? null : of(program.outermost().getCursor());
+        List<String> names = entry == null ? emptyList() : entry.getPcbNames();
+        return names.isEmpty() ? null : names.get(0);
     }
 
     /**
@@ -113,6 +152,86 @@ public class ProgramEntry implements Trait<Cobol> {
         }
         String upper = pcbName == null ? "" : pcbName.toUpperCase(Locale.ROOT);
         return upper.contains("ALT-PCB") || upper.contains("ALTPCB");
+    }
+
+    /**
+     * The PSB position each of a nested program's parameters receives, or -1 for one where its callers
+     * do not agree on a PCB. A COMMON program's siblings can call it too, so all of its positions are
+     * unknown. A dynamic call whose target cannot be read might be calling it, which leaves them
+     * unknown too. Kept on the nested program's cursor, since every DL/I call in it asks.
+     */
+    private static List<Integer> psbPositions(Cursor nested, Cursor containing, int parameters) {
+        return nested.computeMessageIfAbsent("cobol.psbPositions", k -> {
+            List<Integer> positions = new ArrayList<>(nCopies(parameters, -1));
+            Cobol.ProgramIdParagraph id = nested.<Cobol.ProgramUnit>getValue().getIdentificationDivision()
+                    .getProgramIdParagraph();
+            List<Cobol.Word> attributes = id.getProgramAttributes();
+            Cobol.ProcedureDivision division = containing.<Cobol.ProgramUnit>getValue().getProcedureDivision();
+            if (division == null ||
+                attributes != null && attributes.stream().anyMatch(word -> "COMMON".equalsIgnoreCase(word.getWord()))) {
+                return positions;
+            }
+            List<List<@Nullable DataName>> calls = callsTo(Literals.unquote(new Program(nested).getName()),
+                    new Cursor(containing, division));
+            if (calls != null) {
+                for (int parameter = 0; parameter < parameters; parameter++) {
+                    positions.set(parameter, agreed(calls, parameter));
+                }
+            }
+            return positions;
+        });
+    }
+
+    /**
+     * The arguments of each call in {@code division} that can reach {@code program}, or null where a
+     * call's targets cannot all be read.
+     */
+    private static @Nullable List<List<@Nullable DataName>> callsTo(String program, Cursor division) {
+        List<List<@Nullable DataName>> calls = new ArrayList<>();
+        AtomicBoolean unreadable = new AtomicBoolean();
+        new CopybookSkippingVisitor<Integer>() {
+            @Override
+            public Cobol.Call visitCall(Cobol.Call call, Integer p) {
+                String target = Names.of(call.getIdentifier());
+                String literal = target == null ? null : Literals.valueOf(target);
+                Set<String> names = literal != null ? singleton(literal) :
+                        LiteralAssignment.candidates(getCursor(), target);
+                if (names == null) {
+                    unreadable.set(true);
+                } else if (names.stream().anyMatch(name -> name.trim().equalsIgnoreCase(program))) {
+                    calls.add(DliCall.argumentDataNames(getCursor()));
+                }
+                return super.visitCall(call, p);
+            }
+        }.visit(division.getValue(), 0, division.getParentOrThrow());
+        return unreadable.get() ? null : calls;
+    }
+
+    /**
+     * The position every call agrees the PCB it passes in {@code parameter}'s place has, read in the
+     * entry of the program declaring each argument, or -1 where they do not agree.
+     */
+    private static int agreed(List<List<@Nullable DataName>> calls, int parameter) {
+        int agreed = -1;
+        for (List<@Nullable DataName> arguments : calls) {
+            DataName argument = parameter < arguments.size() ? arguments.get(parameter) : null;
+            ProgramEntry entry = argument == null ? null : ofDeclaration(argument.getCursor(), argument);
+            int position = argument == null || entry == null ? -1 : entry.indexOf(argument.getName());
+            if (position < 0 || agreed >= 0 && position != agreed) {
+                return -1;
+            }
+            agreed = position;
+        }
+        return agreed;
+    }
+
+    /**
+     * The entry of the program declaring what {@code occurrence} names, or of the program {@code at}
+     * is in where it names nothing declared.
+     */
+    static @Nullable ProgramEntry ofDeclaration(Cursor at, @Nullable DataName occurrence) {
+        Cursor declaring = occurrence == null ? null : occurrence.declaringProgram();
+        return of(declaring == null ? at : declaring);
     }
 
     private static void add(List<String> names, Cobol tree) {
@@ -133,32 +252,34 @@ public class ProgramEntry implements Trait<Cobol> {
     }
 
     /**
-     * The entry point of the program {@code cursor} is inside, or null for one that takes nothing.
+     * The entry point of the program {@code cursor} is in or at, or null for one that takes nothing.
      * <p>
-     * {@code PROCEDURE DIVISION USING} is the entry point where a program has one, and it hangs off
-     * an ancestor of every statement, so no search is needed to reach it. Only an IMS batch program,
-     * which is entered at {@code ENTRY 'DLITCBL' USING} instead, has to be looked through — and the
-     * answer is kept on the division's cursor, because every DL/I call in the program asks for it.
+     * {@code PROCEDURE DIVISION USING} is the entry point where a program has one, so no search is
+     * needed to reach it. Only an IMS batch program, which is entered at {@code ENTRY 'DLITCBL' USING}
+     * instead, has to be looked through — and the answer is kept on the program's cursor, because
+     * every DL/I call in the program asks for it.
      */
     public static @Nullable ProgramEntry of(Cursor cursor) {
-        Cursor division = enclosing(cursor);
-        if (division == null) {
+        Cursor program = enclosing(cursor, Cobol.ProgramUnit.class);
+        Cobol.ProcedureDivision procedureDivision = program == null ? null :
+                program.<Cobol.ProgramUnit>getValue().getProcedureDivision();
+        if (program == null || procedureDivision == null) {
             return null;
         }
-        Cobol.ProcedureDivision procedureDivision = division.getValue();
+        Cursor division = new Cursor(program, procedureDivision);
         if (procedureDivision.getProcedureDivisionUsingClause() != null) {
             return new ProgramEntry(new Cursor(division,
                     procedureDivision.getProcedureDivisionUsingClause()));
         }
-        Optional<ProgramEntry> entry = division.computeMessageIfAbsent("cobol.programEntry",
+        Optional<ProgramEntry> entry = program.computeMessageIfAbsent("cobol.programEntry",
                 k -> new Matcher().lower(division).findFirst());
         return entry.orElse(null);
     }
 
-    private static @Nullable Cursor enclosing(Cursor cursor) {
+    private static @Nullable Cursor enclosing(Cursor cursor, Class<? extends Cobol> type) {
         for (Iterator<Cursor> path = cursor.getPathAsCursors(); path.hasNext(); ) {
             Cursor enclosing = path.next();
-            if (enclosing.getValue() instanceof Cobol.ProcedureDivision) {
+            if (type.isInstance(enclosing.getValue())) {
                 return enclosing;
             }
         }

@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 
@@ -134,6 +135,30 @@ public class DliCall implements Trait<Cobol> {
     List<@Nullable String> ssaSegments;
 
     /**
+     * The {@link #functionOperand} where it is written, whose definition is the declaration it names.
+     * Null for a literal, as with each of these occurrences.
+     */
+    @Nullable
+    DataName functionDataName;
+
+    /**
+     * The {@link #pcb} where it is written.
+     */
+    @Nullable
+    DataName pcbDataName;
+
+    /**
+     * The {@link #ioArea} where it is written.
+     */
+    @Nullable
+    DataName ioAreaDataName;
+
+    /**
+     * Each of {@link #getSsas()} where it is written, in the same order.
+     */
+    List<@Nullable DataName> ssaDataNames;
+
+    /**
      * What this call does to the database, derived from {@link #function}.
      */
     public Access getAccess() {
@@ -141,15 +166,17 @@ public class DliCall implements Trait<Cobol> {
     }
 
     /**
-     * The entry point that handed this program its PCBs, or null where it takes none.
+     * The entry point that handed this call's PCB to the program declaring it, or null where that
+     * program takes none. A nested program can name a PCB that a containing program declares GLOBAL.
+     * A PCB declared nowhere is taken to be one the call's own program was handed.
      */
     public @Nullable ProgramEntry getEntry() {
-        return ProgramEntry.of(cursor);
+        return ProgramEntry.ofDeclaration(cursor, pcbDataName);
     }
 
     /**
-     * The PCB's position in the PSB, which is what names the database, or -1 where the program was
-     * handed no PCBs to count.
+     * The PCB's position in the PSB, which is what names the database, or -1 where it cannot be told.
+     * See {@link ProgramEntry#indexOf(String)}.
      */
     public int getPcbPosition() {
         ProgramEntry entry = getEntry();
@@ -280,7 +307,17 @@ public class DliCall implements Trait<Cobol> {
             return null;
         }
 
-        List<String> arguments = arguments(call);
+        List<@Nullable String> written = argumentsByPosition(call);
+        List<@Nullable DataName> occurrences = argumentDataNames(cursor);
+        List<String> arguments = new ArrayList<>(written.size());
+        List<@Nullable DataName> names = new ArrayList<>(written.size());
+        for (int i = 0; i < written.size(); i++) {
+            String argument = written.get(i);
+            if (argument != null) {
+                arguments.add(argument);
+                names.add(occurrences.get(i));
+            }
+        }
         if (arguments.isEmpty()) {
             return null;
         }
@@ -292,29 +329,35 @@ public class DliCall implements Trait<Cobol> {
         String ioArea = arguments.size() > 2 ? arguments.get(2) : null;
         List<String> trailing = arguments.size() > 3 ?
                 new ArrayList<>(arguments.subList(3, arguments.size())) : emptyList();
+        DataName pcbName = names.size() > 1 ? names.get(1) : null;
+        List<@Nullable DataName> trailingNames = names.size() > 3 ? names.subList(3, names.size()) : emptyList();
 
         // Against a message PCB the fourth argument is the MOD, not an SSA. Read as one it resolves to
         // a plausible segment name — CLMI1O — and the CRUD matrix gains a segment no database has.
-        ProgramEntry entry = ProgramEntry.of(cursor);
+        ProgramEntry entry = ProgramEntry.ofDeclaration(cursor, pcbName);
         String modOperand = "ISRT".equals(function) && !trailing.isEmpty() &&
                             entry != null && entry.isMessagePcb(pcb) ? trailing.get(0) : null;
         List<String> ssas = modOperand == null ? trailing : trailing.subList(1, trailing.size());
+        List<@Nullable DataName> ssaNames = modOperand == null ? trailingNames :
+                trailingNames.subList(1, trailingNames.size());
         // A checkpoint's later arguments are the areas it saves, and a system call's its own data.
         Access access = Access.of(function);
         if (access == Access.CHECKPOINT || access == Access.SYSTEM) {
             ssas = emptyList();
+            ssaNames = emptyList();
         }
 
         List<@Nullable String> ssaSegments = segmentsFromSsas(ssas, cursor);
         return new DliCall(cursor, iface.toUpperCase(Locale.ROOT), function, functionOperand, pcb, ioArea,
-                ssas, resolveMod(modOperand, cursor), modOperand, named(ssaSegments), ssaSegments);
+                ssas, resolveMod(modOperand, cursor), modOperand, named(ssaSegments), ssaSegments,
+                names.get(0), pcbName, names.size() > 2 ? names.get(2) : null, ssaNames);
     }
 
-    private static List<String> named(List<@Nullable String> segments) {
-        List<String> named = new ArrayList<>(segments.size());
-        for (String segment : segments) {
-            if (segment != null) {
-                named.add(segment);
+    private static List<String> named(List<@Nullable String> names) {
+        List<String> named = new ArrayList<>(names.size());
+        for (String name : names) {
+            if (name != null) {
+                named.add(name);
             }
         }
         return named;
@@ -348,9 +391,13 @@ public class DliCall implements Trait<Cobol> {
                 ioArea = operand;
             }
         }
+        String area = ioArea;
+        DataName areaName = area == null ? null : new DataName.Matcher().lower(cursor)
+                .filter(name -> name.getName().equalsIgnoreCase(area))
+                .findFirst().orElse(null);
         // Command level DL/I has no message call, so it never names a MOD.
         return new DliCall(cursor, "EXEC DLI", function, function, pcb, ioArea, emptyList(), null, null,
-                segments, emptyList());
+                segments, emptyList(), null, null, areaName, emptyList());
     }
 
     private static @Nullable String operandAfter(List<String> tokens, int i) {
@@ -361,21 +408,38 @@ public class DliCall implements Trait<Cobol> {
     }
 
     /**
-     * The {@code USING} arguments of a call, in order. The grammar nests the argument list inside a
-     * second {@code CallPhrase} and wraps each argument in a {@code CallBy}, so the names are read
-     * back by walking for those.
+     * The {@code USING} arguments of a call, in order, less any {@code OMITTED}.
      */
     static List<String> arguments(Cobol.Call call) {
+        return named(argumentsByPosition(call));
+    }
+
+    /**
+     * The {@code USING} arguments of a call, with null in an {@code OMITTED} argument's place. The
+     * grammar nests the argument list inside a second {@code CallPhrase} and wraps each argument in a
+     * {@code CallBy}, so the names are read back by walking for those.
+     */
+    static List<@Nullable String> argumentsByPosition(Cobol.Call call) {
+        return argumentsOf(call, callBy -> Names.upperOf(callBy.getIdentifier()));
+    }
+
+    /**
+     * The {@code USING} arguments of the call {@code call} points at, each as the data name it is
+     * written as, with null for a literal or {@code OMITTED}.
+     */
+    static List<@Nullable DataName> argumentDataNames(Cursor call) {
+        return argumentsOf(call.getValue(), callBy ->
+                new DataName.Matcher().lower(new Cursor(call, callBy)).findFirst().orElse(null));
+    }
+
+    private static <T> List<@Nullable T> argumentsOf(Cobol.Call call, Function<Cobol.CallBy, @Nullable T> read) {
         if (call.getCallUsingPhrase() == null) {
             return emptyList();
         }
-        return new CobolIsoVisitor<List<String>>() {
+        return new CobolIsoVisitor<List<@Nullable T>>() {
             @Override
-            public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<String> acc) {
-                String name = Names.upperOf(callBy.getIdentifier());
-                if (name != null) {
-                    acc.add(name);
-                }
+            public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<@Nullable T> acc) {
+                acc.add(read.apply(callBy));
                 return callBy;
             }
         }.reduce(call.getCallUsingPhrase(), new ArrayList<>(4));

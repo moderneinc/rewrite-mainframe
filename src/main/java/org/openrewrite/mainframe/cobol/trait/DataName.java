@@ -295,10 +295,23 @@ public class DataName implements Trait<Cobol.Word> {
     static @Nullable Cursor declaringProgram(Cursor at, String name) {
         List<Definition> matching = candidates(index(at), name.toUpperCase(Locale.ROOT), emptyList());
         Cursor word = matching.isEmpty() ? null : matching.get(0).getWord();
-        Program declaring = word == null ? null : Program.of(word);
-        for (Iterator<Cursor> path = at.getPathAsCursors(); declaring != null && path.hasNext(); ) {
+        return word == null ? null : onPath(at, Program.of(word));
+    }
+
+    /**
+     * The program on this occurrence's path that declares its definition, or null where it resolves
+     * to none. Unlike {@link #declaringProgram(Cursor, String)} it honours the qualifiers written.
+     */
+    @Nullable
+    Cursor declaringProgram() {
+        DataName definition = getDefinition();
+        return definition == null ? null : onPath(cursor, Program.of(definition.getCursor()));
+    }
+
+    private static @Nullable Cursor onPath(Cursor at, @Nullable Program program) {
+        for (Iterator<Cursor> path = at.getPathAsCursors(); program != null && path.hasNext(); ) {
             Cursor enclosing = path.next();
-            if (enclosing.getValue() == declaring.getTree()) {
+            if (enclosing.getValue() == program.getTree()) {
                 return enclosing;
             }
         }
