@@ -144,11 +144,16 @@ public class LiteralAssignment implements Trait<Cobol> {
      * <p>
      * It is flow insensitive by choice. It collects what is assigned anywhere, not what holds at a
      * point, and leaves out what an item without a {@code VALUE} holds before its first assignment.
+     * <p>
+     * {@code dataName} is resolved as if written at {@code cursor}, so in a nested program it can name
+     * a GLOBAL item of a containing program.
      */
     public static @Nullable Set<String> candidates(Cursor cursor, @Nullable String dataName) {
-        Cursor program = enclosing(cursor);
-        return dataName == null || program == null ? null :
-                Storage.of(program).candidates(dataName.toUpperCase(Locale.ROOT));
+        if (dataName == null) {
+            return null;
+        }
+        Cursor program = DataName.declaringProgram(cursor, dataName);
+        return program == null ? null : Storage.of(program).candidates(dataName.toUpperCase(Locale.ROOT));
     }
 
     private static @Nullable Cursor enclosing(Cursor cursor) {
@@ -369,9 +374,13 @@ public class LiteralAssignment implements Trait<Cobol> {
                         String function = DliCall.arguments(call).get(0);
                         if (own) {
                             restorable.computeIfAbsent(function, k -> new ArrayList<>()).add(name);
-                        } else if (canRestore(function, LiteralAssignment.candidates(usage.getCursor(), function))) {
-                            // Its function code may name an item of the nested program's own, so it is read there.
-                            write(name, false);
+                        } else {
+                            // Resolving the function code further out than the program holding the call
+                            // could reach this storage while it is being built.
+                            Cursor nested = enclosing(usage.getCursor());
+                            if (canRestore(function, nested == null ? null : Storage.of(nested).candidates(function))) {
+                                write(name, false);
+                            }
                         }
                         break;
                     default:
