@@ -321,6 +321,15 @@ what the parser cannot yet read is the point of the measurement. It asserts that
 did parse prints back byte-identical to the input, which is the property recipes depend on, and
 `JclCorpusTest` asserts the same of every job.
 
+`CobolCorpusTest` holds what the COBOL traits say about each program to rules that every program the
+compiler accepts obeys. A usage resolves to one definition the program can see, and the qualifiers
+and subscripts written with it fit that definition. A condition name is only tested or SET. A
+PERFORM or GO TO reaches one paragraph or section of its own program. A DL/I or CICS operand is read
+as the word written, and a copybook the parse calls missing is not in the repository. The test
+reports rather than asserts, since each violation is a lead for a trait test. The summary goes to
+standard output and to `build/reports/cobol-corpus/report.txt`, and every violation is a row of
+`violations.csv` beside it.
+
 `BmsCorpusTest` asserts the same over the 50 map sets, and counts the macros it read against an
 independent count of the source. A map set that groups its continuation lines wrongly still prints
 back perfectly — it just says something else — so printing alone would not catch it. 47 of the
