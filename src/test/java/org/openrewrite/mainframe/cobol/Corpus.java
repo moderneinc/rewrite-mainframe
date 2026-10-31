@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -58,14 +59,30 @@ public final class Corpus {
     }
 
     /**
-     * The applications under the corpus root, one directory each, in name order.
+     * The applications under the corpus root, one directory each, in path order. An application is
+     * cloned either directly under the root or as {@code <owner>/<repo>}. A directory holding no
+     * {@code .git} is an owner when a directory in it holds one.
      */
     public static List<Path> repositories(Path root) throws IOException {
-        try (Stream<Path> children = Files.list(root)) {
+        List<Path> repositories = new ArrayList<>();
+        for (Path child : directories(root)) {
+            List<Path> owned = Files.exists(child.resolve(".git")) ? emptyList() :
+              directories(child).stream().filter(p -> Files.exists(p.resolve(".git"))).collect(toList());
+            if (owned.isEmpty()) {
+                repositories.add(child);
+            } else {
+                repositories.addAll(owned);
+            }
+        }
+        repositories.sort(null);
+        return repositories;
+    }
+
+    private static List<Path> directories(Path parent) throws IOException {
+        try (Stream<Path> children = Files.list(parent)) {
             return children
               .filter(Files::isDirectory)
               .filter(p -> !p.getFileName().toString().startsWith("."))
-              .sorted()
               .collect(toList());
         }
     }
