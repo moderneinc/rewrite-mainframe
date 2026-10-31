@@ -148,8 +148,8 @@ public class DliCall implements Trait<Cobol> {
     }
 
     /**
-     * The PCB's position in the PSB, which is what names the database, or -1 where the program was
-     * handed no PCBs to count.
+     * The PCB's position in the PSB, which is what names the database, or -1 where it cannot be told.
+     * See {@link ProgramEntry#indexOf(String)}.
      */
     public int getPcbPosition() {
         ProgramEntry entry = getEntry();

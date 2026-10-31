@@ -29,6 +29,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Collections.nCopies;
 
 /**
  * The point at which a program is handed its PCBs.
@@ -46,7 +49,8 @@ public class ProgramEntry implements Trait<Cobol> {
     Cursor cursor;
 
     /**
-     * PCB names in the order the PSB supplies them.
+     * PCB names in the order this program receives them, which is the PSB's order in a program that
+     * no other contains.
      */
     public List<String> getPcbNames() {
         List<String> names = new ArrayList<>();
@@ -77,11 +81,21 @@ public class ProgramEntry implements Trait<Cobol> {
 
     /**
      * The zero based position of {@code pcbName} in the PSB, or -1 when the name is not a PCB the
-     * program was handed. The position is what a PSB listing has to be joined on to name the
-     * database.
+     * program was handed or its position cannot be told. The position is what a PSB listing has to
+     * be joined on to name the database. A nested program is handed its parameters by a call in the
+     * program containing it, so a parameter takes the position of the argument passed in its place.
      */
     public int indexOf(@Nullable String pcbName) {
-        return pcbName == null ? -1 : getPcbNames().indexOf(pcbName.toUpperCase(Locale.ROOT));
+        List<String> names = getPcbNames();
+        int parameter = pcbName == null ? -1 : names.indexOf(pcbName.toUpperCase(Locale.ROOT));
+        if (parameter < 0) {
+            return -1;
+        }
+        Cursor program = enclosing(cursor, Cobol.ProgramUnit.class);
+        Cursor above = program == null ? null : program.getParent();
+        Cursor containing = above == null ? null : enclosing(above, Cobol.ProgramUnit.class);
+        return program == null || containing == null ? parameter :
+                psbPositions(program, containing, names.size()).get(parameter);
     }
 
     /**
@@ -102,9 +116,7 @@ public class ProgramEntry implements Trait<Cobol> {
             upper.contains("TP-PCB") || upper.contains("TPPCB")) {
             return true;
         }
-        List<String> names = getPcbNames();
-        return !names.isEmpty() && names.get(0).equals(upper) &&
-               !upper.contains("DB-PCB") && !upper.contains("DBPCB");
+        return indexOf(upper) == 0 && !upper.contains("DB-PCB") && !upper.contains("DBPCB");
     }
 
     /**
@@ -122,6 +134,79 @@ public class ProgramEntry implements Trait<Cobol> {
         }
         String upper = pcbName == null ? "" : pcbName.toUpperCase(Locale.ROOT);
         return upper.contains("ALT-PCB") || upper.contains("ALTPCB");
+    }
+
+    /**
+     * The PSB position each of a nested program's parameters receives, or -1 for one where its callers
+     * do not agree on a PCB. A COMMON program's siblings can call it too, so all of its positions are
+     * unknown. A dynamic call whose target cannot be read might be calling it, which leaves them
+     * unknown too. Kept on the nested program's cursor, since every DL/I call in it asks.
+     */
+    private static List<Integer> psbPositions(Cursor nested, Cursor containing, int parameters) {
+        return nested.computeMessageIfAbsent("cobol.psbPositions", k -> {
+            List<Integer> positions = new ArrayList<>(nCopies(parameters, -1));
+            Cobol.ProgramIdParagraph id = nested.<Cobol.ProgramUnit>getValue().getIdentificationDivision()
+                    .getProgramIdParagraph();
+            List<Cobol.Word> attributes = id.getProgramAttributes();
+            Cobol.ProcedureDivision division = containing.<Cobol.ProgramUnit>getValue().getProcedureDivision();
+            if (division == null ||
+                attributes != null && attributes.stream().anyMatch(word -> "COMMON".equalsIgnoreCase(word.getWord()))) {
+                return positions;
+            }
+            Cursor callers = new Cursor(containing, division);
+            ProgramEntry entry = of(callers);
+            List<List<String>> calls = callsTo(programName(id), callers);
+            if (entry != null && calls != null) {
+                for (int parameter = 0; parameter < parameters; parameter++) {
+                    positions.set(parameter, agreed(calls, parameter, entry));
+                }
+            }
+            return positions;
+        });
+    }
+
+    /**
+     * The arguments of each call in {@code division} to {@code program}, or null where a call's
+     * target cannot be read.
+     */
+    private static @Nullable List<List<String>> callsTo(String program, Cursor division) {
+        List<List<String>> calls = new ArrayList<>();
+        AtomicBoolean unreadable = new AtomicBoolean();
+        new CopybookSkippingVisitor<Integer>() {
+            @Override
+            public Cobol.Call visitCall(Cobol.Call call, Integer p) {
+                String target = Names.of(call.getIdentifier());
+                String name = target == null ? null : Literals.valueOf(target);
+                if (name == null) {
+                    name = LiteralAssignment.resolve(getCursor(), target);
+                }
+                if (name == null) {
+                    unreadable.set(true);
+                } else if (name.trim().equalsIgnoreCase(program)) {
+                    calls.add(DliCall.arguments(call));
+                }
+                return super.visitCall(call, p);
+            }
+        }.visit(division.getValue(), 0, division.getParentOrThrow());
+        return unreadable.get() ? null : calls;
+    }
+
+    private static String programName(Cobol.ProgramIdParagraph id) {
+        String name = Names.of(id.getProgramName());
+        String literal = name == null ? null : Literals.valueOf(name);
+        return literal != null ? literal.trim() : name == null ? "" : name;
+    }
+
+    private static int agreed(List<List<String>> calls, int parameter, ProgramEntry caller) {
+        int agreed = -1;
+        for (List<String> arguments : calls) {
+            int position = parameter < arguments.size() ? caller.indexOf(arguments.get(parameter)) : -1;
+            if (position < 0 || agreed >= 0 && position != agreed) {
+                return -1;
+            }
+            agreed = position;
+        }
+        return agreed;
     }
 
     private static void add(List<String> names, Cobol tree) {
@@ -150,7 +235,7 @@ public class ProgramEntry implements Trait<Cobol> {
      * answer is kept on the division's cursor, because every DL/I call in the program asks for it.
      */
     public static @Nullable ProgramEntry of(Cursor cursor) {
-        Cursor division = enclosing(cursor);
+        Cursor division = enclosing(cursor, Cobol.ProcedureDivision.class);
         if (division == null) {
             return null;
         }
@@ -164,10 +249,10 @@ public class ProgramEntry implements Trait<Cobol> {
         return entry.orElse(null);
     }
 
-    private static @Nullable Cursor enclosing(Cursor cursor) {
+    private static @Nullable Cursor enclosing(Cursor cursor, Class<? extends Cobol> type) {
         for (Iterator<Cursor> path = cursor.getPathAsCursors(); path.hasNext(); ) {
             Cursor enclosing = path.next();
-            if (enclosing.getValue() instanceof Cobol.ProcedureDivision) {
+            if (type.isInstance(enclosing.getValue())) {
                 return enclosing;
             }
         }
