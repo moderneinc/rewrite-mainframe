@@ -28,7 +28,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,6 +52,12 @@ class BmsCorpusTest {
 
     private static final Pattern SCALAR_POSITION = Pattern.compile("POS=\\d", Pattern.CASE_INSENSITIVE);
 
+    /**
+     * The length item of a field in a symbolic map, which a copybook a person wrote does not have.
+     */
+    private static final Pattern GENERATED_LENGTH = Pattern.compile("^\\s+02\\s+\\S+L\\s+COMP\\s+PIC\\s+S9\\(4\\)\\.",
+            Pattern.MULTILINE);
+
     @Test
     void readsRealMapsets() throws IOException {
         Path corpus = Paths.get(System.getenv("BMS_CORPUS"));
@@ -64,6 +73,7 @@ class BmsCorpusTest {
         int continued = 0;
         int written = 0;
         int writtenScalar = 0;
+        int symbolicMaps = 0;
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
@@ -74,6 +84,7 @@ class BmsCorpusTest {
                 continue;
             }
             fixtureFound |= Corpus.isFixture(repository);
+            Map<String, Path> generated = generatedCopybooks(repository);
             int read = 0;
             for (Path member : files) {
                 members++;
@@ -125,6 +136,21 @@ class BmsCorpusTest {
 
                 List<Mapset> mapsetsRead = new Mapset.Matcher().lower(cu).collect(Collectors.toList());
                 mapsets += mapsetsRead.size();
+
+                // A symbolic map an application keeps, as assembling the map set wrote it, is what
+                // ours has to equal.
+                Path committed = generated.get(memberName(member));
+                if (committed != null) {
+                    StringBuilder ours = new StringBuilder();
+                    for (Mapset mapset : mapsetsRead) {
+                        String records = mapset.getCobolSymbolicMap();
+                        ours.append(records == null ? "" : records);
+                    }
+                    if (!entries(new String(Files.readAllBytes(committed))).equals(entries(ours.toString()))) {
+                        failures.add(name + ": symbolic map differs from " + corpus.relativize(committed));
+                    }
+                    symbolicMaps++;
+                }
                 for (Mapset mapset : mapsetsRead) {
                     maps += mapset.getMaps().size();
                     for (MapDefinition map : mapset.getMaps()) {
@@ -165,8 +191,8 @@ class BmsCorpusTest {
 
         System.out.printf("BMS corpus: %d files, %d mapsets, %d maps, %d fields " +
                         "(%d named, %d input, %d positioned, %d of them by offset, " +
-                        "%d initialised over more than one card)%n",
-                members, mapsets, maps, fields, named, inputs, positioned, scalar, continued);
+                        "%d initialised over more than one card), %d symbolic maps compared%n",
+                members, mapsets, maps, fields, named, inputs, positioned, scalar, continued, symbolicMaps);
         if (!failures.isEmpty()) {
             System.out.println("failures:");
             failures.forEach(f -> System.out.println("  " + f));
@@ -199,6 +225,51 @@ class BmsCorpusTest {
         // The corpus writes literals too long for one card, so a run reporting none of them would
         // mean the check above never had anything to catch.
         assertThat(continued).as("literals written over more than one card").isPositive();
+
+        // CardDemo keeps the symbolic maps its map sets generate, so a run comparing none means the
+        // check above found nothing to compare against.
+        assertThat(symbolicMaps).as("symbolic maps compared with a committed copybook").isPositive();
+    }
+
+    /**
+     * The copybooks an application keeps that assembling one of its map sets wrote, by member name.
+     */
+    private static Map<String, Path> generatedCopybooks(Path repository) throws IOException {
+        Map<String, Path> generated = new HashMap<>();
+        for (Path copybook : Corpus.copybooks(repository)) {
+            if (GENERATED_LENGTH.matcher(new String(Files.readAllBytes(copybook))).find()) {
+                generated.putIfAbsent(memberName(copybook), copybook);
+            }
+        }
+        return generated;
+    }
+
+    private static String memberName(Path path) {
+        String file = path.getFileName().toString();
+        int dot = file.indexOf('.');
+        return (dot < 0 ? file : file.substring(0, dot)).toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * The data description entries of COBOL source, each with its spacing evened out, so that two
+     * copybooks laid out differently compare by what they declare.
+     */
+    private static List<String> entries(String cobol) {
+        StringBuilder code = new StringBuilder();
+        for (String line : cobol.replace("\r", "").split("\n")) {
+            if (line.length() > 7 && line.charAt(6) != '*' && line.charAt(6) != '/') {
+                code.append(' ').append(line, 7, Math.min(72, line.length()));
+            }
+        }
+        List<String> entries = new ArrayList<>();
+        for (String entry : code.toString().split("\\.(\\s|$)")) {
+            String normalized = entry.trim().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT)
+                    .replaceAll("\\bPIC\\b", "PICTURE").replaceAll("\\(0+(\\d)", "($1");
+            if (!normalized.isEmpty()) {
+                entries.add(normalized);
+            }
+        }
+        return entries;
     }
 
     private static int quotes(String text) {

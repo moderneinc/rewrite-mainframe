@@ -22,8 +22,10 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.bms.BmsParser;
 import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.CopybookParser;
+import org.openrewrite.mainframe.cobol.marker.SymbolicMap;
 import org.openrewrite.test.RewriteTest;
 
 import java.io.ByteArrayInputStream;
@@ -196,5 +198,68 @@ class CopybookReferenceTest implements RewriteTest {
             assertThat(reference.isSystemSupplied()).isFalse();
             assertThat(reference.getSourcePath()).isEqualTo(Paths.get("SQLCA.cpy"));
         });
+    }
+
+    @Test
+    void aMapsetSuppliesTheSymbolicMapItGenerates() {
+        CopybookReference reference = copying("COSGN00", mapset("COSGN00.bms", COSGN00));
+
+        assertThat(reference.isResolved()).isTrue();
+        assertThat(reference.getSourcePath()).isEqualTo(Paths.get("COSGN00.bms"));
+        //noinspection DataFlowIssue
+        assertThat(reference.getCopybook().getMarkers().findFirst(SymbolicMap.class)).isPresent();
+        assertThat(reference.getCopybook().printAll()).contains("02  TRNNAMEI  PIC X(4).");
+    }
+
+    @Test
+    void aCopybookOfTheMapsetsNameWins() {
+        String cosgn00 = """
+                 01  COSGN0AI.                                                    \s
+                     05  TRNNAMEI   PIC X(4).                                     \s
+          """;
+        List<SourceFile> copybook = CopybookParser.builder().build().parseInputs(singletonList(
+            new Parser.Input(Paths.get("COSGN00.cpy"), () -> new ByteArrayInputStream(cosgn00.getBytes(UTF_8)))),
+          null, new InMemoryExecutionContext()).collect(toList());
+
+        // Ahead of the copybook in the library, whether it parsed or not.
+        for (String mapset : new String[]{COSGN00, "not a map set"}) {
+            List<SourceFile> library = new ArrayList<>(mapset("COSGN00.bms", mapset));
+            library.addAll(copybook);
+            assertThat(copying("COSGN00", library).getSourcePath()).isEqualTo(Paths.get("COSGN00.cpy"));
+        }
+    }
+
+    private static final String COSGN00 = """
+      COSGN00 DFHMSD LANG=COBOL,MODE=INOUT,STORAGE=AUTO
+      COSGN0A DFHMDI SIZE=(24,80)
+      TRNNAME DFHMDF POS=(1,8),LENGTH=4
+              DFHMSD TYPE=FINAL
+              END
+      """;
+
+    private static List<SourceFile> mapset(String path, String source) {
+        return BmsParser.builder().build().parseInputs(singletonList(
+            new Parser.Input(Paths.get(path), () -> new ByteArrayInputStream(source.getBytes(UTF_8)))),
+          null, new InMemoryExecutionContext()).collect(toList());
+    }
+
+    private static CopybookReference copying(String member, List<SourceFile> library) {
+        SourceFile program = CobolParser.builder().copybooks(library).build().parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                         *
+                   PROGRAM-ID. SIGNON.                                              *
+                   DATA DIVISION.                                                   *
+                   WORKING-STORAGE SECTION.                                         *
+                       COPY %s.                                                *
+            """.formatted(member)
+        ).findFirst().orElseThrow();
+
+        List<CopybookReference> references = new ArrayList<>();
+        new CopybookReference.Matcher().<Integer>asVisitor((reference, p) -> {
+            references.add(reference);
+            return reference.getTree();
+        }).visit(program, 0);
+        assertThat(references).hasSize(1);
+        return references.get(0);
     }
 }
