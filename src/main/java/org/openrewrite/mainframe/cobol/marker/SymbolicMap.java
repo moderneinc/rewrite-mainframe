@@ -19,14 +19,16 @@ import lombok.Value;
 import lombok.With;
 import org.openrewrite.marker.Marker;
 
+import java.nio.file.Path;
 import java.util.UUID;
 
 /**
- * A copybook generated from the map set its source path names. A program copies it under the map
- * set's member name, and it stands in for the copybook assembling the map set writes.
+ * A copybook generated from a map set, standing in for the one assembling the map set writes. A
+ * program copies it under the map set's member name.
  */
 @With
 @Value
 public class SymbolicMap implements Marker {
     UUID id;
+    Path mapset;
 }

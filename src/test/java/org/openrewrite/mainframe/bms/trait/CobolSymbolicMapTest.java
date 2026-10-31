@@ -54,6 +54,48 @@ class CobolSymbolicMapTest implements RewriteTest {
     }
 
     @Test
+    void theTerminalPrefixIsTheMapsOwnElseTheMapsets() {
+        symbolicMap(
+          """
+            SET1    DFHMSD LANG=COBOL,MODE=IN
+            MAP1    DFHMDI SIZE=(24,80),TIOAPFX=YES
+            FLD     DFHMDF POS=(1,1),LENGTH=4
+                    DFHMSD TYPE=FINAL
+                    END
+            """,
+          copybook -> assertThat(copybook).contains("01  MAP1I.\n           02  FILLER PIC X(12).")
+        );
+
+        // STORAGE=AUTO implies the prefix only where TIOAPFX is not written.
+        symbolicMap(
+          """
+            SET1    DFHMSD LANG=COBOL,MODE=IN,STORAGE=AUTO,TIOAPFX=NO
+            MAP1    DFHMDI SIZE=(24,80)
+            FLD     DFHMDF POS=(1,1),LENGTH=4
+                    DFHMSD TYPE=FINAL
+                    END
+            """,
+          copybook -> assertThat(copybook).doesNotContain("X(12)")
+        );
+    }
+
+    @Test
+    void aMapWithNothingToDeclareGetsNoRecords() {
+        symbolicMap(
+          """
+            SET1    DFHMSD LANG=COBOL,MODE=INOUT
+            HELP    DFHMDI SIZE=(24,80)
+                    DFHMDF POS=(1,1),LENGTH=4,INITIAL='HELP'
+            MAP1    DFHMDI SIZE=(24,80)
+            FLD     DFHMDF POS=(1,1),LENGTH=4
+                    DFHMSD TYPE=FINAL
+                    END
+            """,
+          copybook -> assertThat(copybook).doesNotContain("HELP").startsWith("       01  MAP1I.\n")
+        );
+    }
+
+    @Test
     void extendedAttributesAddAByteEachInTheirOwnOrder() {
         symbolicMap(
           """
@@ -210,6 +252,15 @@ class CobolSymbolicMapTest implements RewriteTest {
             MAP1    DFHMDI SIZE=(24,80)
             MO      DFHMDF POS=(1,1),LENGTH=2,GRPNAME=DATE
             DAY     DFHMDF POS=(1,3),LENGTH=2,GRPNAME=DATE
+                    DFHMSD TYPE=FINAL
+                    END
+            """,
+          copybook -> assertThat(copybook).isNull()
+        );
+
+        symbolicMap(
+          """
+            SET1    DFHMSD LANG=COBOL,MODE=INOUT
                     DFHMSD TYPE=FINAL
                     END
             """,

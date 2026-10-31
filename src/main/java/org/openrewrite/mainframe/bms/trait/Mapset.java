@@ -118,8 +118,8 @@ public class Mapset implements Trait<Bms.MacroStatement> {
 
     /**
      * The COBOL copybook assembling this map set with {@code TYPE=DSECT} generates, which a program
-     * copies under the map set's member name. Null for a map set not written for COBOL, or one with
-     * a field group.
+     * copies under the map set's member name. Null for a map set not written for COBOL, one with a
+     * field group, or one with nothing to declare.
      */
     public @Nullable String getCobolSymbolicMap() {
         return CobolSymbolicMap.of(this);

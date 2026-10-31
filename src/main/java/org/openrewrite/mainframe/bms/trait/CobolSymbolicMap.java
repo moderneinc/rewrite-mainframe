@@ -18,7 +18,9 @@ package org.openrewrite.mainframe.bms.trait;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.mainframe.bms.tree.Bms;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -43,42 +45,63 @@ final class CobolSymbolicMap {
         if (language == null || !language.trim().toUpperCase(Locale.ROOT).startsWith("COBOL")) {
             return null;
         }
-        // A field group's layout is not known, so a map set with one gets no symbolic map.
-        for (MapDefinition map : mapset.getMaps()) {
-            for (Field field : map.getNamedFields()) {
+        List<MapDefinition> maps = mapset.getMaps();
+        List<List<Field>> fields = new ArrayList<>(maps.size());
+        for (MapDefinition map : maps) {
+            List<Field> named = map.getNamedFields();
+            for (Field field : named) {
+                // A field group's layout is not known, so a map set with one gets no symbolic map.
                 if (field.getTree().getParameter("GRPNAME") != null) {
                     return null;
                 }
             }
+            fields.add(named);
         }
 
         String mode = upper(mapset.getMode());
         boolean input = "IN".equals(mode) || "INOUT".equals(mode);
         boolean output = !"IN".equals(mode);
-        boolean prefix = mapset.hasTerminalPrefix() || "AUTO".equals(upper(mapset.getStorage()));
-        // Without STORAGE=AUTO every map's records share the storage of the first map's.
-        boolean shared = !"AUTO".equals(upper(mapset.getStorage()));
+        boolean automatic = "AUTO".equals(upper(mapset.getStorage()));
 
         CobolSymbolicMap symbolicMap = new CobolSymbolicMap();
         String first = null;
-        for (MapDefinition map : mapset.getMaps()) {
+        for (int i = 0; i < maps.size(); i++) {
+            MapDefinition map = maps.get(i);
+            boolean prefix = prefix(mapset, map, automatic);
+            if (fields.get(i).isEmpty() && !prefix) {
+                continue;
+            }
             Set<Field.Subfield> attributes = attributes(mapset, map);
             String name = map.getName().toUpperCase(Locale.ROOT);
             String inputRecord = name + Field.Subfield.INPUT.getSuffix();
             String outputRecord = name + Field.Subfield.OUTPUT.getSuffix();
+            // Without STORAGE=AUTO every map's records share the storage of the first map's.
+            String shared = automatic ? null : first;
             if (input) {
-                symbolicMap.record(inputRecord, shared ? first : null, prefix);
-                symbolicMap.inputFields(map, attributes);
+                symbolicMap.record(inputRecord, shared, prefix);
+                symbolicMap.inputFields(fields.get(i), attributes);
             }
             if (output) {
-                symbolicMap.record(outputRecord, input ? inputRecord : shared ? first : null, prefix);
-                symbolicMap.outputFields(map, attributes);
+                symbolicMap.record(outputRecord, input ? inputRecord : shared, prefix);
+                symbolicMap.outputFields(fields.get(i), attributes);
             }
             if (first == null) {
                 first = input ? inputRecord : outputRecord;
             }
         }
-        return symbolicMap.out.toString();
+        return first == null ? null : symbolicMap.out.toString();
+    }
+
+    /**
+     * Whether the map's records begin with the 12-byte terminal prefix, from the map's own
+     * {@code TIOAPFX}, else the map set's, else {@code STORAGE=AUTO}, which implies it.
+     */
+    private static boolean prefix(Mapset mapset, MapDefinition map, boolean automatic) {
+        String tioapfx = upper(Operands.textOf(map.getTree(), "TIOAPFX"));
+        if (tioapfx == null) {
+            tioapfx = upper(Operands.textOf(mapset.getTree(), "TIOAPFX"));
+        }
+        return tioapfx == null ? automatic : "YES".equals(tioapfx);
     }
 
     /**
@@ -143,8 +166,8 @@ final class CobolSymbolicMap {
         }
     }
 
-    private void inputFields(MapDefinition map, Set<Field.Subfield> attributes) {
-        for (Field field : map.getNamedFields()) {
+    private void inputFields(List<Field> fields, Set<Field.Subfield> attributes) {
+        for (Field field : fields) {
             String name = name(field);
             Integer occurs = field.getOccurs();
             if (occurs != null && occurs > 1) {
@@ -168,8 +191,8 @@ final class CobolSymbolicMap {
         }
     }
 
-    private void outputFields(MapDefinition map, Set<Field.Subfield> attributes) {
-        for (Field field : map.getNamedFields()) {
+    private void outputFields(List<Field> fields, Set<Field.Subfield> attributes) {
+        for (Field field : fields) {
             String name = name(field);
             Integer occurs = field.getOccurs();
             String indent = "           02  ";

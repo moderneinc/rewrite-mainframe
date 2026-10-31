@@ -27,6 +27,7 @@ import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.CopybookParser;
 import org.openrewrite.mainframe.cobol.marker.SymbolicMap;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.text.PlainTextParser;
 
 import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
@@ -205,10 +206,21 @@ class CopybookReferenceTest implements RewriteTest {
         CopybookReference reference = copying("COSGN00", mapset("COSGN00.bms", COSGN00));
 
         assertThat(reference.isResolved()).isTrue();
-        assertThat(reference.getSourcePath()).isEqualTo(Paths.get("COSGN00.bms"));
+        // No file holds what assembling the map set writes.
+        assertThat(reference.getSourcePath()).isNull();
         //noinspection DataFlowIssue
-        assertThat(reference.getCopybook().getMarkers().findFirst(SymbolicMap.class)).isPresent();
+        assertThat(reference.getCopybook().getMarkers().findFirst(SymbolicMap.class))
+          .hasValueSatisfying(symbolicMap -> assertThat(symbolicMap.getMapset()).isEqualTo(Paths.get("COSGN00.bms")));
         assertThat(reference.getCopybook().printAll()).contains("02  TRNNAMEI  PIC X(4).");
+    }
+
+    @Test
+    void aSourceThatCannotBeCopiedIsPassedOver() {
+        List<SourceFile> library = PlainTextParser.builder().build().parseInputs(singletonList(
+            new Parser.Input(Paths.get("COSGN00.copy"), () -> new ByteArrayInputStream("COSGN00".getBytes(UTF_8)))),
+          null, new InMemoryExecutionContext()).collect(toList());
+
+        assertThat(copying("COSGN00", library).isMissing()).isTrue();
     }
 
     @Test

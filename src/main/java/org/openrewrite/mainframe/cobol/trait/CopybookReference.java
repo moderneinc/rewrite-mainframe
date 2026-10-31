@@ -23,6 +23,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
 import org.openrewrite.mainframe.cobol.marker.MissingCopybook;
+import org.openrewrite.mainframe.cobol.marker.SymbolicMap;
 import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
@@ -88,13 +89,14 @@ public class CopybookReference implements Trait<CobolPreprocessor> {
     }
 
     /**
-     * The file the copybook was read from. Null when the reference resolved to no copybook, or to a
-     * system-supplied one, which has no file. Ask {@link #isResolved()} whether the program's
-     * declarations are complete.
+     * The file the copybook was read from. Null when the reference resolved to no copybook, or to one
+     * no file holds, as a system-supplied copybook or a map set's symbolic map is. Ask
+     * {@link #isResolved()} whether the program's declarations are complete.
      */
     public @Nullable Path getSourcePath() {
         CobolPreprocessor.Copybook copybook = getCopybook();
-        return isResolved() && !isSystemSupplied() && copybook != null ? copybook.getSourcePath() : null;
+        return isResolved() && !isSystemSupplied() && copybook != null &&
+               !copybook.getMarkers().findFirst(SymbolicMap.class).isPresent() ? copybook.getSourcePath() : null;
     }
 
     /**

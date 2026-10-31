@@ -18,9 +18,7 @@ package org.openrewrite.mainframe.cobol;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.ParseExceptionResult;
-import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.bms.BmsParser;
 import org.openrewrite.mainframe.bms.trait.Mapset;
@@ -34,7 +32,6 @@ import org.openrewrite.tree.ParseError;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.*;
 
 import static org.openrewrite.Tree.randomId;
@@ -71,7 +68,11 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
         copybooks.forEach(it -> {
             String fileName = it.getSourcePath().getFileName().toString();
             String member = memberName(fileName.substring(0, fileName.indexOf(".")));
-            (isMapset(it) ? this.mapsets : this.copybooks).putIfAbsent(member, it);
+            if (isMapset(it)) {
+                this.mapsets.putIfAbsent(member, it);
+            } else if (it instanceof CobolPreprocessor.Copybook || it instanceof ParseError) {
+                this.copybooks.putIfAbsent(member, it);
+            }
         });
     }
 
@@ -171,8 +172,8 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
     }
 
     /**
-     * The copybook generated from the map set of this member name, under the map set's source path.
-     * A map set that did not parse is returned as its parse error.
+     * The copybook generated from the map set of this member name. A map set that did not parse is
+     * returned as its parse error.
      */
     private @Nullable SourceFile symbolicMap(String member) {
         SourceFile mapset = mapsets.get(member);
@@ -189,16 +190,9 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
         if (text.length() == 0) {
             return null;
         }
-        SourceFile parsed = CopybookParser.builder().build().parseInputs(Collections.singletonList(new Parser.Input(
-                        Paths.get(member + ".cpy"),
-                        () -> new ByteArrayInputStream(text.toString().getBytes(StandardCharsets.UTF_8)))),
-                null, new InMemoryExecutionContext()).findFirst().orElseThrow(IllegalStateException::new);
-        if (!(parsed instanceof CobolPreprocessor.Copybook)) {
-            return parsed;
-        }
-        CobolPreprocessor.Copybook copybook = (CobolPreprocessor.Copybook) parsed;
-        return copybook.withSourcePath(mapset.getSourcePath())
-                .withMarkers(copybook.getMarkers().add(new SymbolicMap(randomId())));
+        return SystemCopybooks.supplied(member,
+                () -> new ByteArrayInputStream(text.toString().getBytes(StandardCharsets.UTF_8)),
+                new SymbolicMap(randomId(), mapset.getSourcePath()));
     }
 
     private static CobolPreprocessor missing(CobolPreprocessor c, MissingCopybook.Status status) {
