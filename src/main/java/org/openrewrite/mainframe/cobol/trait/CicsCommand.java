@@ -82,7 +82,7 @@ public class CicsCommand implements Trait<Cobol.Word> {
     Map<String, String> options;
 
     @Getter(AccessLevel.NONE)
-    Map<String, Cobol.@Nullable Word> operandStarts;
+    Map<String, Execs.Option> optionWords;
 
     public boolean isVerb(String candidate) {
         return verb.equalsIgnoreCase(candidate);
@@ -97,13 +97,12 @@ public class CicsCommand implements Trait<Cobol.Word> {
     }
 
     /**
-     * The option's operand as the data name it is written as, whose definition is the declaration it
-     * names. Null for a literal, a word the program does not declare, and an operand starting with
-     * anything else, such as {@code LENGTH OF}.
+     * The option's operand as the data name it is written as. Null for a literal, a word the program
+     * does not declare, and an operand starting with anything else, such as {@code LENGTH OF}.
      */
     public @Nullable DataName getOptionDataName(String name) {
-        Cobol.Word start = operandStarts.get(name.toUpperCase(Locale.ROOT));
-        return start == null ? null : new DataName.Matcher().get(new Cursor(cursor, start)).orElse(null);
+        Execs.Option option = optionWords.get(name.toUpperCase(Locale.ROOT));
+        return option == null ? null : DataName.ofOperand(cursor, option.getOperand());
     }
 
     /**
@@ -277,71 +276,49 @@ public class CicsCommand implements Trait<Cobol.Word> {
 
     private static CicsCommand parse(Cursor cursor, CobolPreprocessor.ExecStatement exec) {
         List<Cobol.Word> words = Execs.wordsOf(exec);
-        List<String> tokens = textOf(words);
-        if (tokens.isEmpty()) {
+        if (words.isEmpty()) {
             return new CicsCommand(cursor, exec, "", null, emptyMap(), emptyMap());
         }
 
-        String verb = tokens.get(0).toUpperCase(Locale.ROOT);
+        String verb = words.get(0).getWord().toUpperCase(Locale.ROOT);
         int i = 1;
 
         String qualifier = null;
         Set<String> allowed = QUALIFIERS.get(verb);
-        if (allowed != null && i < tokens.size()) {
-            String candidate = tokens.get(i).toUpperCase(Locale.ROOT);
+        if (allowed != null && i < words.size()) {
+            String candidate = words.get(i).getWord().toUpperCase(Locale.ROOT);
             if (allowed.contains(candidate)) {
                 qualifier = candidate;
-                // SEND MAP('ACCTM') writes the qualifier and an option of the same name once. Left
-                // consumed, the map name went with it and no BMS map was ever reported.
-                if (i + 1 >= tokens.size() || !"(".equals(tokens.get(i + 1))) {
+                // SEND MAP('ACCTM') writes the qualifier and an option of the same name once, so a
+                // qualifier followed by an operand is also read as that option.
+                if (i + 1 >= words.size() || !"(".equals(words.get(i + 1).getWord())) {
                     i++;
                 }
             }
         }
 
         Map<String, String> options = new LinkedHashMap<>();
-        Map<String, Cobol.@Nullable Word> operandStarts = new HashMap<>();
-        while (i < tokens.size()) {
-            String name = tokens.get(i++);
-            if ("(".equals(name) || ")".equals(name)) {
-                continue;
-            }
-            Cobol.Word start = null;
-            if (i < tokens.size() && "(".equals(tokens.get(i))) {
-                StringBuilder operand = new StringBuilder();
-                int depth = 0;
-                do {
-                    int at = i++;
-                    String token = tokens.get(at);
-                    if ("(".equals(token)) {
-                        depth++;
-                        if (depth == 1) {
-                            continue;
-                        }
-                    } else if (")".equals(token)) {
-                        depth--;
-                        if (depth == 0) {
-                            break;
-                        }
-                    }
-                    if (operand.length() > 0) {
-                        operand.append(separator(words, at));
-                    } else {
-                        start = words.get(at);
-                    }
-                    operand.append(token);
-                } while (i < tokens.size());
-                options.put(name.toUpperCase(Locale.ROOT), operand.toString());
-            } else {
-                options.put(name.toUpperCase(Locale.ROOT), "");
-            }
-            operandStarts.put(name.toUpperCase(Locale.ROOT), start);
+        Map<String, Execs.Option> optionWords = new HashMap<>();
+        for (Execs.Option option : Execs.optionsOf(words.subList(i, words.size()))) {
+            options.put(option.getName(), textOf(option.getOperand()));
+            optionWords.put(option.getName(), option);
         }
-        return new CicsCommand(cursor, exec, verb, qualifier, options, operandStarts);
+        return new CicsCommand(cursor, exec, verb, qualifier, options, optionWords);
+    }
+
+    private static String textOf(List<Cobol.Word> operand) {
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < operand.size(); i++) {
+            if (i > 0) {
+                text.append(separator(operand.get(i - 1), operand.get(i)));
+            }
+            text.append(operand.get(i).getWord());
+        }
+        return text.toString();
     }
 
     /**
-     * What was written between this word and the one before it, with a run of blanks reduced to one
+     * What was written between {@code previous} and {@code word}, with a run of blanks reduced to one
      * so that an operand broken over two cards reads as a line. Neither a blank nor a comma is a
      * word — both are kept in the whitespace around one — so an operand read off the words alone has
      * {@code APPLID(APPLIDO OF COSGN0AO)} arriving as {@code APPLIDOOFCOSGN0AO}.
@@ -349,10 +326,10 @@ public class CicsCommand implements Trait<Cobol.Word> {
      * What follows a word up to column 73 separates it from the next just as a blank before that one
      * would, so both are read.
      */
-    private static String separator(List<Cobol.Word> words, int at) {
-        CommentArea trailing = words.get(at - 1).getCommentArea();
+    private static String separator(Cobol.Word previous, Cobol.Word word) {
+        CommentArea trailing = previous.getCommentArea();
         String between = (trailing == null ? "" : trailing.getPrefix().getWhitespace()) +
-                         words.get(at).getPrefix().getWhitespace();
+                         word.getPrefix().getWhitespace();
         StringBuilder separator = new StringBuilder();
         boolean blank = false;
         for (int i = 0; i < between.length(); i++) {
@@ -366,21 +343,6 @@ public class CicsCommand implements Trait<Cobol.Word> {
             }
         }
         return separator.toString();
-    }
-
-    /**
-     * The words of an {@code EXEC} block body, flattened across continuation lines.
-     */
-    static List<String> tokens(CobolPreprocessor.ExecStatement exec) {
-        return textOf(Execs.wordsOf(exec));
-    }
-
-    private static List<String> textOf(List<Cobol.Word> words) {
-        List<String> tokens = new ArrayList<>(words.size());
-        for (Cobol.Word word : words) {
-            tokens.add(word.getWord());
-        }
-        return tokens;
     }
 
     @Override

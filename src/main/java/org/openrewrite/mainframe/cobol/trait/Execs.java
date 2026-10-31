@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol.trait;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
@@ -25,15 +26,18 @@ import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+
+import static java.util.Collections.emptyList;
 
 /**
- * Finding the one word an {@code EXEC} block hangs off.
+ * Reading an {@code EXEC} block off the word it hangs off.
  * <p>
  * Preprocessing takes the block out of the text the COBOL grammar reads and attaches it to a word
  * that stands in for it. The words of the block are then visited too — the preprocessor's own words
  * are handed back to the COBOL visitor, and they answer with the block they came from — so a visitor
- * that asks every word what block it carries hears about the same block a dozen times. This is what
- * tells the stand-in from the rest of the block.
+ * that asks every word what block it carries hears about the same block a dozen times.
+ * {@link #isStandIn} is what tells the stand-in from the rest of the block.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class Execs {
@@ -63,6 +67,79 @@ final class Execs {
             }
         }.visit(exec.getCobol(), 0);
         return words;
+    }
+
+    /**
+     * Whether the block is SQL or SQLIMS, whose words have no options.
+     */
+    static boolean isSql(CobolPreprocessor.ExecStatement exec) {
+        List<CobolPreprocessor.Word> header = exec.getWords();
+        return header.size() > 1 && header.get(1).getCobolWord().getWord().regionMatches(true, 0, "SQL", 0, 3);
+    }
+
+    /**
+     * An option of a CICS or DLI block, named upper cased, with the words inside the parentheses
+     * after it as its operand. The operand is empty for an option written without one.
+     */
+    @Value
+    static class Option {
+        String name;
+        List<Cobol.Word> operand;
+
+        boolean holds(Cobol.Word word) {
+            for (Cobol.Word each : operand) {
+                if (each.getId().equals(word.getId())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * The options among {@code words}, in source order. Every word outside parentheses names one.
+     */
+    static List<Option> optionsOf(List<Cobol.Word> words) {
+        List<Option> options = new ArrayList<>();
+        for (int i = 0; i < words.size(); ) {
+            String name = words.get(i++).getWord();
+            if ("(".equals(name) || ")".equals(name)) {
+                continue;
+            }
+            List<Cobol.Word> operand = emptyList();
+            if (i < words.size() && "(".equals(words.get(i).getWord())) {
+                operand = new ArrayList<>(2);
+                int depth = 0;
+                do {
+                    Cobol.Word word = words.get(i++);
+                    String text = word.getWord();
+                    if ("(".equals(text) && depth++ == 0) {
+                        continue;
+                    }
+                    if (")".equals(text) && --depth == 0) {
+                        break;
+                    }
+                    operand.add(word);
+                } while (i < words.size());
+            }
+            options.add(new Option(name.toUpperCase(Locale.ROOT), operand));
+        }
+        return options;
+    }
+
+    /**
+     * The option whose operand holds {@code word}, or null where there is none, as in an SQL block.
+     */
+    static @Nullable Option optionHolding(CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
+        if (isSql(exec)) {
+            return null;
+        }
+        for (Option option : optionsOf(wordsOf(exec))) {
+            if (option.holds(word)) {
+                return option;
+            }
+        }
+        return null;
     }
 
     /**
