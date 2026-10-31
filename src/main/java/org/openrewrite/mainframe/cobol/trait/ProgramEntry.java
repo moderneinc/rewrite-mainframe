@@ -171,12 +171,11 @@ public class ProgramEntry implements Trait<Cobol> {
                 attributes != null && attributes.stream().anyMatch(word -> "COMMON".equalsIgnoreCase(word.getWord()))) {
                 return positions;
             }
-            ProgramEntry entry = of(containing);
-            List<List<@Nullable String>> calls = callsTo(Literals.unquote(new Program(nested).getName()),
+            List<List<@Nullable DataName>> calls = callsTo(Literals.unquote(new Program(nested).getName()),
                     new Cursor(containing, division));
-            if (entry != null && calls != null) {
+            if (calls != null) {
                 for (int parameter = 0; parameter < parameters; parameter++) {
-                    positions.set(parameter, agreed(calls, parameter, entry));
+                    positions.set(parameter, agreed(calls, parameter));
                 }
             }
             return positions;
@@ -187,8 +186,8 @@ public class ProgramEntry implements Trait<Cobol> {
      * The arguments of each call in {@code division} that can reach {@code program}, or null where a
      * call's targets cannot all be read.
      */
-    private static @Nullable List<List<@Nullable String>> callsTo(String program, Cursor division) {
-        List<List<@Nullable String>> calls = new ArrayList<>();
+    private static @Nullable List<List<@Nullable DataName>> callsTo(String program, Cursor division) {
+        List<List<@Nullable DataName>> calls = new ArrayList<>();
         AtomicBoolean unreadable = new AtomicBoolean();
         new CopybookSkippingVisitor<Integer>() {
             @Override
@@ -200,7 +199,7 @@ public class ProgramEntry implements Trait<Cobol> {
                 if (names == null) {
                     unreadable.set(true);
                 } else if (names.stream().anyMatch(name -> name.trim().equalsIgnoreCase(program))) {
-                    calls.add(DliCall.argumentsByPosition(call));
+                    calls.add(DliCall.argumentDataNames(getCursor()));
                 }
                 return super.visitCall(call, p);
             }
@@ -208,16 +207,31 @@ public class ProgramEntry implements Trait<Cobol> {
         return unreadable.get() ? null : calls;
     }
 
-    private static int agreed(List<List<@Nullable String>> calls, int parameter, ProgramEntry caller) {
+    /**
+     * The position every call agrees the PCB it passes in {@code parameter}'s place has, read in the
+     * entry of the program declaring each argument, or -1 where they do not agree.
+     */
+    private static int agreed(List<List<@Nullable DataName>> calls, int parameter) {
         int agreed = -1;
-        for (List<@Nullable String> arguments : calls) {
-            int position = parameter < arguments.size() ? caller.indexOf(arguments.get(parameter)) : -1;
+        for (List<@Nullable DataName> arguments : calls) {
+            DataName argument = parameter < arguments.size() ? arguments.get(parameter) : null;
+            ProgramEntry entry = argument == null ? null : ofDeclaration(argument.getCursor(), argument);
+            int position = argument == null || entry == null ? -1 : entry.indexOf(argument.getName());
             if (position < 0 || agreed >= 0 && position != agreed) {
                 return -1;
             }
             agreed = position;
         }
         return agreed;
+    }
+
+    /**
+     * The entry of the program declaring what {@code occurrence} names, or of the program {@code at}
+     * is in where it names nothing declared.
+     */
+    static @Nullable ProgramEntry ofDeclaration(Cursor at, @Nullable DataName occurrence) {
+        Cursor declaring = occurrence == null ? null : occurrence.declaringProgram();
+        return of(declaring == null ? at : declaring);
     }
 
     private static void add(List<String> names, Cobol tree) {

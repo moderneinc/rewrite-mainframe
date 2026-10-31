@@ -283,6 +283,80 @@ class DliCallTest implements RewriteTest {
     }
 
     @Test
+    void givesEachOperandAsTheDataNameItIsWrittenAs() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. IMSPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 01 IO-AREA PIC X(100).                                          \s
+            000000 01 ROOT-QUAL PIC X(9) VALUE 'CLMROOT  '.                        \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 PCB-LIST.                                                    \s
+            000000     05 DB-PCB PIC X(40).                                        \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB OF PCB-LIST IO-AREA     \s
+            000000                          ROOT-QUAL 'CLMCHILD '.                 \s
+            000000     EXEC DLI GU USING PCB(1) SEGMENT(ACCOUNT) INTO(IO-AREA)     \s
+            000000     END-EXEC.                                                   \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        DliCall call = calls.get(0);
+        assertThat(call.getFunctionDataName()).extracting(DataName::getName).isEqualTo("GU-FUNC");
+        assertThat(call.getPcbDataName()).extracting(DataName::getName, DataName::getQualifiers)
+          .containsExactly("DB-PCB", List.of("PCB-LIST"));
+        assertThat(call.getIoAreaDataName()).extracting(DataName::getName).isEqualTo("IO-AREA");
+        assertThat(call.getSsaDataNames()).extracting(name -> name == null ? null : name.getName())
+          .containsExactly("ROOT-QUAL", null);
+
+        DliCall exec = calls.get(1);
+        assertThat(exec.getIoAreaDataName()).extracting(DataName::getName).isEqualTo("IO-AREA");
+        assertThat(exec.getPcbDataName()).isNull();
+    }
+
+    @Test
+    void followsAGlobalPcbThatANestedCallerPassesDown() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 IO-PCB PIC X(40).                                            \s
+            000000 01 ACCT-PCB PIC X(40) GLOBAL.                                   \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB.                      \s
+            000000     CALL 'MIDPGM'.                                              \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. MIDPGM.                                             \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     CALL 'INNERPGM' USING ACCT-PCB.                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM MIDPGM.                                             \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getPcbPosition).containsExactly(1);
+    }
+
+    @Test
     void keepsADatabasePcbPassedToANestedProgramOffTheMessageQueue() {
         List<DliCall> calls = parse(
           """
