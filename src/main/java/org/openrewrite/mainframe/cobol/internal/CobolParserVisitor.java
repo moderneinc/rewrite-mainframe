@@ -26,6 +26,7 @@ import org.openrewrite.mainframe.cobol.CobolParsingException;
 import org.openrewrite.mainframe.cobol.CobolParsingTimeoutException;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParserBaseVisitor;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
+import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
@@ -6969,6 +6970,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         if (statement != null && elidedExecs.contains(statement.getId())) {
             pendingElidedExec = true;
             pendingElidedDot = ((CobolPreprocessor.ExecStatement) statement).getDot() != null;
+        }
+        if (statement != null && !copiedWordMarkers.isEmpty()) {
+            CopiedWord origin = copiedWordMarkers.peek().findFirst(CopiedWord.class).orElse(null);
+            if (origin != null && !statement.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
+                // A directive can be carried by the next host word when a copy contributes no further tokens.
+                // Keep its origin on the directive itself without changing the shared copybook tree.
+                statement = statement.withMarkers(statement.getMarkers().add(new CopiedStatement(randomId(), origin.getCopybook())));
+            }
         }
         return statement;
     }
