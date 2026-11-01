@@ -20,10 +20,10 @@ options { caseInsensitive = true; }
 
 @lexer::members {
     /**
-     * Whether only blanks stand between the next character and the start of its line.
+     * Whether only blanks stand between the token's first character and the start of its line.
      */
     boolean startsLine() {
-        for (int i = -1; ; i--) {
+        for (int i = _tokenStartCharIndex - _input.index() - 1; ; i--) {
             int c = _input.LA(i);
             if (c == '\n' || c == '\r' || c == IntStream.EOF || c == 0) {
                 return true;
@@ -768,7 +768,8 @@ FILENAME : [A-Z0-9]+ '.' [A-Z0-9]+;
  */
 SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> skip;
 // Only a >> that begins its line starts a directive, so pseudo-text and EXEC blocks keep theirs as text.
-COMPILER_DIRECTIVE : {startsLine()}? '>>' (~('\n' | '\r')* ~(' ' | '\t' | '\n' | '\r'))?;
+// The predicate follows the >> because ANTLR caches no lexer start state that reaches a predicate before a character.
+COMPILER_DIRECTIVE : '>>' {startsLine()}? (~('\n' | '\r')* ~(' ' | '\t' | '\n' | '\r'))?;
 NEWLINE : '\r'? '\n' -> channel(HIDDEN);
 COMMENTENTRYLINE : COMMENTENTRYTAG WS ~('\n' | '\r')*;
 COMMENTLINE : COMMENTTAG WS ~('\n' | '\r')* -> channel(HIDDEN);
