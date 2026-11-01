@@ -145,6 +145,20 @@ class CopiedDebugLinesTest {
     }
 
     @Test
+    void onlyTheConfigurationSectionTurnsDebuggingModeOn() {
+        var books = book("000000 01 RECORD-DATA.\n000000D05 DEBUG-FIELD PIC X(8).\n000000 05 NORMAL-FIELD PIC X(4).\n");
+        String source = program(false, "01 MODE-TEXT PIC X(14) VALUE 'DEBUGGING MODE'.\nCOPY DEBUGREC.\n", "CONTINUE.\n");
+        assertThat(declarations(parse(CobolParser.builder().copybooks(books).build(), source)))
+          .contains("MODE-TEXT", "NORMAL-FIELD")
+          .doesNotContain("DEBUG-FIELD");
+
+        String withoutDataDivision = program(false, "", "DISPLAY 'DEBUGGING MODE'.\nNOT COBOL.\n")
+          .replace("000000 DATA DIVISION.\n000000 WORKING-STORAGE SECTION.\n", "")
+          .replace("000000 NOT COBOL.", "000000DNOT COBOL.");
+        parse(CobolParser.builder().build(), withoutDataDivision);
+    }
+
+    @Test
     void copiedConfigurationUsesTheSameExpandedModeForTokensAndSource() {
         var books = new ArrayList<>(book("000000 01 RECORD-DATA.\n000000D05 DEBUG-FIELD PIC X(8).\n000000 05 NORMAL-FIELD PIC X(4).\n"));
         CopybookParser.builder().build().parse("000000 SOURCE-COMPUTER. IBM WITH DEBUGGING MODE.\n")
