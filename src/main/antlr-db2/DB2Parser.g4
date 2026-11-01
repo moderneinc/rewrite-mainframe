@@ -231,7 +231,8 @@ columnAttribute
     | NULL
     | DEFAULT (defaultValue | {!startsDefaultValue($ctx)}?)
     | WITH DEFAULT (defaultValue | {!startsDefaultValue($ctx)}?)
-    | GENERATED (ALWAYS | BY DEFAULT) generatedAs?
+    | GENERATED (ALWAYS | BY DEFAULT)
+        (FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP | generatedAs)?
     | (CONSTRAINT identifier)? PRIMARY KEY
     | (CONSTRAINT identifier)? UNIQUE
     | (CONSTRAINT identifier)? CHECK LPAREN searchCondition RPAREN

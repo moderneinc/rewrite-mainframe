@@ -58,6 +58,59 @@ import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
  */
 class Db2ParserTest {
 
+    @ParameterizedTest
+    @ValueSource(strings = {"ALWAYS", "BY DEFAULT"})
+    void rowChangeTimestampKeepsItsCompleteGenerationClause(String mode) {
+        Db2.Ddl ddl = parse("CREATE TABLE APP.ITEM (ID INTEGER NOT NULL,\n" +
+          "VERSION_TS TIMESTAMP NOT NULL GENERATED " + mode +
+          " FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP, PRIMARY KEY (ID));\n");
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.ColumnDefinition column = columns(table).get(1);
+        assertThat(column.getName().getSimpleName()).isEqualTo("VERSION_TS");
+        assertThat(column.getType().getName().getSimpleName()).isEqualTo("TIMESTAMP");
+        assertThat(isNotNull(column)).isTrue();
+        assertThat(column.getAttributes()).hasSize(2);
+        Db2.Option generated = (Db2.Option) column.getAttributes().get(1);
+        assertThat(generated.getValues()).isEmpty();
+        assertThat(generated.getKeywords().stream().map(Db2.Keyword::getText).collect(Collectors.joining(" ")))
+          .isEqualTo("GENERATED " + mode + " FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP");
+        assertThat(names(constraints(table).get(0).getColumns())).containsExactly("ID");
+    }
+
+    @Test
+    void rowChangeClauseRetainsCommentsCaseAndLineEndings() {
+        parse("create table app.item (id integer not null,\r\n" +
+          "version_ts timestamp(6) not null generated always\r\n" +
+          "for each row /* per-row generation */ on update\r\n" +
+          "as row change timestamp, primary key (id));\r\n");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ALWAYS", "BY DEFAULT"})
+    void alterTableCanAddAnExplicitRowChangeTimestamp(String mode) {
+        parse("ALTER TABLE APP.ITEM ADD COLUMN VERSION_TS TIMESTAMP NOT NULL\n" +
+          "GENERATED " + mode + " FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP;\n");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "FOR EACH ROW ON INSERT AS ROW CHANGE TIMESTAMP",
+      "FOR EACH ROW ON UPDATE AS IDENTITY",
+      "FOR EACH ROW ON UPDATE AS ROW BEGIN",
+      "FOR EACH ROW ON UPDATE AS ROW CHANGE",
+      "FOR EACH ROW UPDATE AS ROW CHANGE TIMESTAMP"
+    })
+    void incompleteOrDifferentRowChangeClausesRemainErrors(String clause) {
+        String source = "CREATE TABLE APP.ITEM (VERSION_TS TIMESTAMP NOT NULL GENERATED ALWAYS " + clause + ");\n";
+        assertThat(errorsIn(source)).isNotEmpty();
+        // The parser can retain an erroneous column as loose words when its caller ignores
+        // diagnostics. A caller requiring complete schema evidence must reject those diagnostics.
+        SourceFile strict = Db2Parser.builder().build().parse(new InMemoryExecutionContext(t -> {
+            throw new IllegalStateException(t);
+        }), source).findFirst().orElseThrow();
+        assertThat(strict).isInstanceOf(ParseError.class);
+    }
+
     @Test
     void aTableIsColumnsAndAPrimaryKey() {
         Db2.Ddl ddl = parse(
