@@ -18,13 +18,23 @@ package org.openrewrite.mainframe.cobol;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.ParseExceptionResult;
+import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.bms.BmsParser;
+import org.openrewrite.mainframe.bms.trait.Mapset;
+import org.openrewrite.mainframe.bms.tree.Bms;
 import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.marker.MissingCopybook;
+import org.openrewrite.mainframe.cobol.marker.SymbolicMap;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.tree.ParseError;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static org.openrewrite.Tree.randomId;
@@ -34,6 +44,12 @@ import static org.openrewrite.Tree.randomId;
 public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
 
     Map<String, SourceFile> copybooks = new HashMap<>();
+
+    /**
+     * Map sets by member name, kept apart so that a copybook of the same name wins whatever order
+     * the library lists them in.
+     */
+    Map<String, SourceFile> mapsets = new HashMap<>();
     Map<String, CobolPreprocessor> preprocessorMap;
     Deque<String> copyStack = new ArrayDeque<>();
     Map<String, CobolPreprocessor.Copybook> resolved;
@@ -54,7 +70,8 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
         this.preprocessorMap = preprocessorMap;
         copybooks.forEach(it -> {
             String fileName = it.getSourcePath().getFileName().toString();
-            this.copybooks.putIfAbsent(memberName(fileName.substring(0, fileName.indexOf("."))), it);
+            String member = memberName(fileName.substring(0, fileName.indexOf(".")));
+            (isMapset(it) ? this.mapsets : this.copybooks).putIfAbsent(member, it);
         });
     }
 
@@ -130,8 +147,9 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
     }
 
     /**
-     * The repository's member of this name, or else the one the CICS translator or the Db2 precompiler
-     * supplies, which is read once and kept with the resolved copybooks.
+     * The repository's member of this name, or else the symbolic map of its map set of this name, or
+     * else the one the CICS translator or the Db2 precompiler supplies. A copybook not read from the
+     * repository is made once and kept with the resolved copybooks.
      */
     private @Nullable SourceFile library(String member) {
         SourceFile sf = copybooks.get(member);
@@ -139,7 +157,48 @@ public class PreprocessCopyVisitor<P> extends CobolPreprocessorIsoVisitor<P> {
             return sf;
         }
         CobolPreprocessor.Copybook supplied = resolved.get(member);
-        return supplied != null ? supplied : SystemCopybooks.find(member);
+        if (supplied != null) {
+            return supplied;
+        }
+        SourceFile symbolicMap = symbolicMap(member);
+        return symbolicMap != null ? symbolicMap : SystemCopybooks.find(member);
+    }
+
+    private static boolean isMapset(SourceFile sourceFile) {
+        return sourceFile instanceof Bms.CompilationUnit || sourceFile.getMarkers().findFirst(ParseExceptionResult.class)
+                .filter(failure -> BmsParser.class.getSimpleName().equals(failure.getParserType()))
+                .isPresent();
+    }
+
+    /**
+     * The copybook generated from the map set of this member name, under the map set's source path.
+     * A map set that did not parse is returned as its parse error.
+     */
+    private @Nullable SourceFile symbolicMap(String member) {
+        SourceFile mapset = mapsets.get(member);
+        if (!(mapset instanceof Bms.CompilationUnit)) {
+            return mapset;
+        }
+        StringBuilder text = new StringBuilder();
+        new Mapset.Matcher().lower(mapset).forEach(it -> {
+            String records = it.getCobolSymbolicMap();
+            if (records != null) {
+                text.append(records);
+            }
+        });
+        if (text.length() == 0) {
+            return null;
+        }
+        SourceFile parsed = CopybookParser.builder().build().parseInputs(Collections.singletonList(new Parser.Input(
+                        Paths.get(member + ".cpy"),
+                        () -> new ByteArrayInputStream(text.toString().getBytes(StandardCharsets.UTF_8)))),
+                null, new InMemoryExecutionContext()).findFirst().orElseThrow(IllegalStateException::new);
+        if (!(parsed instanceof CobolPreprocessor.Copybook)) {
+            return parsed;
+        }
+        CobolPreprocessor.Copybook copybook = (CobolPreprocessor.Copybook) parsed;
+        return copybook.withSourcePath(mapset.getSourcePath())
+                .withMarkers(copybook.getMarkers().add(new SymbolicMap(randomId())));
     }
 
     private static CobolPreprocessor missing(CobolPreprocessor c, MissingCopybook.Status status) {
