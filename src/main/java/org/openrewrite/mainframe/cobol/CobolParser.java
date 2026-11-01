@@ -86,9 +86,15 @@ public class CobolParser implements Parser {
                 return notCobol == null ? preprocessedCU : ParseError.build(this, input, relativeTo, ctx, notCobol);
             }
 
+            // Expand source first so token generation and source reconstruction agree about copied debug lines.
+            PrintOutputCapture<ExecutionContext> sourceOutput = new PrintOutputCapture<>(new InMemoryExecutionContext());
+            CobolPreprocessorOutputSourcePrinter<ExecutionContext> printWithColumns = new CobolPreprocessorOutputSourcePrinter<>(cobolDialect, true);
+            printWithColumns.visit(preprocessedCU, sourceOutput);
+
             // Print processed code to parse COBOL.
             PrintOutputCapture<ExecutionContext> cobolParserOutput = new PrintOutputCapture<>(new InMemoryExecutionContext());
-            CobolPreprocessorOutputSourcePrinter<ExecutionContext> printWithoutColumns = new CobolPreprocessorOutputSourcePrinter<>(cobolDialect, false);
+            CobolPreprocessorOutputSourcePrinter<ExecutionContext> printWithoutColumns = new CobolPreprocessorOutputSourcePrinter<>(cobolDialect, false,
+                    !CobolStringUtils.isDebuggingModeEnabled(sourceOutput.getOut(), cobolDialect));
             printWithoutColumns.visit(preprocessedCU, cobolParserOutput);
 
             // Any character with no token is skipped silently: a trailing SUB has to parse, and ForwardingErrorListener throws.
@@ -101,11 +107,6 @@ public class CobolParser implements Parser {
             parser.removeErrorListeners();
             parser.addErrorListener(new ForwardingErrorListener(input.getPath()));
             PredictionListener.addTo(parser, ctx);
-
-            // Print the pre-processed code to parse COBOL.
-            PrintOutputCapture<ExecutionContext> sourceOutput = new PrintOutputCapture<>(new InMemoryExecutionContext());
-            CobolPreprocessorOutputSourcePrinter<ExecutionContext> printWithColumns = new CobolPreprocessorOutputSourcePrinter<>(cobolDialect, true);
-            printWithColumns.visit(preprocessedCU, sourceOutput);
 
             try {
                 org.openrewrite.mainframe.cobol.internal.grammar.CobolParser.CompilationUnitContext tokenizedCU = parser.compilationUnit();
