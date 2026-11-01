@@ -121,8 +121,8 @@ public class DataName implements Trait<Cobol.Word> {
 
     /**
      * The definition this occurrence resolves to. A definition answers itself. A name the program
-     * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
-     * inserts. Failing that, it resolves to a GLOBAL item of the nearest program containing it that
+     * does not declare, such as EIBCALEN or DIBSTAT, resolves to its field in the block the CICS
+     * translator inserts. Failing that, it resolves to a GLOBAL item of the nearest program containing it that
      * declares one. Null where the name is declared nowhere the program can see, such as a copybook
      * that was not found, or where qualification leaves more than one declaration.
      */
@@ -537,10 +537,15 @@ public class DataName implements Trait<Cobol.Word> {
             byProgram.put(unit.getId(), index);
             List<Cursor> usages = index.walk(program, false);
 
-            Cursor block = new Program(program).getExecInterfaceBlock();
+            Program translated = new Program(program);
+            Cursor block = translated.getExecInterfaceBlock();
             if (block != null) {
                 // The translator declares it GLOBAL.
                 index.walk(block, true);
+            }
+            Cursor dib = translated.getDliInterfaceBlock();
+            if (dib != null) {
+                index.walk(dib, false);
             }
 
             // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
