@@ -608,6 +608,38 @@ class DataNameTest implements RewriteTest {
     }
 
     @Test
+    void resolvesAHostVariableQualifiedByItsStructure() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. SQLPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  DCLCTAA.                                                    \s
+            000000     10  CTA-TIPCUEN  PIC X(2).                                  \s
+            000000     10  CTANUM       PIC X(2).                                  \s
+            000000 01  DCLCTAB.                                                    \s
+            000000     10  CTANUM       PIC X(2).                                  \s
+            000000 01  IND-NUM          PIC S9(4) COMP.                            \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     EXEC SQL SELECT TIPCUEN, NUM                                \s
+            000000          INTO :DCLCTAA.CTA-TIPCUEN, :DCLCTAB.CTANUM:IND-NUM     \s
+            000000          FROM TBCURCTA END-EXEC.                                \s
+            """
+        );
+
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("DCLCTAA", "CTA-TIPCUEN", "DCLCTAB", "CTANUM", "IND-NUM");
+        assertThat(names).filteredOn(n -> !n.isDefinition()).allSatisfy(usage ->
+          assertThat(usage.getDefinition()).as(usage.getName()).isNotNull());
+
+        DataName number = usagesOf(names, "CTANUM").get(0);
+        assertThat(number.getQualifiers()).containsExactly("DCLCTAB");
+        assertThat(number.getParent()).extracting(DataName::getName).isEqualTo("DCLCTAB");
+        assertThat(usagesOf(names, "DCLCTAA").get(0).getQualifiers()).isEmpty();
+    }
+
+    @Test
     void readsACicsResponseValueAsALiteral() {
         List<DataName> names = names(
           """

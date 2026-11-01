@@ -33,6 +33,13 @@ options { caseInsensitive = true; }
             }
         }
     }
+
+    /**
+     * Whether a colon stands right before the token's first character.
+     */
+    boolean followsColon() {
+        return _input.LA(_tokenStartCharIndex - _input.index() - 1) == ':';
+    }
 }
 
 @parser::members {
@@ -755,7 +762,9 @@ fragment STRINGLITERAL
     ;
 
 IDENTIFIER : [A-Z0-9]+ ([-_]+ [A-Z0-9]+)*;
-FILENAME : [A-Z0-9]+ '.' [A-Z0-9]+;
+// A qualified name right after a colon is an SQL host variable, :STRUCTURE.FIELD, read as a name, a period and a name.
+// The predicate follows the first character after the period, so a period that ends a sentence never reaches it.
+FILENAME : [A-Z0-9]+ '.' [A-Z0-9] {!followsColon()}? [A-Z0-9]*;
 
 
 // whitespace, line breaks, comments, ...

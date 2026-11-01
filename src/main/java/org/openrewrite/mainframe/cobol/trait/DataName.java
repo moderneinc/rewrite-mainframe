@@ -42,6 +42,7 @@ import java.util.UUID;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
 
 /**
  * A data name where it is written: as its definition, the data description entry in the program or
@@ -192,6 +193,11 @@ public class DataName implements Trait<Cobol.Word> {
         Cursor parent = cursor.getParentTreeCursor();
         if (parent.getValue() instanceof Cobol.Word) {
             CobolPreprocessor.ExecStatement exec = Execs.blockOn((Cobol.Word) parent.getValue());
+            if (exec != null && Execs.isSql(exec)) {
+                List<Cobol.Word> words = Execs.wordsOf(exec);
+                String structure = structureOf(words, indexOf(words, getTree()));
+                return structure == null ? emptyList() : singletonList(structure);
+            }
             Execs.Option option = exec == null ? null : Execs.optionHolding(exec, getTree());
             return option == null ? emptyList() : qualifiersIn(option.getOperand(), getTree());
         }
@@ -446,21 +452,35 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * Whether {@code word} sits where a data name goes in the block: after a colon in SQL, within
-     * an option's parentheses in CICS and DLI.
+     * Whether {@code word} sits where a data name goes in the block. In SQL that is after a colon, or
+     * after the structure of {@code :STRUCTURE.FIELD}. In CICS and DLI it is within an option's
+     * parentheses.
      */
     private static boolean isOperand(CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
         if (!Execs.isSql(exec)) {
             return Execs.optionHolding(exec, word) != null;
         }
-        String previous = "";
-        for (Cobol.Word each : Execs.wordsOf(exec)) {
-            if (each.getId().equals(word.getId())) {
-                return ":".equals(previous);
+        List<Cobol.Word> words = Execs.wordsOf(exec);
+        int at = indexOf(words, word);
+        return at > 0 && ":".equals(words.get(at - 1).getWord()) || structureOf(words, at) != null;
+    }
+
+    /**
+     * The structure, upper cased, that qualifies the host variable at {@code at} in an SQL block's
+     * {@code words} when it is written {@code :STRUCTURE.FIELD}. Null otherwise.
+     */
+    private static @Nullable String structureOf(List<Cobol.Word> words, int at) {
+        return at >= 3 && ".".equals(words.get(at - 1).getWord()) && ":".equals(words.get(at - 3).getWord()) ?
+                words.get(at - 2).getWord().toUpperCase(Locale.ROOT) : null;
+    }
+
+    private static int indexOf(List<Cobol.Word> words, Cobol.Word word) {
+        for (int i = 0; i < words.size(); i++) {
+            if (words.get(i).getId().equals(word.getId())) {
+                return i;
             }
-            previous = each.getWord();
         }
-        return false;
+        return -1;
     }
 
     private static boolean is(@Nullable Cobol node, @Nullable Cobol word) {
