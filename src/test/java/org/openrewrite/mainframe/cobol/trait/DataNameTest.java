@@ -228,6 +228,24 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-TABLE").isReferenced()).isFalse();
     }
 
+    @Test
+    void resolvesTheReturnCodeOfStopRunGiving() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. STOPPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-RC      PIC S9(4) COMP.                                  \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     STOP RUN GIVING WS-RC.                                      \s
+            """
+        );
+
+        assertThat(usagesOf(names, "WS-RC")).singleElement()
+          .satisfies(usage -> assertThat(usage.getDefinition()).isNotNull());
+    }
+
     /**
      * A name declared in two records is told apart by {@code OF}. Written without it the reference
      * is one the compiler would reject, and resolves to nothing; both declarations count as named,
