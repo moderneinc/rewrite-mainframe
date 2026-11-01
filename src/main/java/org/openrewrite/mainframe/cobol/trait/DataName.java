@@ -161,6 +161,25 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
+     * Whether the occurrence qualifies another, as {@code CUST-REC} does in {@code CUST-ID OF CUST-REC}
+     * and {@code DCLCUST} in the SQL host variable {@code :DCLCUST.CUST-ID}. A CICS or DLI operand is
+     * read as words, and a qualifier in one is not told apart.
+     */
+    public boolean isQualifier() {
+        Object parent = cursor.getParentTreeCursor().getValue();
+        if (parent instanceof Cobol.InData) {
+            return true;
+        }
+        CobolPreprocessor.ExecStatement exec = parent instanceof Cobol.Word ? Execs.blockOn((Cobol.Word) parent) : null;
+        if (exec == null || !Execs.isSql(exec)) {
+            return false;
+        }
+        List<Cobol.Word> words = Execs.wordsOf(exec);
+        int at = Execs.indexOf(words, getTree());
+        return at + 2 < words.size() && structureOf(words, at + 2) != null;
+    }
+
+    /**
      * Whether the occurrence is a target of {@code SET}. For a condition name that is an assignment
      * to its conditional variable.
      */
@@ -195,7 +214,7 @@ public class DataName implements Trait<Cobol.Word> {
             CobolPreprocessor.ExecStatement exec = Execs.blockOn((Cobol.Word) parent.getValue());
             if (exec != null && Execs.isSql(exec)) {
                 List<Cobol.Word> words = Execs.wordsOf(exec);
-                String structure = structureOf(words, indexOf(words, getTree()));
+                String structure = structureOf(words, Execs.indexOf(words, getTree()));
                 return structure == null ? emptyList() : singletonList(structure);
             }
             Execs.Option option = exec == null ? null : Execs.optionHolding(exec, getTree());
@@ -266,7 +285,7 @@ public class DataName implements Trait<Cobol.Word> {
      * its operand.
      */
     private static List<String> qualifiersIn(List<Cobol.Word> operand, Cobol.Word word) {
-        int at = indexOf(operand, word);
+        int at = Execs.indexOf(operand, word);
         List<String> qualifiers = new ArrayList<>(1);
         for (int i = at + 2; at >= 0 && i < operand.size(); i += 2) {
             String keyword = operand.get(i - 1).getWord();
@@ -458,7 +477,7 @@ public class DataName implements Trait<Cobol.Word> {
             return Execs.optionHolding(exec, word) != null;
         }
         List<Cobol.Word> words = Execs.wordsOf(exec);
-        int at = indexOf(words, word);
+        int at = Execs.indexOf(words, word);
         return at > 0 && ":".equals(words.get(at - 1).getWord()) || structureOf(words, at) != null;
     }
 
@@ -469,15 +488,6 @@ public class DataName implements Trait<Cobol.Word> {
     private static @Nullable String structureOf(List<Cobol.Word> words, int at) {
         return at >= 3 && ".".equals(words.get(at - 1).getWord()) && ":".equals(words.get(at - 3).getWord()) ?
                 words.get(at - 2).getWord().toUpperCase(Locale.ROOT) : null;
-    }
-
-    private static int indexOf(List<Cobol.Word> words, Cobol.Word word) {
-        for (int i = 0; i < words.size(); i++) {
-            if (words.get(i).getId().equals(word.getId())) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     private static boolean is(@Nullable Cobol node, @Nullable Cobol word) {

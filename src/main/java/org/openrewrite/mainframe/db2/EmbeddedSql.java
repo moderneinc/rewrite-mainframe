@@ -383,7 +383,7 @@ public class EmbeddedSql {
         String name;
 
         /**
-         * Innermost first, as a COBOL data name's are.
+         * Innermost first, and as written, like the name.
          */
         List<String> qualifiers;
     }
