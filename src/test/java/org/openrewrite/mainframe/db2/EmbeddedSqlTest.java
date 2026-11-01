@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.db2;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.mainframe.db2.EmbeddedSql.HostVariable;
 
 import java.util.List;
 
@@ -41,7 +42,7 @@ class EmbeddedSqlTest {
 
         assertThat(read.getColumns()).containsExactly(
           "CUSTOMER_EYECATCHER", "CUSTOMER_SORTCODE", "CUSTOMER_NUMBER", "CUSTOMER_TITLE");
-        assertThat(read.getHostVariables()).containsExactly(
+        assertThat(read.getHostVariables()).extracting(HostVariable::getName).containsExactly(
           "HV-CUSTOMER-EYECATCHER", "HV-CUSTOMER-SORTCODE", "HV-CUSTOMER-NUMBER", "HV-CUSTOMER-TITLE");
     }
 
@@ -83,10 +84,10 @@ class EmbeddedSqlTest {
         EmbeddedSql read = EmbeddedSql.read("INSERT INTO CLM.LOG (ID, LOGGED) SELECT ID, :WS-NOW FROM CLM.CLAIM");
         assertThat(read.getColumns()).containsExactly("ID", "LOGGED");
         // A query fills the listed columns by position, as VALUES does.
-        assertThat(read.getHostVariables()).containsExactly("", "WS-NOW");
+        assertThat(read.getHostVariables()).containsExactly(null, new HostVariable("WS-NOW", List.of()));
 
         assertThat(EmbeddedSql.read("INSERT INTO CLM.LOG (ID, LOGGED) (SELECT ID, :WS-NOW FROM CLM.CLAIM)")
-          .getHostVariables()).containsExactly("", "WS-NOW");
+          .getHostVariables()).containsExactly(null, new HostVariable("WS-NOW", List.of()));
 
         assertThat(EmbeddedSql.read(
           "INSERT INTO CLM.LOG (ID) WITH T AS (SELECT ID FROM CLM.CLAIM) SELECT ID FROM T").getTables())
@@ -101,13 +102,29 @@ class EmbeddedSqlTest {
 
         EmbeddedSql values = EmbeddedSql.read("VALUES USER INTO :WS-USER");
         assertThat(values.getColumns()).isEmpty();
-        assertThat(values.getHostVariables()).containsExactly("WS-USER");
+        assertThat(values.getHostVariables()).extracting(HostVariable::getName).containsExactly("WS-USER");
+    }
+
+    @Test
+    void readsAHostVariableQualifiedByItsStructure() {
+        EmbeddedSql select = EmbeddedSql.read(
+          "SELECT POLICY_NO, STATUS INTO :DCLCLMPOL.POLICY-NO, :DCLCLMPOL.STATUS:IND-STATUS FROM CLM.POLICY");
+        assertThat(select.getHostVariables()).containsExactly(
+          new HostVariable("POLICY-NO", List.of("DCLCLMPOL")), new HostVariable("STATUS", List.of("DCLCLMPOL")));
+        assertThat(select.getIndicatorVariables()).containsExactly(new HostVariable("IND-STATUS", List.of()));
+
+        // The same field under two structures stays two host variables.
+        assertThat(EmbeddedSql.read(
+          "INSERT INTO CLM.HIST (POLICY_NO, PRIOR_NO, STATUS) " +
+          "VALUES (:DCLCLMHIST.POLICY-NO, :DCLCLMPOL.POLICY-NO, 'C')").getHostVariables())
+          .containsExactly(new HostVariable("POLICY-NO", List.of("DCLCLMHIST")),
+            new HostVariable("POLICY-NO", List.of("DCLCLMPOL")), null);
     }
 
     @Test
     void pairsAMultiRowInsertWithItsFirstRow() {
         assertThat(EmbeddedSql.read("INSERT INTO CLM.LOG (ID, NOTE) VALUES (:WS-ID, :WS-NOTE), (:WS-ID2, 'X')")
-          .getHostVariables()).containsExactly("WS-ID", "WS-NOTE");
+          .getHostVariables()).extracting(HostVariable::getName).containsExactly("WS-ID", "WS-NOTE");
     }
 
     /**

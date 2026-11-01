@@ -17,9 +17,11 @@ package org.openrewrite.mainframe.cobol.trait;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
+import org.openrewrite.mainframe.db2.EmbeddedSql.HostVariable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -103,11 +105,14 @@ public class SqlStatements {
      * riding with them. DB2 sets an indicator, so a program that declares one is using it, but it
      * carries no column of its own.
      */
-    public static List<String> variablesOf(SqlStatement statement) {
-        if (statement.getIndicatorVariables().isEmpty()) {
-            return statement.getHostVariables();
+    public static List<HostVariable> variablesOf(SqlStatement statement) {
+        List<HostVariable> variables = new ArrayList<>(statement.getHostVariables().size() +
+                                                       statement.getIndicatorVariables().size());
+        for (HostVariable variable : statement.getHostVariables()) {
+            if (variable != null) {
+                variables.add(variable);
+            }
         }
-        List<String> variables = new ArrayList<>(statement.getHostVariables());
         variables.addAll(statement.getIndicatorVariables());
         return variables;
     }
@@ -127,14 +132,15 @@ public class SqlStatements {
     public static List<SqlStatement.Binding> bind(SqlStatement statement, List<String> declaredColumns) {
         List<String> columns = statement.getColumns().isEmpty() ?
                 declaredColumns : statement.getColumns();
-        List<String> hostVariables = statement.getHostVariables();
+        List<@Nullable HostVariable> hostVariables = statement.getHostVariables();
         if (columns.isEmpty() || columns.size() != hostVariables.size()) {
             return emptyList();
         }
         List<SqlStatement.Binding> bindings = new ArrayList<>(columns.size());
         for (int i = 0; i < columns.size(); i++) {
-            if (!hostVariables.get(i).isEmpty()) {
-                bindings.add(new SqlStatement.Binding(columns.get(i), hostVariables.get(i)));
+            HostVariable hostVariable = hostVariables.get(i);
+            if (hostVariable != null) {
+                bindings.add(new SqlStatement.Binding(columns.get(i), hostVariable));
             }
         }
         return bindings;
