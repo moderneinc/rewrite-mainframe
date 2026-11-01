@@ -260,10 +260,10 @@ public class CobolPreprocessorLexer extends Lexer {
 
 
 	    /**
-	     * Whether only blanks stand between the next character and the start of its line.
+	     * Whether only blanks stand between the token's first character and the start of its line.
 	     */
 	    boolean startsLine() {
-	        for (int i = -1; ; i--) {
+	        for (int i = _tokenStartCharIndex - _input.index() - 1; ; i--) {
 	            int c = _input.LA(i);
 	            if (c == '\n' || c == '\r' || c == IntStream.EOF || c == 0) {
 	                return true;
@@ -1935,9 +1935,9 @@ public class CobolPreprocessorLexer extends Lexer {
 		"\u0000\u0993\u0994\u0001\u0000\u0000\u0000\u0994\u0996\u0005\n\u0000\u0000"+
 		"\u0995\u0990\u0001\u0000\u0000\u0000\u0995\u0992\u0001\u0000\u0000\u0000"+
 		"\u0996\u0997\u0001\u0000\u0000\u0000\u0997\u0998\u0006\u0125\u0000\u0000"+
-		"\u0998\u024c\u0001\u0000\u0000\u0000\u0999\u099a\u0004\u0126\u0000\u0000"+
-		"\u099a\u099b\u0005>\u0000\u0000\u099b\u099c\u0005>\u0000\u0000\u099c\u09a4"+
-		"\u0001\u0000\u0000\u0000\u099d\u099f\b!\u0000\u0000\u099e\u099d\u0001"+
+		"\u0998\u024c\u0001\u0000\u0000\u0000\u0999\u099a\u0005>\u0000\u0000\u099a"+
+		"\u099b\u0005>\u0000\u0000\u099b\u099c\u0001\u0000\u0000\u0000\u099c\u09a4"+
+		"\u0004\u0126\u0000\u0000\u099d\u099f\b!\u0000\u0000\u099e\u099d\u0001"+
 		"\u0000\u0000\u0000\u099f\u09a2\u0001\u0000\u0000\u0000\u09a0\u099e\u0001"+
 		"\u0000\u0000\u0000\u09a0\u09a1\u0001\u0000\u0000\u0000\u09a1\u09a3\u0001"+
 		"\u0000\u0000\u0000\u09a2\u09a0\u0001\u0000\u0000\u0000\u09a3\u09a5\b\""+
