@@ -233,8 +233,8 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * What the occurrence is written in, as the name or as one of its qualifiers. For a usage that is
-     * a {@code QualifiedDataNameFormat1} or a {@code ConditionNameReference}.
+     * What the occurrence is written in, as the name or as one of its qualifiers, such as a
+     * {@code QualifiedDataNameFormat1} or a {@code ConditionNameReference}.
      */
     private Object reference() {
         Cursor parent = cursor.getParentTreeCursor();
