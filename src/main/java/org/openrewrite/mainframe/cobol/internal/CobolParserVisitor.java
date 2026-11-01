@@ -44,6 +44,7 @@ import java.util.*;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.DEBUGGING_INDICATORS;
@@ -140,6 +141,12 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     // Stand-ins for the EXEC block and its period, in the order the parser input holds them.
     private boolean pendingElidedExec;
     private boolean pendingElidedDot;
+
+    /**
+     * The files the program being visited can name, as {@link #filesOf} finds them. The grammar reads a file
+     * qualifying a record as a data name, and these names tell the two apart.
+     */
+    private Set<String> fileNames = emptySet();
 
     public <T> T visit(@Nullable ParseTree... trees) {
         if (Duration.ofNanos(System.nanoTime() - start).compareTo(timeout) > 0) {
@@ -317,10 +324,17 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         // Each list holds the programs nested in the last program of the list below it. The bottom list is the batch.
         Deque<List<Cobol.ProgramUnit>> nested = new ArrayDeque<>();
         nested.push(new ArrayList<>());
+        // The GLOBAL files of each open program and of the programs containing it, kept level with the lists above.
+        Deque<Set<String>> globalFiles = new ArrayDeque<>();
+        globalFiles.push(emptySet());
         for (ParseTree child : ctx.children) {
             if (child instanceof CobolParser.ProgramUnitContext) {
-                nested.peek().add(visitProgramUnit((CobolParser.ProgramUnitContext) child));
+                CobolParser.ProgramUnitContext unit = (CobolParser.ProgramUnitContext) child;
+                Set<String> global = new HashSet<>(globalFiles.peek());
+                fileNames = filesOf(unit, global);
+                nested.peek().add(visitProgramUnit(unit));
                 nested.push(new ArrayList<>());
+                globalFiles.push(global);
             } else if (child instanceof CobolParser.EndProgramStatementContext) {
                 CobolParser.EndProgramStatementContext end = (CobolParser.EndProgramStatementContext) child;
                 if (nested.size() == 1) {
@@ -328,12 +342,55 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                                                           " closes no program", null);
                 }
                 closeProgramUnit(nested, visitEndProgramStatement(end));
+                globalFiles.pop();
             }
         }
         while (nested.size() > 1) {
             closeProgramUnit(nested, null);
         }
         return nested.pop();
+    }
+
+    /**
+     * The files {@code unit} can name, upper cased. They are the FDs and SDs of its FILE SECTION and {@code global},
+     * the GLOBAL files of the programs containing it. Adds its own GLOBAL files to {@code global}.
+     */
+    private static Set<String> filesOf(CobolParser.ProgramUnitContext unit, Set<String> global) {
+        Set<String> files = new HashSet<>(global);
+        CobolParser.DataDivisionContext data = unit.dataDivision();
+        if (data != null) {
+            for (CobolParser.DataDivisionSectionContext section : data.dataDivisionSection()) {
+                if (section.fileSection() != null) {
+                    for (CobolParser.FileDescriptionEntryContext file : section.fileSection().fileDescriptionEntry()) {
+                        String name = file.fileName().getText().toUpperCase(Locale.ROOT);
+                        files.add(name);
+                        for (CobolParser.FileDescriptionEntryClauseContext clause : file.fileDescriptionEntryClause()) {
+                            if (clause.globalClause() != null) {
+                                global.add(name);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return files;
+    }
+
+    /**
+     * Whether the last qualifier of a name names a file. A program cannot spell a data name like a file name, and only
+     * the last qualifier can be a file.
+     */
+    private boolean namesFile(CobolParser.InDataContext last) {
+        return !fileNames.isEmpty() && fileNames.contains(last.dataName().getText().toUpperCase(Locale.ROOT));
+    }
+
+    private Cobol.InFile inFile(CobolParser.InDataContext ctx) {
+        return new Cobol.InFile(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                visit(ctx.IN(), ctx.OF()),
+                (Name) visit(ctx.dataName())
+        );
     }
 
     private void closeProgramUnit(Deque<List<Cobol.ProgramUnit>> nested, Cobol.@Nullable EndProgram endProgram) {
@@ -1141,12 +1198,15 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Cobol.ConditionNameReference visitConditionNameReference(CobolParser.ConditionNameReferenceContext ctx) {
+        List<CobolParser.InDataContext> qualifiers = ctx.inData();
+        int last = qualifiers.size() - 1;
+        CobolParser.InDataContext file = last >= 0 && namesFile(qualifiers.get(last)) ? qualifiers.get(last) : null;
         return new Cobol.ConditionNameReference(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 (Name) visit(ctx.conditionName()),
-                convertAll(ctx.inData()),
-                null,
+                convertAll(file == null ? qualifiers : qualifiers.subList(0, last)),
+                file == null ? null : inFile(file),
                 convertAll(ctx.conditionNameSubscriptReference()),
                 emptyList()
         );
@@ -3758,12 +3818,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitQualifiedDataNameFormat1(CobolParser.QualifiedDataNameFormat1Context ctx) {
+        List<CobolParser.QualifiedInDataContext> qualifiers = ctx.qualifiedInData();
+        int last = qualifiers.size() - 1;
+        CobolParser.InDataContext file = last >= 0 && namesFile(qualifiers.get(last).inData()) ?
+                qualifiers.get(last).inData() : null;
         return new Cobol.QualifiedDataNameFormat1(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 (Name) visit(ctx.dataName()),
-                convertAll(ctx.qualifiedInData()),
-                null
+                convertAll(file == null ? qualifiers : qualifiers.subList(0, last)),
+                file == null ? null : inFile(file)
         );
     }
 
