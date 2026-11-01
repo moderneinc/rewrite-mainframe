@@ -121,10 +121,10 @@ public class DataName implements Trait<Cobol.Word> {
 
     /**
      * The definition this occurrence resolves to. A definition answers itself. A name the program
-     * does not declare, such as EIBCALEN or DIBSTAT, resolves to its field in the block the CICS
-     * translator inserts. Failing that, it resolves to a GLOBAL item of the nearest program containing it that
-     * declares one. Null where the name is declared nowhere the program can see, such as a copybook
-     * that was not found, or where qualification leaves more than one declaration.
+     * does not declare, such as EIBCALEN or DIBSTAT, resolves to its field in the DFHEIBLK or DLZDIB
+     * the CICS translator inserts. Failing that, it resolves to a GLOBAL item of the nearest program
+     * containing it that declares one. Null where the name is declared nowhere the program can see,
+     * such as a copybook that was not found, or where qualification leaves more than one declaration.
      */
     public @Nullable DataName getDefinition() {
         if (isDefinition()) {

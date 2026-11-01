@@ -33,9 +33,9 @@ import static org.openrewrite.Tree.randomId;
  * release has added.
  * <p>
  * Package-private because a caller reads a member's declarations where a program copies it, or
- * through {@code Program} for the DFHEIBLK and DLZDIB the translator inserts. A caller
- * needing a member some other way, or a program naming a member missing here, is reason to extend
- * this class.
+ * through {@code Program#getExecInterfaceBlock()} and {@code Program#getDliInterfaceBlock()} for
+ * the DFHEIBLK and DLZDIB the translator inserts. A caller needing a member some other way, or a
+ * program naming a member missing here, is reason to extend this class.
  */
 final class SystemCopybooks {
 
