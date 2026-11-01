@@ -446,7 +446,7 @@ public class LiteralAssignment implements Trait<Cobol> {
         private static Access accessOf(DataName usage) {
             Cursor at = usage.getCursor();
             Object parent = at.getParentTreeCursor().getValue();
-            if (parent instanceof Cobol.InData || at.firstEnclosing(Cobol.DataDivision.class) != null) {
+            if (usage.isQualifier() || at.firstEnclosing(Cobol.DataDivision.class) != null) {
                 return Access.READ;
             }
             if (at.firstEnclosing(Cobol.ProcedureDivision.class) == null) {

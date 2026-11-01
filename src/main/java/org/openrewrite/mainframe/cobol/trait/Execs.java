@@ -87,13 +87,17 @@ final class Execs {
         List<Cobol.Word> operand;
 
         boolean holds(Cobol.Word word) {
-            for (Cobol.Word each : operand) {
-                if (each.getId().equals(word.getId())) {
-                    return true;
-                }
-            }
-            return false;
+            return indexOf(operand, word) >= 0;
         }
+    }
+
+    static int indexOf(List<Cobol.Word> words, Cobol.Word word) {
+        for (int i = 0; i < words.size(); i++) {
+            if (words.get(i).getId().equals(word.getId())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**

@@ -102,6 +102,23 @@ class CopybookReferenceTest implements RewriteTest {
         });
     }
 
+    @Test
+    void readsANameWithAPeriodAsOneName() {
+        List<CopybookReference> references = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                         *
+                   PROGRAM-ID. IC109A.                                              *
+                   DATA DIVISION.                                                   *
+                   LINKAGE SECTION.                                                 *
+                       01  GRP-01.                                                  *
+                           COPY NOSUCH.BOOK.                                        *
+            """
+        );
+
+        assertThat(references).singleElement()
+          .satisfies(reference -> assertThat(reference.getName()).isEqualTo("NOSUCH.BOOK"));
+    }
+
     /**
      * A copybook that copies another is reached too, and reached once. INCEPTION copies INCEPTION_2,
      * which copies INCEPTION_3, and preprocessing hangs each of the three off a word of the program

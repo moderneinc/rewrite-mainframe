@@ -307,6 +307,29 @@ class LiteralAssignmentTest implements RewriteTest {
     }
 
     @Test
+    void sqlIntoWritesTheFieldNotItsStructure() {
+        Map<String, @Nullable Set<String>> found = candidates(
+          """
+            000000 IDENTIFICATION DIVISION.
+            000000 PROGRAM-ID. SQLQUAL.
+            000000 DATA DIVISION.
+            000000 WORKING-STORAGE SECTION.
+            000000 01 DCLPGM.
+            000000    05 WS-SELECTED PIC X(8) VALUE 'PGMA'.
+            000000    05 WS-PGM PIC X(8) VALUE 'PGMB'.
+            000000 PROCEDURE DIVISION.
+            000000     EXEC SQL SELECT PGM INTO :DCLPGM.WS-SELECTED FROM T END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-SELECTED) END-EXEC.
+            000000     EXEC CICS XCTL PROGRAM(WS-PGM) END-EXEC.
+            000000     GOBACK.
+            """
+        );
+
+        assertThat(found).containsEntry("WS-SELECTED", null);
+        assertThat(found.get("WS-PGM")).containsExactly("PGMB");
+    }
+
+    @Test
     void handingOutAReferenceMakesTheSetIncomplete() {
         Map<String, @Nullable Set<String>> found = candidates(
           """

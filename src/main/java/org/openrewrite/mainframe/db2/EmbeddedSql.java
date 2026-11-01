@@ -48,6 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.DOTALL;
@@ -67,7 +68,7 @@ import static java.util.regex.Pattern.DOTALL;
  * {@code SELECT A, B} is {@code SELECT A B}, and no SQL parser will take that.
  * <p>
  * {@link #getColumns()} and {@link #getHostVariables()} are positional: entry <i>i</i> of one pairs
- * with entry <i>i</i> of the other. A host variable is empty where a literal sits in that position,
+ * with entry <i>i</i> of the other. A host variable is null where a literal sits in that position,
  * which is what keeps the two aligned through {@code VALUES (:A, 5, :B)}, and a null indicator is
  * reported apart from them for the same reason.
  * <p>
@@ -99,7 +100,7 @@ public class EmbeddedSql {
     private static final Pattern INTO =
             Pattern.compile("\\bINTO\\s+(:.*?)(?=\\bFROM\\b|\\bWHERE\\b|$)", CASE_INSENSITIVE | DOTALL);
 
-    private static final Pattern HOST_VARIABLE = Pattern.compile(":([\\w$#@-]+)");
+    private static final Pattern HOST_VARIABLE = Pattern.compile(":(?:([\\w$#@-]+)\\.)?([\\w$#@-]+)");
 
     /**
      * The query a cursor is declared for. What sits between the name and {@code CURSOR} is the
@@ -119,8 +120,8 @@ public class EmbeddedSql {
     private static final Pattern VERB = Pattern.compile("\\s*(\\w+)");
 
     List<String> columns;
-    List<String> hostVariables;
-    List<String> indicatorVariables;
+    List<@Nullable HostVariable> hostVariables;
+    List<HostVariable> indicatorVariables;
 
     /**
      * Every table the query names, qualified as written. Empty where the query named none or could
@@ -140,11 +141,11 @@ public class EmbeddedSql {
         return unmodifiableList(columns);
     }
 
-    public List<String> getHostVariables() {
+    public List<@Nullable HostVariable> getHostVariables() {
         return unmodifiableList(hostVariables);
     }
 
-    public List<String> getIndicatorVariables() {
+    public List<HostVariable> getIndicatorVariables() {
         return unmodifiableList(indicatorVariables);
     }
 
@@ -166,14 +167,14 @@ public class EmbeddedSql {
             return NONE;
         }
 
-        List<String> indicators = new ArrayList<>();
+        List<HostVariable> indicators = new ArrayList<>();
         // A FETCH names no columns and no table of its own. Which ones it reads is on the cursor's
         // declaration, and joining the two is the caller's to do because only it sees the program.
         if ("FETCH".equalsIgnoreCase(verb.group(1))) {
             return new EmbeddedSql(emptyList(), hostVariablesOf(sql, indicators), indicators, emptyList(), null);
         }
 
-        List<String> hostVariables = emptyList();
+        List<@Nullable HostVariable> hostVariables = emptyList();
         String query = sql;
         Matcher declared = DECLARED.matcher(sql);
         if (declared.find()) {
@@ -186,8 +187,8 @@ public class EmbeddedSql {
             }
         }
 
-        Map<String, String> names = new HashMap<>();
-        Statement parsed = parse(withoutHyphens(TAIL.matcher(query).replaceFirst(""), names));
+        Map<String, HostVariable> names = new HashMap<>();
+        Statement parsed = parse(withPlaceholders(TAIL.matcher(query).replaceFirst(""), names));
         List<String> tables = tablesIn(parsed);
         String target = targetOf(parsed);
         if (parsed instanceof Select) {
@@ -238,19 +239,19 @@ public class EmbeddedSql {
     /**
      * COBOL names a field {@code WS-ACCT-ID} and SQL reads the hyphens as subtraction, so
      * {@code :DB2-ISSUEDATE} parses — into {@code :DB2 - ISSUEDATE}, which is worse than failing.
-     * Each host variable is renamed to something the parser will keep whole, and named back on the
-     * way out.
+     * Each host variable is renamed to a numbered placeholder the parser keeps whole, and named back
+     * on the way out. Numbered, so two structures' fields of the same name stay apart.
      */
-    private static String withoutHyphens(String sql, Map<String, String> names) {
+    private static String withPlaceholders(String sql, Map<String, HostVariable> names) {
         Matcher host = HOST_VARIABLE.matcher(sql);
-        StringBuffer without = new StringBuffer();
+        StringBuffer renamed = new StringBuffer();
         while (host.find()) {
-            String renamed = host.group(1).replace('-', '_');
-            names.put(renamed, host.group(1));
-            host.appendReplacement(without, Matcher.quoteReplacement(":" + renamed));
+            String placeholder = "H" + names.size();
+            names.put(placeholder, hostVariable(host));
+            host.appendReplacement(renamed, ":" + placeholder);
         }
-        host.appendTail(without);
-        return without.toString();
+        host.appendTail(renamed);
+        return renamed.toString();
     }
 
     private static @Nullable Statement parse(String sql) {
@@ -270,18 +271,23 @@ public class EmbeddedSql {
      * :IND}. Counting an indicator as a position of its own leaves the clause one longer than the
      * select list, and then nothing pairs at all.
      */
-    private static List<String> hostVariablesOf(String clause, List<String> indicators) {
-        List<String> variables = new ArrayList<>();
+    private static List<@Nullable HostVariable> hostVariablesOf(String clause, List<HostVariable> indicators) {
+        List<@Nullable HostVariable> variables = new ArrayList<>();
         for (String position : clause.split(",")) {
             Matcher host = HOST_VARIABLE.matcher(position);
             if (host.find()) {
-                variables.add(host.group(1));
+                variables.add(hostVariable(host));
             }
             while (host.find()) {
-                indicators.add(host.group(1));
+                indicators.add(hostVariable(host));
             }
         }
         return variables;
+    }
+
+    private static HostVariable hostVariable(Matcher host) {
+        String structure = host.group(1);
+        return new HostVariable(host.group(2), structure == null ? emptyList() : singletonList(structure));
     }
 
     private static List<String> selected(Select select) {
@@ -329,7 +335,7 @@ public class EmbeddedSql {
         return row;
     }
 
-    private static EmbeddedSql inserted(Insert insert, Map<String, String> names, List<String> tables,
+    private static EmbeddedSql inserted(Insert insert, Map<String, HostVariable> names, List<String> tables,
                                         @Nullable String target) {
         if (insert.getColumns() == null) {
             return new EmbeddedSql(emptyList(), emptyList(), emptyList(), tables, target);
@@ -338,11 +344,11 @@ public class EmbeddedSql {
         for (Column column : insert.getColumns()) {
             columns.add(column.getColumnName());
         }
-        List<String> variables = inEachPosition(firstRow(insert.getSelect()), columns.size(), names);
+        List<@Nullable HostVariable> variables = inEachPosition(firstRow(insert.getSelect()), columns.size(), names);
         return new EmbeddedSql(columns, variables, emptyList(), tables, target);
     }
 
-    private static EmbeddedSql updated(Update update, Map<String, String> names, List<String> tables,
+    private static EmbeddedSql updated(Update update, Map<String, HostVariable> names, List<String> tables,
                                        @Nullable String target) {
         List<String> columns = new ArrayList<>();
         List<Expression> values = new ArrayList<>();
@@ -356,20 +362,29 @@ public class EmbeddedSql {
     }
 
     /**
-     * The host variable in each value position, empty where a literal or an expression sits there.
+     * The host variable in each value position, null where a literal or an expression sits there.
      */
-    private static List<String> inEachPosition(List<@Nullable Expression> values, int columns,
-                                               Map<String, String> names) {
-        List<String> variables = new ArrayList<>(columns);
+    private static List<@Nullable HostVariable> inEachPosition(List<@Nullable Expression> values, int columns,
+                                                               Map<String, HostVariable> names) {
+        List<@Nullable HostVariable> variables = new ArrayList<>(columns);
         for (int i = 0; i < columns; i++) {
             Expression value = i >= values.size() ? null : values.get(i);
-            if (!(value instanceof JdbcNamedParameter)) {
-                variables.add("");
-                continue;
-            }
-            String renamed = ((JdbcNamedParameter) value).getName();
-            variables.add(names.getOrDefault(renamed, renamed));
+            variables.add(value instanceof JdbcNamedParameter ? names.get(((JdbcNamedParameter) value).getName()) : null);
         }
         return variables;
+    }
+
+    /**
+     * A host variable as the statement writes it, with the names that qualify it.
+     * {@code :DCLPOL.POLICY-NO} is {@code POLICY-NO} qualified by {@code DCLPOL}.
+     */
+    @Value
+    public static class HostVariable {
+        String name;
+
+        /**
+         * Innermost first, and as written, like the name.
+         */
+        List<String> qualifiers;
     }
 }
