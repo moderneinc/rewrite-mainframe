@@ -266,12 +266,9 @@ public class DataName implements Trait<Cobol.Word> {
      * its operand.
      */
     private static List<String> qualifiersIn(List<Cobol.Word> operand, Cobol.Word word) {
-        int at = 0;
-        while (at < operand.size() && !operand.get(at).getId().equals(word.getId())) {
-            at++;
-        }
+        int at = indexOf(operand, word);
         List<String> qualifiers = new ArrayList<>(1);
-        for (int i = at + 2; i < operand.size(); i += 2) {
+        for (int i = at + 2; at >= 0 && i < operand.size(); i += 2) {
             String keyword = operand.get(i - 1).getWord();
             if (!"OF".equalsIgnoreCase(keyword) && !"IN".equalsIgnoreCase(keyword)) {
                 break;
