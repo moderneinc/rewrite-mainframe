@@ -185,7 +185,8 @@ public class DataName implements Trait<Cobol.Word> {
     /**
      * The names the occurrence is qualified by, innermost first and upper cased: {@code CUST-ID OF
      * CUST-REC} is qualified by {@code CUST-REC}. A qualifier is an occurrence of its own, qualified
-     * by the names after it.
+     * by the names after it. A file name qualifying a record of its FD or SD is not among them, since
+     * it is not a data name.
      */
     public List<String> getQualifiers() {
         Cursor parent = cursor.getParentTreeCursor();
@@ -194,15 +195,8 @@ public class DataName implements Trait<Cobol.Word> {
             Execs.Option option = exec == null ? null : Execs.optionHolding(exec, getTree());
             return option == null ? emptyList() : qualifiersIn(option.getOperand(), getTree());
         }
-        Cobol.Word from = null;
-        if (parent.getValue() instanceof Cobol.InData) {
-            from = getTree();
-            parent = parent.getParentTreeCursor();
-            if (parent.getValue() instanceof Cobol.QualifiedDataName) {
-                parent = parent.getParentTreeCursor();
-            }
-        }
-        Object value = parent.getValue();
+        Cobol.Word from = parent.getValue() instanceof Cobol.InData ? getTree() : null;
+        Object value = reference();
         List<? extends Cobol> ins = value instanceof Cobol.QualifiedDataNameFormat1 ?
                 ((Cobol.QualifiedDataNameFormat1) value).getQualifiedInData() :
                 value instanceof Cobol.ConditionNameReference ? ((Cobol.ConditionNameReference) value).getInDatas() : null;
@@ -225,6 +219,32 @@ public class DataName implements Trait<Cobol.Word> {
             }
         }
         return qualifiers;
+    }
+
+    /**
+     * The file the occurrence is qualified by, upper cased, or null. It narrows the name and each of
+     * its qualifiers to the records of that file.
+     */
+    private @Nullable String file() {
+        Object value = reference();
+        Cobol.InFile in = value instanceof Cobol.QualifiedDataNameFormat1 ? ((Cobol.QualifiedDataNameFormat1) value).getInFile() :
+                value instanceof Cobol.ConditionNameReference ? ((Cobol.ConditionNameReference) value).getInFile() : null;
+        return in == null ? null : Names.upperOf(in.getName());
+    }
+
+    /**
+     * What the occurrence is written in, as the name or as one of its qualifiers, such as a
+     * {@code QualifiedDataNameFormat1} or a {@code ConditionNameReference}.
+     */
+    private Object reference() {
+        Cursor parent = cursor.getParentTreeCursor();
+        if (parent.getValue() instanceof Cobol.InData) {
+            parent = parent.getParentTreeCursor();
+            if (parent.getValue() instanceof Cobol.QualifiedDataName) {
+                parent = parent.getParentTreeCursor();
+            }
+        }
+        return parent.getValue();
     }
 
     /**
@@ -309,13 +329,13 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     private List<Definition> candidates(Index index) {
-        return candidates(index, Names.upperOf(getTree()), getQualifiers());
+        return candidates(index, Names.upperOf(getTree()), getQualifiers(), file());
     }
 
-    private static List<Definition> candidates(Index index, String name, List<String> qualifiers) {
-        List<Definition> matching = index.matching(name, qualifiers, false);
+    private static List<Definition> candidates(Index index, String name, List<String> qualifiers, @Nullable String file) {
+        List<Definition> matching = index.matching(name, qualifiers, file, false);
         for (Index outer = index.container; matching.isEmpty() && outer != null; outer = outer.container) {
-            matching = outer.matching(name, qualifiers, true);
+            matching = outer.matching(name, qualifiers, file, true);
         }
         return matching;
     }
@@ -326,7 +346,7 @@ public class DataName implements Trait<Cobol.Word> {
      * declares the name.
      */
     static @Nullable Cursor declaringProgram(Cursor at, String name) {
-        List<Definition> matching = candidates(index(at), name.toUpperCase(Locale.ROOT), emptyList());
+        List<Definition> matching = candidates(index(at), name.toUpperCase(Locale.ROOT), emptyList(), null);
         Cursor word = matching.isEmpty() ? null : matching.get(0).getWord();
         return word == null ? null : onPath(at, Program.of(word));
     }
@@ -472,6 +492,12 @@ public class DataName implements Trait<Cobol.Word> {
 
         boolean global;
 
+        /**
+         * The FD or SD whose record is or holds this entry, upper cased. Null outside the FILE SECTION.
+         */
+        @Nullable
+        String file;
+
         @Nullable String getName() {
             return word == null ? null : Names.upperOf(word.getValue());
         }
@@ -568,17 +594,18 @@ public class DataName implements Trait<Cobol.Word> {
             }
         }
 
-        List<Definition> matching(String name, List<String> qualifiers, boolean globalOnly) {
+        List<Definition> matching(String name, List<String> qualifiers, @Nullable String file, boolean globalOnly) {
             List<Definition> named = byName.get(name);
             if (named == null) {
                 return emptyList();
             }
-            if (qualifiers.isEmpty() && !globalOnly) {
+            if (qualifiers.isEmpty() && file == null && !globalOnly) {
                 return named;
             }
             List<Definition> matching = new ArrayList<>(1);
             for (Definition definition : named) {
-                if ((definition.isGlobal() || !globalOnly) && definition.isQualifiedBy(qualifiers)) {
+                if ((definition.isGlobal() || !globalOnly) && definition.isQualifiedBy(qualifiers) &&
+                    (file == null || file.equals(definition.getFile()))) {
                     matching.add(definition);
                 }
             }
@@ -647,8 +674,10 @@ public class DataName implements Trait<Cobol.Word> {
             }
             Cobol.Word name = entry.getName();
             boolean named = name != null && !"FILLER".equalsIgnoreCase(name.getWord());
+            Cobol.FileDescriptionEntry fd = parent == null ? at.firstEnclosing(Cobol.FileDescriptionEntry.class) : null;
             Definition definition = new Definition(named ? new Cursor(at, name) : null, level, parent,
-                    parent == null ? global || declaresGlobal(at) : parent.isGlobal());
+                    parent == null ? global || declaresGlobal(entry, fd) : parent.isGlobal(),
+                    parent != null ? parent.getFile() : fd != null ? Names.upperOf(fd.getName()) : null);
             if (level != 88 && level != 66) {
                 open.push(definition);
             }
@@ -659,11 +688,9 @@ public class DataName implements Trait<Cobol.Word> {
         }
 
         /**
-         * Whether the entry says GLOBAL, or the FD it describes a record of does.
+         * Whether the entry says GLOBAL, or {@code file}, the FD it describes a record of, does.
          */
-        private static boolean declaresGlobal(Cursor at) {
-            Cobol.DataDescriptionEntry entry = at.getValue();
-            Cobol.FileDescriptionEntry file = at.firstEnclosing(Cobol.FileDescriptionEntry.class);
+        private static boolean declaresGlobal(Cobol.DataDescriptionEntry entry, Cobol.@Nullable FileDescriptionEntry file) {
             return anyOf(entry.getClauses(), Cobol.DataGlobalClause.class) ||
                    file != null && anyOf(file.getClauses(), Cobol.GlobalClause.class);
         }

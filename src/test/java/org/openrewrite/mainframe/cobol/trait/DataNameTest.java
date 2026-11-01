@@ -64,6 +64,13 @@ class DataNameTest implements RewriteTest {
           .orElseThrow();
     }
 
+    private static List<Cobol.Word> definitionsOf(List<DataName> names, String name) {
+        return names.stream()
+          .filter(n -> n.isDefinition() && n.getName().equals(name))
+          .map(DataName::getTree)
+          .collect(Collectors.toList());
+    }
+
     private static List<DataName> usagesOf(List<DataName> names, String name) {
         return names.stream()
           .filter(n -> !n.isDefinition() && n.getName().equals(name))
@@ -288,6 +295,98 @@ class DataNameTest implements RewriteTest {
 
         assertThat(usagesOf(names, "CUST-NM").get(0).getDefinition()).isNotNull();
         assertThat(names).filteredOn(DataName::isDefinition).allSatisfy(d -> assertThat(d.isReferenced()).isTrue());
+    }
+
+    @Test
+    void qualifiesARecordByItsFile() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. FILEPGM.                                            \s
+            000000 ENVIRONMENT DIVISION.                                           \s
+            000000 INPUT-OUTPUT SECTION.                                           \s
+            000000 FILE-CONTROL.                                                   \s
+            000000     SELECT FILE-A ASSIGN TO DDA.                                \s
+            000000     SELECT FILE-B ASSIGN TO DDB.                                \s
+            000000 DATA DIVISION.                                                  \s
+            000000 FILE SECTION.                                                   \s
+            000000 FD  FILE-A.                                                     \s
+            000000 01  OUT-REC.                                                    \s
+            000000     05  OUT-KEY  PIC X(5).                                      \s
+            000000         88  KEY-EMPTY  VALUE SPACES.                            \s
+            000000 FD  FILE-B.                                                     \s
+            000000 01  OUT-REC.                                                    \s
+            000000     05  OUT-KEY  PIC X(5).                                      \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     WRITE OUT-REC IN FILE-A.                                    \s
+            000000     MOVE SPACES TO OUT-REC OF FILE-B.                           \s
+            000000     MOVE OUT-KEY OF OUT-REC OF FILE-A TO OUT-KEY IN FILE-B.     \s
+            000000     IF KEY-EMPTY OF FILE-A DISPLAY 'EMPTY' END-IF.              \s
+            """
+        );
+
+        // A file name is not a data name.
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("OUT-REC", "OUT-REC", "OUT-KEY", "OUT-REC", "OUT-KEY", "KEY-EMPTY");
+
+        // Each resolves to the declaration under the file it names, and so does a qualifier.
+        List<Cobol.Word> records = definitionsOf(names, "OUT-REC");
+        List<Cobol.Word> keys = definitionsOf(names, "OUT-KEY");
+        assertThat(usagesOf(names, "OUT-REC")).extracting(u -> u.getDefinition().getTree())
+          .containsExactly(records.get(0), records.get(1), records.get(0));
+        assertThat(usagesOf(names, "OUT-KEY")).extracting(u -> u.getDefinition().getTree())
+          .containsExactly(keys.get(0), keys.get(1));
+        assertThat(usagesOf(names, "KEY-EMPTY").get(0).getDefinition()).isNotNull();
+
+        assertThat(usagesOf(names, "OUT-REC").get(0).getQualifiers()).isEmpty();
+        assertThat(usagesOf(names, "OUT-KEY")).extracting(DataName::getQualifiers)
+          .containsExactly(List.of("OUT-REC"), List.of());
+    }
+
+    @Test
+    void qualifiesByAContainingProgramsGlobalFileUnlessHidden() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 ENVIRONMENT DIVISION.                                           \s
+            000000 INPUT-OUTPUT SECTION.                                           \s
+            000000 FILE-CONTROL.                                                   \s
+            000000     SELECT CUST-FILE ASSIGN TO CUSTDD.                          \s
+            000000 DATA DIVISION.                                                  \s
+            000000 FILE SECTION.                                                   \s
+            000000 FD  CUST-FILE GLOBAL.                                           \s
+            000000 01  CUST-REC    PIC X(80).                                      \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. READPGM.                                            \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE SPACES TO CUST-REC OF CUST-FILE.                       \s
+            000000 END PROGRAM READPGM.                                            \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. HIDEPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  CUST-FILE.                                                  \s
+            000000     05  CUST-ID  PIC X.                                         \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE 'A' TO CUST-ID OF CUST-FILE.                           \s
+            000000 END PROGRAM HIDEPGM.                                            \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("CUST-REC", "CUST-ID", "CUST-FILE");
+        assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
+
+        // HIDEPGM's own CUST-FILE hides OUTERPGM's GLOBAL file of that name.
+        assertThat(usagesOf(names, "CUST-ID").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
+        assertThat(usagesOf(names, "CUST-FILE").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
     }
 
     /**

@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.tree.Trees;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -44,6 +45,7 @@ import java.util.*;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.DEBUGGING_INDICATORS;
@@ -140,6 +142,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     // Stand-ins for the EXEC block and its period, in the order the parser input holds them.
     private boolean pendingElidedExec;
     private boolean pendingElidedDot;
+
+    /**
+     * The program being visited and the names that tell a file qualifier from a data name, upper cased. The grammar
+     * reads a file qualifying a record as a data name. The program's data names are read only when a qualifier is
+     * spelled like a containing program's GLOBAL file.
+     */
+    private CobolParser.@Nullable ProgramUnitContext programUnit;
+    private Set<String> ownFiles = emptySet();
+    private Set<String> containerFiles = emptySet();
+    private @Nullable Set<String> ownDataNames;
 
     public <T> T visit(@Nullable ParseTree... trees) {
         if (Duration.ofNanos(System.nanoTime() - start).compareTo(timeout) > 0) {
@@ -317,10 +329,21 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         // Each list holds the programs nested in the last program of the list below it. The bottom list is the batch.
         Deque<List<Cobol.ProgramUnit>> nested = new ArrayDeque<>();
         nested.push(new ArrayList<>());
+        // The GLOBAL files of each open program and of the programs containing it, kept level with the lists above.
+        Deque<Set<String>> globalFiles = new ArrayDeque<>();
+        globalFiles.push(emptySet());
         for (ParseTree child : ctx.children) {
             if (child instanceof CobolParser.ProgramUnitContext) {
-                nested.peek().add(visitProgramUnit((CobolParser.ProgramUnitContext) child));
+                CobolParser.ProgramUnitContext unit = (CobolParser.ProgramUnitContext) child;
+                programUnit = unit;
+                ownFiles = filesOf(unit, false);
+                containerFiles = globalFiles.peek();
+                ownDataNames = null;
+                nested.peek().add(visitProgramUnit(unit));
                 nested.push(new ArrayList<>());
+                Set<String> global = new HashSet<>(containerFiles);
+                global.addAll(filesOf(unit, true));
+                globalFiles.push(global);
             } else if (child instanceof CobolParser.EndProgramStatementContext) {
                 CobolParser.EndProgramStatementContext end = (CobolParser.EndProgramStatementContext) child;
                 if (nested.size() == 1) {
@@ -328,12 +351,67 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                                                           " closes no program", null);
                 }
                 closeProgramUnit(nested, visitEndProgramStatement(end));
+                globalFiles.pop();
             }
         }
         while (nested.size() > 1) {
             closeProgramUnit(nested, null);
         }
         return nested.pop();
+    }
+
+    /**
+     * The FDs and SDs of {@code unit}'s FILE SECTION, or only its GLOBAL FDs, upper cased.
+     */
+    private static Set<String> filesOf(CobolParser.ProgramUnitContext unit, boolean globalOnly) {
+        Set<String> files = new HashSet<>();
+        CobolParser.DataDivisionContext data = unit.dataDivision();
+        if (data != null) {
+            for (CobolParser.DataDivisionSectionContext section : data.dataDivisionSection()) {
+                if (section.fileSection() != null) {
+                    for (CobolParser.FileDescriptionEntryContext file : section.fileSection().fileDescriptionEntry()) {
+                        if (!globalOnly || file.fileDescriptionEntryClause().stream().anyMatch(c -> c.globalClause() != null)) {
+                            files.add(file.fileName().getText().toUpperCase(Locale.ROOT));
+                        }
+                    }
+                }
+            }
+        }
+        return files;
+    }
+
+    /**
+     * Whether the last qualifier of a name names a file. Within one program a data name cannot be spelled like a file
+     * name, and only the last qualifier can be a file. A program's own data item hides a GLOBAL file of a program
+     * containing it.
+     */
+    private boolean namesFile(CobolParser.InDataContext last) {
+        if (ownFiles.isEmpty() && containerFiles.isEmpty()) {
+            return false;
+        }
+        String name = last.dataName().getText().toUpperCase(Locale.ROOT);
+        return ownFiles.contains(name) || containerFiles.contains(name) && !ownDataNames().contains(name);
+    }
+
+    private Set<String> ownDataNames() {
+        if (ownDataNames == null) {
+            ownDataNames = new HashSet<>();
+            CobolParser.DataDivisionContext data = programUnit == null ? null : programUnit.dataDivision();
+            if (data != null) {
+                for (ParseTree entry : Trees.findAllRuleNodes(data, CobolParser.RULE_dataDescriptionEntryFormat1)) {
+                    CobolParser.DataNameContext name = ((CobolParser.DataDescriptionEntryFormat1Context) entry).dataName();
+                    if (name != null) {
+                        ownDataNames.add(name.getText().toUpperCase(Locale.ROOT));
+                    }
+                }
+            }
+        }
+        return ownDataNames;
+    }
+
+    private Cobol.InFile inFile(CobolParser.InDataContext ctx) {
+        Cobol.InData in = (Cobol.InData) visitInData(ctx);
+        return new Cobol.InFile(in.getId(), in.getPrefix(), in.getMarkers(), in.getWord(), in.getName());
     }
 
     private void closeProgramUnit(Deque<List<Cobol.ProgramUnit>> nested, Cobol.@Nullable EndProgram endProgram) {
@@ -1141,12 +1219,15 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Cobol.ConditionNameReference visitConditionNameReference(CobolParser.ConditionNameReferenceContext ctx) {
+        List<CobolParser.InDataContext> qualifiers = ctx.inData();
+        int last = qualifiers.size() - 1;
+        CobolParser.InDataContext file = last >= 0 && namesFile(qualifiers.get(last)) ? qualifiers.get(last) : null;
         return new Cobol.ConditionNameReference(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 (Name) visit(ctx.conditionName()),
-                convertAll(ctx.inData()),
-                null,
+                convertAll(file == null ? qualifiers : qualifiers.subList(0, last)),
+                file == null ? null : inFile(file),
                 convertAll(ctx.conditionNameSubscriptReference()),
                 emptyList()
         );
@@ -3758,12 +3839,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitQualifiedDataNameFormat1(CobolParser.QualifiedDataNameFormat1Context ctx) {
+        List<CobolParser.QualifiedInDataContext> qualifiers = ctx.qualifiedInData();
+        int last = qualifiers.size() - 1;
+        CobolParser.InDataContext file = last >= 0 && namesFile(qualifiers.get(last).inData()) ?
+                qualifiers.get(last).inData() : null;
         return new Cobol.QualifiedDataNameFormat1(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 (Name) visit(ctx.dataName()),
-                convertAll(ctx.qualifiedInData()),
-                null
+                convertAll(file == null ? qualifiers : qualifiers.subList(0, last)),
+                file == null ? null : inFile(file)
         );
     }
 
