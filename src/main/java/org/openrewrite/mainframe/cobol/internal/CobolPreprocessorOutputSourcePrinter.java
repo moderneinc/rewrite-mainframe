@@ -73,6 +73,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     private final CobolSourcePrinter<P> cobolSourcePrinter;
     private final CobolDialect cobolDialect;
     private final boolean printColumns;
+    private final boolean debuggingLinesAreComments;
 
     // Lazily initialized Strings that are generated once with constraints based on the dialect.
     private String dialectSequenceArea = null;
@@ -118,10 +119,17 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
 
     public CobolPreprocessorOutputSourcePrinter(CobolDialect cobolDialect,
                                                 boolean printColumns) {
+        this(cobolDialect, printColumns, false);
+    }
+
+    public CobolPreprocessorOutputSourcePrinter(CobolDialect cobolDialect,
+                                                boolean printColumns,
+                                                boolean debuggingLinesAreComments) {
         super(true);
         this.cobolSourcePrinter = new CobolSourcePrinter<>(printColumns);
         this.cobolDialect = cobolDialect;
         this.printColumns = printColumns;
+        this.debuggingLinesAreComments = debuggingLinesAreComments;
     }
 
     @Override
@@ -157,7 +165,9 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         visitSpace(copybook.getPrefix(), Space.Location.COPY_BOOK_PREFIX, p);
         visitMarkers(copybook.getMarkers(), p);
         boolean enclosing = inCopybook;
+        boolean enclosingIndicator = inUnknownIndicator;
         inCopybook = true;
+        inUnknownIndicator = false;
         for (CobolPreprocessor cobolPreprocessor : copybook.getLst()) {
             if (!(cobolPreprocessor instanceof CobolPreprocessor.CompilerOptions ||
                     cobolPreprocessor instanceof CobolPreprocessor.CompilerDirective ||
@@ -171,6 +181,7 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
 
         visit(copybook.getEof(), p);
         inCopybook = enclosing;
+        inUnknownIndicator = enclosingIndicator;
         return copybook;
     }
 
@@ -369,10 +380,19 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
     @Override
     public CobolPreprocessor visitWord(CobolPreprocessor.Word word, PrintOutputCapture<P> p) {
         String currentWord = word.getCobolWord().getWord();
-        if ("DIVISION".equalsIgnoreCase(currentWord)) {
-            inProcedureDivision = "PROCEDURE".equalsIgnoreCase(previousWord);
+        if (!printColumns && word.getCobolWord().getIndicatorArea() != null) {
+            String indicator = word.getCobolWord().getIndicatorArea().getIndicator();
+            // Copybooks retain debug lines until the including source has been expanded.
+            // Match the comment interpretation used by CobolParserVisitor for that same source.
+            inUnknownIndicator = "G".equals(indicator) || "J".equals(indicator) || "P".equals(indicator) ||
+                    debuggingLinesAreComments && "D".equalsIgnoreCase(indicator);
         }
-        previousWord = currentWord;
+        if (!inUnknownIndicator) {
+            if ("DIVISION".equalsIgnoreCase(currentWord)) {
+                inProcedureDivision = "PROCEDURE".equalsIgnoreCase(previousWord);
+            }
+            previousWord = currentWord;
+        }
 
         if (inCopybook && isSubstituteCharacter(currentWord)) {
             // A copied word prints from the copybook's own tree, so its end-of-file mark stays out of the source
@@ -381,16 +401,6 @@ public class CobolPreprocessorOutputSourcePrinter<P> extends CobolPreprocessorSo
         }
 
         if (!printColumns) {
-            // Do not print words on lines with an unknown indicator until we know how to handle them.
-            // Note: Unknown indicators are treated as comments via source code in CobolParserVisitor#isCommentIndicator.
-            if (word.getCobolWord().getIndicatorArea() != null) {
-                String indicator = word.getCobolWord().getIndicatorArea().getIndicator();
-                if ("G".equals(indicator) || "J".equals(indicator) || "P".equals(indicator)) {
-                    // TODO: add a form of visibility for an unrecognized indicator.
-                    inUnknownIndicator = true;
-                }
-            }
-
             if (!inUnknownIndicator) {
                 if (word.getCobolWord().getReplacement() != null && word.getCobolWord().getReplacement().getType() == Replacement.Type.ADDITIVE) {
                     Replacement replaceAdditiveType = word.getCobolWord().getReplacement();
