@@ -61,7 +61,17 @@ public class Program implements Trait<Cobol.ProgramUnit> {
      * containing it.
      */
     public @Nullable Cursor getExecInterfaceBlock() {
-        return outermost() != this || declaresExecInterfaceBlock() ? null : new Cursor(cursor, Translated.DATA_DIVISION);
+        return outermost() != this || declaresExecInterfaceBlock() ? null : new Cursor(cursor, Translated.EXEC_INTERFACE_BLOCK);
+    }
+
+    /**
+     * The DL/I interface block the translator inserts into a program with EXEC DLI commands, as a
+     * DATA DIVISION whose WORKING-STORAGE SECTION declares DLZDIB. The division hangs under this
+     * program's cursor. Null where this program's own PROCEDURE DIVISION has no EXEC DLI, so a
+     * nested program issuing none does not see the block of a program containing it.
+     */
+    public @Nullable Cursor getDliInterfaceBlock() {
+        return issuesExecDli() ? new Cursor(cursor, Translated.DLI_INTERFACE_BLOCK) : null;
     }
 
     /**
@@ -94,6 +104,22 @@ public class Program implements Trait<Cobol.ProgramUnit> {
             }
         }.visit(division, declared, cursor);
         return declared.get();
+    }
+
+    private boolean issuesExecDli() {
+        Cobol.ProcedureDivision division = getTree().getProcedureDivision();
+        if (division == null) {
+            return false;
+        }
+        AtomicBoolean issued = new AtomicBoolean();
+        new CopybookSkippingVisitor<AtomicBoolean>() {
+            @Override
+            public Cobol.ExecDliStatement visitExecDliStatement(Cobol.ExecDliStatement exec, AtomicBoolean found) {
+                found.set(true);
+                return exec;
+            }
+        }.visit(division, issued, cursor);
+        return issued.get();
     }
 
     public static class Matcher extends SimpleTraitMatcher<Program> {
@@ -153,16 +179,23 @@ public class Program implements Trait<Cobol.ProgramUnit> {
     }
 
     /**
-     * No program's source contains the translator's DFHEIBLK, so it is parsed once.
+     * No program's source contains the blocks the translator inserts, so each is parsed once.
      */
     private static final class Translated {
 
-        private static final Cobol.DataDivision DATA_DIVISION = parse(
+        private static final Cobol.DataDivision EXEC_INTERFACE_BLOCK = parse(
                 "       IDENTIFICATION DIVISION.\n" +
                 "       PROGRAM-ID. DFHEIBLK.\n" +
                 "       DATA DIVISION.\n" +
                 "       LINKAGE SECTION.\n" +
                 "       COPY DFHEIBLK.\n");
+
+        private static final Cobol.DataDivision DLI_INTERFACE_BLOCK = parse(
+                "       IDENTIFICATION DIVISION.\n" +
+                "       PROGRAM-ID. DLZDIB.\n" +
+                "       DATA DIVISION.\n" +
+                "       WORKING-STORAGE SECTION.\n" +
+                "       COPY DLZDIB.\n");
 
         private static Cobol.DataDivision parse(String source) {
             Cobol.CompilationUnit unit = (Cobol.CompilationUnit) CobolParser.builder().build().parse(source)
