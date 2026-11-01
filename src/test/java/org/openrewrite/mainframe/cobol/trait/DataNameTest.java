@@ -496,6 +496,45 @@ class DataNameTest implements RewriteTest {
         });
     }
 
+    @Test
+    void resolvesADliInterfaceBlockFieldOnlyInAProgramWithExecDli() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. DLIPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-REC         PIC X(80).                                   \s
+            000000 01  WS-STATUS      PIC X(2).                                    \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     EXEC DLI GU USING PCB(1) SEGMENT(ACCOUNT) INTO(WS-REC)      \s
+            000000          END-EXEC.                                              \s
+            000000     MOVE DIBSTAT TO WS-STATUS.                                  \s
+            """
+        );
+        assertThat(usagesOf(names, "DIBSTAT")).singleElement().satisfies(usage -> {
+            assertThat(usage.getDefinition()).isNotNull().satisfies(definition -> {
+                assertThat(definition.getCopybook()).isEqualTo("DLZDIB");
+                assertThat(definition.isSystemSupplied()).isTrue();
+            });
+            assertThat(usage.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("DLZDIB");
+        });
+
+        List<DataName> withoutDli = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. NODLI.                                              \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-STATUS      PIC X(2).                                    \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE DIBSTAT TO WS-STATUS.                                  \s
+            """
+        );
+        assertThat(usagesOf(withoutDli, "DIBSTAT")).singleElement()
+          .satisfies(usage -> assertThat(usage.getDefinition()).isNull());
+    }
+
     /**
      * The words of an {@code EXEC} block are not parsed, so a data name in one is known by where it
      * sits: after a colon in SQL, inside an option's parentheses in CICS. {@code NAME} is a column
