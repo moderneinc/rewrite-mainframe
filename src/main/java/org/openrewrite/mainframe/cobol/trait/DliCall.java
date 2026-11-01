@@ -27,10 +27,8 @@ import org.openrewrite.marker.SearchResult;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -507,67 +505,63 @@ public class DliCall implements Trait<Cobol> {
     private static Map<String, String> firstValues(Cursor unit) {
         return unit.computeMessageIfAbsent("cobol.firstValues", k -> {
             Map<String, String> values = new HashMap<>();
-            // Groups opened and still waiting for their first elementary item, innermost last.
-            Deque<Integer> levels = new ArrayDeque<>();
-            Deque<String> groups = new ArrayDeque<>();
-            new CopybookSkippingVisitor<Integer>() {
-                @Override
-                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit programUnit, Integer p) {
-                    // A nested program's data is its own, read from its own cursor.
-                    return programUnit == unit.getValue() ? super.visitProgramUnit(programUnit, p) : programUnit;
+            Cobol.DataDivision division = unit.<Cobol.ProgramUnit>getValue().getDataDivision();
+            if (division != null) {
+                for (DataDescription record : items(DataDescription.recordsOf(new Cursor(unit, division)))) {
+                    firstValue(record, values);
                 }
-
-                @Override
-                public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry, Integer p) {
-                    int level = levelOf(entry);
-                    if (level == 0 || level == 88 || level == 66) {
-                        return entry;
-                    }
-                    // A group with no elementary item before an entry of its own level or above has none.
-                    while (!levels.isEmpty() && levels.peekLast() >= level) {
-                        levels.removeLast();
-                        groups.removeLast();
-                    }
-                    boolean elementary = false;
-                    String value = null;
-                    for (Cobol clause : entry.getClauses()) {
-                        if (clause instanceof Cobol.DataPictureClause) {
-                            elementary = true;
-                        } else if (clause instanceof Cobol.DataValueClause && value == null) {
-                            for (Cobol literal : ((Cobol.DataValueClause) clause).getCobols()) {
-                                String word = Names.of(literal);
-                                value = word == null ? null : Literals.valueOf(word);
-                                if (value != null) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (elementary) {
-                        if (value != null) {
-                            for (String group : groups) {
-                                values.putIfAbsent(group, value);
-                            }
-                        }
-                        levels.clear();
-                        groups.clear();
-                    } else if (entry.getName() != null && !"FILLER".equalsIgnoreCase(entry.getName().getWord())) {
-                        levels.addLast(level);
-                        groups.addLast(entry.getName().getWord().toUpperCase(Locale.ROOT));
-                    }
-                    return entry;
-                }
-            }.visit(unit.getValue(), 0, unit.getParentOrThrow());
+            }
             return values;
         });
     }
 
-    static int levelOf(Cobol.DataDescriptionEntry entry) {
-        try {
-            return entry.getWords().isEmpty() ? 0 : Integer.parseInt(entry.getWords().get(0).getWord());
-        } catch (NumberFormatException e) {
-            return 0;
+    /**
+     * The literal the first elementary item at or under {@code entry} is declared with. Each named
+     * group on the way down to it gets it in {@code values}.
+     */
+    private static @Nullable String firstValue(DataDescription entry, Map<String, String> values) {
+        Cobol.DataDescriptionEntry tree = entry.getTree();
+        boolean elementary = false;
+        String value = null;
+        for (Cobol clause : tree.getClauses()) {
+            if (clause instanceof Cobol.DataPictureClause) {
+                elementary = true;
+            } else if (clause instanceof Cobol.DataValueClause && value == null) {
+                for (Cobol literal : ((Cobol.DataValueClause) clause).getCobols()) {
+                    String word = Names.of(literal);
+                    value = word == null ? null : Literals.valueOf(word);
+                    if (value != null) {
+                        break;
+                    }
+                }
+            }
         }
+        if (elementary) {
+            return value;
+        }
+        List<DataDescription> items = items(entry.getChildren());
+        String first = items.isEmpty() ? null : firstValue(items.get(0), values);
+        Cobol.Word name = tree.getName();
+        if (first != null && name != null && !"FILLER".equalsIgnoreCase(name.getWord())) {
+            values.putIfAbsent(name.getWord().toUpperCase(Locale.ROOT), first);
+        }
+        for (DataDescription later : items.subList(Math.min(1, items.size()), items.size())) {
+            firstValue(later, values);
+        }
+        return first;
+    }
+
+    /**
+     * The entries among {@code entries} that hold storage, without condition names and RENAMES.
+     */
+    private static List<DataDescription> items(List<DataDescription> entries) {
+        List<DataDescription> items = new ArrayList<>(entries.size());
+        for (DataDescription entry : entries) {
+            if (entry.getLevel() != 88 && entry.getLevel() != 66) {
+                items.add(entry);
+            }
+        }
+        return items;
     }
 
     @Override
