@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.tree.Trees;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -143,10 +144,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     private boolean pendingElidedDot;
 
     /**
-     * The files the program being visited can name, as {@link #filesOf} finds them. The grammar reads a file
-     * qualifying a record as a data name, and these names tell the two apart.
+     * The program being visited and the names that tell a file qualifier from a data name, upper cased. The grammar
+     * reads a file qualifying a record as a data name. The program's data names are read only when a qualifier is
+     * spelled like a containing program's GLOBAL file.
      */
-    private Set<String> fileNames = emptySet();
+    private CobolParser.@Nullable ProgramUnitContext programUnit;
+    private Set<String> ownFiles = emptySet();
+    private Set<String> containerFiles = emptySet();
+    private @Nullable Set<String> ownDataNames;
 
     public <T> T visit(@Nullable ParseTree... trees) {
         if (Duration.ofNanos(System.nanoTime() - start).compareTo(timeout) > 0) {
@@ -330,10 +335,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         for (ParseTree child : ctx.children) {
             if (child instanceof CobolParser.ProgramUnitContext) {
                 CobolParser.ProgramUnitContext unit = (CobolParser.ProgramUnitContext) child;
-                Set<String> global = new HashSet<>(globalFiles.peek());
-                fileNames = filesOf(unit, global);
+                programUnit = unit;
+                ownFiles = filesOf(unit, false);
+                containerFiles = globalFiles.peek();
+                ownDataNames = null;
                 nested.peek().add(visitProgramUnit(unit));
                 nested.push(new ArrayList<>());
+                Set<String> global = new HashSet<>(containerFiles);
+                global.addAll(filesOf(unit, true));
                 globalFiles.push(global);
             } else if (child instanceof CobolParser.EndProgramStatementContext) {
                 CobolParser.EndProgramStatementContext end = (CobolParser.EndProgramStatementContext) child;
@@ -352,22 +361,17 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     /**
-     * The files {@code unit} can name, upper cased. They are the FDs and SDs of its FILE SECTION and {@code global},
-     * the GLOBAL files of the programs containing it. Adds its own GLOBAL files to {@code global}.
+     * The FDs and SDs of {@code unit}'s FILE SECTION, or only its GLOBAL FDs, upper cased.
      */
-    private static Set<String> filesOf(CobolParser.ProgramUnitContext unit, Set<String> global) {
-        Set<String> files = new HashSet<>(global);
+    private static Set<String> filesOf(CobolParser.ProgramUnitContext unit, boolean globalOnly) {
+        Set<String> files = new HashSet<>();
         CobolParser.DataDivisionContext data = unit.dataDivision();
         if (data != null) {
             for (CobolParser.DataDivisionSectionContext section : data.dataDivisionSection()) {
                 if (section.fileSection() != null) {
                     for (CobolParser.FileDescriptionEntryContext file : section.fileSection().fileDescriptionEntry()) {
-                        String name = file.fileName().getText().toUpperCase(Locale.ROOT);
-                        files.add(name);
-                        for (CobolParser.FileDescriptionEntryClauseContext clause : file.fileDescriptionEntryClause()) {
-                            if (clause.globalClause() != null) {
-                                global.add(name);
-                            }
+                        if (!globalOnly || file.fileDescriptionEntryClause().stream().anyMatch(c -> c.globalClause() != null)) {
+                            files.add(file.fileName().getText().toUpperCase(Locale.ROOT));
                         }
                     }
                 }
@@ -377,20 +381,37 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     /**
-     * Whether the last qualifier of a name names a file. A program cannot spell a data name like a file name, and only
-     * the last qualifier can be a file.
+     * Whether the last qualifier of a name names a file. Within one program a data name cannot be spelled like a file
+     * name, and only the last qualifier can be a file. A program's own data item hides a GLOBAL file of a program
+     * containing it.
      */
     private boolean namesFile(CobolParser.InDataContext last) {
-        return !fileNames.isEmpty() && fileNames.contains(last.dataName().getText().toUpperCase(Locale.ROOT));
+        if (ownFiles.isEmpty() && containerFiles.isEmpty()) {
+            return false;
+        }
+        String name = last.dataName().getText().toUpperCase(Locale.ROOT);
+        return ownFiles.contains(name) || containerFiles.contains(name) && !ownDataNames().contains(name);
+    }
+
+    private Set<String> ownDataNames() {
+        if (ownDataNames == null) {
+            ownDataNames = new HashSet<>();
+            CobolParser.DataDivisionContext data = programUnit == null ? null : programUnit.dataDivision();
+            if (data != null) {
+                for (ParseTree entry : Trees.findAllRuleNodes(data, CobolParser.RULE_dataDescriptionEntryFormat1)) {
+                    CobolParser.DataNameContext name = ((CobolParser.DataDescriptionEntryFormat1Context) entry).dataName();
+                    if (name != null) {
+                        ownDataNames.add(name.getText().toUpperCase(Locale.ROOT));
+                    }
+                }
+            }
+        }
+        return ownDataNames;
     }
 
     private Cobol.InFile inFile(CobolParser.InDataContext ctx) {
-        return new Cobol.InFile(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                visit(ctx.IN(), ctx.OF()),
-                (Name) visit(ctx.dataName())
-        );
+        Cobol.InData in = (Cobol.InData) visitInData(ctx);
+        return new Cobol.InFile(in.getId(), in.getPrefix(), in.getMarkers(), in.getWord(), in.getName());
     }
 
     private void closeProgramUnit(Deque<List<Cobol.ProgramUnit>> nested, Cobol.@Nullable EndProgram endProgram) {

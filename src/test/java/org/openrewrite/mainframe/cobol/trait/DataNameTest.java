@@ -344,7 +344,7 @@ class DataNameTest implements RewriteTest {
     }
 
     @Test
-    void qualifiesARecordByAContainingProgramsGlobalFile() {
+    void qualifiesByAContainingProgramsGlobalFileUnlessHidden() {
         List<DataName> names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
@@ -360,18 +360,33 @@ class DataNameTest implements RewriteTest {
             000000 PROCEDURE DIVISION.                                             \s
             000000     GOBACK.                                                     \s
             000000 IDENTIFICATION DIVISION.                                        \s
-            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 PROGRAM-ID. READPGM.                                            \s
             000000 PROCEDURE DIVISION.                                             \s
             000000     MOVE SPACES TO CUST-REC OF CUST-FILE.                       \s
-            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM READPGM.                                            \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. HIDEPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  CUST-FILE.                                                  \s
+            000000     05  CUST-ID  PIC X.                                         \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE 'A' TO CUST-ID OF CUST-FILE.                           \s
+            000000 END PROGRAM HIDEPGM.                                            \s
             000000 END PROGRAM OUTERPGM.                                           \s
             """
         );
 
         assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
-          .containsExactly("CUST-REC");
+          .containsExactly("CUST-REC", "CUST-ID", "CUST-FILE");
         assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
+
+        // HIDEPGM's own CUST-FILE hides OUTERPGM's GLOBAL file of that name.
+        assertThat(usagesOf(names, "CUST-ID").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
+        assertThat(usagesOf(names, "CUST-FILE").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
     }
 
     /**
