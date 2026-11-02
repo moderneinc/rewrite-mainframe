@@ -166,20 +166,22 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
                 expectOperand = true;
             }
             if (expectOperand) {
-                // The operand field runs to the first blank outside a quoted string, so it is
-                // gathered a card at a time: a literal too long for one card carries on over the
-                // blanks and the line break inside it.
+                // The operand field runs to the first blank outside a quoted string and outside
+                // parentheses. A literal too long for one card, or a list continued after one of
+                // its commas, carries on over the blanks and the line break inside it.
                 List<Bms.Word> cards = new ArrayList<>();
                 Space cardPrefix = word.getPrefix();
                 StringBuilder card = new StringBuilder(word.getText());
                 Markers cardMarkers = word.getMarkers();
                 boolean quoted = crossesQuote(word.getText());
+                int depth = depthAfter(word.getText(), 0, false);
                 while (i + 1 < words.size() && words.get(i + 1) instanceof Bms.Word) {
                     Bms.Word next = (Bms.Word) words.get(i + 1);
                     String blanks = next.getPrefix().getWhitespace();
-                    if (!quoted && !blanks.isEmpty()) {
+                    if (!quoted && depth <= 0 && !blanks.isEmpty()) {
                         break;
                     }
+                    depth = depthAfter(next.getText(), depth, quoted);
                     quoted ^= crossesQuote(next.getText());
                     if (startsLine.get(++i)) {
                         cards.add(new Bms.Word(randomId(), cardPrefix, cardMarkers, card.toString()));
@@ -283,6 +285,24 @@ public class BmsParserVisitor extends BMSParserBaseVisitor<Bms> {
             parts.add(run.substring(start));
         }
         return parts;
+    }
+
+    /**
+     * How many parentheses are open after the word, given how many were open before it and
+     * whether it starts inside a quoted string.
+     */
+    private static int depthAfter(String text, int depth, boolean quoted) {
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\'') {
+                quoted = !quoted;
+            } else if (!quoted && c == '(') {
+                depth++;
+            } else if (!quoted && c == ')') {
+                depth--;
+            }
+        }
+        return depth;
     }
 
     /**
