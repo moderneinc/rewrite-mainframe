@@ -31,8 +31,8 @@ import static org.openrewrite.mainframe.controlm.tree.ParserAssertions.controlM;
 
 /**
  * The same job, browsed on the z/OS panel and exported as XML, has to read the same either way.
- * Desjardins ships one of the two dialects and nobody knows yet which, so a trait that answered
- * differently would be a report that changed with the export format.
+ * A portfolio may arrive in either dialect, so a trait that answered differently would be a report
+ * that changed with the export format.
  */
 class ScheduledJobTest implements RewriteTest {
 

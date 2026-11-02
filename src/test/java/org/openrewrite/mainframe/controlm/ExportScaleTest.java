@@ -28,9 +28,10 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * A whole portfolio's schedule arrives as one file — Desjardins' is 2.39M lines — so this reads a
- * synthetic export of that shape and reports what it cost. Gated on {@code CONTROLM_SCALE} because
- * the file is built in memory and the run wants a heap the ordinary tests do not.
+ * A whole portfolio's schedule arrives as one file that can run to millions of lines, so this
+ * reads a synthetic export of that shape and reports what it cost. Gated on
+ * {@code CONTROLM_SCALE} because the file is built in memory and the run wants a heap the
+ * ordinary tests do not.
  * <p>
  * Measured on an Apple M-series laptop, JDK 21: 200,000 jobs, 2,266,671 lines, 281MB of text read in
  * 3.6s and printed back identically in 1.2s, with the traits reading every job in a further 0.9s.

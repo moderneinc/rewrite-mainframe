@@ -125,7 +125,7 @@ public final class Members {
          */
         REXX(REXX_FILE_EXTENSIONS),
         /**
-         * A run book member: Desjardins' {@code DOCJOB}, {@code DOCPGM}, {@code DOCFICH},
+         * A run book member: {@code DOCJOB}, {@code DOCPGM}, {@code DOCFICH},
          * {@code DOCAPPL} and {@code DOCOPER}, one per job, program, file, application and operating
          * procedure. Which of the five a member is comes from its first word, not from this.
          */

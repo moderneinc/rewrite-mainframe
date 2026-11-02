@@ -125,17 +125,13 @@ class SearchableTextTest implements RewriteTest {
           .contains("CODE 01", "CODE 30");
     }
 
-    /**
-     * Ora-Web's rule: a hyphen, a period and an underscore end a token, so {@code ACCT} finds
-     * {@code WS-ACCT-ID}. Whitespace and punctuation end one as well, or nothing in a literal could
-     * be found by the word inside it.
-     */
     @Test
     void endsATokenAtAHyphenPeriodOrUnderscore() {
         assertThat(SearchableText.tokens("WS-ACCT-ID")).extracting(SearchableText.Token::getText)
           .containsExactly("WS", "ACCT", "ID");
         assertThat(SearchableText.tokens("CUST.NAME_1")).extracting(SearchableText.Token::getText)
           .containsExactly("CUST", "NAME", "1");
+        // Every other non-alphanumeric ends a token too, or no word inside a literal could be found.
         assertThat(SearchableText.tokens("'e=\"width:70%; font:12px'")).extracting(SearchableText.Token::getText)
           .containsExactly("e", "width", "70", "font", "12px");
         assertThat(SearchableText.tokens("WS-ACCT-ID")).extracting(SearchableText.Token::getOffset)
