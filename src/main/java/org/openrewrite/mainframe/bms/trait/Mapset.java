@@ -88,23 +88,22 @@ public class Mapset implements Trait<Bms.MacroStatement> {
     }
 
     /**
-     * Whether the symbolic map carries the extended attributes — colour, highlighting, validation.
-     * {@code EXTATT=MAPONLY} sets them on the map without generating the fields for them, so only
-     * {@code YES} answers this.
+     * Whether the symbolic map carries extended attributes, such as colour and highlighting, from
+     * {@code DSATTS} or {@code EXTATT=YES}. {@code EXTATT=MAPONLY} sets them on the map without
+     * generating the fields for them. A map naming its own decides for itself.
      */
     public boolean hasExtendedAttributes() {
-        String extatt = Operands.textOf(getTree(), "EXTATT");
-        return extatt != null && "YES".equalsIgnoreCase(extatt.trim());
+        return !CobolSymbolicMap.attributes(this, null).isEmpty();
     }
 
     /**
      * Whether the symbolic map begins with the twelve byte filler a CICS program needs in front of
-     * it, from {@code TIOAPFX=YES}. Nothing else in the map moves, so this changes where the fields
-     * start and not what they are called.
+     * it, from {@code TIOAPFX}, else {@code STORAGE=AUTO}, which implies it. A map writing its own
+     * {@code TIOAPFX} decides for itself. Nothing else in the map moves, so this changes where the
+     * fields start and not what they are called.
      */
     public boolean hasTerminalPrefix() {
-        String tioapfx = Operands.textOf(getTree(), "TIOAPFX");
-        return tioapfx != null && "YES".equalsIgnoreCase(tioapfx.trim());
+        return CobolSymbolicMap.prefix(this, null);
     }
 
     public List<MapDefinition> getMaps() {
@@ -114,6 +113,15 @@ public class Mapset implements Trait<Bms.MacroStatement> {
             matcher.get(new Cursor(cursor.getParentOrThrow(), statement)).ifPresent(maps::add);
         }
         return maps;
+    }
+
+    /**
+     * The COBOL copybook assembling this map set with {@code TYPE=DSECT} generates, which a program
+     * copies under the map set's member name. Null for a map set not written for COBOL, one with a
+     * field group, or one with nothing to declare.
+     */
+    public @Nullable String getCobolSymbolicMap() {
+        return CobolSymbolicMap.of(this);
     }
 
     public @Nullable MapDefinition getMap(String name) {
