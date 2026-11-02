@@ -93,14 +93,21 @@ public class EmbeddedSql {
     });
 
     /**
+     * A character of a host variable's name. The hyphen is one, though {@code \b} reads it as a word
+     * boundary.
+     */
+    private static final String NAME_CHARACTER = "[\\w$#@-]";
+
+    /**
      * The {@code INTO} clause of a singleton {@code SELECT} or a {@code FETCH}, which is where the
      * host variables are. {@code INSERT INTO} names a table instead, and the colon is what tells the
      * two apart.
      */
-    private static final Pattern INTO =
-            Pattern.compile("\\bINTO\\s+(:.*?)(?=\\bFROM\\b|\\bWHERE\\b|$)", CASE_INSENSITIVE | DOTALL);
+    private static final Pattern INTO = Pattern.compile("(?<!" + NAME_CHARACTER + ")INTO\\s+(:.*?)(?=" +
+            "(?<!" + NAME_CHARACTER + ")(?:FROM|WHERE)(?!" + NAME_CHARACTER + ")|$)", CASE_INSENSITIVE | DOTALL);
 
-    private static final Pattern HOST_VARIABLE = Pattern.compile(":(?:([\\w$#@-]+)\\.)?([\\w$#@-]+)");
+    private static final Pattern HOST_VARIABLE =
+            Pattern.compile(":(?:(" + NAME_CHARACTER + "+)\\.)?(" + NAME_CHARACTER + "+)");
 
     /**
      * The query a cursor is declared for. What sits between the name and {@code CURSOR} is the
@@ -168,12 +175,6 @@ public class EmbeddedSql {
         }
 
         List<HostVariable> indicators = new ArrayList<>();
-        // A FETCH names no columns and no table of its own. Which ones it reads is on the cursor's
-        // declaration, and joining the two is the caller's to do because only it sees the program.
-        if ("FETCH".equalsIgnoreCase(verb.group(1))) {
-            return new EmbeddedSql(emptyList(), hostVariablesOf(sql, indicators), indicators, emptyList(), null);
-        }
-
         List<@Nullable HostVariable> hostVariables = emptyList();
         String query = sql;
         Matcher declared = DECLARED.matcher(sql);
@@ -185,6 +186,12 @@ public class EmbeddedSql {
                 hostVariables = hostVariablesOf(into.group(1), indicators);
                 query = sql.substring(0, into.start()) + " " + sql.substring(into.end());
             }
+        }
+
+        // A FETCH names no columns and no table of its own. Which ones it reads is on the cursor's
+        // declaration, and joining the two is the caller's to do because only it sees the program.
+        if ("FETCH".equalsIgnoreCase(verb.group(1))) {
+            return new EmbeddedSql(emptyList(), hostVariables, indicators, emptyList(), null);
         }
 
         Map<String, HostVariable> names = new HashMap<>();

@@ -46,6 +46,37 @@ class EmbeddedSqlTest {
           "HV-CUSTOMER-EYECATCHER", "HV-CUSTOMER-SORTCODE", "HV-CUSTOMER-NUMBER", "HV-CUSTOMER-TITLE");
     }
 
+    @Test
+    void readsAnIntoListPastANameThatEndsOrStartsWithAClauseKeyword() {
+        EmbeddedSql from = EmbeddedSql.read(
+          "SELECT ID, VALID_FROM, VALID_TO INTO :WS-ID, :WS-VALID-FROM, :WS-VALID-TO FROM CLM.POLICY");
+        assertThat(from.getColumns()).containsExactly("ID", "VALID_FROM", "VALID_TO");
+        assertThat(from.getHostVariables()).extracting(HostVariable::getName)
+          .containsExactly("WS-ID", "WS-VALID-FROM", "WS-VALID-TO");
+
+        EmbeddedSql where = EmbeddedSql.read(
+          "SELECT ID, FOUND_WHERE, FROM_DATE INTO :WS-ID, :WS-FOUND-WHERE, :FROM-DATE FROM CLM.POLICY " +
+          "WHERE ID = :WS-KEY");
+        assertThat(where.getColumns()).containsExactly("ID", "FOUND_WHERE", "FROM_DATE");
+        assertThat(where.getHostVariables()).extracting(HostVariable::getName)
+          .containsExactly("WS-ID", "WS-FOUND-WHERE", "FROM-DATE");
+    }
+
+    @Test
+    void findsNoIntoListInANameThatEndsWithInto() {
+        assertThat(EmbeddedSql.read("INSERT INTO CLM.LOG (ID, NOTE) VALUES (:WS-ID, :WS-COPY-INTO :WS-IND)")
+          .getColumns()).containsExactly("ID", "NOTE");
+    }
+
+    @Test
+    void takesAFetchsHostVariablesFromItsIntoListAlone() {
+        assertThat(EmbeddedSql.read("FETCH ABSOLUTE :WS-POS FROM C1 INTO :WS-ID, :WS-STATUS").getHostVariables())
+          .extracting(HostVariable::getName).containsExactly("WS-ID", "WS-STATUS");
+
+        assertThat(EmbeddedSql.read("FETCH NEXT ROWSET FROM C1 FOR :WS-ROWS ROWS INTO :WS-IDS").getHostVariables())
+          .extracting(HostVariable::getName).containsExactly("WS-IDS");
+    }
+
     /**
      * CardDemo qualifies its tables with a schema. Read off the COBOL words the name comes back as
      * CARDDEMO.TRANSACTION, because SQL's one name is more than one COBOL word — which is a dataset
