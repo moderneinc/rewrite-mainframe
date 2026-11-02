@@ -21,6 +21,7 @@ import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
+import org.openrewrite.mainframe.db2.EmbeddedSql.HostVariable;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.ArrayList;
@@ -71,13 +72,13 @@ class SqlStatementTest implements RewriteTest {
                 assertThat(statements).hasSize(3);
 
                 assertThat(SqlStatements.bind(statements.get(0), List.of()))
-                  .extracting(SqlStatement.Binding::getColumn, SqlStatement.Binding::getHostVariable)
+                  .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
                   .containsExactly(tuple("FIRSTNAME", "CA-FIRST-NAME"), tuple("LASTNAME", "CA-LAST-NAME"));
 
                 // The literal takes a column position without a host variable, and the one after it
                 // still has to line up.
                 assertThat(SqlStatements.bind(statements.get(1), List.of()))
-                  .extracting(SqlStatement.Binding::getColumn, SqlStatement.Binding::getHostVariable)
+                  .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
                   .containsExactly(tuple("ISSUEDATE", "DB2-ISSUEDATE"), tuple("PAYMENT", "DB2-PAYMENT"));
 
                 // SELECT * names no column, and guessing at the record's shape would put a name on
@@ -205,7 +206,7 @@ class SqlStatementTest implements RewriteTest {
               000000     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> assertThat(SqlStatements.bind(statementsIn(cu).get(0), List.of()))
-              .extracting(SqlStatement.Binding::getColumn, SqlStatement.Binding::getHostVariable)
+              .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
               .containsExactly(tuple("CUSTOMER_EYECATCHER", "HV-EYECATCHER"),
                 tuple("CUSTOMER_SORTCODE", "HV-SORTCODE"),
                 tuple("CUSTOMER_NUMBER", "HV-NUMBER")))
@@ -291,7 +292,7 @@ class SqlStatementTest implements RewriteTest {
                   .containsExactly("ISSUEDATE", "EXPIRYDATE", "BROKERID");
 
                 assertThat(SqlStatements.bind(statements.get(1), declare.getColumns()))
-                  .extracting(SqlStatement.Binding::getColumn, SqlStatement.Binding::getHostVariable)
+                  .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
                   .containsExactly(tuple("ISSUEDATE", "DB2-ISSUEDATE"),
                     tuple("EXPIRYDATE", "DB2-EXPIRYDATE"),
                     tuple("BROKERID", "DB2-BROKERID"));
@@ -459,14 +460,17 @@ class SqlStatementTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<SqlStatement> statements = statementsIn(cu);
                 SqlStatement fetch = statements.get(1);
-                assertThat(fetch.getHostVariables()).containsExactly("POLICY-NO", "LAST-CLAIM-DATE");
-                assertThat(fetch.getIndicatorVariables()).containsExactly("WS-LAST-CLAIM-IND");
+                assertThat(fetch.getHostVariables()).extracting(HostVariable::getName)
+                  .containsExactly("POLICY-NO", "LAST-CLAIM-DATE");
+                assertThat(fetch.getIndicatorVariables()).extracting(HostVariable::getName)
+                  .containsExactly("WS-LAST-CLAIM-IND");
                 assertThat(SqlStatements.bind(fetch, statements.get(0).getColumns()))
-                  .extracting(SqlStatement.Binding::getColumn, SqlStatement.Binding::getHostVariable)
+                  .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
                   .containsExactly(tuple("POLICY_NO", "POLICY-NO"),
                     tuple("LAST_CLAIM_DATE", "LAST-CLAIM-DATE"));
                 // DB2 fills the indicator, so the program is still using it.
-                assertThat(SqlStatements.variablesOf(fetch)).contains("WS-LAST-CLAIM-IND");
+                assertThat(SqlStatements.variablesOf(fetch)).extracting(HostVariable::getName)
+                  .contains("WS-LAST-CLAIM-IND");
             })
           )
         );

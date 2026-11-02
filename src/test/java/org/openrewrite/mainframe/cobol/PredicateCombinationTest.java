@@ -15,6 +15,7 @@
  */
 package org.openrewrite.mainframe.cobol;
 
+import org.antlr.v4.runtime.atn.SemanticContext;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
@@ -25,10 +26,10 @@ import java.util.List;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class PredicateOrderTest {
+class PredicateCombinationTest {
 
     @Test
-    void predicatesCollectedInAnotherOrderMakeNoSecondConfiguration() {
+    void predicatesOfDifferentRulesNeverCombine() {
         // The cache is shared with every parser in the JVM, including ones built on ANTLR's own simulator.
         org.antlr.v4.runtime.Parser grammar = new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(null);
         PredictionCache.clear(grammar);
@@ -68,7 +69,23 @@ class PredicateOrderTest {
         assertThat(parsed).singleElement().isInstanceOf(Cobol.CompilationUnit.class);
         assertThat(Arrays.stream(PredictionCache.shared(grammar))
           .flatMap(dfa -> dfa.states.keySet().stream())
-          .mapToInt(PredictionCache::orderOnlyDuplicates)
-          .sum()).isZero();
+          .flatMap(state -> state.configs.stream())
+          .map(config -> config.semanticContext)
+          .filter(context -> rules(context) > 1)
+          .map(Object::toString)
+          .distinct()
+          .limit(5))
+          .isEmpty();
+    }
+
+    private static long rules(SemanticContext context) {
+        if (!(context instanceof SemanticContext.AND)) {
+            return 1;
+        }
+        return Arrays.stream(((SemanticContext.AND) context).opnds)
+          .filter(SemanticContext.Predicate.class::isInstance)
+          .mapToInt(operand -> ((SemanticContext.Predicate) operand).ruleIndex)
+          .distinct()
+          .count();
     }
 }

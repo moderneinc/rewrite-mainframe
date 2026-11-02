@@ -27,16 +27,15 @@ import org.openrewrite.marker.SearchResult;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 
@@ -134,6 +133,30 @@ public class DliCall implements Trait<Cobol> {
     List<@Nullable String> ssaSegments;
 
     /**
+     * The {@link #functionOperand} where it is written, whose definition is the declaration it names.
+     * Null for a literal, as with each of these occurrences.
+     */
+    @Nullable
+    DataName functionDataName;
+
+    /**
+     * The {@link #pcb} where it is written.
+     */
+    @Nullable
+    DataName pcbDataName;
+
+    /**
+     * The {@link #ioArea} where it is written.
+     */
+    @Nullable
+    DataName ioAreaDataName;
+
+    /**
+     * Each of {@link #getSsas()} where it is written, in the same order.
+     */
+    List<@Nullable DataName> ssaDataNames;
+
+    /**
      * What this call does to the database, derived from {@link #function}.
      */
     public Access getAccess() {
@@ -141,15 +164,17 @@ public class DliCall implements Trait<Cobol> {
     }
 
     /**
-     * The entry point that handed this program its PCBs, or null where it takes none.
+     * The entry point that handed this call's PCB to the program declaring it, or null where that
+     * program takes none. A nested program can name a PCB that a containing program declares GLOBAL.
+     * A PCB declared nowhere is taken to be one the call's own program was handed.
      */
     public @Nullable ProgramEntry getEntry() {
-        return ProgramEntry.of(cursor);
+        return ProgramEntry.ofDeclaration(cursor, pcbDataName);
     }
 
     /**
-     * The PCB's position in the PSB, which is what names the database, or -1 where the program was
-     * handed no PCBs to count.
+     * The PCB's position in the PSB, which is what names the database, or -1 where it cannot be told.
+     * See {@link ProgramEntry#indexOf(String)}.
      */
     public int getPcbPosition() {
         ProgramEntry entry = getEntry();
@@ -280,7 +305,17 @@ public class DliCall implements Trait<Cobol> {
             return null;
         }
 
-        List<String> arguments = arguments(call);
+        List<@Nullable String> written = argumentsByPosition(call);
+        List<@Nullable DataName> occurrences = argumentDataNames(cursor);
+        List<String> arguments = new ArrayList<>(written.size());
+        List<@Nullable DataName> names = new ArrayList<>(written.size());
+        for (int i = 0; i < written.size(); i++) {
+            String argument = written.get(i);
+            if (argument != null) {
+                arguments.add(argument);
+                names.add(occurrences.get(i));
+            }
+        }
         if (arguments.isEmpty()) {
             return null;
         }
@@ -292,29 +327,35 @@ public class DliCall implements Trait<Cobol> {
         String ioArea = arguments.size() > 2 ? arguments.get(2) : null;
         List<String> trailing = arguments.size() > 3 ?
                 new ArrayList<>(arguments.subList(3, arguments.size())) : emptyList();
+        DataName pcbName = names.size() > 1 ? names.get(1) : null;
+        List<@Nullable DataName> trailingNames = names.size() > 3 ? names.subList(3, names.size()) : emptyList();
 
         // Against a message PCB the fourth argument is the MOD, not an SSA. Read as one it resolves to
         // a plausible segment name — CLMI1O — and the CRUD matrix gains a segment no database has.
-        ProgramEntry entry = ProgramEntry.of(cursor);
+        ProgramEntry entry = ProgramEntry.ofDeclaration(cursor, pcbName);
         String modOperand = "ISRT".equals(function) && !trailing.isEmpty() &&
                             entry != null && entry.isMessagePcb(pcb) ? trailing.get(0) : null;
         List<String> ssas = modOperand == null ? trailing : trailing.subList(1, trailing.size());
+        List<@Nullable DataName> ssaNames = modOperand == null ? trailingNames :
+                trailingNames.subList(1, trailingNames.size());
         // A checkpoint's later arguments are the areas it saves, and a system call's its own data.
         Access access = Access.of(function);
         if (access == Access.CHECKPOINT || access == Access.SYSTEM) {
             ssas = emptyList();
+            ssaNames = emptyList();
         }
 
         List<@Nullable String> ssaSegments = segmentsFromSsas(ssas, cursor);
         return new DliCall(cursor, iface.toUpperCase(Locale.ROOT), function, functionOperand, pcb, ioArea,
-                ssas, resolveMod(modOperand, cursor), modOperand, named(ssaSegments), ssaSegments);
+                ssas, resolveMod(modOperand, cursor), modOperand, named(ssaSegments), ssaSegments,
+                names.get(0), pcbName, names.size() > 2 ? names.get(2) : null, ssaNames);
     }
 
-    private static List<String> named(List<@Nullable String> segments) {
-        List<String> named = new ArrayList<>(segments.size());
-        for (String segment : segments) {
-            if (segment != null) {
-                named.add(segment);
+    private static List<String> named(List<@Nullable String> names) {
+        List<String> named = new ArrayList<>(names.size());
+        for (String name : names) {
+            if (name != null) {
+                named.add(name);
             }
         }
         return named;
@@ -325,57 +366,68 @@ public class DliCall implements Trait<Cobol> {
      * call level form nothing has to be inferred from argument position.
      */
     private static @Nullable DliCall fromExec(Cursor cursor, CobolPreprocessor.ExecStatement exec) {
-        List<String> tokens = CicsCommand.tokens(exec);
-        if (tokens.isEmpty()) {
+        List<Cobol.Word> words = Execs.wordsOf(exec);
+        if (words.isEmpty()) {
             return null;
         }
 
-        String function = tokens.get(0).toUpperCase(Locale.ROOT);
+        String function = words.get(0).getWord().toUpperCase(Locale.ROOT);
         String pcb = null;
         String ioArea = null;
+        DataName areaName = null;
         List<String> segments = new ArrayList<>(1);
-        for (int i = 1; i < tokens.size(); i++) {
-            String option = tokens.get(i).toUpperCase(Locale.ROOT);
-            String operand = operandAfter(tokens, i);
-            if (operand == null) {
+        for (Execs.Option option : Execs.optionsOf(words.subList(1, words.size()))) {
+            if (option.getOperand().isEmpty()) {
                 continue;
             }
-            if ("PCB".equals(option)) {
+            String operand = option.getOperand().get(0).getWord();
+            if ("PCB".equals(option.getName())) {
                 pcb = operand;
-            } else if ("SEGMENT".equals(option)) {
+            } else if ("SEGMENT".equals(option.getName())) {
                 segments.add(Literals.unquote(operand).toUpperCase(Locale.ROOT));
-            } else if ("INTO".equals(option) || "FROM".equals(option)) {
+            } else if ("INTO".equals(option.getName()) || "FROM".equals(option.getName())) {
                 ioArea = operand;
+                areaName = DataName.ofOperand(cursor, option.getOperand());
             }
         }
         // Command level DL/I has no message call, so it never names a MOD.
         return new DliCall(cursor, "EXEC DLI", function, function, pcb, ioArea, emptyList(), null, null,
-                segments, emptyList());
-    }
-
-    private static @Nullable String operandAfter(List<String> tokens, int i) {
-        if (i + 2 < tokens.size() && "(".equals(tokens.get(i + 1))) {
-            return tokens.get(i + 2);
-        }
-        return null;
+                segments, emptyList(), null, null, areaName, emptyList());
     }
 
     /**
-     * The {@code USING} arguments of a call, in order. The grammar nests the argument list inside a
-     * second {@code CallPhrase} and wraps each argument in a {@code CallBy}, so the names are read
-     * back by walking for those.
+     * The {@code USING} arguments of a call, in order, less any {@code OMITTED}.
      */
     static List<String> arguments(Cobol.Call call) {
+        return named(argumentsByPosition(call));
+    }
+
+    /**
+     * The {@code USING} arguments of a call, with null in an {@code OMITTED} argument's place. The
+     * grammar nests the argument list inside a second {@code CallPhrase} and wraps each argument in a
+     * {@code CallBy}, so the names are read back by walking for those.
+     */
+    static List<@Nullable String> argumentsByPosition(Cobol.Call call) {
+        return argumentsOf(call, callBy -> Names.upperOf(callBy.getIdentifier()));
+    }
+
+    /**
+     * The {@code USING} arguments of the call {@code call} points at, each as the data name it is
+     * written as, with null for a literal or {@code OMITTED}.
+     */
+    static List<@Nullable DataName> argumentDataNames(Cursor call) {
+        return argumentsOf(call.getValue(), callBy ->
+                new DataName.Matcher().lower(new Cursor(call, callBy)).findFirst().orElse(null));
+    }
+
+    private static <T> List<@Nullable T> argumentsOf(Cobol.Call call, Function<Cobol.CallBy, @Nullable T> read) {
         if (call.getCallUsingPhrase() == null) {
             return emptyList();
         }
-        return new CobolIsoVisitor<List<String>>() {
+        return new CobolIsoVisitor<List<@Nullable T>>() {
             @Override
-            public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<String> acc) {
-                String name = Names.upperOf(callBy.getIdentifier());
-                if (name != null) {
-                    acc.add(name);
-                }
+            public Cobol.CallBy visitCallBy(Cobol.CallBy callBy, List<@Nullable T> acc) {
+                acc.add(read.apply(callBy));
                 return callBy;
             }
         }.reduce(call.getCallUsingPhrase(), new ArrayList<>(4));
@@ -453,67 +505,63 @@ public class DliCall implements Trait<Cobol> {
     private static Map<String, String> firstValues(Cursor unit) {
         return unit.computeMessageIfAbsent("cobol.firstValues", k -> {
             Map<String, String> values = new HashMap<>();
-            // Groups opened and still waiting for their first elementary item, innermost last.
-            Deque<Integer> levels = new ArrayDeque<>();
-            Deque<String> groups = new ArrayDeque<>();
-            new CopybookSkippingVisitor<Integer>() {
-                @Override
-                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit programUnit, Integer p) {
-                    // A nested program's data is its own, read from its own cursor.
-                    return programUnit == unit.getValue() ? super.visitProgramUnit(programUnit, p) : programUnit;
+            Cobol.DataDivision division = unit.<Cobol.ProgramUnit>getValue().getDataDivision();
+            if (division != null) {
+                for (DataDescription record : items(DataDescription.recordsOf(new Cursor(unit, division)))) {
+                    firstValue(record, values);
                 }
-
-                @Override
-                public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry, Integer p) {
-                    int level = levelOf(entry);
-                    if (level == 0 || level == 88 || level == 66) {
-                        return entry;
-                    }
-                    // A group with no elementary item before an entry of its own level or above has none.
-                    while (!levels.isEmpty() && levels.peekLast() >= level) {
-                        levels.removeLast();
-                        groups.removeLast();
-                    }
-                    boolean elementary = false;
-                    String value = null;
-                    for (Cobol clause : entry.getClauses()) {
-                        if (clause instanceof Cobol.DataPictureClause) {
-                            elementary = true;
-                        } else if (clause instanceof Cobol.DataValueClause && value == null) {
-                            for (Cobol literal : ((Cobol.DataValueClause) clause).getCobols()) {
-                                String word = Names.of(literal);
-                                value = word == null ? null : Literals.valueOf(word);
-                                if (value != null) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (elementary) {
-                        if (value != null) {
-                            for (String group : groups) {
-                                values.putIfAbsent(group, value);
-                            }
-                        }
-                        levels.clear();
-                        groups.clear();
-                    } else if (entry.getName() != null && !"FILLER".equalsIgnoreCase(entry.getName().getWord())) {
-                        levels.addLast(level);
-                        groups.addLast(entry.getName().getWord().toUpperCase(Locale.ROOT));
-                    }
-                    return entry;
-                }
-            }.visit(unit.getValue(), 0, unit.getParentOrThrow());
+            }
             return values;
         });
     }
 
-    static int levelOf(Cobol.DataDescriptionEntry entry) {
-        try {
-            return entry.getWords().isEmpty() ? 0 : Integer.parseInt(entry.getWords().get(0).getWord());
-        } catch (NumberFormatException e) {
-            return 0;
+    /**
+     * The literal the first elementary item at or under {@code entry} is declared with. Each named
+     * group on the way down to it gets it in {@code values}.
+     */
+    private static @Nullable String firstValue(DataDescription entry, Map<String, String> values) {
+        Cobol.DataDescriptionEntry tree = entry.getTree();
+        boolean elementary = false;
+        String value = null;
+        for (Cobol clause : tree.getClauses()) {
+            if (clause instanceof Cobol.DataPictureClause) {
+                elementary = true;
+            } else if (clause instanceof Cobol.DataValueClause && value == null) {
+                for (Cobol literal : ((Cobol.DataValueClause) clause).getCobols()) {
+                    String word = Names.of(literal);
+                    value = word == null ? null : Literals.valueOf(word);
+                    if (value != null) {
+                        break;
+                    }
+                }
+            }
         }
+        if (elementary) {
+            return value;
+        }
+        List<DataDescription> items = items(entry.getChildren());
+        String first = items.isEmpty() ? null : firstValue(items.get(0), values);
+        Cobol.Word name = tree.getName();
+        if (first != null && name != null && !"FILLER".equalsIgnoreCase(name.getWord())) {
+            values.putIfAbsent(name.getWord().toUpperCase(Locale.ROOT), first);
+        }
+        for (DataDescription later : items.subList(Math.min(1, items.size()), items.size())) {
+            firstValue(later, values);
+        }
+        return first;
+    }
+
+    /**
+     * The entries among {@code entries} that hold storage, without condition names and RENAMES.
+     */
+    private static List<DataDescription> items(List<DataDescription> entries) {
+        List<DataDescription> items = new ArrayList<>(entries.size());
+        for (DataDescription entry : entries) {
+            if (entry.getLevel() != 88 && entry.getLevel() != 66) {
+                items.add(entry);
+            }
+        }
+        return items;
     }
 
     @Override

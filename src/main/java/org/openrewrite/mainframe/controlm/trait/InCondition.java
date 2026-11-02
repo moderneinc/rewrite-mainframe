@@ -41,7 +41,23 @@ public class InCondition implements Trait<ControlM> {
             return name == null ? "" : name;
         }
         ControlM.Word name = ((ControlM.Input.NameParameter) cursor.getValue()).getName();
-        return name == null ? "" : name.getText();
+        return name == null ? "" : withoutLogic(name.getText());
+    }
+
+    /**
+     * The panel writes an OR, a NOT and the opening parenthesis of a group in front of the name, and
+     * the closing parenthesis after it. None of them is part of the name.
+     */
+    private static String withoutLogic(String written) {
+        int start = 0;
+        int end = written.length();
+        while (start < end && "(|\u00AC\\".indexOf(written.charAt(start)) >= 0) {
+            start++;
+        }
+        while (end > start && written.charAt(end - 1) == ')') {
+            end--;
+        }
+        return written.substring(start, end);
     }
 
     /**

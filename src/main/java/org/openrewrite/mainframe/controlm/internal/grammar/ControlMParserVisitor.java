@@ -110,6 +110,12 @@ public interface ControlMParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitGroup(ControlMParser.GroupContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link ControlMParser#rbc}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRbc(ControlMParser.RbcContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link ControlMParser#descLine}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -164,11 +170,41 @@ public interface ControlMParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSetVarLine(ControlMParser.SetVarLineContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link ControlMParser#ctbSetLine}.
+	 * Visit a parse tree produced by {@link ControlMParser#ctbStepLine}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitCtbSetLine(ControlMParser.CtbSetLineContext ctx);
+	T visitCtbStepLine(ControlMParser.CtbStepLineContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link ControlMParser#ctbStepAt}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCtbStepAt(ControlMParser.CtbStepAtContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link ControlMParser#ctbStepName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCtbStepName(ControlMParser.CtbStepNameContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link ControlMParser#ctbStepType}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCtbStepType(ControlMParser.CtbStepTypeContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link ControlMParser#argumentsLine}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArgumentsLine(ControlMParser.ArgumentsLineContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link ControlMParser#freeText}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFreeText(ControlMParser.FreeTextContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link ControlMParser#docLine}.
 	 * @param ctx the parse tree

@@ -140,8 +140,8 @@ public interface Ims extends Tree {
         /**
          * Everything after the operation, in source order: the {@link Operand}s of the operand
          * field, the words of any comment field, and the character in column 72 ending each
-         * continued line. Keeping them in one ordered list is what lets the statement print back
-         * exactly, however it was laid out.
+         * continued line, which an operand carried on past it holds instead. Keeping them in one
+         * ordered list is what lets the statement print back exactly, however it was laid out.
          */
         List<Ims> operands;
 
@@ -178,7 +178,7 @@ public interface Ims extends Tree {
         public Ims.@Nullable KeywordOperand getParameter(String keyword) {
             for (Operand operand : getParameters()) {
                 if (operand instanceof KeywordOperand &&
-                    ((KeywordOperand) operand).getKeyword().getText().equalsIgnoreCase(keyword)) {
+                    ((KeywordOperand) operand).getKeywordText().equalsIgnoreCase(keyword)) {
                     return (KeywordOperand) operand;
                 }
             }
@@ -225,10 +225,8 @@ public interface Ims extends Tree {
     /**
      * An operand written as {@code KEYWORD=value}.
      * <p>
-     * The value is a list of words rather than one, because the lexer breaks a quoted string out on
-     * its own: {@code PATTERN='yyyy-MM-dd'} arrives as {@code PATTERN=} and {@code 'yyyy-MM-dd'}.
-     * Reading the value back means joining them, and they are kept apart so that printing puts them
-     * back exactly as they were.
+     * The value is a list of words, one per card it is written over, so that each card prints back
+     * exactly as it was. {@link #getValueText()} reads them as one.
      */
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -242,7 +240,9 @@ public interface Ims extends Tree {
         Markers markers;
 
         /**
-         * The keyword, without the {@code =}: {@code NAME}, {@code PARENT}, {@code BYTES}.
+         * The keyword as written on the operand's first card, without the {@code =}: {@code NAME},
+         * {@code PARENT}, {@code BYTES}. Where column 71 falls inside it, the rest is in the value
+         * and {@link #getKeywordText()} reads it whole.
          */
         Word keyword;
 
@@ -259,11 +259,13 @@ public interface Ims extends Tree {
          * kept there and left out here.
          */
         public String getValueText() {
-            StringBuilder text = new StringBuilder();
-            for (Word word : value) {
-                text.append(word.getText());
-            }
-            return trimSeparators(text.toString().substring(1));
+            String text = join(value);
+            return trimSeparators(text.substring(text.indexOf('=') + 1));
+        }
+
+        public String getKeywordText() {
+            String text = join(value);
+            return keyword.getText() + text.substring(0, Math.max(text.indexOf('='), 0));
         }
     }
 
@@ -294,16 +296,43 @@ public interface Ims extends Tree {
          * The value without the comma separating it from the next operand.
          */
         public String getValueText() {
-            StringBuilder text = new StringBuilder();
-            for (Word word : value) {
-                text.append(word.getText());
-            }
-            return trimSeparators(text.toString());
+            return trimSeparators(join(value));
         }
     }
 
     static String trimSeparators(String text) {
         return text.endsWith(",") ? text.substring(0, text.length() - 1) : text;
+    }
+
+    /**
+     * The value as the assembler reads it. A value carried onto further cards keeps the words that
+     * end each card, the continuation character among them, between its parts. So only the first
+     * word and a word that begins a card add to the value.
+     */
+    static String join(List<Word> words) {
+        StringBuilder text = new StringBuilder(words.get(0).getText());
+        for (int i = 1; i < words.size(); i++) {
+            String prefix = words.get(i).getPrefix().getWhitespace();
+            int newline = prefix.lastIndexOf('\n');
+            if (newline >= 0) {
+                // Columns 1-15 are blank, and only a literal keeps the blanks after them.
+                if (insideLiteral(text)) {
+                    text.append(prefix.substring(Math.min(prefix.length(), newline + 16)));
+                }
+                text.append(words.get(i).getText());
+            }
+        }
+        return text.toString();
+    }
+
+    static boolean insideLiteral(CharSequence text) {
+        int quotes = 0;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\'') {
+                quotes++;
+            }
+        }
+        return quotes % 2 == 1;
     }
 
     @Value

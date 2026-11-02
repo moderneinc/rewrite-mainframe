@@ -126,8 +126,11 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
 		if (ctx.setVarLine() != null) {
 			return visit(ctx.setVarLine());
 		}
-		else if (ctx.ctbSetLine() != null) {
-			return visit(ctx.ctbSetLine());
+		else if (ctx.ctbStepLine() != null) {
+			return visit(ctx.ctbStepLine());
+		}
+		else if (ctx.argumentsLine() != null) {
+			return visit(ctx.argumentsLine());
 		}
 		else if (ctx.docLine() != null) {
 			return visit(ctx.docLine());
@@ -245,7 +248,8 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
         Space prefix = whitespace();
         Markers markers = Markers.EMPTY;
         markers = markers.addIfAbsent(mapColumn(Column.Location.START));
-        List<ControlM> parameters = convertAll(Arrays.asList(ctx.appl(), ctx.group()));
+        List<ControlM> parameters = convertAll(ctx.rbc() == null ? Arrays.asList(ctx.appl(), ctx.group()) :
+                Arrays.asList(ctx.appl(), ctx.group(), ctx.rbc()));
         markers = markers.addIfAbsent(mapColumn(Column.Location.END));
         return new ControlM.Line(
                 randomId(),
@@ -268,13 +272,12 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
 
     @Override
     public ControlM visitGroup(ControlMParser.GroupContext ctx) {
-        return new ControlM.Parameter(
-                randomId(),
-                sourceBefore(ctx.DEFINITION_GROUP().getText()),
-                Markers.EMPTY,
-                ctx.DEFINITION_GROUP().getText(),
-                visitNullable(ctx.name())
-        );
+        return parameter(ctx.DEFINITION_GROUP() != null ? ctx.DEFINITION_GROUP() : ctx.DEFINITION_TBL(), ctx.name());
+    }
+
+    @Override
+    public ControlM visitRbc(ControlMParser.RbcContext ctx) {
+        return parameter(ctx.DEFINITION_RBC(), ctx.name());
     }
 
     @Override
@@ -391,14 +394,16 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
         Markers markers = Markers.EMPTY;
         markers = markers.addIfAbsent(mapColumn(Column.Location.START));
         ControlM set;
-        if (ctx.DEFINITION_EQUALS_CHAR() != null) {
+        List<ParseTree> words = ctx.freeText() == null ? emptyList() : ctx.freeText().children;
+        if (words.size() > 2 && words.get(1) instanceof TerminalNode &&
+            ((TerminalNode) words.get(1)).getSymbol().getType() == ControlMParser.DEFINITION_EQUALS_CHAR) {
             set = new ControlM.SetVar(
                     randomId(),
                     sourceBefore(ctx.DEFINITION_SET_VAR().getText()),
                     Markers.EMPTY,
                     ctx.DEFINITION_SET_VAR().getText(),
-                    (ControlM.Word) visit(ctx.name(0)),
-                    padLeft(sourceBefore(ctx.DEFINITION_EQUALS_CHAR().getText()), (ControlM.Word) visit(ctx.name(1)))
+                    (ControlM.Word) visit(words.get(0)),
+                    padLeft(sourceBefore(words.get(1).getText()), text(words.subList(2, words.size())))
             );
         } else {
             set = new ControlM.Parameter(
@@ -406,7 +411,7 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
                     sourceBefore(ctx.DEFINITION_SET_VAR().getText()),
                     Markers.EMPTY,
                     ctx.DEFINITION_SET_VAR().getText(),
-                    ctx.name().isEmpty() ? null : (ControlM.Word) visit(ctx.name(0))
+                    words.isEmpty() ? null : text(words)
             );
         }
 
@@ -420,18 +425,68 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
     }
 
     @Override
-    public ControlM visitCtbSetLine(ControlMParser.CtbSetLineContext ctx) {
+    public ControlM visitCtbStepLine(ControlMParser.CtbStepLineContext ctx) {
         Space prefix = whitespace();
         Markers markers = Markers.EMPTY;
         markers = markers.addIfAbsent(mapColumn(Column.Location.START));
-        List<ControlM> words = convertAll(Arrays.asList(ctx.DEFINITION_CTB_STEP(), ctx.DEFINITION_AT(), ctx.name(), ctx.DEFINITION_TYPE()));
+        List<ControlM> fields = new ArrayList<>(4);
+        fields.add(visit(ctx.DEFINITION_CTB_STEP()));
+        fields.add(parameter(ctx.ctbStepAt().CTB_STEP_AT(), ctx.ctbStepAt().name()));
+        fields.add(parameter(ctx.ctbStepName().CTB_STEP_NAME(), ctx.ctbStepName().name()));
+        fields.add(parameter(ctx.ctbStepType().CTB_STEP_TYPE(), ctx.ctbStepType().name()));
         markers = markers.addIfAbsent(mapColumn(Column.Location.END));
         return new ControlM.Line(
                 randomId(),
                 prefix,
                 markers,
-                words
+                fields
         );
+    }
+
+    @Override
+    public ControlM visitArgumentsLine(ControlMParser.ArgumentsLineContext ctx) {
+        Space prefix = whitespace();
+        Markers markers = Markers.EMPTY;
+        markers = markers.addIfAbsent(mapColumn(Column.Location.START));
+        ControlM.Parameter arguments = new ControlM.Parameter(
+                randomId(),
+                sourceBefore(ctx.DEFINITION_ARGUMENTS().getText()),
+                Markers.EMPTY,
+                ctx.DEFINITION_ARGUMENTS().getText(),
+                ctx.freeText() == null ? null : text(ctx.freeText().children)
+        );
+        markers = markers.addIfAbsent(mapColumn(Column.Location.END));
+        return new ControlM.Line(
+                randomId(),
+                prefix,
+                markers,
+                singletonList(arguments)
+        );
+    }
+
+    private ControlM.Parameter parameter(TerminalNode label, ControlMParser.@Nullable NameContext value) {
+        return new ControlM.Parameter(
+                randomId(),
+                sourceBefore(label.getText()),
+                Markers.EMPTY,
+                label.getText(),
+                visitNullable(value)
+        );
+    }
+
+    /**
+     * Words written one after another as one value, the blanks between them included.
+     */
+    private ControlM.Word text(List<? extends ParseTree> words) {
+        Space prefix = whitespace();
+        int start = cursor;
+        for (int i = 0; i < words.size(); i++) {
+            if (i > 0) {
+                whitespace();
+            }
+            skip(words.get(i).getText());
+        }
+        return new ControlM.Word(randomId(), prefix, Markers.EMPTY, source.substring(start, cursor));
     }
 
     @Override
@@ -515,7 +570,7 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
         Markers markers = Markers.EMPTY;
         markers = markers.addIfAbsent(mapColumn(Column.Location.START));
 
-        ControlM.Word in = visitNullable(ctx.INPUT_NAMES_IN());
+        ControlM.Word in = visitNullable(ctx.INPUT_NAMES_IN() != null ? ctx.INPUT_NAMES_IN() : ctx.LONG_CONDITION());
         List<ControlM> inputs = convertAll(ctx.input());
 
         markers = markers.addIfAbsent(mapColumn(Column.Location.END));
@@ -584,7 +639,7 @@ public class ControlMParserVisitor extends ControlMParserBaseVisitor<ControlM> {
         Markers markers = Markers.EMPTY;
         markers = markers.addIfAbsent(mapColumn(Column.Location.START));
 
-        ControlM.Word out = visitNullable(ctx.OUTPUT_NAMES_OUT());
+        ControlM.Word out = visitNullable(ctx.OUTPUT_NAMES_OUT() != null ? ctx.OUTPUT_NAMES_OUT() : ctx.LONG_CONDITION());
         List<ControlM> outputs = convertAll(ctx.output());
 
         markers = markers.addIfAbsent(mapColumn(Column.Location.END));

@@ -141,6 +141,32 @@ class DliCallTest implements RewriteTest {
     }
 
     @Test
+    void recoversPcbOrderFromProcedureDivisionUsing() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. IMSPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 IO-PCB PIC X(40).                                            \s
+            000000 01 ACCT-DB-PCB PIC X(40).                                       \s
+            000000 01 HIST-DB-PCB PIC X(40).                                       \s
+            000000 PROCEDURE DIVISION USING IO-PCB                                 \s
+            000000     BY REFERENCE ACCT-DB-PCB HIST-DB-PCB.                       \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC HIST-DB-PCB IO-AREA.           \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        ProgramEntry pcbs = calls.get(0).getEntry();
+        assertThat(pcbs).isNotNull();
+        assertThat(pcbs.getPcbNames()).containsExactly("IO-PCB", "ACCT-DB-PCB", "HIST-DB-PCB");
+        assertThat(calls.get(0).getPcbPosition()).isEqualTo(2);
+    }
+
+    @Test
     void distinguishesMessageCallsFromDatabaseCalls() {
         List<DliCall> calls = parse(
           """
@@ -160,6 +186,296 @@ class DliCallTest implements RewriteTest {
         assertThat(calls).hasSize(2);
         assertThat(calls.get(0).isMessageCall()).isTrue();
         assertThat(calls.get(1).isMessageCall()).isFalse();
+    }
+
+    @Test
+    void followsANestedProgramsPcbBackToTheOutermostEntry() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 WS-UTIL PIC X(8) VALUE 'DATEUTIL'.                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB HIST-PCB.             \s
+            000000     MOVE 'TIMEUTIL' TO WS-UTIL.                                 \s
+            000000     CALL WS-UTIL USING ACCT-PCB.                                \s
+            000000     CALL 'MIDPGM' USING OMITTED HIST-PCB IO-PCB.                \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. MIDPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-OPT PIC X(8).                                             \s
+            000000 01 LK-HIST PIC X(40).                                           \s
+            000000 01 LK-TERM PIC X(40).                                           \s
+            000000 PROCEDURE DIVISION USING LK-OPT LK-HIST LK-TERM.                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-HIST IO-AREA.               \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-TERM MSG-AREA.              \s
+            000000     CALL 'INNERPGM' USING LK-HIST.                              \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM MIDPGM.                                             \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        // CALL WS-UTIL can only call DATEUTIL or TIMEUTIL, so it is no caller of MIDPGM.
+        assertThat(calls)
+          .extracting(call -> Program.nameOf(call.getCursor()), DliCall::getPcbPosition, DliCall::isMessageCall)
+          .containsExactly(
+            tuple("MIDPGM", 2, false),
+            tuple("MIDPGM", 0, true),
+            tuple("INNERPGM", 2, false));
+    }
+
+    @Test
+    void readsAGlobalPcbsPositionFromTheEntryOfTheProgramDeclaringIt() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 TERM-PCB PIC X(40) GLOBAL.                                   \s
+            000000 01 ACCT-PCB PIC X(40) GLOBAL.                                   \s
+            000000 01 HIST-PCB PIC X(40).                                          \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING TERM-PCB ACCT-PCB HIST-PCB.           \s
+            000000     CALL 'INNERPGM' USING HIST-PCB.                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 77 ISRT-FUNC PIC X(4) VALUE 'ISRT'.                             \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC ACCT-PCB IO-AREA.              \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     CALL 'CBLTDLI' USING ISRT-FUNC TERM-PCB MSG-AREA WS-MOD.    \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getPcbPosition, DliCall::isMessageCall, DliCall::getModOperand)
+          .containsExactly(
+            tuple(1, false, null),
+            tuple(2, false, null),
+            tuple(0, true, "WS-MOD"));
+    }
+
+    @Test
+    void givesEachOperandAsTheDataNameItIsWrittenAs() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. IMSPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 01 IO-AREA PIC X(100).                                          \s
+            000000 01 ROOT-QUAL PIC X(9) VALUE 'CLMROOT  '.                        \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 PCB-LIST.                                                    \s
+            000000     05 DB-PCB PIC X(40).                                        \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC DB-PCB OF PCB-LIST IO-AREA     \s
+            000000                          ROOT-QUAL 'CLMCHILD '.                 \s
+            000000     EXEC DLI GU USING PCB(1) SEGMENT(ACCOUNT) INTO(IO-AREA)     \s
+            000000     END-EXEC.                                                   \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        DliCall call = calls.get(0);
+        assertThat(call.getFunctionDataName()).extracting(DataName::getName).isEqualTo("GU-FUNC");
+        assertThat(call.getPcbDataName()).extracting(DataName::getName, DataName::getQualifiers)
+          .containsExactly("DB-PCB", List.of("PCB-LIST"));
+        assertThat(call.getIoAreaDataName()).extracting(DataName::getName).isEqualTo("IO-AREA");
+        assertThat(call.getSsaDataNames()).extracting(name -> name == null ? null : name.getName())
+          .containsExactly("ROOT-QUAL", null);
+
+        DliCall exec = calls.get(1);
+        assertThat(exec.getIoAreaDataName()).extracting(DataName::getName).isEqualTo("IO-AREA");
+        assertThat(exec.getPcbDataName()).isNull();
+    }
+
+    @Test
+    void followsAGlobalPcbThatANestedCallerPassesDown() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 IO-PCB PIC X(40).                                            \s
+            000000 01 ACCT-PCB PIC X(40) GLOBAL.                                   \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB.                      \s
+            000000     CALL 'MIDPGM'.                                              \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. MIDPGM.                                             \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     CALL 'INNERPGM' USING ACCT-PCB.                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM MIDPGM.                                             \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getPcbPosition).containsExactly(1);
+    }
+
+    @Test
+    void keepsADatabasePcbPassedToANestedProgramOffTheMessageQueue() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. BATCHPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING ACCT-DB-PCB HIST-DB-PCB.              \s
+            000000     CALL 'INNERPGM' USING ACCT-DB-PCB.                          \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM BATCHPGM.                                           \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getPcbPosition, DliCall::isMessageCall)
+          .containsExactly(tuple(0, false));
+    }
+
+    @Test
+    void leavesANestedProgramsPcbUnknownWhereItsCallersDoNotSayWhichItIs() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB HIST-PCB.             \s
+            000000     CALL 'TWOCALLS' USING ACCT-PCB.                             \s
+            000000     CALL 'TWOCALLS' USING HIST-PCB.                             \s
+            000000     CALL 'SHAREDPGM' USING ACCT-PCB.                            \s
+            000000     CALL 'FEWARGS' USING ACCT-PCB.                              \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. TWOCALLS.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM TWOCALLS.                                           \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. SHAREDPGM IS COMMON PROGRAM.                        \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM SHAREDPGM.                                          \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. FEWARGS.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-KEY PIC X(8).                                             \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-KEY LK-PCB.                         \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM FEWARGS.                                            \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(calls)
+          .extracting(call -> Program.nameOf(call.getCursor()), DliCall::getPcbPosition, DliCall::isMessageCall)
+          .containsExactly(
+            tuple("TWOCALLS", -1, false),
+            tuple("SHAREDPGM", -1, false),
+            tuple("FEWARGS", -1, false));
+    }
+
+    @Test
+    void leavesANestedProgramsPcbUnknownBesideADynamicCall() {
+        List<DliCall> calls = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 WS-PGM PIC X(8).                                             \s
+            000000 77 WS-INPUT PIC X(8).                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     ENTRY 'DLITCBL' USING IO-PCB ACCT-PCB.                      \s
+            000000     MOVE WS-INPUT TO WS-PGM.                                    \s
+            000000     CALL WS-PGM USING IO-PCB.                                   \s
+            000000     CALL 'INNERPGM' USING ACCT-PCB.                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 77 GU-FUNC PIC X(4) VALUE 'GU  '.                               \s
+            000000 LINKAGE SECTION.                                                \s
+            000000 01 LK-PCB PIC X(40).                                            \s
+            000000 PROCEDURE DIVISION USING LK-PCB.                                \s
+            000000     CALL 'CBLTDLI' USING GU-FUNC LK-PCB IO-AREA.                \s
+            000000     GOBACK.                                                     \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(calls).extracting(DliCall::getPcbPosition).containsExactly(-1);
     }
 
     @Test

@@ -15,6 +15,8 @@
  */
 package org.openrewrite.mainframe.cobol.trait;
 
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
@@ -24,12 +26,14 @@ import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
+import org.openrewrite.mainframe.cobol.tree.DataDivisionSection;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 import org.openrewrite.trait.VisitFunction2;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,11 +41,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
 
 /**
  * A data name where it is written: as its definition, the data description entry in the program or
@@ -75,10 +80,11 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * The entry declaring a definition, or null for a usage.
+     * The entry declaring a definition, or null for a usage and for an index name, which declares none.
      */
     public Cobol.@Nullable DataDescriptionEntry getEntry() {
-        return isDefinition() ? (Cobol.DataDescriptionEntry) cursor.getParentTreeCursor().getValue() : null;
+        Object parent = cursor.getParentTreeCursor().getValue();
+        return isDefinition() && parent instanceof Cobol.DataDescriptionEntry ? (Cobol.DataDescriptionEntry) parent : null;
     }
 
     /**
@@ -98,11 +104,21 @@ public class DataName implements Trait<Cobol.Word> {
 
     /**
      * The level number of the definition, or of the definition a usage resolves to; 0 where it
-     * resolves to none.
+     * resolves to none and for an index name, which has no level number.
      */
     public int getLevel() {
         Definition definition = definition(index());
         return definition == null ? 0 : definition.getLevel();
+    }
+
+    /**
+     * Whether the definition, or the definition a usage resolves to, is an index name an OCCURS
+     * clause declares with {@code INDEXED BY}. It is under the table it indexes and GLOBAL when that is.
+     * Its {@link #getParent()} is that table, or the item above a FILLER table.
+     */
+    public boolean isIndexName() {
+        Definition definition = definition(index());
+        return definition != null && definition.isIndexName();
     }
 
     public boolean isConditionName() {
@@ -121,10 +137,10 @@ public class DataName implements Trait<Cobol.Word> {
 
     /**
      * The definition this occurrence resolves to. A definition answers itself. A name the program
-     * does not declare, such as EIBCALEN, resolves to its field in the DFHEIBLK the CICS translator
-     * inserts. Failing that, it resolves to a GLOBAL item of the nearest program containing it that
-     * declares one. Null where the name is declared nowhere the program can see, such as a copybook
-     * that was not found, or where qualification leaves more than one declaration.
+     * does not declare, such as EIBCALEN or DIBSTAT, resolves to its field in the DFHEIBLK or DLZDIB
+     * the CICS translator inserts. Failing that, it resolves to a GLOBAL item of the nearest program
+     * containing it that declares one. Null where the name is declared nowhere the program can see,
+     * such as a copybook that was not found, or where qualification leaves more than one declaration.
      */
     public @Nullable DataName getDefinition() {
         if (isDefinition()) {
@@ -132,6 +148,37 @@ public class DataName implements Trait<Cobol.Word> {
         }
         Definition definition = definition(index());
         return definition == null ? null : definition.trait();
+    }
+
+    /**
+     * Every definition this occurrence could mean, by the rules {@link #getDefinition()} follows. It
+     * resolves where there is exactly one. A definition is its own only candidate.
+     */
+    public List<DataName> getCandidates() {
+        return isDefinition() ? singletonList(this) : traits(candidates(index()));
+    }
+
+    /**
+     * What {@code name}, qualified by {@code qualifiers} innermost first, could mean written at
+     * {@code at}, for a name read as text rather than from a word in the tree.
+     */
+    public static List<DataName> candidatesOf(Cursor at, String name, List<String> qualifiers) {
+        List<String> upper = new ArrayList<>(qualifiers.size());
+        for (String qualifier : qualifiers) {
+            upper.add(qualifier.toUpperCase(Locale.ROOT));
+        }
+        return traits(candidates(index(at), name.toUpperCase(Locale.ROOT), upper, null));
+    }
+
+    private static List<DataName> traits(List<Definition> definitions) {
+        List<DataName> traits = new ArrayList<>(definitions.size());
+        for (Definition definition : definitions) {
+            DataName trait = definition.trait();
+            if (trait != null) {
+                traits.add(trait);
+            }
+        }
+        return traits;
     }
 
     /**
@@ -160,6 +207,25 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
+     * Whether the occurrence qualifies another, as {@code CUST-REC} does in {@code CUST-ID OF CUST-REC}
+     * and {@code DCLCUST} in the SQL host variable {@code :DCLCUST.CUST-ID}. A CICS or DLI operand is
+     * read as words, and a qualifier in one is not told apart.
+     */
+    public boolean isQualifier() {
+        Object parent = cursor.getParentTreeCursor().getValue();
+        if (parent instanceof Cobol.InData) {
+            return true;
+        }
+        CobolPreprocessor.ExecStatement exec = parent instanceof Cobol.Word ? Execs.blockOn((Cobol.Word) parent) : null;
+        if (exec == null || !Execs.isSql(exec)) {
+            return false;
+        }
+        List<Cobol.Word> words = Execs.wordsOf(cursor, exec);
+        int at = Execs.indexOf(words, getTree());
+        return at + 2 < words.size() && structureOf(words, at + 2) != null;
+    }
+
+    /**
      * Whether the occurrence is a target of {@code SET}. For a condition name that is an assignment
      * to its conditional variable.
      */
@@ -179,25 +245,29 @@ public class DataName implements Trait<Cobol.Word> {
      * resolving to it, or a use of a condition name declared under it. False for a usage.
      */
     public boolean isReferenced() {
-        return isDefinition() && index().referenced.contains(getTree().getId());
+        return isDefinition() && index().references.resolved().contains(getTree().getId());
     }
 
     /**
      * The names the occurrence is qualified by, innermost first and upper cased: {@code CUST-ID OF
      * CUST-REC} is qualified by {@code CUST-REC}. A qualifier is an occurrence of its own, qualified
-     * by the names after it.
+     * by the names after it. A file name qualifying a record of its FD or SD is not among them, since
+     * it is not a data name.
      */
     public List<String> getQualifiers() {
         Cursor parent = cursor.getParentTreeCursor();
-        Cobol.Word from = null;
-        if (parent.getValue() instanceof Cobol.InData) {
-            from = getTree();
-            parent = parent.getParentTreeCursor();
-            if (parent.getValue() instanceof Cobol.QualifiedDataName) {
-                parent = parent.getParentTreeCursor();
+        if (parent.getValue() instanceof Cobol.Word) {
+            CobolPreprocessor.ExecStatement exec = Execs.blockOn((Cobol.Word) parent.getValue());
+            if (exec != null && Execs.isSql(exec)) {
+                List<Cobol.Word> words = Execs.wordsOf(cursor, exec);
+                String structure = structureOf(words, Execs.indexOf(words, getTree()));
+                return structure == null ? emptyList() : singletonList(structure);
             }
+            Execs.Option option = exec == null ? null : Execs.optionHolding(cursor, exec, getTree());
+            return option == null ? emptyList() : qualifiersIn(option.getOperand(), getTree());
         }
-        Object value = parent.getValue();
+        Cobol.Word from = parent.getValue() instanceof Cobol.InData ? getTree() : null;
+        Object value = reference().getValue();
         List<? extends Cobol> ins = value instanceof Cobol.QualifiedDataNameFormat1 ?
                 ((Cobol.QualifiedDataNameFormat1) value).getQualifiedInData() :
                 value instanceof Cobol.ConditionNameReference ? ((Cobol.ConditionNameReference) value).getInDatas() : null;
@@ -218,6 +288,57 @@ public class DataName implements Trait<Cobol.Word> {
             } else if (in instanceof Cobol.InData && is(((Cobol.InData) in).getName(), from)) {
                 after = true;
             }
+        }
+        return qualifiers;
+    }
+
+    /**
+     * The file the occurrence is qualified by, upper cased, or null. It narrows the name and each of
+     * its qualifiers to the records of that file.
+     */
+    private @Nullable String file() {
+        Object value = reference().getValue();
+        Cobol.InFile in = value instanceof Cobol.QualifiedDataNameFormat1 ? ((Cobol.QualifiedDataNameFormat1) value).getInFile() :
+                value instanceof Cobol.ConditionNameReference ? ((Cobol.ConditionNameReference) value).getInFile() : null;
+        return in == null ? null : Names.upperOf(in.getName());
+    }
+
+    /**
+     * What the occurrence is written in, as the name or as one of its qualifiers, such as a
+     * {@code QualifiedDataNameFormat1} or a {@code ConditionNameReference}.
+     */
+    private Cursor reference() {
+        Cursor parent = cursor.getParentTreeCursor();
+        if (parent.getValue() instanceof Cobol.InData) {
+            parent = parent.getParentTreeCursor();
+            if (parent.getValue() instanceof Cobol.QualifiedDataName) {
+                parent = parent.getParentTreeCursor();
+            }
+        }
+        return parent;
+    }
+
+    /**
+     * The occurrence an operand of a CICS or DLI block starts with, read under {@code standIn}, the
+     * word the block hangs off.
+     */
+    static @Nullable DataName ofOperand(Cursor standIn, List<Cobol.Word> operand) {
+        return operand.isEmpty() ? null : new Matcher().get(new Cursor(standIn, operand.get(0))).orElse(null);
+    }
+
+    /**
+     * The name after each {@code OF} or {@code IN} in the run that directly follows {@code word} in
+     * its operand.
+     */
+    private static List<String> qualifiersIn(List<Cobol.Word> operand, Cobol.Word word) {
+        int at = Execs.indexOf(operand, word);
+        List<String> qualifiers = new ArrayList<>(1);
+        for (int i = at + 2; at >= 0 && i < operand.size(); i += 2) {
+            String keyword = operand.get(i - 1).getWord();
+            if (!"OF".equalsIgnoreCase(keyword) && !"IN".equalsIgnoreCase(keyword)) {
+                break;
+            }
+            qualifiers.add(operand.get(i).getWord().toUpperCase(Locale.ROOT));
         }
         return qualifiers;
     }
@@ -250,6 +371,16 @@ public class DataName implements Trait<Cobol.Word> {
      * around it when subscripted or reference modified, or the {@code ConditionNameReference}. Null
      * for a definition, a qualifier and a word in an {@code EXEC} block.
      */
+    /**
+     * The SEARCH whose table this occurrence names, or null.
+     */
+    private Cobol.@Nullable Search searched() {
+        Cursor identifier = identifier();
+        Object statement = identifier == null ? null : identifier.getParentTreeCursor().getValue();
+        return statement instanceof Cobol.Search && ((Cobol.Search) statement).getQualifiedDataName() == identifier.getValue() ?
+                (Cobol.Search) statement : null;
+    }
+
     private @Nullable Cursor identifier() {
         Cursor parent = cursor.getParentTreeCursor();
         Object value = parent.getValue();
@@ -276,13 +407,94 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     private List<Definition> candidates(Index index) {
-        return candidates(index, Names.upperOf(getTree()), getQualifiers());
+        Cursor parent = cursor.getParentTreeCursor();
+        if (parent.getValue() instanceof Cobol.DataRedefinesClause) {
+            Definition owner = index.byEntry.get(parent.getParentTreeCursor().<Cobol>getValue().getId());
+            return owner == null || owner.getRedefines() == null ? emptyList() : singletonList(owner.getRedefines());
+        }
+        DataName qualified = qualified();
+        List<Definition> through = qualified == null ? emptyList() : qualifiedThrough(index, qualified);
+        if (!through.isEmpty()) {
+            return through;
+        }
+        List<Definition> candidates = candidates(index, Names.upperOf(getTree()), getQualifiers(), file());
+        Definition owner = clauseOwner(index);
+        if (owner == null) {
+            return candidates;
+        }
+        List<Definition> within = new ArrayList<>(1);
+        for (Definition candidate : candidates) {
+            if (candidate == owner || candidate.isUnder(owner)) {
+                within.add(candidate);
+            }
+        }
+        return within;
     }
 
-    private static List<Definition> candidates(Index index, String name, List<String> qualifiers) {
-        List<Definition> matching = index.matching(name, qualifiers, false);
+    /**
+     * The occurrence this one qualifies, as {@code KEY-GRP} qualifies {@code CUST-ID} in
+     * {@code CUST-ID OF KEY-GRP} and in {@code :KEY-GRP.CUST-ID}. Null for an occurrence qualifying none.
+     */
+    private @Nullable DataName qualified() {
+        Cursor parent = cursor.getParentTreeCursor();
+        if (parent.getValue() instanceof Cobol.InData) {
+            Cursor reference = reference();
+            Object value = reference.getValue();
+            Cobol name = value instanceof Cobol.QualifiedDataNameFormat1 ? ((Cobol.QualifiedDataNameFormat1) value).getName() :
+                    value instanceof Cobol.ConditionNameReference ? ((Cobol.ConditionNameReference) value).getName() : null;
+            return name instanceof Cobol.Word ? new DataName(new Cursor(reference, name)) : null;
+        }
+        if (parent.getValue() instanceof Cobol.Word && isQualifier()) {
+            CobolPreprocessor.ExecStatement exec = Objects.requireNonNull(Execs.blockOn((Cobol.Word) parent.getValue()));
+            List<Cobol.Word> words = Execs.wordsOf(cursor, exec);
+            return new DataName(new Cursor(parent, words.get(Execs.indexOf(words, getTree()) + 2)));
+        }
+        return null;
+    }
+
+    /**
+     * The items this qualifier names above the candidates of {@code qualified}, at its place among
+     * that occurrence's qualifiers.
+     */
+    private List<Definition> qualifiedThrough(Index index, DataName qualified) {
+        List<String> qualifiers = qualified.getQualifiers();
+        int place = qualifiers.size() - getQualifiers().size() - 1;
+        List<Definition> found = new ArrayList<>(1);
+        for (Definition candidate : qualified.candidates(index)) {
+            int matched = 0;
+            for (Definition above = candidate.getParent(); above != null && place >= 0; above = above.getParent()) {
+                if (qualifiers.get(matched).equals(above.getName()) && matched++ == place) {
+                    if (!found.contains(above)) {
+                        found.add(above);
+                    }
+                    break;
+                }
+            }
+        }
+        return found;
+    }
+
+    /**
+     * The entry a clause operand has to be, or be under: the record a 66 regroups for its RENAMES
+     * operands, and the table for the KEY of its OCCURS. Null for an operand of no such clause.
+     */
+    private @Nullable Definition clauseOwner(Index index) {
+        Cursor identifier = identifier();
+        Cursor clause = identifier == null ? null : identifier.getParentTreeCursor();
+        if (clause != null && clause.getValue() instanceof Cobol.DataRenamesClause) {
+            Definition renames = index.byEntry.get(clause.getParentTreeCursor().<Cobol>getValue().getId());
+            return renames == null ? null : renames.getParent();
+        }
+        if (clause != null && clause.getValue() instanceof Cobol.DataOccursSort) {
+            return index.byEntry.get(clause.getParentTreeCursor().getParentTreeCursor().<Cobol>getValue().getId());
+        }
+        return null;
+    }
+
+    private static List<Definition> candidates(Index index, String name, List<String> qualifiers, @Nullable String file) {
+        List<Definition> matching = index.matching(name, qualifiers, file, false);
         for (Index outer = index.container; matching.isEmpty() && outer != null; outer = outer.container) {
-            matching = outer.matching(name, qualifiers, true);
+            matching = outer.matching(name, qualifiers, file, true);
         }
         return matching;
     }
@@ -293,16 +505,69 @@ public class DataName implements Trait<Cobol.Word> {
      * declares the name.
      */
     static @Nullable Cursor declaringProgram(Cursor at, String name) {
-        List<Definition> matching = candidates(index(at), name.toUpperCase(Locale.ROOT), emptyList());
+        List<Definition> matching = candidates(index(at), name.toUpperCase(Locale.ROOT), emptyList(), null);
         Cursor word = matching.isEmpty() ? null : matching.get(0).getWord();
-        Program declaring = word == null ? null : Program.of(word);
-        for (Iterator<Cursor> path = at.getPathAsCursors(); declaring != null && path.hasNext(); ) {
+        return word == null ? null : onPath(at, Program.of(word));
+    }
+
+    /**
+     * The program on this occurrence's path that declares its definition, or null where it resolves
+     * to none. Unlike {@link #declaringProgram(Cursor, String)} it honours the qualifiers written.
+     */
+    @Nullable
+    Cursor declaringProgram() {
+        DataName definition = getDefinition();
+        return definition == null ? null : onPath(cursor, Program.of(definition.getCursor()));
+    }
+
+    private static @Nullable Cursor onPath(Cursor at, @Nullable Program program) {
+        for (Iterator<Cursor> path = at.getPathAsCursors(); program != null && path.hasNext(); ) {
             Cursor enclosing = path.next();
-            if (enclosing.getValue() == declaring.getTree()) {
+            if (enclosing.getValue() == program.getTree()) {
                 return enclosing;
             }
         }
         return null;
+    }
+
+    /**
+     * The entry the entry at {@code entry} is declared under, on the index's own cursor chain.
+     */
+    static @Nullable Cursor parentEntry(Cursor entry) {
+        Definition definition = index(entry).byEntry.get(entry.<Cobol>getValue().getId());
+        return definition == null || definition.getParent() == null ? null : definition.getParent().getEntry();
+    }
+
+    /**
+     * The entry the REDEFINES clause of the entry at {@code entry} names, on the index's own cursor chain.
+     */
+    static @Nullable Cursor redefinedEntry(Cursor entry) {
+        Definition definition = index(entry).byEntry.get(entry.<Cobol>getValue().getId());
+        return definition == null || definition.getRedefines() == null ? null : definition.getRedefines().getEntry();
+    }
+
+    /**
+     * The entries declared under the entry at {@code entry}, on the index's own cursor chain.
+     */
+    static List<Cursor> childEntries(Cursor entry) {
+        Definition definition = index(entry).byEntry.get(entry.<Cobol>getValue().getId());
+        return definition == null ? emptyList() : entriesOf(definition.getChildren());
+    }
+
+    /**
+     * The entries under no other entry of the DATA DIVISION at {@code division}, on the index's own cursor chain.
+     */
+    static List<Cursor> recordEntries(Cursor division) {
+        List<Definition> records = index(division).recordsByDivision.get(division.<Cobol>getValue().getId());
+        return records == null ? emptyList() : entriesOf(records);
+    }
+
+    private static List<Cursor> entriesOf(List<Definition> definitions) {
+        List<Cursor> entries = new ArrayList<>(definitions.size());
+        for (Definition definition : definitions) {
+            entries.add(definition.getEntry());
+        }
+        return entries;
     }
 
     private Index index() {
@@ -319,13 +584,16 @@ public class DataName implements Trait<Cobol.Word> {
         Map<UUID, Index> byProgram = cursor.getRoot().computeMessageIfAbsent("cobol.dataNames", k -> new HashMap<>());
         UUID id = program.getTree().getId();
         if (!byProgram.containsKey(id)) {
-            Index.of(program.outermost().getCursor(), null, new HashSet<>(), byProgram);
+            Index.of(program.outermost().getCursor(), null, new References(), byProgram);
         }
         return byProgram.get(id);
     }
 
     private static boolean isDefinition(Cursor at) {
         Object parent = at.getParentTreeCursor().getValue();
+        if (parent instanceof Cobol.DataOccursIndexed) {
+            return any(((Cobol.DataOccursIndexed) parent).getIndexNames(), at.getValue());
+        }
         if (!(parent instanceof Cobol.DataDescriptionEntry)) {
             return false;
         }
@@ -358,7 +626,7 @@ public class DataName implements Trait<Cobol.Word> {
         }
         if (parent instanceof Cobol.Word) {
             CobolPreprocessor.ExecStatement exec = Execs.blockOn((Cobol.Word) parent);
-            return exec != null && isOperand(exec, word);
+            return exec != null && isOperand(at, exec, word);
         }
         return false;
     }
@@ -380,27 +648,26 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
-     * Whether {@code word} sits where a data name goes in the block: after a colon in SQL, within
-     * an option's parentheses in CICS and DLI.
+     * Whether {@code word} sits where a data name goes in the block. In SQL that is after a colon, or
+     * after the structure of {@code :STRUCTURE.FIELD}. In CICS and DLI it is within an option's
+     * parentheses.
      */
-    private static boolean isOperand(CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
-        List<CobolPreprocessor.Word> header = exec.getWords();
-        boolean sql = header.size() > 1 && header.get(1).getCobolWord().getWord().regionMatches(true, 0, "SQL", 0, 3);
-        int depth = 0;
-        String previous = "";
-        for (Cobol.Word each : Execs.wordsOf(exec)) {
-            if (each.getId().equals(word.getId())) {
-                return sql ? ":".equals(previous) : depth > 0;
-            }
-            String text = each.getWord();
-            if ("(".equals(text)) {
-                depth++;
-            } else if (")".equals(text)) {
-                depth--;
-            }
-            previous = text;
+    private static boolean isOperand(Cursor cursor, CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
+        if (!Execs.isSql(exec)) {
+            return Execs.optionHolding(cursor, exec, word) != null;
         }
-        return false;
+        List<Cobol.Word> words = Execs.wordsOf(cursor, exec);
+        int at = Execs.indexOf(words, word);
+        return at > 0 && ":".equals(words.get(at - 1).getWord()) || structureOf(words, at) != null;
+    }
+
+    /**
+     * The structure, upper cased, that qualifies the host variable at {@code at} in an SQL block's
+     * {@code words} when it is written {@code :STRUCTURE.FIELD}. Null otherwise.
+     */
+    private static @Nullable String structureOf(List<Cobol.Word> words, int at) {
+        return at >= 3 && ".".equals(words.get(at - 1).getWord()) && ":".equals(words.get(at - 3).getWord()) ?
+                words.get(at - 2).getWord().toUpperCase(Locale.ROOT) : null;
     }
 
     private static boolean is(@Nullable Cobol node, @Nullable Cobol word) {
@@ -419,6 +686,8 @@ public class DataName implements Trait<Cobol.Word> {
     @Value
     private static class Definition {
 
+        Cursor entry;
+
         /**
          * Null for a FILLER or a nameless entry, which nests what follows it and names nothing.
          */
@@ -428,9 +697,38 @@ public class DataName implements Trait<Cobol.Word> {
         int level;
 
         @Nullable
+        @EqualsAndHashCode.Exclude
+        @ToString.Exclude
         Definition parent;
 
         boolean global;
+
+        /**
+         * The FD or SD whose record is or holds this entry, upper cased. Null outside the FILE SECTION.
+         */
+        @Nullable
+        String file;
+
+        @Nullable
+        @EqualsAndHashCode.Exclude
+        @ToString.Exclude
+        Definition redefines;
+
+        boolean indexName;
+
+        /**
+         * The index names this table's OCCURS declares, in order.
+         */
+        @EqualsAndHashCode.Exclude
+        @ToString.Exclude
+        List<Definition> indexNames = new ArrayList<>(0);
+
+        /**
+         * The entries declared under this one, in order.
+         */
+        @EqualsAndHashCode.Exclude
+        @ToString.Exclude
+        List<Definition> children = new ArrayList<>(0);
 
         @Nullable String getName() {
             return word == null ? null : Names.upperOf(word.getValue());
@@ -446,6 +744,15 @@ public class DataName implements Trait<Cobol.Word> {
 
         @Nullable DataName trait() {
             return word == null ? null : new DataName(word);
+        }
+
+        boolean isUnder(Definition ancestor) {
+            for (Definition above = parent; above != null; above = above.parent) {
+                if (above == ancestor) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /**
@@ -467,73 +774,127 @@ public class DataName implements Trait<Cobol.Word> {
     }
 
     /**
+     * The definition words anything names in the outermost program and the programs nested in it.
+     * Only {@link #isReferenced()} asks, so usages are collected and resolved on its first question,
+     * after every program of the family is indexed.
+     */
+    private static class References {
+        final Set<UUID> words = new HashSet<>();
+        final List<Index> unresolved = new ArrayList<>();
+
+        Set<UUID> resolved() {
+            for (Index index : unresolved) {
+                index.resolveUsages();
+            }
+            unresolved.clear();
+            return words;
+        }
+    }
+
+    /**
      * Every definition in a program, and which definitions anything names. A usage in a nested
      * program can name an outer program's GLOBAL entry. So the outermost program and every program
      * nested in it are indexed together, the first time any occurrence in them asks, and share one
-     * {@code referenced} set.
+     * {@link References}.
      */
     private static class Index {
 
-        static final Index EMPTY = new Index(null, emptySet());
+        static final Index EMPTY = new Index(null, new References(), null);
 
         final @Nullable Index container;
 
         final Map<String, List<Definition>> byName = new HashMap<>();
         final Map<UUID, Definition> byWord = new HashMap<>();
-        final Set<UUID> referenced;
+        final Map<UUID, Definition> byEntry = new HashMap<>();
 
-        private Index(@Nullable Index container, Set<UUID> referenced) {
+        /**
+         * The entries under no other entry of each DATA DIVISION, in order, by the division's id.
+         */
+        final Map<UUID, List<Definition>> recordsByDivision = new HashMap<>();
+        final References references;
+        final @Nullable Cursor program;
+
+        private Index(@Nullable Index container, References references, @Nullable Cursor program) {
             this.container = container;
-            this.referenced = referenced;
+            this.references = references;
+            this.program = program;
         }
 
         /**
          * Indexes {@code program}, then each program nested in it, so that a nested program's
          * usages resolve against the complete index of every program containing it.
          */
-        static void of(Cursor program, @Nullable Index container, Set<UUID> referenced, Map<UUID, Index> byProgram) {
+        static void of(Cursor program, @Nullable Index container, References references, Map<UUID, Index> byProgram) {
             Cobol.ProgramUnit unit = program.getValue();
-            Index index = new Index(container, referenced);
+            Index index = new Index(container, references, program);
             byProgram.put(unit.getId(), index);
-            List<Cursor> usages = index.walk(program, false);
-
-            Cursor block = new Program(program).getExecInterfaceBlock();
-            if (block != null) {
-                // The translator declares it GLOBAL.
-                index.walk(block, true);
+            references.unresolved.add(index);
+            if (unit.getDataDivision() != null) {
+                index.defineAll(new Cursor(program, unit.getDataDivision()), false);
             }
 
-            // Resolved after the walk: REDEFINES and DEPENDING ON name items before and after them.
-            for (Cursor at : usages) {
-                DataName usage = new DataName(at);
-                for (Definition definition : usage.candidates(index)) {
-                    index.reference(definition);
-                    // A condition name reads its item where it is tested and assigns it where it is SET.
-                    // A FILLER item has no name to be credited by, so the group above it is not.
-                    if (definition.getLevel() == 88) {
-                        index.reference(definition.getParent());
-                    }
-                }
+            Program translated = new Program(program);
+            Cursor block = translated.getExecInterfaceBlock();
+            if (block != null) {
+                // The translator declares it GLOBAL.
+                index.defineAll(block, true);
+            }
+            Cursor dib = translated.getDliInterfaceBlock();
+            if (dib != null) {
+                index.defineAll(dib, false);
             }
 
             if (unit.getProgramUnits() != null) {
                 for (Cobol.ProgramUnit nested : unit.getProgramUnits()) {
-                    of(new Cursor(program, nested), index, referenced, byProgram);
+                    of(new Cursor(program, nested), index, references, byProgram);
                 }
             }
         }
 
-        List<Definition> matching(String name, List<String> qualifiers, boolean globalOnly) {
+        /**
+         * Credits each definition the usages written in this program resolve to.
+         */
+        private void resolveUsages() {
+            for (Cursor at : usages()) {
+                DataName usage = new DataName(at);
+                Cobol.Search search = usage.searched();
+                for (Definition definition : usage.candidates(this)) {
+                    reference(definition);
+                    if (search != null && !definition.getIndexNames().isEmpty() && !varies(search, definition)) {
+                        // A SEARCH steps the table's first index name unless it VARIES another of them.
+                        reference(definition.getIndexNames().get(0));
+                    }
+                    // A condition name reads its item where it is tested and assigns it where it is SET.
+                    // A FILLER item has no name to be credited by, so the group above it is not.
+                    if (definition.getLevel() == 88) {
+                        reference(definition.getParent());
+                    }
+                }
+            }
+        }
+
+        private static boolean varies(Cobol.Search search, Definition table) {
+            String varied = search.getSearchVarying() == null ? null : Names.upperOf(search.getSearchVarying().getQualifiedDataName());
+            for (Definition indexName : table.getIndexNames()) {
+                if (Objects.equals(varied, indexName.getName())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        List<Definition> matching(String name, List<String> qualifiers, @Nullable String file, boolean globalOnly) {
             List<Definition> named = byName.get(name);
             if (named == null) {
                 return emptyList();
             }
-            if (qualifiers.isEmpty() && !globalOnly) {
+            if (qualifiers.isEmpty() && file == null && !globalOnly) {
                 return named;
             }
             List<Definition> matching = new ArrayList<>(1);
             for (Definition definition : named) {
-                if ((definition.isGlobal() || !globalOnly) && definition.isQualifiedBy(qualifiers)) {
+                if ((definition.isGlobal() || !globalOnly) && definition.isQualifiedBy(qualifiers) &&
+                    (file == null || file.equals(definition.getFile()))) {
                     matching.add(definition);
                 }
             }
@@ -541,41 +902,61 @@ public class DataName implements Trait<Cobol.Word> {
         }
 
         /**
-         * Defines every entry under {@code tree} and returns the words written where a data name is used.
+         * Defines every entry under {@code division}, a DATA DIVISION.
          */
-        private List<Cursor> walk(Cursor tree, boolean global) {
+        private void defineAll(Cursor division, boolean global) {
             Index index = this;
-            List<Cursor> usages = new ArrayList<>();
+            List<Definition> records = recordsByDivision.computeIfAbsent(division.<Cobol>getValue().getId(), k -> new ArrayList<>());
             new CopybookSkippingVisitor<Deque<Definition>>() {
                 @Override
-                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit unit, Deque<Definition> open) {
-                    // A nested program's names are its own, indexed from its own cursor.
-                    return unit == tree.getValue() ? super.visitProgramUnit(unit, open) : unit;
+                public Cobol preVisit(Cobol tree, Deque<Definition> open) {
+                    // No entry is under an entry of another section or file.
+                    if (tree instanceof DataDivisionSection || tree instanceof Cobol.FileDescriptionEntry) {
+                        open.clear();
+                    }
+                    return tree;
                 }
 
                 @Override
                 public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry,
                                                                             Deque<Definition> open) {
-                    index.define(getCursor(), open, global);
+                    index.define(getCursor(), open, records, global);
                     return super.visitDataDescriptionEntry(entry, open);
+                }
+            }.visit(division.getValue(), new ArrayDeque<>(), division.getParentOrThrow());
+        }
+
+        /**
+         * The words written in this program, and not in a program nested in it, where a data name is used.
+         */
+        private List<Cursor> usages() {
+            List<Cursor> usages = new ArrayList<>();
+            if (program == null) {
+                return usages;
+            }
+            new CopybookSkippingVisitor<Integer>() {
+                @Override
+                public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit unit, Integer p) {
+                    // A nested program's names are its own, indexed from its own cursor.
+                    return unit == program.getValue() ? super.visitProgramUnit(unit, p) : unit;
                 }
 
                 @Override
-                public Cobol.Word visitWord(Cobol.Word word, Deque<Definition> open) {
-                    Cobol.Word visited = super.visitWord(word, open);
+                public Cobol.Word visitWord(Cobol.Word word, Integer p) {
+                    Cobol.Word visited = super.visitWord(word, p);
                     Cursor at = new Cursor(getCursor().getParentOrThrow(), visited);
                     if (isUsage(at)) {
                         usages.add(at);
                     }
                     return visited;
                 }
-            }.visit(tree.getValue(), new ArrayDeque<>(), tree.getParentOrThrow());
+            }.visit(program.getValue(), 0, program.getParentOrThrow());
             return usages;
         }
 
         private void reference(@Nullable Definition definition) {
             if (definition != null && definition.getWord() != null) {
-                referenced.add(((Cobol.Word) definition.getWord().getValue()).getId());
+                references.words.add(((Cobol.Word) definition.getWord().getValue()).getId());
             }
         }
 
@@ -583,9 +964,9 @@ public class DataName implements Trait<Cobol.Word> {
          * A level 88 and a level 66 sit under the item before them and nest nothing; 01 and 77
          * start over; anything else is under the nearest entry of a lower level.
          */
-        private void define(Cursor at, Deque<Definition> open, boolean global) {
+        private void define(Cursor at, Deque<Definition> open, List<Definition> records, boolean global) {
             Cobol.DataDescriptionEntry entry = at.getValue();
-            int level = levelOf(entry);
+            int level = DataDescription.levelOf(entry);
             Definition parent;
             if (level == 88) {
                 parent = open.peek();
@@ -602,8 +983,14 @@ public class DataName implements Trait<Cobol.Word> {
             }
             Cobol.Word name = entry.getName();
             boolean named = name != null && !"FILLER".equalsIgnoreCase(name.getWord());
-            Definition definition = new Definition(named ? new Cursor(at, name) : null, level, parent,
-                    parent == null ? global || declaresGlobal(at) : parent.isGlobal());
+            Cobol.FileDescriptionEntry fd = parent == null ? at.firstEnclosing(Cobol.FileDescriptionEntry.class) : null;
+            List<Definition> siblings = parent == null ? records : parent.getChildren();
+            Definition definition = new Definition(at, named ? new Cursor(at, name) : null, level, parent,
+                    parent == null ? global || declaresGlobal(entry, fd) : parent.isGlobal(),
+                    parent != null ? parent.getFile() : fd != null ? Names.upperOf(fd.getName()) : null,
+                    redefined(at, level, siblings), false);
+            byEntry.put(entry.getId(), definition);
+            siblings.add(definition);
             if (level != 88 && level != 66) {
                 open.push(definition);
             }
@@ -611,14 +998,51 @@ public class DataName implements Trait<Cobol.Word> {
                 byWord.put(name.getId(), definition);
                 byName.computeIfAbsent(Names.upperOf(name), k -> new ArrayList<>(1)).add(definition);
             }
+            for (Cobol clause : entry.getClauses() == null ? Collections.<Cobol>emptyList() : entry.getClauses()) {
+                if (clause instanceof Cobol.DataOccursClause && ((Cobol.DataOccursClause) clause).getSortIndexed() != null) {
+                    for (Cobol phrase : ((Cobol.DataOccursClause) clause).getSortIndexed()) {
+                        if (phrase instanceof Cobol.DataOccursIndexed) {
+                            Cursor indexed = new Cursor(new Cursor(at, clause), phrase);
+                            for (Cobol.Word index : ((Cobol.DataOccursIndexed) phrase).getIndexNames()) {
+                                Definition indexName = new Definition(at, new Cursor(indexed, index), 0, definition,
+                                        definition.isGlobal(), definition.getFile(), null, true);
+                                definition.getIndexNames().add(indexName);
+                                byWord.put(index.getId(), indexName);
+                                byName.computeIfAbsent(Names.upperOf(index), k -> new ArrayList<>(1)).add(indexName);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /**
-         * Whether the entry says GLOBAL, or the FD it describes a record of does.
+         * The entry the REDEFINES clause of the entry at {@code at} names among {@code siblings}, the
+         * entries declared before it under the same parent. A record redefines only a record of its
+         * own section.
          */
-        private static boolean declaresGlobal(Cursor at) {
+        private static @Nullable Definition redefined(Cursor at, int level, List<Definition> siblings) {
             Cobol.DataDescriptionEntry entry = at.getValue();
-            Cobol.FileDescriptionEntry file = at.firstEnclosing(Cobol.FileDescriptionEntry.class);
+            for (Cobol clause : entry.getClauses() == null ? Collections.<Cobol>emptyList() : entry.getClauses()) {
+                if (clause instanceof Cobol.DataRedefinesClause) {
+                    String name = Names.upperOf(((Cobol.DataRedefinesClause) clause).getDataName());
+                    Object section = at.firstEnclosing(DataDivisionSection.class);
+                    for (int i = siblings.size() - 1; i >= 0; i--) {
+                        Definition sibling = siblings.get(i);
+                        if (sibling.getLevel() == level && name.equals(sibling.getName()) &&
+                            (sibling.getParent() != null || sibling.getEntry().firstEnclosing(DataDivisionSection.class) == section)) {
+                            return sibling;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Whether the entry says GLOBAL, or {@code file}, the FD it describes a record of, does.
+         */
+        private static boolean declaresGlobal(Cobol.DataDescriptionEntry entry, Cobol.@Nullable FileDescriptionEntry file) {
             return anyOf(entry.getClauses(), Cobol.DataGlobalClause.class) ||
                    file != null && anyOf(file.getClauses(), Cobol.GlobalClause.class);
         }
@@ -632,14 +1056,6 @@ public class DataName implements Trait<Cobol.Word> {
                 }
             }
             return false;
-        }
-
-        private static int levelOf(Cobol.DataDescriptionEntry entry) {
-            try {
-                return entry.getWords().isEmpty() ? 0 : Integer.parseInt(entry.getWords().get(0).getWord());
-            } catch (NumberFormatException e) {
-                return 0;
-            }
         }
     }
 

@@ -4464,7 +4464,7 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
                         return word;
                     }
                 }
-            } else {
+            } else if (!preprocessorStatement.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
                 getCobolPreprocessorVisitor().visit(preprocessorStatement, p);
             }
         }

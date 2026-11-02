@@ -50,7 +50,7 @@ public class GroupMembership implements Trait<ControlM> {
     public boolean isSmartTable() {
         Cursor parent = cursor.getParent();
         Object table = parent == null ? null : parent.getValue();
-        return table instanceof ControlM.Element && ((ControlM.Element) table).isName("SMART_FOLDER");
+        return table instanceof ControlM.Element && Schedules.isSmartTable((ControlM.Element) table);
     }
 
     public static class Matcher extends SimpleTraitMatcher<GroupMembership> {

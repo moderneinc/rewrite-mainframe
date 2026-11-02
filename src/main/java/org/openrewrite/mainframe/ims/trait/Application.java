@@ -42,10 +42,12 @@ public class Application implements Trait<Ims.MacroStatement> {
     Cursor cursor;
 
     /**
-     * The PSB, from {@code PSB=}.
+     * The PSB, from {@code PSB=}, or from {@code GPSB=} for a program that runs under the PSB IMS
+     * generates for it, which has the program's name.
      */
     public @Nullable String getPsbName() {
-        return Operands.firstOf(getTree(), "PSB");
+        String psb = Operands.firstOf(getTree(), "PSB");
+        return psb == null ? Operands.firstOf(getTree(), "GPSB") : psb;
     }
 
     /**
@@ -89,7 +91,7 @@ public class Application implements Trait<Ims.MacroStatement> {
                 return null;
             }
             Ims.MacroStatement statement = (Ims.MacroStatement) value;
-            return statement.isOperation("APPLCTN") && Operands.firstOf(statement, "PSB") != null ?
+            return statement.isOperation("APPLCTN") && new Application(cursor).getPsbName() != null ?
                     new Application(cursor) : null;
         }
     }

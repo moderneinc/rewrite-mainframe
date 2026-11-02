@@ -16,9 +16,12 @@
 package org.openrewrite.mainframe.cobol.internal;
 
 import lombok.RequiredArgsConstructor;
+import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.tree.Trees;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -26,6 +29,7 @@ import org.openrewrite.mainframe.cobol.CobolParsingException;
 import org.openrewrite.mainframe.cobol.CobolParsingTimeoutException;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParserBaseVisitor;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
+import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
@@ -43,6 +47,7 @@ import java.util.*;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.DEBUGGING_INDICATORS;
@@ -80,6 +85,8 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     private final Duration timeout;
 
+    private final BufferedTokenStream tokens;
+
     private final long start = System.nanoTime();
 
     private final Set<String> templateKeys = new HashSet<>();
@@ -95,6 +102,12 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     private final Set<Character> commentIndicators = new HashSet<>();
     private int cursor = 0;
+
+    /**
+     * How many commas with no space after them CobolParser's token filter hid right before the token being read.
+     * They are whitespace in its prefix.
+     */
+    private int hiddenCommas;
 
     // Trigger condition to remove whitespace added by the template.
     private boolean removeTemplateCommentArea;
@@ -139,6 +152,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     // Stand-ins for the EXEC block and its period, in the order the parser input holds them.
     private boolean pendingElidedExec;
     private boolean pendingElidedDot;
+
+    /**
+     * The program being visited and the names that tell a file qualifier from a data name, upper cased. The grammar
+     * reads a file qualifying a record as a data name. The program's data names are read only when a qualifier is
+     * spelled like a containing program's GLOBAL file.
+     */
+    private CobolParser.@Nullable ProgramUnitContext programUnit;
+    private Set<String> ownFiles = emptySet();
+    private Set<String> containerFiles = emptySet();
+    private @Nullable Set<String> ownDataNames;
 
     public <T> T visit(@Nullable ParseTree... trees) {
         if (Duration.ofNanos(System.nanoTime() - start).compareTo(timeout) > 0) {
@@ -316,10 +339,21 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         // Each list holds the programs nested in the last program of the list below it. The bottom list is the batch.
         Deque<List<Cobol.ProgramUnit>> nested = new ArrayDeque<>();
         nested.push(new ArrayList<>());
+        // The GLOBAL files of each open program and of the programs containing it, kept level with the lists above.
+        Deque<Set<String>> globalFiles = new ArrayDeque<>();
+        globalFiles.push(emptySet());
         for (ParseTree child : ctx.children) {
             if (child instanceof CobolParser.ProgramUnitContext) {
-                nested.peek().add(visitProgramUnit((CobolParser.ProgramUnitContext) child));
+                CobolParser.ProgramUnitContext unit = (CobolParser.ProgramUnitContext) child;
+                programUnit = unit;
+                ownFiles = filesOf(unit, false);
+                containerFiles = globalFiles.peek();
+                ownDataNames = null;
+                nested.peek().add(visitProgramUnit(unit));
                 nested.push(new ArrayList<>());
+                Set<String> global = new HashSet<>(containerFiles);
+                global.addAll(filesOf(unit, true));
+                globalFiles.push(global);
             } else if (child instanceof CobolParser.EndProgramStatementContext) {
                 CobolParser.EndProgramStatementContext end = (CobolParser.EndProgramStatementContext) child;
                 if (nested.size() == 1) {
@@ -327,12 +361,67 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                                                           " closes no program", null);
                 }
                 closeProgramUnit(nested, visitEndProgramStatement(end));
+                globalFiles.pop();
             }
         }
         while (nested.size() > 1) {
             closeProgramUnit(nested, null);
         }
         return nested.pop();
+    }
+
+    /**
+     * The FDs and SDs of {@code unit}'s FILE SECTION, or only its GLOBAL FDs, upper cased.
+     */
+    private static Set<String> filesOf(CobolParser.ProgramUnitContext unit, boolean globalOnly) {
+        Set<String> files = new HashSet<>();
+        CobolParser.DataDivisionContext data = unit.dataDivision();
+        if (data != null) {
+            for (CobolParser.DataDivisionSectionContext section : data.dataDivisionSection()) {
+                if (section.fileSection() != null) {
+                    for (CobolParser.FileDescriptionEntryContext file : section.fileSection().fileDescriptionEntry()) {
+                        if (!globalOnly || file.fileDescriptionEntryClause().stream().anyMatch(c -> c.globalClause() != null)) {
+                            files.add(file.fileName().getText().toUpperCase(Locale.ROOT));
+                        }
+                    }
+                }
+            }
+        }
+        return files;
+    }
+
+    /**
+     * Whether the last qualifier of a name names a file. Within one program a data name cannot be spelled like a file
+     * name, and only the last qualifier can be a file. A program's own data item hides a GLOBAL file of a program
+     * containing it.
+     */
+    private boolean namesFile(CobolParser.InDataContext last) {
+        if (ownFiles.isEmpty() && containerFiles.isEmpty()) {
+            return false;
+        }
+        String name = last.dataName().getText().toUpperCase(Locale.ROOT);
+        return ownFiles.contains(name) || containerFiles.contains(name) && !ownDataNames().contains(name);
+    }
+
+    private Set<String> ownDataNames() {
+        if (ownDataNames == null) {
+            ownDataNames = new HashSet<>();
+            CobolParser.DataDivisionContext data = programUnit == null ? null : programUnit.dataDivision();
+            if (data != null) {
+                for (ParseTree entry : Trees.findAllRuleNodes(data, CobolParser.RULE_dataDescriptionEntryFormat1)) {
+                    CobolParser.DataNameContext name = ((CobolParser.DataDescriptionEntryFormat1Context) entry).dataName();
+                    if (name != null) {
+                        ownDataNames.add(name.getText().toUpperCase(Locale.ROOT));
+                    }
+                }
+            }
+        }
+        return ownDataNames;
+    }
+
+    private Cobol.InFile inFile(CobolParser.InDataContext ctx) {
+        Cobol.InData in = (Cobol.InData) visitInData(ctx);
+        return new Cobol.InFile(in.getId(), in.getPrefix(), in.getMarkers(), in.getWord(), in.getName());
     }
 
     private void closeProgramUnit(Deque<List<Cobol.ProgramUnit>> nested, Cobol.@Nullable EndProgram endProgram) {
@@ -630,7 +719,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.AUTHOR()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -1140,12 +1229,15 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Cobol.ConditionNameReference visitConditionNameReference(CobolParser.ConditionNameReferenceContext ctx) {
+        List<CobolParser.InDataContext> qualifiers = ctx.inData();
+        int last = qualifiers.size() - 1;
+        CobolParser.InDataContext file = last >= 0 && namesFile(qualifiers.get(last)) ? qualifiers.get(last) : null;
         return new Cobol.ConditionNameReference(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 (Name) visit(ctx.conditionName()),
-                convertAll(ctx.inData()),
-                null,
+                convertAll(file == null ? qualifiers : qualifiers.subList(0, last)),
+                file == null ? null : inFile(file),
                 convertAll(ctx.conditionNameSubscriptReference()),
                 emptyList()
         );
@@ -1541,7 +1633,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.VALUE(), ctx.VALUES(), ctx.IS(), ctx.ARE()),
-                convertAllList(ctx.dataValueInterval(), ctx.COMMACHAR())
+                convertAllList(ctx.dataValueInterval())
         );
     }
 
@@ -1580,7 +1672,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.DATE_COMPILED()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -1593,7 +1685,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.DATE_WRITTEN()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -1709,7 +1801,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.DISPLAY()),
-                convertAllList(ctx.displayOperand(), ctx.COMMACHAR()),
+                convertAllList(ctx.displayOperand()),
                 visitNullable(ctx.displayAt()),
                 visitNullable(ctx.displayUpon()),
                 visitNullable(ctx.displayWith()),
@@ -2100,7 +2192,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 Markers.EMPTY,
                 visit(ctx.FD(), ctx.SD()),
                 (Cobol.Word) visit(ctx.fileName()),
-                convertAllList(ctx.DOT_FS(), ctx.COMMACHAR(), ctx.fileDescriptionEntryClause()),
+                convertAllList(ctx.DOT_FS(), ctx.fileDescriptionEntryClause()),
                 convertAll(ctx.dataDescriptionEntry())
         );
     }
@@ -2287,7 +2379,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.INSTALLATION()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -3757,12 +3849,16 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitQualifiedDataNameFormat1(CobolParser.QualifiedDataNameFormat1Context ctx) {
+        List<CobolParser.QualifiedInDataContext> qualifiers = ctx.qualifiedInData();
+        int last = qualifiers.size() - 1;
+        CobolParser.InDataContext file = last >= 0 && namesFile(qualifiers.get(last).inData()) ?
+                qualifiers.get(last).inData() : null;
         return new Cobol.QualifiedDataNameFormat1(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 (Name) visit(ctx.dataName()),
-                convertAll(ctx.qualifiedInData()),
-                null
+                convertAll(file == null ? qualifiers : qualifiers.subList(0, last)),
+                file == null ? null : inFile(file)
         );
     }
 
@@ -4433,7 +4529,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ReportGroupSumClause(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAllList(singletonList(ctx.SUM()), ctx.identifier(), ctx.COMMACHAR(), singletonList(ctx.UPON()), ctx.dataName())
+                convertAllList(singletonList(ctx.SUM()), ctx.identifier(), singletonList(ctx.UPON()), ctx.dataName())
         );
     }
 
@@ -4709,7 +4805,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.SECURITY()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -5204,7 +5300,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 convertAll(ctx.statement()),
-                (Cobol.Word) visit(ctx.DOT_FS())
+                visitNullable(ctx.DOT_FS())
         );
     }
 
@@ -5551,7 +5647,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.StringSendingPhrase(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAllList(ctx.stringSending(), ctx.COMMACHAR()),
+                convertAllList(ctx.stringSending()),
                 visit(ctx.stringDelimitedByPhrase(), ctx.stringForPhrase())
         );
     }
@@ -5762,7 +5858,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     public Cobol.Word visitTerminal(TerminalNode node) {
         String nodeText = node.getText();
         List<Object> objects = new ArrayList<>();
+        hiddenCommas = 0;
+        for (int i = node.getSymbol().getTokenIndex() - 1; i >= 0 && tokens.get(i).getChannel() != Token.DEFAULT_CHANNEL; i--) {
+            if (tokens.get(i).getType() == CobolParser.COMMACHAR) {
+                hiddenCommas++;
+            }
+        }
         Space prefix = processTokenText(nodeText, objects);
+        hiddenCommas = 0;
         Markers markers = Markers.EMPTY;
         // The tag stands in for an EXEC block that the grammar was never handed, so the word has no text of its own.
         String text = END_OF_FILE.equals(nodeText) || nodeText.startsWith(EXEC_TAG) ? "" :
@@ -6189,11 +6292,15 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             // Do not consume whitespace in blank column areas.
             isColumnArea = columnAreaStarts.get(delimIndex);
             if (!Character.isWhitespace(c) || isColumnArea) {
-                if (c == ',' || c == ';' && delimIndex + 1 < source.length() - 1) {
+                if ((c == ',' || c == ';') && delimIndex + 1 < source.length()) {
                     char next = source.charAt(delimIndex + 1);
                     if (next == ' ' || next == '\r' || next == '\n' || commentAreaStarts.get(delimIndex + 1)) {
                         continue;
                     }
+                }
+                if (c == ',' && hiddenCommas > 0) {
+                    hiddenCommas--;
+                    continue;
                 }
                 break; // found it!
             }
@@ -6474,6 +6581,20 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                         // as well prints them twice over.
                         lines.clear();
                     } else if (preprocessorStartComment.equals(contentArea)) {
+                        parseComment(preprocessorStartComment);
+                        removeTemplateCommentArea = true;
+                        // The template may follow ordinary words on the same source line. Those words still
+                        // need to be consumed by their own COBOL nodes before the command's UUID is reached.
+                        int prefixStart = cursor;
+                        sequenceArea();
+                        indicatorArea();
+                        int prefixEnd = source.indexOf('\n', cursor);
+                        if (isBlank(cursor, prefixEnd == -1 ? source.length() : prefixEnd)) {
+                            cursor = prefixEnd == -1 ? source.length() : prefixEnd + 1;
+                        } else {
+                            cursor = prefixStart;
+                        }
+                    } else if (uuidComment.equals(contentArea)) {
                         objects.add(getPreprocessorStatement());
                         if (pendingElidedExec) {
                             // The words that follow stand in for this EXEC; a later one gets its own statement.
@@ -6840,12 +6961,6 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         this.replaceAdditiveType = null;
     }
 
-    private void parseFully(String comment) {
-        parseComment(comment);
-
-        cursor = afterNextNewline();
-    }
-
     private Replacement getReplace() {
         parseComment(replaceUuidComment);
 
@@ -6932,8 +7047,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     private CobolPreprocessor getPreprocessorStatement() {
-        parseFully(preprocessorStartComment);
-
+        removeTemplateCommentArea = false;
         parseComment(uuidComment);
 
         String uuid = getUuid();
@@ -6949,9 +7063,27 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         nextIndex = Integer.valueOf(numberOfSpaces.trim());
 
         CobolPreprocessor statement = preprocessorMap.get(uuid.trim());
+        if (statement instanceof CobolPreprocessor.ExecStatement && nextIndex > 0) {
+            int endOfLine = source.indexOf('\n', cursor);
+            int end = endOfLine < 0 ? source.length() : endOfLine;
+            if (isBlank(cursor, end)) {
+                // Remove only alignment inserted by the template. The remaining spaces belong to the source EOF.
+                int alignment = nextIndex + cobolDialect.getColumns().getContentArea();
+                cursor += Math.min(alignment, end - cursor);
+                nextIndex = null;
+            }
+        }
         if (statement != null && elidedExecs.contains(statement.getId())) {
             pendingElidedExec = true;
             pendingElidedDot = ((CobolPreprocessor.ExecStatement) statement).getDot() != null;
+        }
+        if (statement != null && !copiedWordMarkers.isEmpty()) {
+            CopiedWord origin = copiedWordMarkers.peek().findFirst(CopiedWord.class).orElse(null);
+            if (origin != null && !statement.getMarkers().findFirst(CopiedStatement.class).isPresent()) {
+                // A directive can be carried by the next host word when a copy contributes no further tokens.
+                // Keep its origin on the directive itself without changing the shared copybook tree.
+                statement = statement.withMarkers(statement.getMarkers().add(new CopiedStatement(randomId(), origin.getCopybook())));
+            }
         }
         return statement;
     }

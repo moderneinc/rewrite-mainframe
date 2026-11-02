@@ -62,10 +62,12 @@ public class OutCondition implements Trait<ControlM> {
     }
 
     /**
-     * Adding is what a definition means when it writes no sign at all.
+     * Adding is what a definition means when it writes no sign at all. An export may spell the sign
+     * out as {@code ADD} or {@code DEL}.
      */
     public Sign getSign() {
-        return "-".equals(sign()) ? Sign.DELETE : Sign.ADD;
+        String sign = sign();
+        return "-".equals(sign) || "DEL".equalsIgnoreCase(sign) ? Sign.DELETE : Sign.ADD;
     }
 
     public boolean isAdded() {

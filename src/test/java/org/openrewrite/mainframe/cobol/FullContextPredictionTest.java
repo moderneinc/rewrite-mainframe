@@ -513,8 +513,32 @@ class FullContextPredictionTest {
         assertThat(preprocessorFullContextFallbacks(program, "compilationUnit", "replaceArea")).isZero();
     }
 
+    @Test
+    void impliedPeriodsAndSeparatedParentheses() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. IMPLIED.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  CODES VALUE 'A','B'.
+              88  SMALL VALUE 1,2,3.
+          PROCEDURE DIVISION.
+          FIRST-PARA.
+              COMPUTE X = FUNCTION MAX(A * B, (C + 1) / 2, T (I, J), T (1,2))
+              DISPLAY A,B,C
+          SECOND-PARA.
+              STRING A,B DELIMITED BY SIZE INTO C
+          LAST-SECTION SECTION.
+          LAST-PARA.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "sentence", "paragraphs", "identifier", "functionCallArguments",
+          "subscript", "displayStatement", "stringSendingPhrase", "dataValueClause")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
-        CobolParser parser = new CobolParser(new CommonTokenStream(new CobolLexer(CharStreams.fromString(program))));
+        CobolParser parser = new CobolParser(new CommonTokenStream(
+          new org.openrewrite.mainframe.cobol.CobolParser.ImpliedSeparators(new CobolLexer(CharStreams.fromString(program)))));
         return fallbacks(parser, parser::compilationUnit, rules);
     }
 

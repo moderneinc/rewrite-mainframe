@@ -19,7 +19,8 @@ definitionLine
         | overlibLine
         | schenvLine
         | setVarLine
-        | ctbSetLine
+        | ctbStepLine
+        | argumentsLine
         | docLine
         )? DEFINITION_LINE_END
     ;
@@ -57,7 +58,7 @@ dflt
     ;
 
 applLine
-    : appl group
+    : appl group rbc?
     ;
 
 appl
@@ -65,7 +66,11 @@ appl
     ;
 
 group
-    : DEFINITION_GROUP name?
+    : (DEFINITION_GROUP | DEFINITION_TBL) name?
+    ;
+
+rbc
+    : DEFINITION_RBC name?
     ;
 
 descLine
@@ -101,12 +106,31 @@ njeNode
     ;
 
 setVarLine
-    : DEFINITION_SET_VAR name?
-    | DEFINITION_SET_VAR name DEFINITION_EQUALS_CHAR name
+    : DEFINITION_SET_VAR freeText?
     ;
 
-ctbSetLine
-    : DEFINITION_CTB_STEP DEFINITION_AT name DEFINITION_TYPE
+ctbStepLine
+    : DEFINITION_CTB_STEP ctbStepAt ctbStepName ctbStepType
+    ;
+
+ctbStepAt
+    : CTB_STEP_AT name?
+    ;
+
+ctbStepName
+    : CTB_STEP_NAME name?
+    ;
+
+ctbStepType
+    : CTB_STEP_TYPE name?
+    ;
+
+argumentsLine
+    : DEFINITION_ARGUMENTS freeText?
+    ;
+
+freeText
+    : (name | DEFINITION_EQUALS_CHAR)+
     ;
 
 docLine
@@ -137,7 +161,7 @@ inputSection
 
 // The `IN` portion of an INPUT section is separated since the names are relevant for relationships.
 inputNamesLine
-    : INPUT_NAMES_LINE_START INPUT_NAMES_IN? (input)* INPUT_NAMES_LINE_END
+    : INPUT_NAMES_LINE_START (INPUT_NAMES_IN | LONG_CONDITION)? (input)* INPUT_NAMES_LINE_END
     ;
 
 input
@@ -149,7 +173,7 @@ date
     ;
 
 dateParam
-    : ODAT | STAT | PREV | INCR_DATE | DECR_DATE | ANY_DATE
+    : ODAT | STAT | PREV | NEXT | INCR_DATE | DECR_DATE | ANY_DATE | SPECIFIC_DATE
     ;
 
 inputLine
@@ -162,7 +186,7 @@ outputSection
 
 // Output line is separated from consumed text since it contains relevant file names.
 outputNamesLine
-    : OUTPUT_NAMES_LINE_START OUTPUT_NAMES_OUT? (output)* OUTPUT_NAMES_LINE_END
+    : OUTPUT_NAMES_LINE_START (OUTPUT_NAMES_OUT | LONG_CONDITION)? (output)* OUTPUT_NAMES_LINE_END
     ;
 
 output

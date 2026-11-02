@@ -28,6 +28,7 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.CommentArea;
 import org.openrewrite.mainframe.db2.EmbeddedSql;
+import org.openrewrite.mainframe.db2.EmbeddedSql.HostVariable;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 import org.openrewrite.trait.VisitFunction2;
@@ -111,9 +112,9 @@ public class SqlStatement implements Trait<CobolPreprocessor.ExecStatement> {
 
     /**
      * The host variables the statement moves values through, positionally against {@link #columns}.
-     * An entry is empty where a literal sits in that position.
+     * An entry is null where a literal sits in that position.
      */
-    List<String> hostVariables;
+    List<@Nullable HostVariable> hostVariables;
 
     /**
      * The null indicators, which DB2 sets alongside the host variable they were written with rather
@@ -121,7 +122,7 @@ public class SqlStatement implements Trait<CobolPreprocessor.ExecStatement> {
      * stays positional, and reported so a program's indicator does not look like a field nothing
      * fills.
      */
-    List<String> indicatorVariables;
+    List<HostVariable> indicatorVariables;
 
     /**
      * The one table the query names, where the parser read exactly one. Null for a join, which
@@ -646,7 +647,7 @@ public class SqlStatement implements Trait<CobolPreprocessor.ExecStatement> {
     @Value
     public static class Binding {
         String column;
-        String hostVariable;
+        HostVariable hostVariable;
     }
 
     public enum Access {

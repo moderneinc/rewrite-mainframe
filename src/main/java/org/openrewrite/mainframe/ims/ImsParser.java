@@ -69,7 +69,7 @@ public class ImsParser implements Parser {
      * HLASM reader declines what {@link #isGenSource} claims.
      */
     private static final Set<String> GEN_OPERATIONS = new HashSet<>(asList(
-            "DBD", "PCB", "PSBGEN", "APPLCTN", "TRANSACT", "DATABASE", "FMT", "MSG"));
+            "DBD", "PCB", "PSBGEN", "IMSCTRL", "APPLCTN", "TRANSACT", "DATABASE", "FMT", "MSG"));
 
     @Override
     public Stream<SourceFile> parseInputs(Iterable<Input> sourceFiles, @Nullable Path relativeTo, ExecutionContext ctx) {

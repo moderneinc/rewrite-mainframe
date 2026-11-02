@@ -254,6 +254,32 @@ class CicsCommandTest implements RewriteTest {
     }
 
     @Test
+    void givesAnOperandAsTheDataNameItIsWrittenAs() {
+        List<CicsCommand> commands = parse(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. CICSPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-AREA.                                                    \s
+            000000     05  WS-COMM   PIC X(100).                                   \s
+            000000 01  WS-TARGET     PIC X(8).                                     \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     EXEC CICS LINK PROGRAM(WS-TARGET)                           \s
+            000000          COMMAREA(WS-COMM OF WS-AREA)                           \s
+            000000          LENGTH(LENGTH OF WS-TARGET) SYSID('SYS1') END-EXEC.    \s
+            000000     STOP RUN.                                                   \s
+            """
+        );
+
+        CicsCommand link = commands.get(0);
+        assertThat(link.getOptionDataName("program")).extracting(DataName::getName).isEqualTo("WS-TARGET");
+        assertThat(link.getOptionDataName("COMMAREA")).extracting(DataName::getName).isEqualTo("WS-COMM");
+        assertThat(link.getOptionDataName("LENGTH")).isNull();
+        assertThat(link.getOptionDataName("SYSID")).isNull();
+    }
+
+    @Test
     void readsMultiLineCommands() {
         List<CicsCommand> commands = parse(
           """

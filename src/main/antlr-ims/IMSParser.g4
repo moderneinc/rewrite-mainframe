@@ -21,7 +21,7 @@ imsWord
     ;
 
 imsSequenceArea
-    : CA_START (IMS_TEXT | IMS_STRINGLITERAL)
+    : IMS_SEQUENCE_AREA
     ;
 
 comment
@@ -33,7 +33,7 @@ commentWord
     ;
 
 commentSequenceArea
-    : CA_START COMMENT_TEXT
+    : COMMENT_SEQUENCE_AREA
     ;
 
 unknown
@@ -46,5 +46,5 @@ unknownWord
     ;
 
 unknownSequenceArea
-    : CA_START (UNKNOWN_TEXT | UNKNOWN_STRINGLITERAL)
+    : UNKNOWN_SEQUENCE_AREA
     ;

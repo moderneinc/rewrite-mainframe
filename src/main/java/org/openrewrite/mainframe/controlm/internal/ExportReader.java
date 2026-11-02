@@ -119,21 +119,26 @@ public class ExportReader {
             if (source.startsWith("/>", cursor)) {
                 cursor += 2;
                 return new ControlM.Element(randomId(), prefix, Markers.EMPTY, name,
-                        attributes.isEmpty() ? emptyList() : attributes, beforeTagEnd, null, Space.EMPTY);
+                        attributes.isEmpty() ? emptyList() : attributes, beforeTagEnd, null, Space.EMPTY, Space.EMPTY);
             }
             if (source.startsWith(">", cursor)) {
                 cursor++;
                 List<ControlM> elements = new ArrayList<>();
                 Space beforeEndTag = body(name, elements);
+                Space beforeEndTagEnd = whitespace();
+                expect('>');
+                cursor++;
                 return new ControlM.Element(randomId(), prefix, Markers.EMPTY, name,
-                        attributes.isEmpty() ? emptyList() : attributes, beforeTagEnd, elements, beforeEndTag);
+                        attributes.isEmpty() ? emptyList() : attributes, beforeTagEnd, elements, beforeEndTag,
+                        beforeEndTagEnd);
             }
             attributes.add(attribute(beforeTagEnd));
         }
     }
 
     /**
-     * What is written between an element's tags, up to the closing one, whose own prefix is returned.
+     * What is written between an element's tags, up to the name of the closing one. Returns the
+     * closing tag's prefix.
      */
     private Space body(String name, List<ControlM> elements) {
         while (true) {
@@ -147,8 +152,6 @@ public class ExportReader {
             if (!closing.equals(name)) {
                 throw new IllegalArgumentException("<" + name + "> closed by </" + closing + "> at " + where(cursor));
             }
-            expect('>');
-            cursor++;
             return beforeEndTag;
         }
     }

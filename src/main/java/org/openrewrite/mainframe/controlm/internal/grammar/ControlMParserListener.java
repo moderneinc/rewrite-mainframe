@@ -163,6 +163,16 @@ public interface ControlMParserListener extends ParseTreeListener {
 	 */
 	void exitGroup(ControlMParser.GroupContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ControlMParser#rbc}.
+	 * @param ctx the parse tree
+	 */
+	void enterRbc(ControlMParser.RbcContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ControlMParser#rbc}.
+	 * @param ctx the parse tree
+	 */
+	void exitRbc(ControlMParser.RbcContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ControlMParser#descLine}.
 	 * @param ctx the parse tree
 	 */
@@ -253,15 +263,65 @@ public interface ControlMParserListener extends ParseTreeListener {
 	 */
 	void exitSetVarLine(ControlMParser.SetVarLineContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link ControlMParser#ctbSetLine}.
+	 * Enter a parse tree produced by {@link ControlMParser#ctbStepLine}.
 	 * @param ctx the parse tree
 	 */
-	void enterCtbSetLine(ControlMParser.CtbSetLineContext ctx);
+	void enterCtbStepLine(ControlMParser.CtbStepLineContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link ControlMParser#ctbSetLine}.
+	 * Exit a parse tree produced by {@link ControlMParser#ctbStepLine}.
 	 * @param ctx the parse tree
 	 */
-	void exitCtbSetLine(ControlMParser.CtbSetLineContext ctx);
+	void exitCtbStepLine(ControlMParser.CtbStepLineContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ControlMParser#ctbStepAt}.
+	 * @param ctx the parse tree
+	 */
+	void enterCtbStepAt(ControlMParser.CtbStepAtContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ControlMParser#ctbStepAt}.
+	 * @param ctx the parse tree
+	 */
+	void exitCtbStepAt(ControlMParser.CtbStepAtContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ControlMParser#ctbStepName}.
+	 * @param ctx the parse tree
+	 */
+	void enterCtbStepName(ControlMParser.CtbStepNameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ControlMParser#ctbStepName}.
+	 * @param ctx the parse tree
+	 */
+	void exitCtbStepName(ControlMParser.CtbStepNameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ControlMParser#ctbStepType}.
+	 * @param ctx the parse tree
+	 */
+	void enterCtbStepType(ControlMParser.CtbStepTypeContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ControlMParser#ctbStepType}.
+	 * @param ctx the parse tree
+	 */
+	void exitCtbStepType(ControlMParser.CtbStepTypeContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ControlMParser#argumentsLine}.
+	 * @param ctx the parse tree
+	 */
+	void enterArgumentsLine(ControlMParser.ArgumentsLineContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ControlMParser#argumentsLine}.
+	 * @param ctx the parse tree
+	 */
+	void exitArgumentsLine(ControlMParser.ArgumentsLineContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ControlMParser#freeText}.
+	 * @param ctx the parse tree
+	 */
+	void enterFreeText(ControlMParser.FreeTextContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ControlMParser#freeText}.
+	 * @param ctx the parse tree
+	 */
+	void exitFreeText(ControlMParser.FreeTextContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link ControlMParser#docLine}.
 	 * @param ctx the parse tree

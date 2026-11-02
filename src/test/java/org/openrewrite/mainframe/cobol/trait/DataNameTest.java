@@ -64,10 +64,40 @@ class DataNameTest implements RewriteTest {
           .orElseThrow();
     }
 
+    private static List<Cobol.Word> definitionsOf(List<DataName> names, String name) {
+        return names.stream()
+          .filter(n -> n.isDefinition() && n.getName().equals(name))
+          .map(DataName::getTree)
+          .collect(Collectors.toList());
+    }
+
     private static List<DataName> usagesOf(List<DataName> names, String name) {
         return names.stream()
           .filter(n -> !n.isDefinition() && n.getName().equals(name))
           .collect(Collectors.toList());
+    }
+
+    @Test
+    void resolvesARedefinesObjectByPosition() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. REDEF.                                              \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-A.                                                       \s
+            000000     05  WS-DATE     PIC X(8).                                   \s
+            000000     05  WS-DATE-N   REDEFINES WS-DATE PIC 9(8).                 \s
+            000000 01  WS-B.                                                       \s
+            000000     05  WS-DATE     PIC X(8).                                   \s
+            000000     05  WS-DATE-N   REDEFINES WS-DATE PIC 9(8).                 \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        assertThat(usagesOf(names, "WS-DATE")).extracting(usage -> usage.getDefinition() == null ? null : usage.getDefinition().getTree())
+          .containsExactlyElementsOf(definitionsOf(names, "WS-DATE"));
     }
 
     @Test
@@ -228,6 +258,24 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-TABLE").isReferenced()).isFalse();
     }
 
+    @Test
+    void resolvesTheReturnCodeOfStopRunGiving() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. STOPPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-RC      PIC S9(4) COMP.                                  \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     STOP RUN GIVING WS-RC.                                      \s
+            """
+        );
+
+        assertThat(usagesOf(names, "WS-RC")).singleElement()
+          .satisfies(usage -> assertThat(usage.getDefinition()).isNotNull());
+    }
+
     /**
      * A name declared in two records is told apart by {@code OF}. Written without it the reference
      * is one the compiler would reject, and resolves to nothing; both declarations count as named,
@@ -262,7 +310,10 @@ class DataNameTest implements RewriteTest {
         assertThat(usages.get(1).getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-B");
         assertThat(usages.get(2).getQualifiers()).isEmpty();
         assertThat(usages.get(2).getDefinition()).isNull();
+        assertThat(usages.get(2).getCandidates()).extracting(c -> c.getParent().getName()).containsExactly("REC-A", "REC-B");
         assertThat(usages.get(2).isGlobal()).isFalse();
+        assertThat(DataName.candidatesOf(usages.get(2).getCursor(), "cust-id", List.of("rec-b")))
+          .extracting(c -> c.getParent().getName()).containsExactly("REC-B");
 
         DataName qualifier = usagesOf(names, "REC-A").get(0);
         assertThat(qualifier.getQualifiers()).isEmpty();
@@ -270,6 +321,189 @@ class DataNameTest implements RewriteTest {
 
         assertThat(usagesOf(names, "CUST-NM").get(0).getDefinition()).isNotNull();
         assertThat(names).filteredOn(DataName::isDefinition).allSatisfy(d -> assertThat(d.isReferenced()).isTrue());
+    }
+
+    @Test
+    void resolvesAQualifierThroughTheNameItQualifies() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. QUALPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  REC-A.                                                      \s
+            000000     05  KEY-GRP.                                                \s
+            000000         10  CUST-ID  PIC X(5).                                  \s
+            000000 01  REC-B.                                                      \s
+            000000     05  KEY-GRP.                                                \s
+            000000         10  CUST-NM  PIC X(5).                                  \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE CUST-ID OF KEY-GRP TO CUST-NM OF KEY-GRP.              \s
+            000000     EXEC SQL SELECT ID INTO :KEY-GRP.CUST-ID FROM T1 END-EXEC.  \s
+            """
+        );
+
+        List<DataName> keys = usagesOf(names, "KEY-GRP");
+        assertThat(keys.get(0).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
+        assertThat(keys.get(1).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-B");
+        assertThat(keys.get(2).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
+    }
+
+    @Test
+    void resolvesAnIndexNameToTheTableItIndexes() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-TABLE GLOBAL.                                            \s
+            000000     05  WS-CELL  PIC X OCCURS 9 INDEXED BY WS-IX.               \s
+            000000     05  WS-ROW   PIC X OCCURS 5 INDEXED BY WS-RX.               \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     SET WS-IX TO 1.                                             \s
+            000000     SEARCH WS-ROW AT END DISPLAY 'NONE'                         \s
+            000000         WHEN WS-CELL (1) = 'A' DISPLAY 'FOUND'                  \s
+            000000     END-SEARCH.                                                 \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     SET WS-IX UP BY 1.                                          \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        DataName index = definitionOf(names, "WS-IX");
+        assertThat(index.isIndexName()).isTrue();
+        assertThat(index.getEntry()).isNull();
+        assertThat(index.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("WS-CELL");
+        assertThat(usagesOf(names, "WS-IX")).allSatisfy(usage ->
+          assertThat(usage.getDefinition()).isNotNull().extracting(DataName::getTree).isEqualTo(index.getTree()));
+        assertThat(definitionOf(names, "WS-CELL").isIndexName()).isFalse();
+        assertThat(definitionOf(names, "WS-RX").isReferenced()).isTrue();
+    }
+
+    @Test
+    void resolvesAClauseOperandWithinTheEntryItBelongsTo() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. RENPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  REC-A.                                                      \s
+            000000     05  FLD-1  PIC X.                                           \s
+            000000     05  FLD-2  PIC X.                                           \s
+            000000     05  TBL OCCURS 3 ASCENDING KEY IS T-KEY INDEXED BY A-IX.    \s
+            000000         10  T-KEY  PIC X.                                       \s
+            000000 66  BOTH-FLDS RENAMES FLD-1 THRU FLD-2.                         \s
+            000000 01  REC-B.                                                      \s
+            000000     05  FLD-1  PIC X.                                           \s
+            000000     05  FLD-2  PIC X.                                           \s
+            000000     05  TBL OCCURS 3 ASCENDING KEY IS T-KEY INDEXED BY B-IX.    \s
+            000000         10  T-KEY  PIC X.                                       \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        assertThat(usagesOf(names, "FLD-1")).singleElement()
+          .satisfies(usage -> assertThat(usage.getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A"));
+        assertThat(usagesOf(names, "T-KEY")).extracting(usage -> usage.getDefinition() == null ? null : usage.getDefinition().getTree())
+          .containsExactlyElementsOf(definitionsOf(names, "T-KEY"));
+    }
+
+    @Test
+    void qualifiesARecordByItsFile() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. FILEPGM.                                            \s
+            000000 ENVIRONMENT DIVISION.                                           \s
+            000000 INPUT-OUTPUT SECTION.                                           \s
+            000000 FILE-CONTROL.                                                   \s
+            000000     SELECT FILE-A ASSIGN TO DDA.                                \s
+            000000     SELECT FILE-B ASSIGN TO DDB.                                \s
+            000000 DATA DIVISION.                                                  \s
+            000000 FILE SECTION.                                                   \s
+            000000 FD  FILE-A.                                                     \s
+            000000 01  OUT-REC.                                                    \s
+            000000     05  OUT-KEY  PIC X(5).                                      \s
+            000000         88  KEY-EMPTY  VALUE SPACES.                            \s
+            000000 FD  FILE-B.                                                     \s
+            000000 01  OUT-REC.                                                    \s
+            000000     05  OUT-KEY  PIC X(5).                                      \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     WRITE OUT-REC IN FILE-A.                                    \s
+            000000     MOVE SPACES TO OUT-REC OF FILE-B.                           \s
+            000000     MOVE OUT-KEY OF OUT-REC OF FILE-A TO OUT-KEY IN FILE-B.     \s
+            000000     IF KEY-EMPTY OF FILE-A DISPLAY 'EMPTY' END-IF.              \s
+            """
+        );
+
+        // A file name is not a data name.
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("OUT-REC", "OUT-REC", "OUT-KEY", "OUT-REC", "OUT-KEY", "KEY-EMPTY");
+
+        // Each resolves to the declaration under the file it names, and so does a qualifier.
+        List<Cobol.Word> records = definitionsOf(names, "OUT-REC");
+        List<Cobol.Word> keys = definitionsOf(names, "OUT-KEY");
+        assertThat(usagesOf(names, "OUT-REC")).extracting(u -> u.getDefinition().getTree())
+          .containsExactly(records.get(0), records.get(1), records.get(0));
+        assertThat(usagesOf(names, "OUT-KEY")).extracting(u -> u.getDefinition().getTree())
+          .containsExactly(keys.get(0), keys.get(1));
+        assertThat(usagesOf(names, "KEY-EMPTY").get(0).getDefinition()).isNotNull();
+
+        assertThat(usagesOf(names, "OUT-REC").get(0).getQualifiers()).isEmpty();
+        assertThat(usagesOf(names, "OUT-KEY")).extracting(DataName::getQualifiers)
+          .containsExactly(List.of("OUT-REC"), List.of());
+    }
+
+    @Test
+    void qualifiesByAContainingProgramsGlobalFileUnlessHidden() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 ENVIRONMENT DIVISION.                                           \s
+            000000 INPUT-OUTPUT SECTION.                                           \s
+            000000 FILE-CONTROL.                                                   \s
+            000000     SELECT CUST-FILE ASSIGN TO CUSTDD.                          \s
+            000000 DATA DIVISION.                                                  \s
+            000000 FILE SECTION.                                                   \s
+            000000 FD  CUST-FILE GLOBAL.                                           \s
+            000000 01  CUST-REC    PIC X(80).                                      \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. READPGM.                                            \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE SPACES TO CUST-REC OF CUST-FILE.                       \s
+            000000 END PROGRAM READPGM.                                            \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. HIDEPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  CUST-FILE.                                                  \s
+            000000     05  CUST-ID  PIC X.                                         \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE 'A' TO CUST-ID OF CUST-FILE.                           \s
+            000000 END PROGRAM HIDEPGM.                                            \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("CUST-REC", "CUST-ID", "CUST-FILE");
+        assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
+
+        // HIDEPGM's own CUST-FILE hides OUTERPGM's GLOBAL file of that name.
+        assertThat(usagesOf(names, "CUST-ID").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
+        assertThat(usagesOf(names, "CUST-FILE").get(0).getDefinition()).isNotNull()
+          .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
     }
 
     /**
@@ -394,6 +628,45 @@ class DataNameTest implements RewriteTest {
         });
     }
 
+    @Test
+    void resolvesADliInterfaceBlockFieldOnlyInAProgramWithExecDli() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. DLIPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-REC         PIC X(80).                                   \s
+            000000 01  WS-STATUS      PIC X(2).                                    \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     EXEC DLI GU USING PCB(1) SEGMENT(ACCOUNT) INTO(WS-REC)      \s
+            000000          END-EXEC.                                              \s
+            000000     MOVE DIBSTAT TO WS-STATUS.                                  \s
+            """
+        );
+        assertThat(usagesOf(names, "DIBSTAT")).singleElement().satisfies(usage -> {
+            assertThat(usage.getDefinition()).isNotNull().satisfies(definition -> {
+                assertThat(definition.getCopybook()).isEqualTo("DLZDIB");
+                assertThat(definition.isSystemSupplied()).isTrue();
+            });
+            assertThat(usage.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("DLZDIB");
+        });
+
+        List<DataName> withoutDli = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. NODLI.                                              \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-STATUS      PIC X(2).                                    \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE DIBSTAT TO WS-STATUS.                                  \s
+            """
+        );
+        assertThat(usagesOf(withoutDli, "DIBSTAT")).singleElement()
+          .satisfies(usage -> assertThat(usage.getDefinition()).isNull());
+    }
+
     /**
      * The words of an {@code EXEC} block are not parsed, so a data name in one is known by where it
      * sits: after a colon in SQL, inside an option's parentheses in CICS. {@code NAME} is a column
@@ -426,6 +699,61 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-NAME").isReferenced()).isTrue();
         assertThat(definitionOf(names, "WS-RESP").isReferenced()).isTrue();
         assertThat(definitionOf(names, "WS-NONE").isReferenced()).isFalse();
+    }
+
+    @Test
+    void resolvesAQualifiedOperandInAnExecBlock() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. EXECPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  MAPAO.                                                      \s
+            000000     05  APPLIDO   PIC X(8).                                     \s
+            000000 01  MAPS.                                                       \s
+            000000     05  MAPBO.                                                  \s
+            000000         10  APPLIDO   PIC X(8).                                 \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     EXEC CICS ASSIGN APPLID(APPLIDO IN MAPBO OF MAPS) END-EXEC. \s
+            """
+        );
+
+        DataName usage = usagesOf(names, "APPLIDO").get(0);
+        assertThat(usage.getQualifiers()).containsExactly("MAPBO", "MAPS");
+        assertThat(usage.getParent()).extracting(DataName::getName).isEqualTo("MAPBO");
+    }
+
+    @Test
+    void resolvesAHostVariableQualifiedByItsStructure() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. SQLPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  DCLCTAA.                                                    \s
+            000000     10  CTA-TIPCUEN  PIC X(2).                                  \s
+            000000     10  CTANUM       PIC X(2).                                  \s
+            000000 01  DCLCTAB.                                                    \s
+            000000     10  CTANUM       PIC X(2).                                  \s
+            000000 01  IND-NUM          PIC S9(4) COMP.                            \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     EXEC SQL SELECT TIPCUEN, NUM                                \s
+            000000          INTO :DCLCTAA.CTA-TIPCUEN, :DCLCTAB.CTANUM:IND-NUM     \s
+            000000          FROM TBCURCTA END-EXEC.                                \s
+            """
+        );
+
+        assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
+          .containsExactly("DCLCTAA", "CTA-TIPCUEN", "DCLCTAB", "CTANUM", "IND-NUM");
+        assertThat(names).filteredOn(n -> !n.isDefinition()).allSatisfy(usage ->
+          assertThat(usage.getDefinition()).as(usage.getName()).isNotNull());
+
+        DataName number = usagesOf(names, "CTANUM").get(0);
+        assertThat(number.getQualifiers()).containsExactly("DCLCTAB");
+        assertThat(number.getParent()).extracting(DataName::getName).isEqualTo("DCLCTAB");
+        assertThat(usagesOf(names, "DCLCTAA").get(0).getQualifiers()).isEmpty();
     }
 
     @Test
@@ -546,6 +874,8 @@ class DataNameTest implements RewriteTest {
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
         assertThat(usagesOf(names, "WS-NEAR").get(0).getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("MIDPGM");
+        assertThat(DataName.candidatesOf(usagesOf(names, "WS-NEAR").get(0).getCursor(), "WS-NEAR", List.of()))
+          .extracting(d -> Program.nameOf(d.getCursor())).containsExactly("MIDPGM");
     }
 
     @Test

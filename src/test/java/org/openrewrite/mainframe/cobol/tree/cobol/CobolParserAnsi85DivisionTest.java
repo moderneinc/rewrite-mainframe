@@ -492,6 +492,27 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                 EVALUATE IDENTIFIER (ALL,ALL,ALL,).
         """,
       """
+        000000* functionCallArguments.
+                DATA DIVISION.
+                REPORT SECTION.
+                RD REPORT-01.
+                    77 SUM FUNCTION INTEGER (ZERO,ZERO,ZERO,).
+        """,
+      """
+        000000* tableCallSubscripts.
+                DATA DIVISION.
+                REPORT SECTION.
+                RD REPORT-01.
+                    77 SUM IDENTIFIER (ALL,ALL,ALL,).
+        """,
+    })
+    void aCommaInParenthesesIsAToken(String input) {
+        rewriteRun(cobol(program(input), spec -> spec.afterRecipe(cu -> assertThat(commas(cu)).isEqualTo(3))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+      """
         000000* dataValueClause.
                 DATA DIVISION.
                 WORKING-STORAGE SECTION.
@@ -511,13 +532,6 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                               ,VALUE OF IDENTIFIER ZERO.
         """,
       """
-        000000* functionCallArguments.
-                DATA DIVISION.
-                REPORT SECTION.
-                RD REPORT-01.
-                    77 SUM FUNCTION INTEGER (ZERO,ZERO,ZERO,).
-        """,
-      """
         000000* reportGroupSumClause.
                DATA DIVISION.
                REPORT SECTION.
@@ -532,36 +546,29 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                         FOR IDENTIFIER
                         INTO IDENTIFIER.
         """,
-      """
-        000000* tableCallSubscripts.
-                DATA DIVISION.
-                REPORT SECTION.
-                RD REPORT-01.
-                    77 SUM IDENTIFIER (ALL,ALL,ALL,).
-        """,
     })
-    void commaDelimiters(String input) {
-        rewriteRun(
-          cobol(
-            """
-              000001 IDENTIFICATION DIVISION.
-              000002 PROGRAM-ID. HELLO-WORLD.
-              %s
-              """.formatted(input),
-            spec -> spec.afterRecipe(cu -> {
-                var count = new CobolIsoVisitor<AtomicInteger>() {
-                    @Override
-                    public Cobol.Word visitWord(Cobol.Word word, AtomicInteger atomicInteger) {
-                        if (",".equals(word.getWord())) {
-                            atomicInteger.incrementAndGet();
-                        }
-                        return super.visitWord(word, atomicInteger);
-                    }
-                }.reduce(cu, new AtomicInteger());
-                assertThat(count.get()).as("Comma count").isEqualTo(3);
-            })
-          )
-        );
+    void aCommaOutsideParenthesesIsWhitespace(String input) {
+        rewriteRun(cobol(program(input), spec -> spec.afterRecipe(cu -> assertThat(commas(cu)).isZero())));
+    }
+
+    private static String program(String body) {
+        return """
+          000001 IDENTIFICATION DIVISION.
+          000002 PROGRAM-ID. HELLO-WORLD.
+          %s
+          """.formatted(body);
+    }
+
+    private static int commas(Cobol.CompilationUnit cu) {
+        return new CobolIsoVisitor<AtomicInteger>() {
+            @Override
+            public Cobol.Word visitWord(Cobol.Word word, AtomicInteger count) {
+                if (",".equals(word.getWord())) {
+                    count.incrementAndGet();
+                }
+                return super.visitWord(word, count);
+            }
+        }.reduce(cu, new AtomicInteger()).get();
     }
 
     @Issue("https://github.com/openrewrite/rewrite-cobol/issues/45")

@@ -37,7 +37,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.ims.tree.Space.EMPTY;
 
@@ -105,10 +104,9 @@ public class ImsParserVisitor extends IMSParserBaseVisitor<Ims> {
      * Turns the words gathered so far into one statement: name field, operation, and everything
      * after it.
      * <p>
-     * The operand field ends at the first blank, and what follows is the comment field — the
-     * character in column 72 saying the statement carries on among it. Those words stay in the
-     * operand list as plain words rather than becoming operands, so that the statement still prints
-     * back exactly while only the parts that mean something are typed.
+     * What follows the operand field is the comment field, the character in column 72 saying the
+     * statement carries on among it. Those words stay in the operand list as plain words, so that
+     * the statement still prints back exactly while only the parts that mean something are typed.
      */
     private void flush(List<IMSParser.ImsContext> pending, List<Statement> statements) {
         if (pending.isEmpty()) {
@@ -144,16 +142,14 @@ public class ImsParserVisitor extends IMSParserBaseVisitor<Ims> {
                 expectOperand = true;
             }
             if (expectOperand) {
-                // The operand field runs to the first blank. A quoted string is its own token, so it
-                // can span several words — the ones with nothing between them.
-                StringBuilder run = new StringBuilder(word.getText());
-                Ims.Word last = word;
-                while (i + 1 < words.size() && !startsLine.get(i + 1) &&
-                       words.get(i + 1).getPrefix().getWhitespace().isEmpty()) {
-                    last = words.get(++i);
-                    run.append(last.getText());
+                if (word.getText().length() == 1 && i + 1 < words.size() && startsLine.get(i + 1)) {
+                    // Only the character in column 72 is on this card, so the field begins on the next.
+                    operands.add(word);
+                    continue;
                 }
-                operands.addAll(operands(word.getPrefix(), run.toString(), last.getMarkers()));
+                List<List<Ims.Word>> cards = new ArrayList<>();
+                i = field(words, startsLine, i, cards);
+                operands.addAll(operands(cards));
                 expectOperand = false;
                 continue;
             }
@@ -164,36 +160,157 @@ public class ImsParserVisitor extends IMSParserBaseVisitor<Ims> {
     }
 
     /**
-     * The operands of one operand field.
+     * Gathers the operand field starting at {@code words.get(from)} into {@code cards}, one entry per
+     * card it covers. An entry holds the card's part of the field as one word, followed by the other
+     * words that end that card.
      * <p>
-     * The field is a comma separated list, and the commas are not aligned with the tokens: the lexer
-     * breaks on quotes, so {@code INTERNALTYPECONVERTER=CHAR,PATTERN='yyyy-MM-dd HH:mm:ss'} arrives
-     * as two words of which the first holds two operands. So the run is split on its text rather
-     * than on token boundaries,
-     * with each comma kept on the operand it follows. Concatenating the results reproduces the run
-     * exactly, which is what printing needs.
-     *
-     * @param trailing markers from the last word of the run — a sequence area belongs at the end of
-     *                 the line, so it goes on the last operand.
+     * The field ends at the first blank outside a literal. It resumes in column 16 of the next card
+     * when it reaches column 71, or when a literal or a sublist is still open. The rest of a card
+     * that breaks off a sublist is a remark.
      */
-    private static List<Ims> operands(Space prefix, String run, Markers trailing) {
-        List<Ims> operands = new ArrayList<>();
-        List<String> parts = splitOnTopLevelCommas(run);
-        for (String text : parts) {
-            boolean isLast = operands.size() == parts.size() - 1;
-            Markers markers = isLast ? trailing : Markers.EMPTY;
-            Space operandPrefix = operands.isEmpty() ? prefix : EMPTY;
-
-            int equals = indexOfAssignment(text);
-            if (equals <= 0) {
-                operands.add(new Ims.PositionalOperand(randomId(), operandPrefix, Markers.EMPTY,
-                        singletonList(new Ims.Word(randomId(), EMPTY, markers, text))));
+    private static int field(List<Ims.Word> words, List<Boolean> startsLine, int from, List<List<Ims.Word>> cards) {
+        Ims.Word word = words.get(from);
+        Space cardPrefix = word.getPrefix();
+        StringBuilder card = new StringBuilder(word.getText());
+        Markers cardMarkers = word.getMarkers();
+        Nesting nesting = new Nesting().read(word.getText());
+        int i = from;
+        while (i + 1 < words.size()) {
+            Ims.Word next = words.get(i + 1);
+            String blanks = next.getPrefix().getWhitespace();
+            List<Ims.Word> rest = new ArrayList<>();
+            if (startsLine.get(i + 1)) {
+                // The field reached column 72, so its last character is the continuation character.
+                char continuation = card.charAt(card.length() - 1);
+                nesting.unread(continuation);
+                card.setLength(card.length() - 1);
+                rest.add(new Ims.Word(randomId(), EMPTY, cardMarkers, String.valueOf(continuation)));
+                cardMarkers = Markers.EMPTY;
+            } else if (blanks.isEmpty() || nesting.quoted) {
+                card.append(blanks).append(next.getText());
+                cardMarkers = next.getMarkers();
+                nesting.read(next.getText());
+                i++;
+                continue;
+            } else if (nesting.depth > 0 && continues(startsLine, i + 1)) {
+                while (!startsLine.get(i + 1)) {
+                    rest.add(words.get(++i));
+                }
             } else {
+                break;
+            }
+            rest.add(0, new Ims.Word(randomId(), cardPrefix, cardMarkers, card.toString()));
+            cards.add(rest);
+            Ims.Word resumed = words.get(++i);
+            cardPrefix = resumed.getPrefix();
+            card = new StringBuilder(resumed.getText());
+            cardMarkers = resumed.getMarkers();
+            nesting.read(resumed.getText());
+        }
+        List<Ims.Word> last = new ArrayList<>(1);
+        last.add(new Ims.Word(randomId(), cardPrefix, cardMarkers, card.toString()));
+        cards.add(last);
+        return i;
+    }
+
+    /**
+     * Whether a continuation card follows the word at {@code from} in the same statement.
+     */
+    private static boolean continues(List<Boolean> startsLine, int from) {
+        for (int i = from; i < startsLine.size(); i++) {
+            if (startsLine.get(i)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether the operand field read so far is inside a literal, and how many sublists are open.
+     */
+    private static class Nesting {
+        boolean quoted;
+        int depth;
+
+        Nesting read(String text) {
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                if (c == '\'') {
+                    quoted = !quoted;
+                } else if (!quoted) {
+                    depth += c == '(' ? 1 : c == ')' ? -1 : 0;
+                }
+            }
+            return this;
+        }
+
+        void unread(char c) {
+            if (c == '\'') {
+                quoted = !quoted;
+            } else if (!quoted) {
+                depth -= c == '(' ? 1 : c == ')' ? -1 : 0;
+            }
+        }
+    }
+
+    /**
+     * The operands of one operand field, given the cards {@link #field} gathered it from.
+     * <p>
+     * The field is split on its text at each comma outside a literal or a sublist, and the comma
+     * stays on the operand it follows. An operand keeps one word per card it covers. The other words
+     * ending a card go with the operand open there, so every word prints where it was written.
+     */
+    private static List<Ims> operands(List<List<Ims.Word>> cards) {
+        StringBuilder field = new StringBuilder();
+        for (List<Ims.Word> card : cards) {
+            field.append(card.get(0).getText());
+        }
+
+        List<String> texts = splitOnTopLevelCommas(field.toString());
+        List<List<Ims.Word>> values = new ArrayList<>(texts.size());
+        int card = 0;
+        int offset = 0;
+        for (String text : texts) {
+            List<Ims.Word> value = new ArrayList<>();
+            for (int taken = 0; taken < text.length(); ) {
+                Ims.Word from = cards.get(card).get(0);
+                int end = Math.min(from.getText().length(), offset + text.length() - taken);
+                value.add(new Ims.Word(randomId(), offset == 0 ? from.getPrefix() : EMPTY,
+                        end == from.getText().length() ? from.getMarkers() : Markers.EMPTY,
+                        from.getText().substring(offset, end)));
+                taken += end - offset;
+                offset = end;
+                if (offset == from.getText().length()) {
+                    value.addAll(cards.get(card).subList(1, cards.get(card).size()));
+                    card++;
+                    offset = 0;
+                }
+            }
+            values.add(value);
+        }
+        // A card left with nothing of the field once its column 72 is taken off.
+        for (; card < cards.size(); card++) {
+            values.get(values.size() - 1).addAll(cards.get(card));
+        }
+
+        List<Ims> operands = new ArrayList<>(values.size());
+        for (int v = 0; v < values.size(); v++) {
+            List<Ims.Word> value = values.get(v);
+            Ims.Word first = value.get(0);
+            value.set(0, first.withPrefix(EMPTY));
+            int equals = indexOfAssignment(texts.get(v));
+            if (equals <= 0) {
+                operands.add(new Ims.PositionalOperand(randomId(), first.getPrefix(), Markers.EMPTY, value));
+            } else if (equals < first.getText().length()) {
                 // The keyword is its own word so it can be read and replaced without string work.
-                Ims.Word keyword = new Ims.Word(randomId(), EMPTY, Markers.EMPTY, text.substring(0, equals));
-                Ims.Word value = new Ims.Word(randomId(), EMPTY, markers, text.substring(equals));
-                operands.add(new Ims.KeywordOperand(randomId(), operandPrefix, Markers.EMPTY,
-                        keyword, singletonList(value)));
+                Ims.Word keyword = new Ims.Word(randomId(), EMPTY, Markers.EMPTY, first.getText().substring(0, equals));
+                value.set(0, value.get(0).withText(first.getText().substring(equals)));
+                operands.add(new Ims.KeywordOperand(randomId(), first.getPrefix(), Markers.EMPTY, keyword, value));
+            } else {
+                // The = is on a later card, so the value has nothing on this one.
+                value.set(0, new Ims.Word(randomId(), EMPTY, Markers.EMPTY, ""));
+                operands.add(new Ims.KeywordOperand(randomId(), first.getPrefix(), Markers.EMPTY,
+                        first.withPrefix(EMPTY), value));
             }
         }
         return operands;
@@ -310,7 +427,7 @@ public class ImsParserVisitor extends IMSParserBaseVisitor<Ims> {
     }
 
     private SequenceArea mapSequenceArea(ParserRuleContext ctx) {
-        String text = ctx.getChild(ctx.getChildCount() - 1).getText();
+        String text = ctx.getText().substring("^^CA_START^^".length()).trim();
         return new SequenceArea(randomId(), sourceBefore(text), text);
     }
 

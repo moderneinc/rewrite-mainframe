@@ -115,6 +115,19 @@ class ApplicationTest {
             assertThat(application.getTransactions()).isEmpty());
     }
 
+    @Test
+    void aGeneratedPsbIsNamedForItsProgram() {
+        Ims.CompilationUnit deck = parse(
+          "         APPLCTN GPSB=CLMJINQ,LANG=JAVA,PGMTYPE=TP\n" +
+          "         TRANSACT CODE=CLMJTRN\n");
+
+        assertThat(new Application.Matcher().lower(deck).collect(Collectors.toList()))
+          .singleElement().satisfies(application -> {
+              assertThat(application.getPsbName()).isEqualTo("CLMJINQ");
+              assertThat(application.getTransactions()).extracting(Transaction::getCode).containsExactly("CLMJTRN");
+          });
+    }
+
     private static Ims.CompilationUnit parse(String source) {
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input(source)), null, new InMemoryExecutionContext())

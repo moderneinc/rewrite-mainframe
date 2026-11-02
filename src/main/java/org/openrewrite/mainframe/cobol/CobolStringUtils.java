@@ -36,7 +36,7 @@ public class CobolStringUtils {
     public static final Set<Character> DEBUGGING_INDICATORS = unmodifiableSet(new HashSet<>(asList('D', 'd')));
 
     private static final Pattern DEBUGGING_MODE = Pattern.compile("\\bDEBUGGING\\s+MODE\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern PROCEDURE_DIVISION = Pattern.compile("\\bPROCEDURE\\s+DIVISION\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DATA_OR_PROCEDURE_DIVISION = Pattern.compile("\\b(DATA|PROCEDURE)\\s+DIVISION\\b", Pattern.CASE_INSENSITIVE);
 
     /**
      * Debugging lines are only compiled when the SOURCE-COMPUTER paragraph specifies WITH DEBUGGING MODE.
@@ -53,8 +53,9 @@ public class CobolStringUtils {
                 continue;
             }
             String contentArea = line.substring(columns.getContentArea(), Math.min(line.length(), columns.getOtherArea()));
-            // The clause may only appear in the Configuration Section.
-            if (PROCEDURE_DIVISION.matcher(contentArea).find()) {
+            // The clause may only appear in the Configuration Section, which comes before the DATA DIVISION, or
+            // before the PROCEDURE DIVISION in a program without one.
+            if (DATA_OR_PROCEDURE_DIVISION.matcher(contentArea).find()) {
                 break;
             }
             configuration.append(contentArea).append('\n');

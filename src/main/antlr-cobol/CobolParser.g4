@@ -21,6 +21,9 @@ parser grammar CobolParser;
 
 options { tokenVocab = CobolLexer; }
 
+// Inserted by CobolParser before a word that heads a paragraph or section after a sentence without a period.
+tokens { IMPLICIT_PERIOD }
+
 @members {
     private static IntervalSet statementStart;
 
@@ -29,31 +32,33 @@ options { tokenVocab = CobolLexer; }
      * without END-IF say, takes every statement that follows: COBOL's rule, and SLL prediction's greedy choice.
      * Without the predicate on the list's exit SLL cannot rule out leaving the statement to an enclosing list,
      * and retries with full context, which scans ahead as far as the sentence period. The predicates on the
-     * other optional endings, ELSE and END-IF say, settle the same question for the keyword.
+     * other optional endings, ELSE and END-IF say, settle the same question for the keyword. The context
+     * parameter, unused, makes ANTLR treat each of these predicates as context-dependent. SLL then evaluates it
+     * only in its own rule's decisions, so the predicates of nested statements never combine.
      */
-    boolean startsStatement() {
+    boolean startsStatement(ParserRuleContext list) {
         if (statementStart == null) {
             statementStart = _ATN.nextTokens(_ATN.ruleToStartState[RULE_statement]);
         }
         return statementStart.contains(_input.LA(1));
     }
 
-    boolean startsWhenCondition() {
+    boolean startsWhenCondition(ParserRuleContext phrase) {
         return _input.LA(1) == WHEN && _input.LA(2) != OTHER;
     }
 
     /**
      * Whether the next token opens a subscript group. A reference modifier opens with the same parenthesis and
      * is told apart only by the colon at its top level, so the group is scanned to its closing parenthesis.
-     * A parenthesis after a name always belongs to the name, so the only other question at that point is
-     * which of the two it opens.
+     * A parenthesis after a name belongs to the name unless a comma separates them, so the only other question
+     * at that point is which of the two it opens.
      */
     boolean startsSubscripts() {
         return subscriptsAt(1);
     }
 
     private boolean subscriptsAt(int i) {
-        if (_input.LA(i) != LPARENCHAR) {
+        if (_input.LA(i) != LPARENCHAR || separatedAt(i)) {
             return false;
         }
         int depth = 0;
@@ -72,10 +77,27 @@ options { tokenVocab = CobolLexer; }
     }
 
     /**
+     * Whether a comma separates the parenthesis at {@code i} from what precedes it, as one separates the
+     * arguments of {@code FUNCTION MAX(A * B, (C + 1) / 2)}. Such a parenthesis opens an argument, not a subscript.
+     */
+    boolean separatedAt(int i) {
+        BufferedTokenStream tokens = (BufferedTokenStream) _input;
+        for (int j = tokens.LT(i).getTokenIndex() - 1; j >= 0; j--) {
+            Token hidden = tokens.get(j);
+            if (hidden.getChannel() == Token.DEFAULT_CHANNEL) {
+                return false;
+            }
+            if (hidden.getType() == SEPARATOR && hidden.getText().startsWith(",")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Whether the conditional phrase the word names starts here, past an optional AT or ON. A statement takes the
      * phrases and the END- terminator that follow it before an enclosing statement can, as statement lists do at
-     * startsStatement. The context parameter, unused, makes ANTLR treat these predicates as context-dependent, so
-     * SLL evaluates each only in its own statement's decisions and the predicates of nested statements never combine.
+     * startsStatement.
      */
     boolean startsPhrase(ParserRuleContext statement, int word) {
         return phraseWord(1) == word;
@@ -436,32 +458,33 @@ programIdParagraph
 
 // - author paragraph ----------------------------------
 
+// GnuCOBOL's IBM dialect accepts these paragraphs without the period after their name.
 authorParagraph
-   : AUTHOR DOT_FS commentEntry?
+   : AUTHOR DOT_FS? commentEntry?
    ;
 
 // - installation paragraph ----------------------------------
 
 installationParagraph
-   : INSTALLATION DOT_FS commentEntry?
+   : INSTALLATION DOT_FS? commentEntry?
    ;
 
 // - date written paragraph ----------------------------------
 
 dateWrittenParagraph
-   : DATE_WRITTEN DOT_FS commentEntry?
+   : DATE_WRITTEN DOT_FS? commentEntry?
    ;
 
 // - date compiled paragraph ----------------------------------
 
 dateCompiledParagraph
-   : DATE_COMPILED DOT_FS commentEntry?
+   : DATE_COMPILED DOT_FS? commentEntry?
    ;
 
 // - security paragraph ----------------------------------
 
 securityParagraph
-   : SECURITY DOT_FS commentEntry?
+   : SECURITY DOT_FS? commentEntry?
    ;
 
 // - remarks paragraph ----------------------------------
@@ -779,7 +802,7 @@ fileSection
    ;
 
 fileDescriptionEntry
-   : (FD | SD) fileName ((DOT_FS | COMMACHAR)? fileDescriptionEntryClause)* DOT_FS dataDescriptionEntry*
+   : (FD | SD) fileName (DOT_FS? fileDescriptionEntryClause)* DOT_FS dataDescriptionEntry*
    ;
 
 fileDescriptionEntryClause
@@ -1221,7 +1244,7 @@ reportGroupSourceClause
    ;
 
 reportGroupSumClause
-   : SUM (identifier COMMACHAR?)+ (UPON (dataName COMMACHAR?)+)?
+   : SUM identifier+ (UPON dataName+)?
    ;
 
 reportGroupTypeClause
@@ -1489,7 +1512,7 @@ dataUsingClause
    ;
 
 dataValueClause
-   : (VALUE | VALUES) (IS | ARE)? (dataValueInterval COMMACHAR?)+
+   : (VALUE | VALUES) (IS | ARE)? dataValueInterval+
    ;
 
 dataValueInterval
@@ -1573,11 +1596,11 @@ paragraph
    ;
 
 sentence
-   : statement* DOT_FS
+   : statement* (DOT_FS | IMPLICIT_PERIOD)
    ;
 
 imperativeStatements
-   : statement* {!startsStatement()}?
+   : statement* {!startsStatement($ctx)}?
    ;
 
 statement
@@ -1784,7 +1807,7 @@ disableStatement
 // display statement
 
 displayStatement
-   : DISPLAY (displayOperand COMMACHAR?)+ displayAt? displayUpon? displayWith? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_DISPLAY | {!ahead($ctx, END_DISPLAY)}?)
+   : DISPLAY displayOperand+ displayAt? displayUpon? displayWith? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_DISPLAY | {!ahead($ctx, END_DISPLAY)}?)
    ;
 
 displayOperand
@@ -1852,7 +1875,7 @@ entryStatement
 // evaluate statement
 
 evaluateStatement
-   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase* (evaluateWhenOther | {_input.LA(1) != WHEN}?) (END_EVALUATE | {_input.LA(1) != END_EVALUATE}?)
+   : EVALUATE evaluateSelect evaluateAlsoSelect* evaluateWhenPhrase* (evaluateWhenOther | {!ahead($ctx, WHEN)}?) (END_EVALUATE | {!ahead($ctx, END_EVALUATE)}?)
    ;
 
 evaluateSelect
@@ -1867,7 +1890,7 @@ evaluateAlsoSelect
    ;
 
 evaluateWhenPhrase
-   : evaluateWhen+ {!startsWhenCondition()}? imperativeStatements
+   : evaluateWhen+ {!startsWhenCondition($ctx)}? imperativeStatements
    ;
 
 evaluateWhen
@@ -1959,7 +1982,7 @@ goToStatement
 // if statement
 
 ifStatement
-   : IF condition ifThen (ifElse | {_input.LA(1) != ELSE}?) (END_IF | {_input.LA(1) != END_IF}?)
+   : IF condition ifThen (ifElse | {!ahead($ctx, ELSE)}?) (END_IF | {!ahead($ctx, END_IF)}?)
    ;
 
 ifThen
@@ -2344,7 +2367,7 @@ rewriteFrom
 // search statement
 
 searchStatement
-   : SEARCH ALL? qualifiedDataName searchVarying? (atEndPhrase | {!startsPhrase($ctx, END)}?) searchWhen+ {_input.LA(1) != WHEN}? (END_SEARCH | {_input.LA(1) != END_SEARCH}?)
+   : SEARCH ALL? qualifiedDataName searchVarying? (atEndPhrase | {!startsPhrase($ctx, END)}?) searchWhen+ {!ahead($ctx, WHEN)}? (END_SEARCH | {!ahead($ctx, END_SEARCH)}?)
    ;
 
 searchVarying
@@ -2510,7 +2533,7 @@ stringStatement
    ;
 
 stringSendingPhrase
-   : (stringSending COMMACHAR?)+ (stringDelimitedByPhrase | stringForPhrase)
+   : stringSending+ (stringDelimitedByPhrase | stringForPhrase)
    ;
 
 stringSending
@@ -2862,7 +2885,7 @@ abbreviation
 // identifier ----------------------------------
 
 identifier
-   : qualifiedDataName tableCallSubscripts* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}? | functionCall | specialRegister
+   : qualifiedDataName ({startsSubscripts()}? tableCallSubscripts)* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR || separatedAt(1)}? | functionCall | specialRegister
    ;
 
 tableCallSubscripts

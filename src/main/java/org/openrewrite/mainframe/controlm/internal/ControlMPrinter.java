@@ -172,7 +172,9 @@ public class ControlMPrinter<P> extends ControlMVisitor<PrintOutputCapture<P>> {
             p.append(">");
             visit(element.getElements(), p);
             visitSpace(element.getBeforeEndTag(), Space.Location.ELEMENT_BEFORE_END_TAG, p);
-            p.append("</").append(element.getName()).append(">");
+            p.append("</").append(element.getName());
+            visitSpace(element.getBeforeEndTagEnd(), Space.Location.ELEMENT_BEFORE_END_TAG_END, p);
+            p.append(">");
         }
         afterSyntax(element, p);
         return element;

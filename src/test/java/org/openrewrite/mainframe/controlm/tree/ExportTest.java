@@ -120,7 +120,7 @@ class ExportTest implements RewriteTest {
           controlM(
             """
               <DEFTABLE>
-                <JOB DESCRIPTION="RESERVE &amp; PAYMENT" />
+                <JOB DESCRIPTION="RESERVE &amp; PAYMENT" CMDLINE="LINE 1&#13;&#10;LINE&#x20;2" />
               </DEFTABLE>
               """,
             spec -> spec.afterRecipe(cu -> {
@@ -128,7 +128,25 @@ class ExportTest implements RewriteTest {
                 assertThat(job.getAttribute("DESCRIPTION").getValue().getText())
                   .isEqualTo("\"RESERVE &amp; PAYMENT\"");
                 assertThat(job.getAttributeText("DESCRIPTION")).isEqualTo("RESERVE & PAYMENT");
+                assertThat(job.getAttributeText("CMDLINE")).isEqualTo("LINE 1\r\nLINE 2");
             })
+          )
+        );
+    }
+
+    @Test
+    void blanksInAnEndTag() {
+        rewriteRun(
+          controlM(
+            """
+              <DEFTABLE>
+                <JOB JOBNAME="CLMJ010">
+                </JOB
+                >
+              </DEFTABLE   >
+              """,
+            spec -> spec.afterRecipe(cu ->
+              assertThat(((ControlM.Element) cu.getSections().get(0)).getElements("JOB")).hasSize(1))
           )
         );
     }

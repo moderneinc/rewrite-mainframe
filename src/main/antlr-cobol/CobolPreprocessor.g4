@@ -20,10 +20,10 @@ options { caseInsensitive = true; }
 
 @lexer::members {
     /**
-     * Whether only blanks stand between the next character and the start of its line.
+     * Whether only blanks stand between the token's first character and the start of its line.
      */
     boolean startsLine() {
-        for (int i = -1; ; i--) {
+        for (int i = _tokenStartCharIndex - _input.index() - 1; ; i--) {
             int c = _input.LA(i);
             if (c == '\n' || c == '\r' || c == IntStream.EOF || c == 0) {
                 return true;
@@ -32,6 +32,13 @@ options { caseInsensitive = true; }
                 return false;
             }
         }
+    }
+
+    /**
+     * Whether a colon stands right before the token's first character.
+     */
+    boolean followsColon() {
+        return _input.LA(_tokenStartCharIndex - _input.index() - 1) == ':';
     }
 }
 
@@ -755,7 +762,9 @@ fragment STRINGLITERAL
     ;
 
 IDENTIFIER : [A-Z0-9]+ ([-_]+ [A-Z0-9]+)*;
-FILENAME : [A-Z0-9]+ '.' [A-Z0-9]+;
+// A qualified name right after a colon is an SQL host variable, :STRUCTURE.FIELD, read as a name, a period and a name.
+// The predicate follows the first character after the period, so a period that ends a sentence never reaches it.
+FILENAME : [A-Z0-9]+ '.' [A-Z0-9] {!followsColon()}? [A-Z0-9]*;
 
 
 // whitespace, line breaks, comments, ...
@@ -768,7 +777,8 @@ FILENAME : [A-Z0-9]+ '.' [A-Z0-9]+;
  */
 SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> skip;
 // Only a >> that begins its line starts a directive, so pseudo-text and EXEC blocks keep theirs as text.
-COMPILER_DIRECTIVE : {startsLine()}? '>>' (~('\n' | '\r')* ~(' ' | '\t' | '\n' | '\r'))?;
+// The predicate follows the >> because ANTLR caches no lexer start state that reaches a predicate before a character.
+COMPILER_DIRECTIVE : '>>' {startsLine()}? (~('\n' | '\r')* ~(' ' | '\t' | '\n' | '\r'))?;
 NEWLINE : '\r'? '\n' -> channel(HIDDEN);
 COMMENTENTRYLINE : COMMENTENTRYTAG WS ~('\n' | '\r')*;
 COMMENTLINE : COMMENTTAG WS ~('\n' | '\r')* -> channel(HIDDEN);
