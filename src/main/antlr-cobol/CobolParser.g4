@@ -390,6 +390,54 @@ tokens { IMPLICIT_PERIOD }
     }
 
     /**
+     * Whether the NOT ahead belongs to the relational operator after it. In an abbreviated condition IBM reads
+     * NOT = as the operator, which a later abbreviation without one inherits. GREATER THAN OR EQUAL has no
+     * negated form, so a NOT in front of it negates the relation.
+     */
+    boolean notOfOperator(ParserRuleContext abbreviation) {
+        switch (_input.LA(2)) {
+            case GREATER:
+            case LESS:
+                return _input.LA(_input.LA(3) == THAN ? 4 : 3) != OR;
+            case MORETHANCHAR:
+            case LESSTHANCHAR:
+            case EQUAL:
+            case EQUALCHAR:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * The mnemonic names SPECIAL-NAMES binds to environment names, upper case. The paragraph precedes every
+     * statement that can name one, so ADVANCING reads a declared name as the device it stands for and any other
+     * name as a line count. A nested program inherits its outermost program's names. A separate program in the
+     * same file starts without them.
+     */
+    private final java.util.Set<String> mnemonics = new java.util.HashSet<>();
+
+    private int programDepth;
+
+    void enterProgram() {
+        if (programDepth++ == 0) {
+            mnemonics.clear();
+        }
+    }
+
+    void leaveProgram() {
+        programDepth = Math.max(0, programDepth - 1);
+    }
+
+    void declareMnemonic(ParserRuleContext name) {
+        mnemonics.add(name.getText().toUpperCase(java.util.Locale.ROOT));
+    }
+
+    boolean mnemonicAhead(ParserRuleContext phrase) {
+        return mnemonics.contains(_input.LT(1).getText().toUpperCase(java.util.Locale.ROOT));
+    }
+
+    /**
      * Whether GIVING follows the operand after INTO, which makes a DIVIDE INTO GIVING rather than a DIVIDE INTO
      * with that operand as its first quotient.
      */
@@ -433,11 +481,11 @@ compilationUnit
    ;
 
 programUnit
-   : identificationDivision environmentDivision? dataDivision? procedureDivision?
+   : {enterProgram();} identificationDivision environmentDivision? dataDivision? procedureDivision?
    ;
 
 endProgramStatement
-   : END PROGRAM programName DOT_FS
+   : END PROGRAM programName DOT_FS {leaveProgram();}
    ;
 
 // --- identification division --------------------------------------------------------------------
@@ -635,7 +683,7 @@ defaultDisplaySignClause
    ;
 
 environmentSwitchNameClause
-   : environmentName IS? mnemonicName environmentSwitchNameSpecialNamesStatusPhrase? | environmentSwitchNameSpecialNamesStatusPhrase
+   : environmentName IS? declared=mnemonicName {declareMnemonic($declared.ctx);} environmentSwitchNameSpecialNamesStatusPhrase? | environmentSwitchNameSpecialNamesStatusPhrase
    ;
 
 environmentSwitchNameSpecialNamesStatusPhrase
@@ -2405,7 +2453,7 @@ sendReplacingPhrase
    ;
 
 sendAdvancingPhrase
-   : (BEFORE | AFTER) ADVANCING? (sendAdvancingPage | sendAdvancingLines | sendAdvancingMnemonic)
+   : (BEFORE | AFTER) ADVANCING? (sendAdvancingPage | {!mnemonicAhead($ctx)}? sendAdvancingLines | {mnemonicAhead($ctx)}? sendAdvancingMnemonic)
    ;
 
 sendAdvancingPage
@@ -2675,7 +2723,7 @@ writeFromPhrase
    ;
 
 writeAdvancingPhrase
-   : (BEFORE | AFTER) ADVANCING? (writeAdvancingPage | writeAdvancingLines | writeAdvancingMnemonic)
+   : (BEFORE | AFTER) ADVANCING? (writeAdvancingPage | {!mnemonicAhead($ctx)}? writeAdvancingLines | {mnemonicAhead($ctx)}? writeAdvancingMnemonic)
    ;
 
 writeAdvancingPage
@@ -2879,7 +2927,7 @@ relationalOperator
    ;
 
 abbreviation
-   : NOT? relationalOperator? (arithmeticExpression | LPARENCHAR arithmeticExpression abbreviation RPARENCHAR)
+   : ({!notOfOperator($ctx)}? NOT)? relationalOperator? (arithmeticExpression | LPARENCHAR arithmeticExpression abbreviation RPARENCHAR)
    ;
 
 // identifier ----------------------------------
@@ -3075,18 +3123,18 @@ cobolWord
    : IDENTIFIER
    | ATTRIBUTES | ELEMENT | INITIALIZED | LOC | NAME | NAMESPACE | NAMESPACE_PREFIX | NONNUMERIC | XML_DECLARATION
    | ABORT | AS | ASCII | ASSOCIATED_DATA | ASSOCIATED_DATA_LENGTH | ATTRIBUTE | AUTO | AUTO_SKIP
-   | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BINARY | BIT | BLINK | BLOB | BLOB_FILE | BLOB_LOCATOR | BOUNDS
+   | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BIT | BLINK | BLOB | BLOB_FILE | BLOB_LOCATOR | BOUNDS
    | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CHAR | CLOB | CLOB_FILE | CLOB_LOCATOR | CLOSE_DISPOSITION | COBOL | COL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR
    | DBCLOB | DBCLOB_FILE | DBCLOB_LOCATOR | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DISK | DONTCARE | DOUBLE
    | EBCDIC | EMPTY_CHECK | ENTER | ENTRY_PROCEDURE | EOL | EOS | ERASE | ESCAPE | EVENT | EXCLUSIVE | EXPORT | EXTENDED
-   | FOREGROUND_COLOR | FOREGROUND_COLOUR | FULL | FUNCTIONNAME | FUNCTION_POINTER
+   | FOREGROUND_COLOR | FOREGROUND_COLOUR | FULL | FUNCTIONNAME
    | GRID
    | HIGHLIGHT
    | IMPLICIT | IMPORT | INTEGER
    | KEPT | KEYBOARD
    | LANGUAGE | LARGE | LB | LD | LEFTLINE | LENGTH_CHECK | LIBACCESS | LIBPARAMETER | LIBRARY | LIKE | LIST | LOCAL | LOCATOR | LONG_DATE | LONG_TIME | LOWER | LOWLIGHT
    | MMDDYYYY
-   | NAMED | NATIONAL | NATIONAL_EDITED | NETWORK | NO_ECHO | NUMERIC_DATE | NUMERIC_TIME
+   | NAMED | NATIONAL_EDITED | NETWORK | NO_ECHO | NUMERIC_DATE | NUMERIC_TIME
    | OBJECT | ODT | ORDERLY | OVERLINE | OWN
    | PASSWORD | PORT | PRINTER | PRIVATE | PROCESS | PROGRAM | PROMPT
    | READER | REAL | RECEIVED | RECURSIVE | REF | REMOTE | REMOVE | REQUIRED | RESULT_SET_LOCATOR | REVERSE_VIDEO | ROWID
