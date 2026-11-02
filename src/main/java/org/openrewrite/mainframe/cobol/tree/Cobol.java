@@ -2104,6 +2104,18 @@ public interface Cobol extends Tree {
         List<Word> words;
         List<Cobol> cobols;
 
+        /**
+         * WHEN SET TO FALSE IS, or as much of it as is written, or null without a FALSE phrase.
+         */
+        @Nullable
+        List<Word> falseWords;
+
+        /**
+         * The value SET condition-name TO FALSE moves, which is not one of the condition's values.
+         */
+        @Nullable
+        Name falseValue;
+
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
             return v.visitDataValueClause(this, p);
@@ -2866,7 +2878,7 @@ public interface Cobol extends Tree {
 
         Space prefix;
         Markers markers;
-        List<Word> execCicsLines;
+        Word execCicsLine;
 
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
@@ -2884,7 +2896,7 @@ public interface Cobol extends Tree {
 
         Space prefix;
         Markers markers;
-        List<Word> execDliLines;
+        Word execDliLine;
 
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
@@ -2902,7 +2914,7 @@ public interface Cobol extends Tree {
 
         Space prefix;
         Markers markers;
-        List<Word> execSqlLmsLines;
+        Word execSqlImsLine;
 
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
@@ -2920,7 +2932,7 @@ public interface Cobol extends Tree {
 
         Space prefix;
         Markers markers;
-        List<Word> execSqlLines;
+        Word execSqlLine;
 
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {

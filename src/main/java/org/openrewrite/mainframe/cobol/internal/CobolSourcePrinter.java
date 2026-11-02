@@ -926,6 +926,8 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
         beforeSyntax(dataValueClause, Space.Location.DATA_VALUE_CLAUSE_PREFIX, p);
         visit(dataValueClause.getWords(), p);
         visit(dataValueClause.getCobols(), p);
+        visit(dataValueClause.getFalseWords(), p);
+        visit(dataValueClause.getFalseValue(), p);
         afterSyntax(dataValueClause, p);
         return dataValueClause;
     }
@@ -1263,7 +1265,7 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     @Override
     public Cobol visitExecCicsStatement(Cobol.ExecCicsStatement execCicsStatement, PrintOutputCapture<P> p) {
         beforeSyntax(execCicsStatement, Space.Location.EXEC_CICS_STATEMENT_PREFIX, p);
-        visit(execCicsStatement.getExecCicsLines(), p);
+        visit(execCicsStatement.getExecCicsLine(), p);
         afterSyntax(execCicsStatement, p);
         return execCicsStatement;
     }
@@ -1271,7 +1273,7 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     @Override
     public Cobol visitExecDliStatement(Cobol.ExecDliStatement execDliStatement, PrintOutputCapture<P> p) {
         beforeSyntax(execDliStatement, Space.Location.EXEC_DLI_STATEMENT_PREFIX, p);
-        visit(execDliStatement.getExecDliLines(), p);
+        visit(execDliStatement.getExecDliLine(), p);
         afterSyntax(execDliStatement, p);
         return execDliStatement;
     }
@@ -1279,7 +1281,7 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     @Override
     public Cobol visitExecSqlImsStatement(Cobol.ExecSqlImsStatement execSqlImsStatement, PrintOutputCapture<P> p) {
         beforeSyntax(execSqlImsStatement, Space.Location.EXEC_SQL_IMS_STATEMENT_PREFIX, p);
-        visit(execSqlImsStatement.getExecSqlLmsLines(), p);
+        visit(execSqlImsStatement.getExecSqlImsLine(), p);
         afterSyntax(execSqlImsStatement, p);
         return execSqlImsStatement;
     }
@@ -1287,7 +1289,7 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     @Override
     public Cobol visitExecSqlStatement(Cobol.ExecSqlStatement execSqlStatement, PrintOutputCapture<P> p) {
         beforeSyntax(execSqlStatement, Space.Location.EXEC_SQL_STATEMENT_PREFIX, p);
-        visit(execSqlStatement.getExecSqlLines(), p);
+        visit(execSqlStatement.getExecSqlLine(), p);
         afterSyntax(execSqlStatement, p);
         return execSqlStatement;
     }

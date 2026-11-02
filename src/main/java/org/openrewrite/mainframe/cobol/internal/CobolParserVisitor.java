@@ -1337,18 +1337,6 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitDataDescriptionEntryExecSql(CobolParser.DataDescriptionEntryExecSqlContext ctx) {
-        return new Cobol.DataDescriptionEntry(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                convertAll(ctx.EXECSQLLINE()),
-                null,
-                null,
-                visitNullable(ctx.DOT_FS())
-        );
-    }
-
-    @Override
     public Cobol.DataDescriptionEntry visitDataDescriptionEntryFormat1(CobolParser.DataDescriptionEntryFormat1Context ctx) {
         return new Cobol.DataDescriptionEntry(randomId(),
                 EMPTY,
@@ -1629,11 +1617,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitDataValueClause(CobolParser.DataValueClauseContext ctx) {
+        CobolParser.DataValueFalseContext whenFalse = ctx.dataValueFalse();
         return new Cobol.DataValueClause(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.VALUE(), ctx.VALUES(), ctx.IS(), ctx.ARE()),
-                convertAllList(ctx.dataValueInterval())
+                convertAllList(ctx.dataValueInterval()),
+                whenFalse == null ? null : wordsList(whenFalse.WHEN(), whenFalse.SET(), whenFalse.TO(), whenFalse.FALSE(), whenFalse.IS()),
+                whenFalse == null ? null : (Name) visit(whenFalse.literal())
         );
     }
 
@@ -2094,7 +2085,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecCicsStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECCICSLINE())
+                (Cobol.Word) visit(ctx.EXECCICSLINE())
         );
     }
 
@@ -2103,7 +2094,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecDliStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECDLILINE())
+                (Cobol.Word) visit(ctx.EXECDLILINE())
         );
     }
 
@@ -2112,7 +2103,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecSqlImsStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECSQLIMSLINE())
+                (Cobol.Word) visit(ctx.EXECSQLIMSLINE())
         );
     }
 
@@ -2121,7 +2112,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecSqlStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECSQLLINE())
+                (Cobol.Word) visit(ctx.EXECSQLLINE())
         );
     }
 

@@ -145,4 +145,38 @@ class DataDescriptionEntryTest extends CobolTest {
             """
         )).containsExactly("PRINT-REC", "DUMMY-RECORD", "TEST-RESULTS", "FILLER", "FEATURE");
     }
+
+    @Test
+    void theValueSetToFalseIsNotAValueOfTheConditionName() {
+        List<String> values = new ArrayList<>();
+        List<String> falseValues = new ArrayList<>();
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
+              @Override
+              public Cobol.DataValueClause visitDataValueClause(Cobol.DataValueClause clause, ExecutionContext ctx) {
+                  for (Cobol interval : clause.getCobols()) {
+                      values.add(interval.printTrimmed(getCursor()));
+                  }
+                  if (clause.getFalseValue() != null) {
+                      falseValues.add(clause.getFalseValue().printTrimmed(getCursor()));
+                  }
+                  return clause;
+              }
+          })),
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                        \s
+              000000 PROGRAM-ID. FALSEPH.                                            \s
+              000000 DATA DIVISION.                                                  \s
+              000000 WORKING-STORAGE SECTION.                                        \s
+              000000 01  WS-FLAG PIC X.                                              \s
+              000000     88  WS-YES VALUE 'Y' FALSE 'N'.                             \s
+              000000     88  WS-ON VALUE 'A' 'B' WHEN SET TO FALSE IS 'C'.           \s
+              000000     88  WS-OK VALUE DFHRESP(NORMAL) FALSE DFHRESP(NOTFND).      \s
+              """
+          )
+        );
+        assertThat(values).containsExactly("'Y'", "'A'", "'B'", "DFHRESP(NORMAL)");
+        assertThat(falseValues).containsExactly("'N'", "'C'", "DFHRESP(NOTFND)");
+    }
 }

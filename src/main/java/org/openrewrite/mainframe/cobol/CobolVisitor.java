@@ -835,7 +835,9 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         d = d.withPrefix(visitSpace(d.getPrefix(), Space.Location.DATA_VALUE_CLAUSE_PREFIX, p));
         d = d.withMarkers(visitMarkers(d.getMarkers(), p));
         d = d.withWords(ListUtils.map(d.getWords(), it -> (Cobol.Word) visit(it, p)));
-        return d.withCobols(ListUtils.map(d.getCobols(), t -> visit(t, p)));
+        d = d.withCobols(ListUtils.map(d.getCobols(), t -> visit(t, p)));
+        d = d.withFalseWords(ListUtils.map(d.getFalseWords(), it -> (Cobol.Word) visit(it, p)));
+        return d.withFalseValue((Name) visit(d.getFalseValue(), p));
     }
 
     public Cobol visitDataValueInterval(Cobol.DataValueInterval dataValueInterval, P p) {
@@ -1105,7 +1107,6 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         Cobol.EvaluateCondition e = evaluateCondition;
         e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.EVALUATE_CONDITION_PREFIX, p));
         e = e.withMarkers(visitMarkers(e.getMarkers(), p));
-        e = e.withCondition(visit(e.getCondition(), p));
         e = e.withWords(ListUtils.map(e.getWords(), it -> (Cobol.Word) visit(it, p)));
         e = e.withCondition(visit(e.getCondition(), p));
         return e.withEvaluateThrough((Cobol.EvaluateThrough) visit(e.getEvaluateThrough(), p));
@@ -1140,28 +1141,28 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         Cobol.ExecCicsStatement e = execCicsStatement;
         e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.EXEC_CICS_STATEMENT_PREFIX, p));
         e = e.withMarkers(visitMarkers(e.getMarkers(), p));
-        return e.withExecCicsLines(ListUtils.map(e.getExecCicsLines(), t -> (Cobol.Word) visit(t, p)));
+        return e.withExecCicsLine((Cobol.Word) visit(e.getExecCicsLine(), p));
     }
 
     public Cobol visitExecDliStatement(Cobol.ExecDliStatement execDliStatement, P p) {
         Cobol.ExecDliStatement e = execDliStatement;
         e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.EXEC_DLI_STATEMENT_PREFIX, p));
         e = e.withMarkers(visitMarkers(e.getMarkers(), p));
-        return e.withExecDliLines(ListUtils.map(e.getExecDliLines(), t -> (Cobol.Word) visit(t, p)));
+        return e.withExecDliLine((Cobol.Word) visit(e.getExecDliLine(), p));
     }
 
     public Cobol visitExecSqlImsStatement(Cobol.ExecSqlImsStatement execSqlImsStatement, P p) {
         Cobol.ExecSqlImsStatement e = execSqlImsStatement;
         e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.EXEC_SQL_IMS_STATEMENT_PREFIX, p));
         e = e.withMarkers(visitMarkers(e.getMarkers(), p));
-        return e.withExecSqlLmsLines(ListUtils.map(e.getExecSqlLmsLines(), t -> (Cobol.Word) visit(t, p)));
+        return e.withExecSqlImsLine((Cobol.Word) visit(e.getExecSqlImsLine(), p));
     }
 
     public Cobol visitExecSqlStatement(Cobol.ExecSqlStatement execSqlStatement, P p) {
         Cobol.ExecSqlStatement e = execSqlStatement;
         e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.EXEC_SQL_STATEMENT_PREFIX, p));
         e = e.withMarkers(visitMarkers(e.getMarkers(), p));
-        return e.withExecSqlLines(ListUtils.map(e.getExecSqlLines(), t -> (Cobol.Word) visit(t, p)));
+        return e.withExecSqlLine((Cobol.Word) visit(e.getExecSqlLine(), p));
     }
 
     public Cobol visitExhibit(Cobol.Exhibit exhibit, P p) {
