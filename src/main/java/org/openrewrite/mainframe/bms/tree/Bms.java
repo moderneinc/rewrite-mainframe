@@ -298,9 +298,10 @@ public interface Bms extends Tree {
     /**
      * The value as it was written, one word per card it covers.
      * <p>
-     * A quoted string may run over several cards, and what a continued card ends with is the
-     * character in column 72 saying it continues — neither that nor anything padding the card out
-     * after it is part of the value, and the card below picks the value up at column 16.
+     * A quoted string or a parenthesised list may run over several cards, and what a continued
+     * card ends with is the character in column 72 saying it continues — neither that nor anything
+     * padding the card out after it is part of the value, and the card below picks the value up at
+     * column 16.
      */
     static String join(List<Word> words) {
         StringBuilder text = new StringBuilder(words.get(0).getText());
@@ -318,6 +319,20 @@ public interface Bms extends Tree {
                     end--;
                 }
                 text.setLength(Math.max(end - 1, 0));
+                // A list continued after a comma leaves blanks before column 72. A literal owns them.
+                int quotes = 0;
+                for (int c = 0; c < text.length(); c++) {
+                    if (text.charAt(c) == '\'') {
+                        quotes++;
+                    }
+                }
+                if (quotes % 2 == 0) {
+                    end = text.length();
+                    while (end > 0 && text.charAt(end - 1) == ' ') {
+                        end--;
+                    }
+                    text.setLength(end);
+                }
                 // Columns 1-15 of the card below, which a continued value leaves blank.
                 text.append(prefix.substring(Math.min(prefix.length(), newline + 16)));
             }

@@ -114,6 +114,29 @@ class BmsParserTest {
     }
 
     @Test
+    void aListContinuedInsideItsParenthesesIsOneOperand() {
+        String source =
+          padTo72("SET1     DFHMSD TYPE=MAP,LANG=COBOL,DSATTS=(COLOR,") + "\n" +
+          "               HILIGHT),CTRL=FREEKB\n";
+
+        Bms.CompilationUnit cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        Bms.MacroStatement mapset = (Bms.MacroStatement) cu.getStatements().get(0);
+        assertThat(mapset.getParameter("DSATTS").getValueText()).isEqualTo("(COLOR,HILIGHT)");
+        assertThat(mapset.getParameter("CTRL").getValueText()).isEqualTo("FREEKB");
+
+        // Broken inside a word, the list picks up in column 16.
+        source =
+          "DATE     DFHMDF POS=(1,6),LENGTH=10,INITIAL='dd/mm/yyyy',ATTRB=(PROT,BRX\n" +
+          "               T)\n";
+
+        cu = parse(source);
+        assertThat(cu.printAll()).isEqualTo(source);
+        assertThat(((Bms.MacroStatement) cu.getStatements().get(0)).getParameter("ATTRB").getValueText())
+          .isEqualTo("(PROT,BRT)");
+    }
+
+    @Test
     void aCommentCardBeforeAnyOperationEndsTheStatement() {
         String source =
           // A name running into column 72, so the line is continued with no operation on it.
