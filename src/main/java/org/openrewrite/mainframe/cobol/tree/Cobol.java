@@ -1162,7 +1162,10 @@ public interface Cobol extends Tree {
         Space prefix;
         Markers markers;
         List<Word> words;
+
+        @Nullable
         Word is;
+
         List<Identifier> alphabetName;
 
         @Nullable
