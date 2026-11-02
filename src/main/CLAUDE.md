@@ -13,7 +13,7 @@ These public GitHub repositories together reach every parser:
 - `genevaers/Performance-Engine`, `genevaers/Utilities`, `genevaers/Workbench`
 - `openmainframeproject/cobol-programming-course`, `openmainframeproject/zorow`
 - `aws-samples/aws-mainframe-modernization-carddemo`, `bheckel/code`, `billrain/MainframeJCL`, `davidegirardi/adcdsetup`, `ibmdbbdev/Samples`, `IBMStockTrader/cash-account-cobol`, `lnlyssg/IRRXUTIL`, `tobiaslinke/tools-data_structures-macros-for-zos_assembly`, `zowe/zowe-common-c`
-- `bushidocodes/pc-pricer`, `DaveLClarkI/zApplicationTools`, `fgregg/tax_extension`
+- `DaveLClarkI/zApplicationTools`, `fgregg/tax_extension`
 
 CBSA's `main` holds only a README. Check out its `July2024Refresh` branch at 4173345, the commit `README.md` pins it to.
 
@@ -24,7 +24,7 @@ Run it on main and on the branch, alternating, three times each, under an exclus
 - **Each grammar's prediction cache, and how many of its configurations differ only in predicate order.** Both are deterministic, so any difference is real. The second number is 0 for every grammar. The COBOL parser keeps it there by sorting the operands of every predicate it combines, so anything else means some prediction path combines predicates without going through that sort.
 - **Building the cache, pass 4 minus warm.** This is what a change to prediction costs. A single pass's excess over a warm one is this plus JIT warm-up, so comparing single passes compares warm-up.
 - **The warm passes.** They are what a long run over many programs sees, for time and allocation alike. Each column reports CPU time beside elapsed time. Compare CPU time first, since only elapsed time grows while another process holds a core.
-- **The full-context predictions in pass 1**, by rule, and the longest span one scanned. Each is an ambiguity SLL could not settle, and costs a second prediction every time the parser meets it. The test fails when one prediction scans more than 50 tokens, the shape of a change that makes parsing quadratic. A rule that appears here for the first time has an exit or an alternative that needs a predicate stating the answer, as `imperativeStatements` and the statement phrases have.
+- **The full-context predictions in pass 1**, by rule, and the longest span one scanned. Each is an ambiguity SLL could not settle, and costs a second prediction every time the parser meets it. The test fails when the COBOL parsers make any, and in every parser when one scans more than 50 tokens, the shape of a change that makes parsing quadratic. The report shows the first input each rule retried on. A rule that appears here has an exit or an alternative that needs a predicate stating the answer, as `imperativeStatements` and the statement phrases have.
 
 ## Changing a grammar
 

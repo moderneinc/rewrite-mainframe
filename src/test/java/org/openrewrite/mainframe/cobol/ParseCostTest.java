@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.dfa.DFAState;
+import org.antlr.v4.runtime.misc.Interval;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.jspecify.annotations.Nullable;
@@ -74,9 +75,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * excess over the warm passes is what building the cache costs. The cache's size is deterministic, and so is the
  * count of its configurations that differ only in predicate order.
  * <p>
- * The first pass also counts the predictions that fell back to full context, by rule, with the longest token span
- * one scanned. A prediction that scans further than {@link #LONGEST_FULL_CONTEXT_SCAN} fails the test, since that
- * is the shape of a grammar change that makes a parse quadratic, as the dangling ELSE did before #189.
+ * The first pass also counts the predictions that fell back to full context, by rule, with the first input each
+ * retried on. Any in the COBOL parsers fails the test, since each repeats wherever the parser meets that form. In
+ * every parser, one that scans further than {@link #LONGEST_FULL_CONTEXT_SCAN} tokens fails it too, since that is
+ * the shape of a grammar change that makes a parse quadratic, as the dangling ELSE did before #189.
  * <p>
  * Run with {@code MAINFRAME_CORPUS} naming a directory of repositories, and {@code MAINFRAME_LANGUAGES} naming the
  * languages to measure by their report names, or none of them for all.
@@ -127,6 +129,8 @@ class ParseCostTest {
         assertThat(files).as("files under %s", root).isPositive();
         assertThat(watch.longestScan).as("tokens scanned by one full-context prediction, in %s", watch.longestScanRule)
           .isLessThanOrEqualTo(LONGEST_FULL_CONTEXT_SCAN);
+        assertThat(watch.byRule.keySet()).as("rules of the COBOL parsers that made a full-context prediction")
+          .filteredOn(rule -> rule.startsWith("Cobol")).isEmpty();
     }
 
     @Test
@@ -242,6 +246,7 @@ class ParseCostTest {
      */
     private static final class FullContextWatch extends BaseErrorListener {
         final Map<String, long[]> byRule = new TreeMap<>();
+        final Map<String, String> sampleByRule = new HashMap<>();
         long fallbacks;
         long longestScan;
         String longestScanRule = "";
@@ -250,7 +255,9 @@ class ParseCostTest {
         public void reportAttemptingFullContext(Parser parser, DFA dfa, int startIndex, int stopIndex,
                                                 BitSet conflictingAlts, ATNConfigSet configs) {
             fallbacks++;
-            byRule.computeIfAbsent(rule(parser, dfa), r -> new long[1])[0]++;
+            String rule = rule(parser, dfa);
+            byRule.computeIfAbsent(rule, r -> new long[1])[0]++;
+            sampleByRule.computeIfAbsent(rule, r -> sample(parser, startIndex, stopIndex));
             scanned(parser, dfa, stopIndex - startIndex + 1);
         }
 
@@ -273,6 +280,12 @@ class ParseCostTest {
             }
         }
 
+        private static String sample(Parser parser, int startIndex, int stopIndex) {
+            String text = parser.getTokenStream().getText(Interval.of(startIndex, stopIndex)).replaceAll("\\s+", " ");
+            return (text.length() > 60 ? text.substring(0, 60) + "..." : text) +
+                   " (line " + parser.getTokenStream().get(startIndex).getLine() + ")";
+        }
+
         private static String rule(Parser parser, DFA dfa) {
             return nameOf(parser) + " " + parser.getRuleNames()[dfa.atnStartState.ruleIndex];
         }
@@ -284,7 +297,8 @@ class ParseCostTest {
             byRule.entrySet().stream()
               .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
               .limit(5)
-              .forEach(e -> report.append(String.format(Locale.ROOT, "  %,9d  %s%n", e.getValue()[0], e.getKey())));
+              .forEach(e -> report.append(String.format(Locale.ROOT, "  %,9d  %s, first at %s%n", e.getValue()[0], e.getKey(),
+                sampleByRule.get(e.getKey()))));
             return report.toString();
         }
     }
