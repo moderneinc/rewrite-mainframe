@@ -45,8 +45,8 @@ import static java.util.Collections.singletonList;
  * The text of a word as a search reads it.
  * <p>
  * A search over COBOL asks three things the tree does not say directly. Which layer a word is in: a
- * hit in a comment, in a literal and in code are different results, and Ora-Web lets a user ask for
- * one layer at a time. What the tokens are: {@code ACCT} finds {@code WS-ACCT-ID}, because a hyphen,
+ * hit in a comment, in a literal and in code are different results, and a user may ask for one
+ * layer at a time. What the tokens are: {@code ACCT} finds {@code WS-ACCT-ID}, because a hyphen,
  * a period and an underscore each end a token and a match is a whole token or nothing. And what a
  * literal continued across a column-7 break says: {@code 'OPEN INP} on one line and {@code UT
  * FAILED'} on the next are one literal saying {@code OPEN INPUT FAILED}, which a phrase has to match
@@ -171,10 +171,7 @@ public class SearchableText implements Trait<Cobol.Word> {
     }
 
     /**
-     * The tokens of {@code text}: each run of letters and digits. Ora-Web's rule is that {@code .},
-     * {@code -} and {@code _} end a token, which is what lets {@code ACCT} find {@code WS-ACCT-ID};
-     * every other character that is not a letter or digit ends one too, since a comment or a literal
-     * is free text and {@code width} has to find {@code width:70%}.
+     * The tokens of {@code text}: each run of letters and digits.
      */
     public static List<Token> tokens(String text) {
         List<Token> tokens = new ArrayList<>();
