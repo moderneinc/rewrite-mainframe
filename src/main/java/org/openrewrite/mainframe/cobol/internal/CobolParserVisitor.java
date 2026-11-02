@@ -1808,7 +1808,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.UPON()),
-                visit(ctx.mnemonicName(), ctx.environmentName())
+                (Cobol.Word) visit(ctx.mnemonicName())
         );
     }
 

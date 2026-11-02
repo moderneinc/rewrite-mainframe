@@ -386,7 +386,16 @@ tokens { IMPLICIT_PERIOD }
     boolean combinableAhead(ParserRuleContext andOr) {
         int i = _input.LA(1) == NOT ? 2 : 1;
         int kind = operandKind(andOr, i);
-        return kind == CONDITION || kind == OPERAND && conditionNameAt(i);
+        return kind == CONDITION || kind == OPERAND && conditionNameAt(i) ||
+               _input.LA(i) == LPARENCHAR && conditionNameAt(i + 1) && _input.LA(afterOperand(i + 1)) == RPARENCHAR;
+    }
+
+    /**
+     * Whether the parenthesis ahead holds a comparison, which makes it an abbreviation nested in parentheses rather
+     * than a parenthesized arithmetic expression.
+     */
+    boolean comparisonInParentheses(ParserRuleContext abbreviation) {
+        return conditionInside(1);
     }
 
     /**
@@ -554,7 +563,7 @@ environmentDivisionBody
 // -- configuration section ----------------------------------
 
 configurationSection
-   : CONFIGURATION SECTION DOT_FS configurationSectionParagraph*
+   : CONFIGURATION SECTION DOT_FS configurationSectionParagraph* {!ahead($ctx, SPECIAL_NAMES)}?
    ;
 
 // - configuration section paragraph ----------------------------------
@@ -1868,7 +1877,7 @@ displayAt
    ;
 
 displayUpon
-   : UPON (mnemonicName | environmentName)
+   : UPON mnemonicName
    ;
 
 displayWith
@@ -1878,7 +1887,7 @@ displayWith
 // divide statement
 
 divideStatement
-   : DIVIDE (identifier | literal) (divideIntoStatement | divideIntoGivingStatement | divideByGivingStatement) divideRemainder? (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_DIVIDE | {!ahead($ctx, END_DIVIDE)}?)
+   : DIVIDE (identifier | literal) (divideIntoStatement | {givingAhead($ctx)}? divideIntoGivingStatement | divideByGivingStatement) divideRemainder? (onSizeErrorPhrase | {!startsPhrase($ctx, SIZE)}?) (notOnSizeErrorPhrase | {!startsNotPhrase($ctx, SIZE)}?) (END_DIVIDE | {!ahead($ctx, END_DIVIDE)}?)
    ;
 
 divideIntoStatement
@@ -1886,7 +1895,7 @@ divideIntoStatement
    ;
 
 divideIntoGivingStatement
-   : {givingAhead($ctx)}? INTO (identifier | literal) divideGivingPhrase?
+   : INTO (identifier | literal) divideGivingPhrase?
    ;
 
 divideByGivingStatement
@@ -2424,7 +2433,7 @@ searchVarying
    ;
 
 searchWhen
-   : WHEN condition (NEXT SENTENCE | imperativeStatements)
+   : WHEN condition (NEXT SENTENCE | {!ahead($ctx, NEXT, SENTENCE)}? imperativeStatements)
    ;
 
 // send statement
@@ -2660,11 +2669,11 @@ unstringSendingPhrase
    ;
 
 unstringDelimitedByPhrase
-   : DELIMITED BY? ALL? (identifier | literal)
+   : DELIMITED BY? (ALL | {!ahead($ctx, ALL)}?) (identifier | literal)
    ;
 
 unstringOrAllPhrase
-   : OR ALL? (identifier | literal)
+   : OR (ALL | {!ahead($ctx, ALL)}?) (identifier | literal)
    ;
 
 unstringIntoPhrase
@@ -2928,7 +2937,7 @@ relationalOperator
    ;
 
 abbreviation
-   : ({!notOfOperator($ctx)}? NOT)? relationalOperator? (arithmeticExpression | LPARENCHAR arithmeticExpression abbreviation RPARENCHAR)
+   : ({!notOfOperator($ctx)}? NOT)? relationalOperator? (arithmeticExpression | {comparisonInParentheses($ctx)}? LPARENCHAR arithmeticExpression abbreviation RPARENCHAR)
    ;
 
 // identifier ----------------------------------
