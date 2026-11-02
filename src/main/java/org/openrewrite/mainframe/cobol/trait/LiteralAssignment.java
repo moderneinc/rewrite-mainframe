@@ -246,7 +246,7 @@ public class LiteralAssignment implements Trait<Cobol> {
          */
         private void declare(Cursor program) {
             List<Item> initialized = new ArrayList<>();
-            new CopybookSkippingVisitor<Integer>() {
+            new CobolIsoVisitor<Integer>() {
                 @Override
                 public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit unit, Integer p) {
                     return unit == program.getValue() ? super.visitProgramUnit(unit, p) : unit;

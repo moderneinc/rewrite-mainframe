@@ -18,6 +18,7 @@ package org.openrewrite.mainframe.cobol.trait;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
+import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.Identifier;
 import org.openrewrite.mainframe.cobol.tree.Name;
@@ -189,7 +190,7 @@ public class ProgramEntry implements Trait<Cobol> {
     private static @Nullable List<List<@Nullable DataName>> callsTo(String program, Cursor division) {
         List<List<@Nullable DataName>> calls = new ArrayList<>();
         AtomicBoolean unreadable = new AtomicBoolean();
-        new CopybookSkippingVisitor<Integer>() {
+        new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.Call visitCall(Cobol.Call call, Integer p) {
                 String target = Names.of(call.getIdentifier());

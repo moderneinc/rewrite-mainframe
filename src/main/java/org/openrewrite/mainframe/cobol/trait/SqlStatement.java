@@ -23,6 +23,7 @@ import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
@@ -213,7 +214,7 @@ public class SqlStatement implements Trait<CobolPreprocessor.ExecStatement> {
         }
 
         private static <P> TreeVisitor<?, P> inProgram(VisitFunction2<SqlStatement, P> visitor) {
-            return new CopybookSkippingVisitor<P>() {
+            return new CobolIsoVisitor<P>() {
                 @Override
                 public Cobol.Word visitWord(Cobol.Word word, P p) {
                     Cobol.Word w = super.visitWord(word, p);
