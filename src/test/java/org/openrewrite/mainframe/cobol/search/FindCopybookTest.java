@@ -19,14 +19,27 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.Parser;
+import org.openrewrite.SourceFile;
+import org.openrewrite.mainframe.bms.BmsParser;
+import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.table.CopybookSource;
 import org.openrewrite.mainframe.cobol.table.CopybookSource.Row;
+import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.SourceSpec;
 
+import java.io.ByteArrayInputStream;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.stream.IntStream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.mainframe.cobol.table.CopybookSource.ResolutionStatus.MISSING_SOURCE;
@@ -214,6 +227,38 @@ class FindCopybookTest extends CobolTest {
             "",
             spec -> spec.after(s -> s)
           )
+        );
+    }
+
+    @Test
+    void aSymbolicMapIsReportedFromItsMapset() {
+        List<SourceFile> mapset = BmsParser.builder().build().parseInputs(singletonList(
+            new Parser.Input(Paths.get("COSGN00.bms"), () -> new ByteArrayInputStream(
+              """
+                COSGN00 DFHMSD LANG=COBOL,MODE=INOUT,STORAGE=AUTO
+                COSGN0A DFHMDI SIZE=(24,80)
+                TRNNAME DFHMDF POS=(1,8),LENGTH=4
+                        DFHMSD TYPE=FINAL
+                        END
+                """.getBytes(UTF_8)))),
+          null, new InMemoryExecutionContext()).collect(toList());
+
+        rewriteRun(
+          spec -> spec.recipe(new FindCopybook(null, false)).dataTable(Row.class, rows ->
+            assertThat(rows).singleElement().satisfies(row -> {
+                assertThat(row.getCopybookSourcePath()).isEqualTo("COSGN00.bms");
+                assertThat(row.getResolutionStatus()).isEqualTo(RESOLVED);
+            })),
+          new SourceSpec<>(Cobol.CompilationUnit.class, null, CobolParser.builder().copybooks(mapset),
+            """
+              000000 IDENTIFICATION DIVISION.                                         *
+                     PROGRAM-ID. SIGNON.                                              *
+                     DATA DIVISION.                                                   *
+                     WORKING-STORAGE SECTION.                                         *
+                         COPY COSGN00.                                                *
+              """,
+            SourceSpec.ValidateSource.noop, ctx -> {
+          }).after(s -> s.replace("COPY COSGN00.", "COPY ~~>COSGN00."))
         );
     }
 }
