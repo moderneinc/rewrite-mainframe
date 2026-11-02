@@ -77,6 +77,7 @@ class LiteralAssignmentTest implements RewriteTest {
             000000     CALL 'LOGGER' USING BY CONTENT WS-PGM.
             000000     EXEC SQL SELECT A INTO :WS-COPY FROM T WHERE B = :WS-PGM
             000000     END-EXEC.
+            000000     EXEC DLI SCHD PSB((WS-PGM)) END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-PGM) COMMAREA(WS-NAMES)
             000000     END-EXEC.
             000000     EXEC CICS XCTL PROGRAM(WS-IX) END-EXEC.

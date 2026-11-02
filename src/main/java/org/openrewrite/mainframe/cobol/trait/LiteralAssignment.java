@@ -180,7 +180,7 @@ public class LiteralAssignment implements Trait<Cobol> {
          */
         private static final Set<String> INPUT_OPTIONS = new HashSet<>(Arrays.asList(
                 "PROGRAM", "TRANSID", "FILE", "DATASET", "QUEUE", "QNAME", "MAP", "MAPSET", "FROM",
-                "KEYLENGTH", "SYSID", "CURSOR", "CHANNEL", "CONTAINER", "SEGMENT", "PCB", "WHERE"));
+                "KEYLENGTH", "SYSID", "CURSOR", "CHANNEL", "CONTAINER", "SEGMENT", "PCB", "PSB", "WHERE"));
 
         private static final Set<String> SENDING_LENGTH = new HashSet<>(Arrays.asList(
                 "XCTL", "LINK", "RETURN", "SEND", "WRITE", "REWRITE", "WRITEQ", "START"));
