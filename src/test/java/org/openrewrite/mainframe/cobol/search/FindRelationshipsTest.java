@@ -35,7 +35,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.text.PlainText;
 
 import java.io.ByteArrayInputStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -74,7 +74,7 @@ class FindRelationshipsTest extends CobolTest {
     @Test
     void aCopyNamesTheFileItDependsOn() {
         List<SourceFile> mapset = BmsParser.builder().build().parseInputs(singletonList(
-            new Parser.Input(Paths.get("COSGN00.bms"), () -> new ByteArrayInputStream(
+            new Parser.Input(Path.of("COSGN00.bms"), () -> new ByteArrayInputStream(
               """
                 COSGN00 DFHMSD LANG=COBOL,MODE=INOUT,STORAGE=AUTO
                 COSGN0A DFHMDI SIZE=(24,80)

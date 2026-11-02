@@ -54,7 +54,7 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(1);
-        CicsCommand read = commands.get(0);
+        CicsCommand read = commands.getFirst();
         assertThat(read.getVerb()).isEqualTo("READ");
         assertThat(read.getQualifier()).isNull();
         assertThat(read.getCommand()).isEqualTo("READ");
@@ -78,8 +78,8 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(3);
-        assertThat(commands.get(0).getCommand()).isEqualTo("WRITEQ TS");
-        assertThat(commands.get(0).getResources()).singleElement()
+        assertThat(commands.getFirst().getCommand()).isEqualTo("WRITEQ TS");
+        assertThat(commands.getFirst().getResources()).singleElement()
           .satisfies(a -> assertThat(a.getKind()).isEqualTo(CicsResourceAccess.Kind.TS_QUEUE));
         assertThat(commands.get(1).getCommand()).isEqualTo("WRITEQ TD");
         assertThat(commands.get(1).getResources()).singleElement()
@@ -105,9 +105,9 @@ class CicsCommandTest implements RewriteTest {
             """
         );
 
-        assertThat(commands.get(0).getCommand()).isEqualTo("SEND MAP");
-        assertThat(commands.get(0).operand("MAP")).isEqualTo("ACCTM");
-        assertThat(commands.get(0).getResources()).extracting(CicsResourceAccess::getKind)
+        assertThat(commands.getFirst().getCommand()).isEqualTo("SEND MAP");
+        assertThat(commands.getFirst().operand("MAP")).isEqualTo("ACCTM");
+        assertThat(commands.getFirst().getResources()).extracting(CicsResourceAccess::getKind)
           .containsExactly(CicsResourceAccess.Kind.MAP, CicsResourceAccess.Kind.MAPSET);
 
         assertThat(commands.get(1).getCommand()).isEqualTo("WAIT EVENT");
@@ -128,8 +128,8 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(1);
-        assertThat(commands.get(0).hasOption("UPDATE")).isTrue();
-        assertThat(commands.get(0).getOption("UPDATE")).isEmpty();
+        assertThat(commands.getFirst().hasOption("UPDATE")).isTrue();
+        assertThat(commands.getFirst().getOption("UPDATE")).isEmpty();
     }
 
     @Test
@@ -145,7 +145,7 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(1);
-        assertThat(commands.get(0).getOption("PROGRAM")).isEqualTo("WS-TAB(1)");
+        assertThat(commands.getFirst().getOption("PROGRAM")).isEqualTo("WS-TAB(1)");
     }
 
     /**
@@ -167,8 +167,8 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(2);
-        assertThat(commands.get(0).getOption("APPLID")).isEqualTo("APPLIDO OF COSGN0AO");
-        assertThat(commands.get(0).getOptionsText()).isEqualTo("APPLID(APPLIDO OF COSGN0AO)");
+        assertThat(commands.getFirst().getOption("APPLID")).isEqualTo("APPLIDO OF COSGN0AO");
+        assertThat(commands.getFirst().getOptionsText()).isEqualTo("APPLID(APPLIDO OF COSGN0AO)");
         assertThat(commands.get(1).getOption("LENGTH")).isEqualTo("LENGTH OF CARDDEMO-COMMAREA");
     }
 
@@ -190,7 +190,7 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(2);
-        assertThat(commands.get(0).getOption("COMMAREA")).isEqualTo("WS-TAB(WS-I, WS-J)");
+        assertThat(commands.getFirst().getOption("COMMAREA")).isEqualTo("WS-TAB(WS-I, WS-J)");
         // The same list written without the blank, which is not put back.
         assertThat(commands.get(1).getOption("COMMAREA")).isEqualTo("WS-TAB(WS-I,WS-J)");
     }
@@ -211,7 +211,7 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(4);
-        assertThat(commands.get(0).getResources())
+        assertThat(commands.getFirst().getResources())
           .singleElement()
           .satisfies(a -> {
               assertThat(a.getKind()).isEqualTo(CicsResourceAccess.Kind.FILE);
@@ -220,9 +220,9 @@ class CicsCommandTest implements RewriteTest {
               assertThat(a.getAccess()).isEqualTo(CicsResourceAccess.Access.UPDATE);
               assertThat(a.isDynamic()).isFalse();
           });
-        assertThat(commands.get(1).getResources().get(0).getAccess())
+        assertThat(commands.get(1).getResources().getFirst().getAccess())
           .isEqualTo(CicsResourceAccess.Access.UPDATE);
-        assertThat(commands.get(2).getResources().get(0).getAccess())
+        assertThat(commands.get(2).getResources().getFirst().getAccess())
           .isEqualTo(CicsResourceAccess.Access.DELETE);
         assertThat(commands.get(3).getResources())
           .singleElement()
@@ -245,7 +245,7 @@ class CicsCommandTest implements RewriteTest {
             """
         );
 
-        assertThat(commands.get(0).getResources())
+        assertThat(commands.getFirst().getResources())
           .singleElement()
           .satisfies(a -> {
               assertThat(a.getName()).isEqualTo("WS-PGM");
@@ -272,7 +272,7 @@ class CicsCommandTest implements RewriteTest {
             """
         );
 
-        CicsCommand link = commands.get(0);
+        CicsCommand link = commands.getFirst();
         assertThat(link.getOptionDataName("program")).extracting(DataName::getName).isEqualTo("WS-TARGET");
         assertThat(link.getOptionDataName("COMMAREA")).extracting(DataName::getName).isEqualTo("WS-COMM");
         assertThat(link.getOptionDataName("LENGTH")).isNull();
@@ -295,9 +295,9 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(1);
-        assertThat(commands.get(0).getVerb()).isEqualTo("LINK");
-        assertThat(commands.get(0).operand("PROGRAM")).isEqualTo("SUBPGM1");
-        assertThat(commands.get(0).getOption("LENGTH")).isEqualTo("100");
+        assertThat(commands.getFirst().getVerb()).isEqualTo("LINK");
+        assertThat(commands.getFirst().operand("PROGRAM")).isEqualTo("SUBPGM1");
+        assertThat(commands.getFirst().getOption("LENGTH")).isEqualTo("100");
     }
 
     /**
@@ -340,8 +340,8 @@ class CicsCommandTest implements RewriteTest {
         );
 
         assertThat(commands).hasSize(1);
-        assertThat(commands.get(0).getTree().getWord()).isEmpty();
-        assertThat(Program.nameOf(commands.get(0).getCursor())).isEqualTo("CICSPGM");
-        assertThat(Procedure.nameOf(commands.get(0).getCursor())).isEqualTo("MAIN-PARA");
+        assertThat(commands.getFirst().getTree().getWord()).isEmpty();
+        assertThat(Program.nameOf(commands.getFirst().getCursor())).isEqualTo("CICSPGM");
+        assertThat(Procedure.nameOf(commands.getFirst().getCursor())).isEqualTo("MAIN-PARA");
     }
 }

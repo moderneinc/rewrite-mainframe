@@ -80,7 +80,7 @@ class JobControlStatementTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Jcl.JobControlStatement dd = statementsIn(cu).get(0);
+                Jcl.JobControlStatement dd = statementsIn(cu).getFirst();
                 assertThat(dd.getSimpleName()).isEqualTo("SYSLMOD");
                 assertThat(dd.getParameter("DSN").getValueText()).isEqualTo("&LOADLIB(&MEM)");
                 assertThat(dd.getParameter("DISP").getValueText()).isEqualTo("SHR");
@@ -151,7 +151,7 @@ class JobControlStatementTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<Jcl.JobControlStatement> statements = statementsIn(cu);
-                assertThat(statements.get(0).getParameters()).singleElement()
+                assertThat(statements.getFirst().getParameters()).singleElement()
                   .isInstanceOf(Jcl.PositionalParameter.class)
                   .satisfies(p -> assertThat(((Jcl.PositionalParameter) p).getValueText()).isEqualTo("DUMMY"));
                 assertThat(statements.get(1).getParameters())

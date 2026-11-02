@@ -44,7 +44,7 @@ class BindCommandTest implements RewriteTest {
                 // DSN and END name no object, so neither is a bind.
                 assertThat(commands).hasSize(1);
 
-                BindCommand bind = commands.get(0);
+                BindCommand bind = commands.getFirst();
                 assertThat(bind.getKind()).isEqualTo(BindCommand.Kind.BIND);
                 assertThat(bind.bindsPackage()).isTrue();
                 assertThat(bind.getCollection()).isEqualTo("CLMPKG");
@@ -82,12 +82,12 @@ class BindCommandTest implements RewriteTest {
                 List<BindCommand> commands = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
                 assertThat(commands).hasSize(2);
 
-                assertThat(commands.get(0).bindsPlan()).isTrue();
-                assertThat(commands.get(0).getPlans()).containsExactly("CLMPLAN");
-                assertThat(commands.get(0).getPackageList()).containsExactly("CLMPKG.*");
-                assertThat(commands.get(0).getCollection()).isNull();
+                assertThat(commands.getFirst().bindsPlan()).isTrue();
+                assertThat(commands.getFirst().getPlans()).containsExactly("CLMPLAN");
+                assertThat(commands.getFirst().getPackageList()).containsExactly("CLMPKG.*");
+                assertThat(commands.getFirst().getCollection()).isNull();
                 // RETAIN takes no value, so only its presence says the plan keeps its authorizations.
-                assertThat(commands.get(0).hasOperand("RETAIN")).isTrue();
+                assertThat(commands.getFirst().hasOperand("RETAIN")).isTrue();
                 assertThat(commands.get(1).getPackageList()).containsExactly("CLMPKG.CLMC040");
                 assertThat(commands.get(1).getLine()).isEqualTo(5);
             })
@@ -111,7 +111,7 @@ class BindCommandTest implements RewriteTest {
                 List<BindCommand> commands = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
                 assertThat(commands).hasSize(2);
 
-                BindCommand packages = commands.get(0);
+                BindCommand packages = commands.getFirst();
                 assertThat(packages.getKind()).isEqualTo(BindCommand.Kind.REBIND);
                 // A REBIND names collection.package outright, where a BIND leaves the package to DB2.
                 assertThat(packages.getCollection()).isEqualTo("CLMPKG");
@@ -176,7 +176,7 @@ class BindCommandTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<BindCommand> commands = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
-                assertThat(commands.get(0).getCollection()).isEqualTo("CLMPKG");
+                assertThat(commands.getFirst().getCollection()).isEqualTo("CLMPKG");
                 assertThat(commands.get(1).getCollection()).isEqualTo("CLMPKG");
                 assertThat(commands.get(1).getPackages()).containsExactly("CLMD010");
             })

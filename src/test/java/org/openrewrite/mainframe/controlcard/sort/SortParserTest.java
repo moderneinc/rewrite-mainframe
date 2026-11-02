@@ -43,7 +43,7 @@ class SortParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(3);
-                Sort.ControlStatement sort = (Sort.ControlStatement) cu.getStatements().get(0);
+                Sort.ControlStatement sort = (Sort.ControlStatement) cu.getStatements().getFirst();
                 assertThat(sort.getOperator().getText()).isEqualTo("SORT");
                 assertThat(sort.getParameter("FIELDS").getValueText()).isEqualTo("=(53,4,CH,A,1,10,CH,A)");
 
@@ -92,7 +92,7 @@ class SortParserTest implements RewriteTest {
                 SELECT FROM(IN1) TO(OUT1) USING(ABCD) ON(9,7,CH) NODUPS
               """,
             spec -> spec.afterRecipe(cu -> {
-                Sort.ControlStatement select = (Sort.ControlStatement) cu.getStatements().get(0);
+                Sort.ControlStatement select = (Sort.ControlStatement) cu.getStatements().getFirst();
                 assertThat(select.getOperator().getText()).isEqualTo("SELECT");
                 assertThat(select.getParameter("FROM").getValueText()).isEqualTo("(IN1)");
                 assertThat(select.getParameter("ON").getValueText()).isEqualTo("(9,7,CH)");
@@ -110,7 +110,7 @@ class SortParserTest implements RewriteTest {
                 SORT   FIELDS=COPY
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(((Sort.ControlStatement) cu.getStatements().get(0)).getParameter("FIELDS").getValueText())
+              assertThat(((Sort.ControlStatement) cu.getStatements().getFirst()).getParameter("FIELDS").getValueText())
                 .isEqualTo("=COPY"))
           )
         );
@@ -129,7 +129,7 @@ class SortParserTest implements RewriteTest {
                 OPTION COPY,VLSHRT
               """,
             spec -> spec.afterRecipe(cu -> {
-                Sort.ControlStatement sort = (Sort.ControlStatement) cu.getStatements().get(0);
+                Sort.ControlStatement sort = (Sort.ControlStatement) cu.getStatements().getFirst();
                 assertThat(sort.getParameter("FIELDS").getValueText()).isEqualTo("=(1,10,A,53,4,D)");
                 assertThat(sort.getParameter("FORMAT").getValueText()).isEqualTo("=CH");
 

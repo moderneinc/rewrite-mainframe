@@ -48,14 +48,14 @@ class CopiedPreprocessorSourceTest {
         var ctx = new InMemoryExecutionContext(t -> { throw new AssertionError(t); });
         var parsed = CopybookParser.builder().build().parse(ctx, content).toList();
         assertThat(parsed).singleElement().satisfies(source -> assertThat(source.printAll()).isEqualTo(content));
-        return parsed.get(0).withSourcePath(Path.of(name + ".cpy"));
+        return parsed.getFirst().withSourcePath(Path.of(name + ".cpy"));
     }
 
     private static Cobol.CompilationUnit parse(CobolParser parser, String source) {
         var parsed = parser.parse(new InMemoryExecutionContext(t -> { throw new AssertionError(t); }), source).toList();
         assertThat(parsed).singleElement().isInstanceOf(Cobol.CompilationUnit.class);
-        assertThat(parsed.get(0).printAll()).isEqualTo(source);
-        return (Cobol.CompilationUnit) parsed.get(0);
+        assertThat(parsed.getFirst().printAll()).isEqualTo(source);
+        return (Cobol.CompilationUnit) parsed.getFirst();
     }
 
     private static List<String> declarations(Cobol.CompilationUnit cu) {

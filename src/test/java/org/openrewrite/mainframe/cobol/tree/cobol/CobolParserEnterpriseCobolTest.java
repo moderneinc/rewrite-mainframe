@@ -77,9 +77,9 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
                 Cursor root = new Cursor(null, cu);
                 assertThat(statements).extracting(s -> s.getDocument().printTrimmed(root), s -> s.getData().printTrimmed(root))
                   .containsExactly(tuple("DOC", "REC"), tuple("DOC", "REC"), tuple("DOC", "REC"));
-                assertThat(statements.get(0).getPhrases()).hasSize(4);
-                assertThat(statements.get(0).getOnException()).isNotNull();
-                assertThat(statements.get(0).getNotOnException()).isNotNull();
+                assertThat(statements.getFirst().getPhrases()).hasSize(4);
+                assertThat(statements.getFirst().getOnException()).isNotNull();
+                assertThat(statements.getFirst().getNotOnException()).isNotNull();
                 assertThat(statements.get(2).getEnd()).isNull();
             })
           )
@@ -224,7 +224,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000015     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.JsonXml.class))
-              .extracting(s -> s.getPhrases().get(0).getElements().size())
+              .extracting(s -> s.getPhrases().getFirst().getElements().size())
               .containsExactly(2, 4))
           )
         );

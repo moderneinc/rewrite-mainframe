@@ -45,7 +45,7 @@ class MapsetTest implements RewriteTest {
                 List<Mapset> mapsets = new Mapset.Matcher().lower(cu).collect(Collectors.toList());
                 assertThat(mapsets).hasSize(1);
 
-                Mapset mapset = mapsets.get(0);
+                Mapset mapset = mapsets.getFirst();
                 assertThat(mapset.getName()).isEqualTo("COSGN00");
                 assertThat(mapset.getLanguage()).isEqualTo("COBOL");
                 assertThat(mapset.getMode()).isEqualTo("INOUT");
@@ -117,7 +117,7 @@ class MapsetTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<Mapset> mapsets = new Mapset.Matcher().lower(cu).collect(Collectors.toList());
                 assertThat(mapsets).extracting(Mapset::getName).containsExactly("SSMAP");
-                assertThat(mapsets.get(0).getMaps()).hasSize(1);
+                assertThat(mapsets.getFirst().getMaps()).hasSize(1);
             })
           )
         );

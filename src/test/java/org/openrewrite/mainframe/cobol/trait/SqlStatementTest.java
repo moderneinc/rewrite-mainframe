@@ -71,7 +71,7 @@ class SqlStatementTest implements RewriteTest {
                 List<SqlStatement> statements = statementsIn(cu);
                 assertThat(statements).hasSize(3);
 
-                assertThat(SqlStatements.bind(statements.get(0), List.of()))
+                assertThat(SqlStatements.bind(statements.getFirst(), List.of()))
                   .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
                   .containsExactly(tuple("FIRSTNAME", "CA-FIRST-NAME"), tuple("LASTNAME", "CA-LAST-NAME"));
 
@@ -116,10 +116,10 @@ class SqlStatementTest implements RewriteTest {
                 List<SqlStatement> statements = statementsIn(cu);
                 assertThat(statements).hasSize(3);
 
-                assertThat(statements.get(0).getVerb()).isEqualTo("SELECT");
-                assertThat(statements.get(0).getAccess()).isEqualTo(SqlStatement.Access.READ);
+                assertThat(statements.getFirst().getVerb()).isEqualTo("SELECT");
+                assertThat(statements.getFirst().getAccess()).isEqualTo(SqlStatement.Access.READ);
                 // The INTO here names a host variable, not a table.
-                assertThat(statements.get(0).getTables()).containsExactly("ACCOUNT");
+                assertThat(statements.getFirst().getTables()).containsExactly("ACCOUNT");
 
                 assertThat(statements.get(1).getVerb()).isEqualTo("INSERT");
                 assertThat(statements.get(1).getAccess()).isEqualTo(SqlStatement.Access.CREATE);
@@ -162,9 +162,9 @@ class SqlStatementTest implements RewriteTest {
                 List<SqlStatement> statements = statementsIn(cu);
                 assertThat(statements).hasSize(3);
 
-                assertThat(statements.get(0).getCursorName()).isEqualTo("ACCTCSR");
-                assertThat(statements.get(0).getTables()).containsExactly("ACCOUNT");
-                assertThat(statements.get(0).getAccess()).isEqualTo(SqlStatement.Access.DECLARE);
+                assertThat(statements.getFirst().getCursorName()).isEqualTo("ACCTCSR");
+                assertThat(statements.getFirst().getTables()).containsExactly("ACCOUNT");
+                assertThat(statements.getFirst().getAccess()).isEqualTo(SqlStatement.Access.DECLARE);
 
                 assertThat(statements.get(1).getCursorName()).isEqualTo("ACCTCSR");
                 assertThat(statements.get(2).getCursorName()).isEqualTo("ACCTCSR");
@@ -205,7 +205,7 @@ class SqlStatementTest implements RewriteTest {
               000000     END-EXEC.
               000000     GOBACK.
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(SqlStatements.bind(statementsIn(cu).get(0), List.of()))
+            spec -> spec.afterRecipe(cu -> assertThat(SqlStatements.bind(statementsIn(cu).getFirst(), List.of()))
               .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
               .containsExactly(tuple("CUSTOMER_EYECATCHER", "HV-EYECATCHER"),
                 tuple("CUSTOMER_SORTCODE", "HV-SORTCODE"),
@@ -287,7 +287,7 @@ class SqlStatementTest implements RewriteTest {
                 List<SqlStatement> statements = statementsIn(cu);
                 assertThat(statements).hasSize(2);
 
-                SqlStatement declare = statements.get(0);
+                SqlStatement declare = statements.getFirst();
                 assertThat(declare.getColumns())
                   .containsExactly("ISSUEDATE", "EXPIRYDATE", "BROKERID");
 
@@ -378,7 +378,7 @@ class SqlStatementTest implements RewriteTest {
               000000     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                SqlStatement statement = statementsIn(cu).get(0);
+                SqlStatement statement = statementsIn(cu).getFirst();
                 assertThat(statement.getTables()).containsExactlyInAnyOrder("POLICY", "COMMERCIAL");
                 // Two tables give no way to say which column came from where.
                 assertThat(statement.getTable()).isNull();
@@ -411,7 +411,7 @@ class SqlStatementTest implements RewriteTest {
               000000     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                SqlStatement statement = statementsIn(cu).get(0);
+                SqlStatement statement = statementsIn(cu).getFirst();
                 assertThat(statement.getTables()).containsExactly("CLM.POLICY");
                 assertThat(statement.getAccess()).isEqualTo(SqlStatement.Access.DECLARE);
                 // A table declaration is not a cursor declaration.
@@ -464,7 +464,7 @@ class SqlStatementTest implements RewriteTest {
                   .containsExactly("POLICY-NO", "LAST-CLAIM-DATE");
                 assertThat(fetch.getIndicatorVariables()).extracting(HostVariable::getName)
                   .containsExactly("WS-LAST-CLAIM-IND");
-                assertThat(SqlStatements.bind(fetch, statements.get(0).getColumns()))
+                assertThat(SqlStatements.bind(fetch, statements.getFirst().getColumns()))
                   .extracting(SqlStatement.Binding::getColumn, binding -> binding.getHostVariable().getName())
                   .containsExactly(tuple("POLICY_NO", "POLICY-NO"),
                     tuple("LAST_CLAIM_DATE", "LAST-CLAIM-DATE"));
@@ -498,7 +498,7 @@ class SqlStatementTest implements RewriteTest {
               000000     END-EXEC.
               000000     GOBACK.
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(statementsIn(cu).get(0).getTableAccesses())
+            spec -> spec.afterRecipe(cu -> assertThat(statementsIn(cu).getFirst().getTableAccesses())
               .singleElement().satisfies(table -> {
                   assertThat(table.getName()).isEqualTo("CLM.CLAIM_HIST");
                   assertThat(table.getLocation()).isNull();
@@ -546,7 +546,7 @@ class SqlStatementTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<SqlStatement> statements = statementsIn(cu);
-                assertThat(statements.get(0).getTableAccesses())
+                assertThat(statements.getFirst().getTableAccesses())
                   .extracting(SqlTableAccess::getName, SqlTableAccess::getAccess)
                   .containsExactly(tuple("CLM.CLAIM_ARCH", SqlStatement.Access.CREATE),
                     tuple("CLM.CLAIM_HIST", SqlStatement.Access.READ));
@@ -585,7 +585,7 @@ class SqlStatementTest implements RewriteTest {
               000000     END-EXEC.
               000000     GOBACK.
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(statementsIn(cu).get(0).getTableAccesses())
+            spec -> spec.afterRecipe(cu -> assertThat(statementsIn(cu).getFirst().getTableAccesses())
               .extracting(SqlTableAccess::getName)
               .containsExactly("ZETA", "ALPHA", "MIDDLE"))
           )
@@ -615,9 +615,9 @@ class SqlStatementTest implements RewriteTest {
               000000     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                SqlStatement statement = statementsIn(cu).get(0);
+                SqlStatement statement = statementsIn(cu).getFirst();
                 List<Cobol.Word> words = wordsOf(statement.getExec());
-                Cobol.Word written = statement.getTableAccesses().get(0).getWords().get(0);
+                Cobol.Word written = statement.getTableAccesses().getFirst().getWords().getFirst();
                 assertThat(words.get(words.indexOf(written) - 1).getWord()).isEqualTo("FROM");
             })
           )
@@ -652,8 +652,8 @@ class SqlStatementTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<SqlStatement> statements = statementsIn(cu);
-                assertThat(statements.get(0).getTables()).containsExactly("CLM.\"ADJUSTER\"");
-                assertThat(statements.get(0).getTableAccesses()).singleElement().satisfies(table -> {
+                assertThat(statements.getFirst().getTables()).containsExactly("CLM.\"ADJUSTER\"");
+                assertThat(statements.getFirst().getTableAccesses()).singleElement().satisfies(table -> {
                     assertThat(table.getName()).isEqualTo("CLM.ADJUSTER");
                     assertThat(table.getSchema()).isEqualTo("CLM");
                     assertThat(table.getSimpleName()).isEqualTo("ADJUSTER");

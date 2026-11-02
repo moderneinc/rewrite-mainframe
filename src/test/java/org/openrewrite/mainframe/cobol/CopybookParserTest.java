@@ -18,7 +18,7 @@ package org.openrewrite.mainframe.cobol;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,12 +29,12 @@ class CopybookParserTest {
     @ParameterizedTest
     @ValueSource(strings = {"ACCTREC.cpy", "ACCTREC.CPY", "ACCTREC.copy", "ACCTREC.COPY", "ACCTREC.dcl", "ACCTREC.DCL", "copy/ACCTREC.Cpy"})
     void acceptsACopybookByExtension(String name) {
-        assertThat(parser.accept(Paths.get(name))).isTrue();
+        assertThat(parser.accept(Path.of(name))).isTrue();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"ACCTPOST.cbl", "ACCTPOST.cob", "ACCTPOST.cobol", "ACCTPOST.jcl", "ACCTREC.inc", "ACCTREC"})
     void rejectsOtherExtensions(String name) {
-        assertThat(parser.accept(Paths.get(name))).isFalse();
+        assertThat(parser.accept(Path.of(name))).isFalse();
     }
 }

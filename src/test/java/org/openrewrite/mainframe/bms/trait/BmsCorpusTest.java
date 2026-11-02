@@ -26,7 +26,6 @@ import org.openrewrite.mainframe.cobol.Corpus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +59,7 @@ class BmsCorpusTest {
 
     @Test
     void readsRealMapsets() throws IOException {
-        Path corpus = Paths.get(System.getenv("BMS_CORPUS"));
+        Path corpus = Path.of(System.getenv("BMS_CORPUS"));
 
         int members = 0;
         int mapsets = 0;
@@ -93,11 +92,11 @@ class BmsCorpusTest {
                 List<SourceFile> parsed = BmsParser.builder().build()
                         .parse(new InMemoryExecutionContext(), source)
                         .collect(Collectors.toList());
-                if (parsed.isEmpty() || !(parsed.get(0) instanceof Bms.CompilationUnit)) {
+                if (parsed.isEmpty() || !(parsed.getFirst() instanceof Bms.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
                 }
-                Bms.CompilationUnit cu = (Bms.CompilationUnit) parsed.get(0);
+                Bms.CompilationUnit cu = (Bms.CompilationUnit) parsed.getFirst();
 
                 if (!source.equals(cu.printAll())) {
                     failures.add(name + ": did not print back");

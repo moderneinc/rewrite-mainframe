@@ -24,7 +24,7 @@ import org.openrewrite.mainframe.ims.tree.Ims;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -51,32 +51,36 @@ class PsbTest {
      * first all the same, so the alternate PCB written first here is the program's second mask.
      */
     private static final String CONVERSATIONAL =
-      "*  CLMPSB02 - CONVERSATIONAL CLAIM INQUIRY, PROGRAM CLMI030\n" +
-      "         PCB   TYPE=TP,NAME=CLMLTRM,MODIFY=YES\n" +
-      "*\n" +
-      "         PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=G,KEYLEN=14\n" +
-      "         SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=G\n" +
-      "         SENFLD NAME=CLMKEY,START=1\n" +
-      "         SENFLD NAME=CLMPOL,START=11\n" +
-      "         SENFLD NAME=CLMADJR,START=43\n" +
-      "         SENSEG NAME=CLMDETL,PARENT=CLMROOT,PROCOPT=G\n" +
-      "*\n" +
-      "         PCB   TYPE=DB,DBDNAME=CLMDBD03,PROCOPT=G,KEYLEN=4\n" +
-      "         SENSEG NAME=TYPROOT,PARENT=0,PROCOPT=G\n" +
-      "*\n" +
-      "         PSBGEN LANG=COBOL,PSBNAME=CLMPSB02,IOASIZE=600,SSASIZE=200\n" +
-      "         END\n";
+      """
+      *  CLMPSB02 - CONVERSATIONAL CLAIM INQUIRY, PROGRAM CLMI030
+               PCB   TYPE=TP,NAME=CLMLTRM,MODIFY=YES
+      *
+               PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=G,KEYLEN=14
+               SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=G
+               SENFLD NAME=CLMKEY,START=1
+               SENFLD NAME=CLMPOL,START=11
+               SENFLD NAME=CLMADJR,START=43
+               SENSEG NAME=CLMDETL,PARENT=CLMROOT,PROCOPT=G
+      *
+               PCB   TYPE=DB,DBDNAME=CLMDBD03,PROCOPT=G,KEYLEN=4
+               SENSEG NAME=TYPROOT,PARENT=0,PROCOPT=G
+      *
+               PSBGEN LANG=COBOL,PSBNAME=CLMPSB02,IOASIZE=600,SSASIZE=200
+               END
+      """;
 
     /**
      * A BMP's PSB. {@code CMPAT=YES} is what gives it the I/O PCB its {@code CHKP} and {@code XRST}
      * need, and it is the only thing here that says so.
      */
     private static final String BATCH_MESSAGE_PROGRAM =
-      "         PCB   TYPE=GSAM,DBDNAME=CLMDBG01,PROCOPT=GS\n" +
-      "         PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=AP,KEYLEN=14\n" +
-      "         SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=A\n" +
-      "         PSBGEN LANG=COBOL,PSBNAME=CLMPSB04,CMPAT=YES,IOASIZE=200\n" +
-      "         END\n";
+      """
+               PCB   TYPE=GSAM,DBDNAME=CLMDBG01,PROCOPT=GS
+               PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=AP,KEYLEN=14
+               SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=A
+               PSBGEN LANG=COBOL,PSBNAME=CLMPSB04,CMPAT=YES,IOASIZE=200
+               END
+      """;
 
     @Test
     void thePsbAndItsPcbs() {
@@ -96,7 +100,7 @@ class PsbTest {
             tuple(2, "DB", "CLMDBD01", "G", 14, 4),
             tuple(3, "DB", "CLMDBD03", "G", 4, 11));
 
-        Pcb alternate = psb.getPcbs().get(0);
+        Pcb alternate = psb.getPcbs().getFirst();
         assertThat(alternate.isMessage()).isTrue();
         assertThat(alternate.isDatabase()).isFalse();
         assertThat(alternate.getDestination()).isEqualTo("CLMLTRM");
@@ -116,7 +120,7 @@ class PsbTest {
 
         // The I/O area a field-sensitive PCB builds is not the segment: it is these fields, in this
         // order, and it is shorter.
-        SensitiveSegment root = claims.getSensitiveSegments().get(0);
+        SensitiveSegment root = claims.getSensitiveSegments().getFirst();
         assertThat(root.isRoot()).isTrue();
         assertThat(root.getSensitiveFields())
           .extracting(SensitiveField::getName, SensitiveField::getStart, SensitiveField::getLine)
@@ -174,7 +178,7 @@ class PsbTest {
 
         // A GSAM PCB has a database and is not one a command level program numbers, and it has no
         // sensitive segments because a GSAM database has no segments.
-        Pcb gsam = psb.getPcbs().get(0);
+        Pcb gsam = psb.getPcbs().getFirst();
         assertThat(gsam.isSequential()).isTrue();
         assertThat(gsam.isDatabase()).isFalse();
         assertThat(gsam.getSensitiveSegments()).isEmpty();
@@ -185,10 +189,12 @@ class PsbTest {
     @Test
     void aDliBatchProgramWithoutCmpatIsHandedItsDatabasePcbFirst() {
         Psb psb = psb(
-          "         PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=A,KEYLEN=14\n" +
-          "         SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=A\n" +
-          "         PSBGEN LANG=COBOL,PSBNAME=CLMPSB01,IOASIZE=200\n" +
-          "         END\n");
+          """
+                   PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=A,KEYLEN=14
+                   SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=A
+                   PSBGEN LANG=COBOL,PSBNAME=CLMPSB01,IOASIZE=200
+                   END
+          """);
 
         assertThat(psb.receivesIoPcb(BATCH)).isFalse();
         assertThat(psb.getPcbAtMask(1, BATCH)).isNotNull()
@@ -221,12 +227,14 @@ class PsbTest {
     @Test
     void aPcbReachedByItsNumberAmongTheDatabasePcbs() {
         Psb psb = psb(
-          "         PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=G,KEYLEN=14\n" +
-          "         SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=G\n" +
-          "         PCB   TYPE=DB,DBDNAME=CLMDBD03,PROCOPT=G,KEYLEN=4\n" +
-          "         SENSEG NAME=TYPROOT,PARENT=0,PROCOPT=G\n" +
-          "         PSBGEN LANG=COBOL,PSBNAME=CLMPSB06,IOASIZE=200\n" +
-          "         END\n");
+          """
+                   PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCOPT=G,KEYLEN=14
+                   SENSEG NAME=CLMROOT,PARENT=0,PROCOPT=G
+                   PCB   TYPE=DB,DBDNAME=CLMDBD03,PROCOPT=G,KEYLEN=4
+                   SENSEG NAME=TYPROOT,PARENT=0,PROCOPT=G
+                   PSBGEN LANG=COBOL,PSBNAME=CLMPSB06,IOASIZE=200
+                   END
+          """);
 
         assertThat(psb.getDatabasePcb(1)).isNotNull()
           .extracting(Pcb::getDatabaseName).isEqualTo("CLMDBD01");
@@ -247,7 +255,7 @@ class PsbTest {
           "         PSBGEN LANG=COBOL,PSBNAME=CLMPSB03,IOASIZE=200\n" +
           "         END\n");
 
-        Pcb pcb = psb.getPcbs().get(0);
+        Pcb pcb = psb.getPcbs().getFirst();
         assertThat(pcb.getDatabaseName()).isEqualTo("CLMDBD01");
         assertThat(pcb.getProcessingSequence()).isEqualTo("CLMDBX01");
         assertThat(pcb.getKeyLength()).isEqualTo(14);
@@ -260,10 +268,12 @@ class PsbTest {
     @Test
     void aPcbNamedByTheLabelInColumnOne() {
         Psb psb = psb(
-          "PAUTBPCB PCB   TYPE=DB,DBDNAME=DBPAUTP0,PROCOPT=AP,KEYLEN=14\n" +
-          "         SENSEG  NAME=PAUTSUM0,PARENT=0\n" +
-          "         PSBGEN  LANG=COBOL,PSBNAME=PSBPAUTB,CMPAT=YES\n" +
-          "         END\n");
+          """
+          PAUTBPCB PCB   TYPE=DB,DBDNAME=DBPAUTP0,PROCOPT=AP,KEYLEN=14
+                   SENSEG  NAME=PAUTSUM0,PARENT=0
+                   PSBGEN  LANG=COBOL,PSBNAME=PSBPAUTB,CMPAT=YES
+                   END
+          """);
 
         assertThat(psb.getPcbs()).singleElement().extracting(Pcb::getName).isEqualTo("PAUTBPCB");
         assertThat(psb.getPcb("PAUTBPCB")).isNotNull();
@@ -272,12 +282,14 @@ class PsbTest {
     @Test
     void aDatabasePcbNamingItsDbdWithName() {
         Psb psb = psb(
-          "         PCB   TYPE=TP,NAME=CLMPRT01\n" +
-          "         PCB   TYPE=TP,LTERM=CLMPRT02\n" +
-          "         PCB   TYPE=DB,NAME=CLMDBD01,PROCOPT=A,KEYLEN=14\n" +
-          "         SENSEG NAME=CLMROOT,PARENT=0\n" +
-          "         PSBGEN LANG=COBOL,PSBNAME=CLMPSB07\n" +
-          "         END\n");
+          """
+                   PCB   TYPE=TP,NAME=CLMPRT01
+                   PCB   TYPE=TP,LTERM=CLMPRT02
+                   PCB   TYPE=DB,NAME=CLMDBD01,PROCOPT=A,KEYLEN=14
+                   SENSEG NAME=CLMROOT,PARENT=0
+                   PSBGEN LANG=COBOL,PSBNAME=CLMPSB07
+                   END
+          """);
 
         assertThat(psb.getPcbs()).extracting(Pcb::getDatabaseName, Pcb::getDestination)
           .containsExactly(tuple(null, "CLMPRT01"), tuple(null, "CLMPRT02"), tuple("CLMDBD01", null));
@@ -297,16 +309,16 @@ class PsbTest {
           .parseInputs(singletonList(input(source)), null, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Ims.CompilationUnit.class);
-        assertThat(parsed.get(0).printAll()).isEqualTo(source);
+        assertThat(parsed.getFirst()).isInstanceOf(Ims.CompilationUnit.class);
+        assertThat(parsed.getFirst().printAll()).isEqualTo(source);
 
-        List<Psb> psbs = new Psb.Matcher().lower(parsed.get(0)).collect(Collectors.toList());
+        List<Psb> psbs = new Psb.Matcher().lower(parsed.getFirst()).collect(Collectors.toList());
         assertThat(psbs).hasSize(1);
-        return psbs.get(0);
+        return psbs.getFirst();
     }
 
     private static Parser.Input input(String source) {
-        return new Parser.Input(Paths.get("CLMPSB01.psb"),
+        return new Parser.Input(Path.of("CLMPSB01.psb"),
           () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
     }
 

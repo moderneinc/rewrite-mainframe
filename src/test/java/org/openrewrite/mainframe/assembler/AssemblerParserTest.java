@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,7 +73,7 @@ class AssemblerParserTest implements RewriteTest {
           assembler(
             "         LA    R3,3(,R2)           FIRST SERIAL DIGIT\n",
             spec -> spec.afterRecipe(cu -> {
-                Assembler.Instruction instruction = instructions(cu).get(0);
+                Assembler.Instruction instruction = instructions(cu).getFirst();
                 assertThat(instruction.getOperandTexts()).containsExactly("R3", "3(,R2)");
                 assertThat(instruction.getOperands()).last()
                   .isInstanceOfSatisfying(Assembler.Word.class,
@@ -98,8 +97,8 @@ class AssemblerParserTest implements RewriteTest {
                   .extracting(Assembler.Instruction::getOperandTexts)
                   .isEqualTo(List.of("DDNAME=PURGCARD", "DSORG=PS", "MACRF=(GM)", "RECFM=FB",
                     "LRECL=80", "EODAD=A10NOCD"));
-                assertThat(instructions.get(0).getParameterValue("DDNAME")).isEqualTo("PURGCARD");
-                assertThat(instructions.get(0).getParameterValue("MACRF")).isEqualTo("(GM)");
+                assertThat(instructions.getFirst().getParameterValue("DDNAME")).isEqualTo("PURGCARD");
+                assertThat(instructions.getFirst().getParameterValue("MACRF")).isEqualTo("(GM)");
             })
           )
         );
@@ -109,8 +108,10 @@ class AssemblerParserTest implements RewriteTest {
     void carriesOneOperandOverTheLineBreakItWasSplitBy() {
         rewriteRun(
           assembler(
-            "         UNPK  DTEMP((mdsdigits*2)-1),DTEMP+L'DTEMP-mdsdigits+1(mdsdigi+\n" +
-            "               ts)\n",
+            """
+                     UNPK  DTEMP((mdsdigits*2)-1),DTEMP+L'DTEMP-mdsdigits+1(mdsdigi+
+                           ts)
+            """,
             spec -> spec.afterRecipe(cu -> assertThat(instructions(cu)).singleElement()
               .extracting(Assembler.Instruction::getOperandTexts)
               .isEqualTo(List.of("DTEMP((mdsdigits*2)-1)", "DTEMP+L'DTEMP-mdsdigits+1(mdsdigits)")))
@@ -127,10 +128,12 @@ class AssemblerParserTest implements RewriteTest {
     void carriesRemarksOverALineBreakToo() {
         rewriteRun(
           assembler(
-            "dayof001_s equ  60*60*24*100     create number of hundreths in a day   +\n" +
-            "                ss mm hh .01\n",
+            """
+            dayof001_s equ  60*60*24*100     create number of hundreths in a day   +
+                            ss mm hh .01
+            """,
             spec -> spec.afterRecipe(cu -> {
-                Assembler.Instruction instruction = instructions(cu).get(0);
+                Assembler.Instruction instruction = instructions(cu).getFirst();
                 assertThat(instruction.getOperandTexts()).containsExactly("60*60*24*100");
                 assertThat(instruction.getOperands()).last()
                   .isInstanceOfSatisfying(Assembler.Word.class,
@@ -148,8 +151,10 @@ class AssemblerParserTest implements RewriteTest {
     void keepsWhatAContinuationLineWritesBeforeColumn16() {
         rewriteRun(
           assembler(
-            "         MVI   12(13),X'FF'            *ML purpose of this? - can we remove it?\n" +
-            "         SR    15,15                   ZERO R15 BEFORE RETURN\n",
+            """
+                     MVI   12(13),X'FF'            *ML purpose of this? - can we remove it?
+                     SR    15,15                   ZERO R15 BEFORE RETURN
+            """,
             spec -> spec.afterRecipe(cu -> assertThat(instructions(cu)).singleElement()
               .extracting(Assembler.Instruction::getOperandTexts)
               .isEqualTo(List.of("12(13)", "X'FF'", "15", "15")))
@@ -235,11 +240,13 @@ class AssemblerParserTest implements RewriteTest {
     void readsAMacroCommentAsAComment() {
         rewriteRun(
           assembler(
-            "         MACRO\n" +
-            "&NAME    CLMSAVE &BASE,&SAVE=,&ID=\n" +
-            ".*  ENTRY LINKAGE\n" +
-            ".BASEOK  ANOP\n" +
-            "         MEND\n",
+            """
+                     MACRO
+            &NAME    CLMSAVE &BASE,&SAVE=,&ID=
+            .*  ENTRY LINKAGE
+            .BASEOK  ANOP
+                     MEND
+            """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements().get(2)).isInstanceOf(Assembler.Comment.class);
                 assertThat(instructions(cu)).extracting(Assembler.Instruction::getSimpleName,
@@ -260,7 +267,7 @@ class AssemblerParserTest implements RewriteTest {
           assembler(
             "MVSWAIT  START 0                                                        00010000\n",
             spec -> spec.afterRecipe(cu -> {
-                Assembler.Instruction instruction = instructions(cu).get(0);
+                Assembler.Instruction instruction = instructions(cu).getFirst();
                 assertThat(instruction.getOperandTexts()).containsExactly("0");
                 assertThat(instruction.getOperands()).singleElement()
                   .extracting(o -> o.getMarkers().findFirst(SequenceArea.class).orElseThrow().getText())
@@ -278,9 +285,11 @@ class AssemblerParserTest implements RewriteTest {
     void honoursTheColumnsIctlMovesThemTo() {
         rewriteRun(
           assembler(
-            "         ICTL  1,60,16\n" +
-            "         DCB   DDNAME=PURGCARD,DSORG=PS,                    X\n" +
-            "               LRECL=80\n",
+            """
+                     ICTL  1,60,16
+                     DCB   DDNAME=PURGCARD,DSORG=PS,                    X
+                           LRECL=80
+            """,
             spec -> spec.afterRecipe(cu -> assertThat(instructions(cu)).last()
               .extracting(Assembler.Instruction::getOperandTexts)
               .isEqualTo(List.of("DDNAME=PURGCARD", "DSORG=PS", "LRECL=80")))
@@ -301,8 +310,8 @@ class AssemblerParserTest implements RewriteTest {
 
         assertThat(AssemblerParser.builder().build().accept(database)).isFalse();
         assertThat(AssemblerParser.builder().build().accept(program)).isTrue();
-        assertThat(AssemblerParser.builder().build().accept(Paths.get("CLMDBD01.dbd"))).isFalse();
-        assertThat(AssemblerParser.builder().build().accept(Paths.get("CLMSAVE.mac"))).isTrue();
+        assertThat(AssemblerParser.builder().build().accept(Path.of("CLMDBD01.dbd"))).isFalse();
+        assertThat(AssemblerParser.builder().build().accept(Path.of("CLMSAVE.mac"))).isTrue();
     }
 
     @Test

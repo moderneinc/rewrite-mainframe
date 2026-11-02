@@ -430,7 +430,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.TableCall visitTableCall(Cobol.TableCall tableCall, Integer p) {
-                        Cobol.Subscript subscript = (Cobol.Subscript) tableCall.getSubscripts().get(0).getContents().get(0);
+                        Cobol.Subscript subscript = (Cobol.Subscript) tableCall.getSubscripts().getFirst().getContents().getFirst();
                         shapes.add(tableCall.getQualifiedDataName().printTrimmed(getCursor()) + " " +
                                    subscript.getFirst().getClass().getSimpleName() + " " +
                                    subscript.getFirst().printTrimmed(getCursor()));
@@ -1019,10 +1019,10 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                   List<Cobol.RepositoryEntry> entries = repository.getEntries();
                   assertThat(entries).hasSize(5);
 
-                  assertThat(words(entries.get(0))).containsExactly("CLASS");
-                  assertThat(text(entries.get(0).getName())).isEqualTo("DB2-INSERT-HIST");
-                  assertThat(entries.get(0).getIs().getWord()).isEqualTo("IS");
-                  assertThat(text(entries.get(0).getLiteral())).isEqualTo("\"nazare.jmp.controller.InsertHist\"");
+                  assertThat(words(entries.getFirst())).containsExactly("CLASS");
+                  assertThat(text(entries.getFirst().getName())).isEqualTo("DB2-INSERT-HIST");
+                  assertThat(entries.getFirst().getIs().getWord()).isEqualTo("IS");
+                  assertThat(text(entries.getFirst().getLiteral())).isEqualTo("\"nazare.jmp.controller.InsertHist\"");
 
                   assertThat(words(entries.get(1))).containsExactly("INTERFACE");
                   assertThat(text(entries.get(1).getName())).isEqualTo("COMPARABLE");
@@ -1948,8 +1948,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                     }
 
                     private String shape(Cobol name) {
-                        if (name instanceof Cobol.TableCall) {
-                            Cobol.TableCall t = (Cobol.TableCall) name;
+                        if (name instanceof Cobol.TableCall t) {
                             return "TableCall " + t.getQualifiedDataName().printTrimmed(getCursor()) +
                                    " subscripts=" + t.getSubscripts().size() +
                                    " refmod=" + (t.getReferenceModifier() != null);
@@ -2049,7 +2048,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
 
                     @Override
                     public Cobol.CallPhrase visitCallPhrase(Cobol.CallPhrase phrase, Integer p) {
-                        if (phrase.getWords() != null && "USING".equals(phrase.getWords().get(0).getWord())) {
+                        if (phrase.getWords() != null && "USING".equals(phrase.getWords().getFirst().getWord())) {
                             shapes.add("USING " + phrase.getParameters().stream()
                               .map(parameter -> (Cobol.CallPhrase) parameter)
                               .map(group -> (group.getWords() == null ? "" :
@@ -2297,7 +2296,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               public Cobol.Exit visitExit(Cobol.Exit exit, ExecutionContext ctx) {
                   exits.incrementAndGet();
                   assertThat(exit.getWords()).hasSize(1);
-                  assertThat(exit.getWords().get(0).getWord()).isEqualToIgnoringCase("EXIT");
+                  assertThat(exit.getWords().getFirst().getWord()).isEqualToIgnoringCase("EXIT");
                   return super.visitExit(exit, ctx);
               }
           })),

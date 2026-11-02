@@ -24,7 +24,7 @@ import org.openrewrite.mainframe.ims.tree.Ims;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,7 +66,7 @@ class ApplicationTest {
 
         // Both transactions are under the one APPLCTN, so both reach the one PSB and the one program
         // answers them, telling them apart by the code it reads out of the message.
-        assertThat(applications.get(0).getTransactions())
+        assertThat(applications.getFirst().getTransactions())
           .extracting(Transaction::getCode, Transaction::getScratchpadSize, Transaction::getLine)
           .containsExactly(
             tuple("CLMINQ", 150, 3),
@@ -106,9 +106,11 @@ class ApplicationTest {
     @Test
     void aDatabaseEndsTheApplicationAboveIt() {
         Ims.CompilationUnit deck = parse(
-          "         APPLCTN PSB=CLMPSB01,PGMTYPE=BATCH\n" +
-          "         DATABASE DBD=CLMDBD01,ACCESS=UP\n" +
-          "         TRANSACT CODE=CLMINQ,SPA=(150,)\n");
+          """
+                   APPLCTN PSB=CLMPSB01,PGMTYPE=BATCH
+                   DATABASE DBD=CLMDBD01,ACCESS=UP
+                   TRANSACT CODE=CLMINQ,SPA=(150,)
+          """);
 
         assertThat(new Application.Matcher().lower(deck).collect(Collectors.toList()))
           .singleElement().satisfies(application ->
@@ -118,8 +120,10 @@ class ApplicationTest {
     @Test
     void aGeneratedPsbIsNamedForItsProgram() {
         Ims.CompilationUnit deck = parse(
-          "         APPLCTN GPSB=CLMJINQ,LANG=JAVA,PGMTYPE=TP\n" +
-          "         TRANSACT CODE=CLMJTRN\n");
+          """
+                   APPLCTN GPSB=CLMJINQ,LANG=JAVA,PGMTYPE=TP
+                   TRANSACT CODE=CLMJTRN
+          """);
 
         assertThat(new Application.Matcher().lower(deck).collect(Collectors.toList()))
           .singleElement().satisfies(application -> {
@@ -133,13 +137,13 @@ class ApplicationTest {
           .parseInputs(singletonList(input(source)), null, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Ims.CompilationUnit.class);
-        assertThat(parsed.get(0).printAll()).isEqualTo(source);
-        return (Ims.CompilationUnit) parsed.get(0);
+        assertThat(parsed.getFirst()).isInstanceOf(Ims.CompilationUnit.class);
+        assertThat(parsed.getFirst().printAll()).isEqualTo(source);
+        return (Ims.CompilationUnit) parsed.getFirst();
     }
 
     private static Parser.Input input(String source) {
-        return new Parser.Input(Paths.get("CLMGEN01.gen"),
+        return new Parser.Input(Path.of("CLMGEN01.gen"),
           () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
     }
 

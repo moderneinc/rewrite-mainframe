@@ -64,7 +64,7 @@ class Db2ParserTest {
         Db2.Ddl ddl = parse("CREATE TABLE APP.ITEM (ID INTEGER NOT NULL,\n" +
           "VERSION_TS TIMESTAMP NOT NULL GENERATED " + mode +
           " FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP, PRIMARY KEY (ID));\n");
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         Db2.ColumnDefinition column = columns(table).get(1);
         assertThat(column.getName().getSimpleName()).isEqualTo("VERSION_TS");
         assertThat(column.getType().getName().getSimpleName()).isEqualTo("TIMESTAMP");
@@ -74,7 +74,7 @@ class Db2ParserTest {
         assertThat(generated.getValues()).isEmpty();
         assertThat(generated.getKeywords().stream().map(Db2.Keyword::getText).collect(Collectors.joining(" ")))
           .isEqualTo("GENERATED " + mode + " FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP");
-        assertThat(names(constraints(table).get(0).getColumns())).containsExactly("ID");
+        assertThat(names(constraints(table).getFirst().getColumns())).containsExactly("ID");
     }
 
     @Test
@@ -122,19 +122,19 @@ class Db2ParserTest {
             """);
 
         assertThat(ddl.getStatements()).hasSize(1);
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(table.getName().getFullName()).isEqualTo("CARDDEMO.TRANSACTION_TYPE");
         assertThat(table.getName().getQualifier()).isEqualTo("CARDDEMO");
         assertThat(table.getName().getSimpleName()).isEqualTo("TRANSACTION_TYPE");
 
         assertThat(columns(table)).hasSize(2);
-        Db2.ColumnDefinition trType = columns(table).get(0);
+        Db2.ColumnDefinition trType = columns(table).getFirst();
         assertThat(trType.getName().getSimpleName()).isEqualTo("TR_TYPE");
         assertThat(trType.getType().getName().getSimpleName()).isEqualTo("CHAR");
         assertThat(isNotNull(trType)).isTrue();
 
         assertThat(constraints(table)).hasSize(1);
-        Db2.Constraint primaryKey = constraints(table).get(0);
+        Db2.Constraint primaryKey = constraints(table).getFirst();
         assertThat(Db2.has(primaryKey.getKeywords(), Db2.Keyword.Type.Primary)).isTrue();
         assertThat(names(primaryKey.getColumns())).containsExactly("TR_TYPE");
     }
@@ -157,7 +157,7 @@ class Db2ParserTest {
                 PRIMARY KEY(CARD_NUM,AUTH_TS )             );
             """);
 
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(columns(table)).extracting(c -> c.getName().getSimpleName())
           .containsExactly("CARD_NUM", "AUTH_TS", "TRANSACTION_AMT", "POS_ENTRY_MODE", "FRAUD_RPT_DATE");
         assertThat(columns(table)).extracting(Db2ParserTest::isNotNull)
@@ -166,7 +166,7 @@ class Db2ParserTest {
         Db2Container<Db2.Word> arguments = columns(table).get(2).getType().getArguments();
         assertThat(arguments).isNotNull();
         assertThat(arguments.getElements()).extracting(Db2.Word::getText).containsExactly("12", "2");
-        assertThat(names(constraints(table).get(0).getColumns()))
+        assertThat(names(constraints(table).getFirst().getColumns()))
           .containsExactly("CARD_NUM", "AUTH_TS");
     }
 
@@ -187,7 +187,7 @@ class Db2ParserTest {
                 REFERENCES CARDDEMO.TRANSACTION_TYPE (TR_TYPE) ON DELETE RESTRICT);
             """);
 
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(constraints(table)).hasSize(2);
 
         Db2.Constraint foreignKey = constraints(table).get(1);
@@ -211,7 +211,7 @@ class Db2ParserTest {
                 COPY YES;
             """);
 
-        Db2.CreateIndex index = (Db2.CreateIndex) ddl.getStatements().get(0);
+        Db2.CreateIndex index = (Db2.CreateIndex) ddl.getStatements().getFirst();
         assertThat(Db2.has(index.getKeywords(), Db2.Keyword.Type.Unique)).isTrue();
         assertThat(index.getName().getFullName()).isEqualTo("CARDDEMO.XAUTHFRD");
         assertThat(index.getTable().getFullName()).isEqualTo("CARDDEMO.AUTHFRDS");
@@ -235,7 +235,7 @@ class Db2ParserTest {
                ;
             """);
 
-        Db2.CreateIndex index = (Db2.CreateIndex) ddl.getStatements().get(0);
+        Db2.CreateIndex index = (Db2.CreateIndex) ddl.getStatements().getFirst();
         assertThat(Db2.has(index.getKeywords(), Db2.Keyword.Type.Unique)).isFalse();
         assertThat(index.getKeys().getElements()).extracting(Db2.IndexKey::getDirection)
           .containsOnlyNulls();
@@ -255,12 +255,12 @@ class Db2ParserTest {
             ON DELETE RESTRICT;
             """);
 
-        Db2.AlterTable alter = (Db2.AlterTable) ddl.getStatements().get(0);
+        Db2.AlterTable alter = (Db2.AlterTable) ddl.getStatements().getFirst();
         assertThat(alter.getName().getFullName()).isEqualTo("CARDDEMO.TRANSACTION_TYPE_CATEGORY");
         List<Db2.Constraint> constraints = Db2.elementsOf(alter.getActions(), Db2.Constraint.class);
         assertThat(constraints).hasSize(1);
-        assertThat(constraints.get(0).getReferencedTable()).isNotNull();
-        assertThat(constraints.get(0).getReferencedTable().getFullName())
+        assertThat(constraints.getFirst().getReferencedTable()).isNotNull();
+        assertThat(constraints.getFirst().getReferencedTable().getFullName())
           .isEqualTo("CARDDEMO.TRANSACTION_TYPE");
     }
 
@@ -293,7 +293,7 @@ class Db2ParserTest {
         assertThat(added).extracting(c -> c.getConstraintName() == null ? null : c.getConstraintName().getSimpleName())
           .containsExactly("FK_HIST_POLICY", null, "PK_CLAIM", null, "CK_AMOUNT");
 
-        Db2.Constraint foreignKey = added.get(0);
+        Db2.Constraint foreignKey = added.getFirst();
         assertThat(Db2.has(foreignKey.getKeywords(), Db2.Keyword.Type.Foreign)).isTrue();
         assertThat(names(foreignKey.getColumns())).containsExactly("POLICY_NO");
         assertThat(foreignKey.getReferencedTable()).isNotNull();
@@ -377,7 +377,7 @@ class Db2ParserTest {
         List<Db2.Delete> deletes = Db2.elementsOf(ddl.getStatements(), Db2.Delete.class);
         assertThat(deletes).extracting(delete -> delete.getTable().getFullName())
           .containsExactly("CARDDEMO.TRANSACTION_TYPE", "CARDDEMO.CARD");
-        assertThat(deletes.get(0).getClauses()).isNull();
+        assertThat(deletes.getFirst().getClauses()).isNull();
     }
 
     /**
@@ -438,7 +438,7 @@ class Db2ParserTest {
               WITH USE FOR JOE, PUBLIC WITHOUT AUTHENTICATION;
             """);
 
-        Db2.CreateTrustedContext context = (Db2.CreateTrustedContext) ddl.getStatements().get(0);
+        Db2.CreateTrustedContext context = (Db2.CreateTrustedContext) ddl.getStatements().getFirst();
         assertThat(context.getName().getFullName()).isEqualTo("CLMCTX");
         assertThat(context.getOptions()).first().isInstanceOfSatisfying(Db2.Name.class,
           authid -> assertThat(authid.getFullName()).isEqualTo("CLMADM"));
@@ -471,7 +471,7 @@ class Db2ParserTest {
               END;
             """);
 
-        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().get(0);
+        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().getFirst();
         assertThat(trigger.getName().getFullName()).isEqualTo("CLM.STAMP");
         assertThat(trigger.getTable().getFullName()).isEqualTo("CLM.CLAIM");
         assertThat(trigger.getKeywords()).extracting(Db2.Keyword::getType)
@@ -497,7 +497,7 @@ class Db2ParserTest {
 
         assertThat(ddl.getStatements()).extracting(s -> s.getClass().getSimpleName())
           .containsExactly("CreateTrigger", "Commit");
-        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().get(0);
+        Db2.CreateTrigger trigger = (Db2.CreateTrigger) ddl.getStatements().getFirst();
         assertThat(trigger.getName().getFullName()).isEqualTo("CLM.RATED");
         assertThat(trigger.getTable().getFullName()).isEqualTo("CLM.POLICY");
         assertThat(Db2.elementsOf(trigger.getEvents(), Db2.Option.class)).singleElement()
@@ -551,7 +551,7 @@ class Db2ParserTest {
             revoke dbadm from clmadmin by all;
             """);
 
-        Db2.Grant grant = (Db2.Grant) ddl.getStatements().get(0);
+        Db2.Grant grant = (Db2.Grant) ddl.getStatements().getFirst();
         assertThat(grant.getObjects().getElements()).extracting(Db2.Name::getFullName).containsExactly("CLM.POLICY");
         assertThat(grant.getGrantees().getElements()).hasSize(2);
         assertThat(grant.getKeywords()).extracting(Db2.Keyword::getType).containsExactly(
@@ -618,7 +618,7 @@ class Db2ParserTest {
             label on table clm.claim is 'Claims';
             """);
 
-        Db2.CreateView view = (Db2.CreateView) ddl.getStatements().get(0);
+        Db2.CreateView view = (Db2.CreateView) ddl.getStatements().getFirst();
         assertThat(view.getKeywords()).extracting(Db2.Keyword::getText).containsExactly("create", "view", "as");
         assertThat(Db2.elementsOf(view.getQuery().getElement().getParts(), Db2.Name.class))
           .extracting(Db2.Name::getFullName).contains("CLM.CLAIM");
@@ -701,7 +701,7 @@ class Db2ParserTest {
             """);
 
         assertThat(ddl.getStatements()).hasSize(1);
-        Db2.CreateProcedure procedure = (Db2.CreateProcedure) ddl.getStatements().get(0);
+        Db2.CreateProcedure procedure = (Db2.CreateProcedure) ddl.getStatements().getFirst();
         assertThat(procedure.getBody().getEnd()).isNotNull();
         assertThat(procedure.getBody().getBody()).extracting(word -> ((Db2.Word) word).getText())
           .endsWith("END", "CASE", ";", "RETURN", "X", ";");
@@ -728,7 +728,7 @@ class Db2ParserTest {
             LANGUAGE SQL;
           """);
 
-        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(0)).getParameters().getElements())
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().getFirst()).getParameters().getElements())
           .extracting(parameter -> parameter.getMode().getText())
           .containsExactly("IN", "IN", "INOUT");
     }
@@ -786,7 +786,7 @@ class Db2ParserTest {
     @Test
     void createTablespaceIsNotCreateTable() {
         Db2.Ddl ddl = parse("CREATE TABLESPACE ACCOUNT IN BANKZ ;\n");
-        assertThat(ddl.getStatements().get(0)).isInstanceOf(Db2.CreateTablespace.class);
+        assertThat(ddl.getStatements().getFirst()).isInstanceOf(Db2.CreateTablespace.class);
     }
 
     /**
@@ -796,7 +796,7 @@ class Db2ParserTest {
     @Test
     void aTableNeedNotListItsColumns() {
         Db2.Ddl like = parse("CREATE TABLE CARDDEMO.ARCHIVE LIKE CARDDEMO.ACCOUNT;\n");
-        Db2.TableLike contents = (Db2.TableLike) ((Db2.CreateTable) like.getStatements().get(0)).getContents();
+        Db2.TableLike contents = (Db2.TableLike) ((Db2.CreateTable) like.getStatements().getFirst()).getContents();
         assertThat(contents.getTable().getFullName()).isEqualTo("CARDDEMO.ACCOUNT");
 
         Db2.Ddl asQuery = parse(
@@ -804,7 +804,7 @@ class Db2ParserTest {
             CREATE TABLE CARDDEMO.ACCOUNT_SUMMARY AS
               (SELECT ACCT_ID, ACCT_STATUS FROM CARDDEMO.ACCOUNT) WITH NO DATA;
             """);
-        assertThat(((Db2.CreateTable) asQuery.getStatements().get(0)).getContents())
+        assertThat(((Db2.CreateTable) asQuery.getStatements().getFirst()).getContents())
           .isInstanceOf(Db2.TableAsQuery.class);
     }
 
@@ -819,10 +819,10 @@ class Db2ParserTest {
                CCSID EBCDIC;
             """);
 
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
-        Db2.Option in = Db2.elementsOf(table.getOptions(), Db2.Option.class).get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
+        Db2.Option in = Db2.elementsOf(table.getOptions(), Db2.Option.class).getFirst();
         assertThat(Db2.has(in.getKeywords(), Db2.Keyword.Type.In)).isTrue();
-        assertThat(Db2.elementsOf(in.getValues(), Db2.Name.class).get(0).getFullName())
+        assertThat(Db2.elementsOf(in.getValues(), Db2.Name.class).getFirst().getFullName())
           .isEqualTo("CARDDEMO.CARDSPC1");
     }
 
@@ -844,7 +844,7 @@ class Db2ParserTest {
                IN <DB2DBID>.GENATS04;
             """);
 
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(table.getName().getQualifier()).isEqualTo("<DB2DBID>");
         assertThat(table.getName().getSimpleName()).isEqualTo("house");
         // The DDL writes the table in lower case and the COBOL that reads it in upper.
@@ -862,7 +862,7 @@ class Db2ParserTest {
     @Test
     void aJclSymbolicIsAlsoAName() {
         Db2.Ddl ddl = parse("CREATE TABLE &$DBSCH..LOOKUP (ENVIRONID INTEGER NOT NULL);\n");
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(table.getName().getQualifier()).isEqualTo("&$DBSCH.");
         assertThat(table.getName().getSimpleName()).isEqualTo("LOOKUP");
     }
@@ -895,8 +895,10 @@ class Db2ParserTest {
      */
     @Test
     void whatTheGrammarCannotReadIsAnError() {
-        assertThat(errorsIn("MERGE INTO CARDDEMO.ACCOUNT A USING CARDDEMO.ACCOUNT_STAGE S ON A.ACCT_ID = S.ACCT_ID\n" +
-          "  WHEN MATCHED THEN UPDATE SET ACCT_STATUS = S.ACCT_STATUS;\n")).isNotEmpty();
+        assertThat(errorsIn("""
+          MERGE INTO CARDDEMO.ACCOUNT A USING CARDDEMO.ACCOUNT_STAGE S ON A.ACCT_ID = S.ACCT_ID
+            WHEN MATCHED THEN UPDATE SET ACCT_STATUS = S.ACCT_STATUS;
+          """)).isNotEmpty();
         assertThat(errorsIn("CREATE TABLE CARDDEMO.ACCOUNT (ACCT_ID INTEGER;\n")).isNotEmpty();
     }
 
@@ -918,7 +920,7 @@ class Db2ParserTest {
     void aProcedureMayLeaveOutItsParameterList() {
         Db2.Ddl ddl = parse("CREATE PROCEDURE P LANGUAGE SQL;\nCREATE PROCEDURE Q () LANGUAGE SQL;\n");
 
-        assertThat(((Db2.CreateProcedure) ddl.getStatements().get(0)).getParameters()).isNull();
+        assertThat(((Db2.CreateProcedure) ddl.getStatements().getFirst()).getParameters()).isNull();
         assertThat(((Db2.CreateProcedure) ddl.getStatements().get(1)).getParameters()).isNotNull();
     }
 
@@ -940,7 +942,7 @@ class Db2ParserTest {
         Db2.Ddl ddl = (Db2.Ddl) parseIgnoringErrors(source);
         assertThat(ddl.printAll()).isEqualTo(source);
 
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(elements(table)).hasSize(1);
         assertThat(columns(table)).isEmpty();
     }
@@ -1035,7 +1037,7 @@ class Db2ParserTest {
                 );
                 """);
 
-            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
             assertThat(table.getName().getFullName())
               .isEqualTo("SUT.ARCHIVED_EXTENDED_ALLOCATION_LINE_ITEM");
             assertThat(columns(table)).extracting(c -> c.getName().getSimpleName())
@@ -1098,9 +1100,9 @@ class Db2ParserTest {
         }
 
         private Db2.Option partitioningOf(Db2.Ddl ddl) {
-            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+            Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
             assertThat(table.getOptions()).hasSize(1);
-            return (Db2.Option) table.getOptions().get(0);
+            return (Db2.Option) table.getOptions().getFirst();
         }
 
         private List<String> keyOf(Db2.Option partitioning) {
@@ -1130,7 +1132,7 @@ class Db2ParserTest {
              ORDER BY TBNAME, COLNO;
             """);
 
-        Db2.Query query = (Db2.Query) ddl.getStatements().get(0);
+        Db2.Query query = (Db2.Query) ddl.getStatements().getFirst();
         assertThat(Db2.elementsOf(query.getParts(), Db2.Name.class))
           .extracting(Db2.Name::getFullName).contains("SYSIBM.SYSCOLUMNS");
     }
@@ -1142,11 +1144,11 @@ class Db2ParserTest {
     @Test
     void theSemicolonIsAMarkerNotANode() {
         Db2.Ddl terminated = parse("COMMIT;\n");
-        assertThat(terminated.getPadding().getStatements().get(0).getMarkers()
+        assertThat(terminated.getPadding().getStatements().getFirst().getMarkers()
           .findFirst(Semicolon.class)).isPresent();
 
         Db2.Ddl bare = parse("COMMIT\n");
-        assertThat(bare.getPadding().getStatements().get(0).getMarkers()
+        assertThat(bare.getPadding().getStatements().getFirst().getMarkers()
           .findFirst(Semicolon.class)).isEmpty();
     }
 
@@ -1196,7 +1198,7 @@ class Db2ParserTest {
             """);
 
         assertThat(ddl.getStatements()).hasSize(2);
-        assertThat(ddl.getStatements().get(0)).isInstanceOf(Db2.Commit.class);
+        assertThat(ddl.getStatements().getFirst()).isInstanceOf(Db2.Commit.class);
         assertThat(ddl.getStatements().get(1)).isInstanceOf(Db2.CreateTable.class);
     }
 
@@ -1217,13 +1219,13 @@ class Db2ParserTest {
                 PRIMARY KEY(ACCT_ID));
             """);
 
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(columns(table)).extracting(c -> c.getName().getSimpleName())
           .containsExactly("ACCT_ID", "ACCT_STATUS", "ACCT_GROUP");
         assertThat(constraints(table)).extracting(c -> Db2.subjectOf(c.getKeywords()))
           .containsExactly(null, Db2.Keyword.Type.Key);
 
-        Db2.Constraint check = constraints(table).get(0);
+        Db2.Constraint check = constraints(table).getFirst();
         assertThat(check.getConstraintName()).isNotNull();
         assertThat(check.getConstraintName().getSimpleName()).isEqualTo("STATUS_OK");
         assertThat(Db2.has(check.getKeywords(), Db2.Keyword.Type.Check)).isTrue();
@@ -1241,7 +1243,7 @@ class Db2ParserTest {
                 ON CARDDEMO.ACCOUNT (ACCT_GROUP);
             """);
 
-        Db2.CreateIndex index = (Db2.CreateIndex) ddl.getStatements().get(0);
+        Db2.CreateIndex index = (Db2.CreateIndex) ddl.getStatements().getFirst();
         assertThat(Db2.has(index.getKeywords(), Db2.Keyword.Type.Unique)).isTrue();
         assertThat(index.getTable().getFullName()).isEqualTo("CARDDEMO.ACCOUNT");
     }
@@ -1259,10 +1261,10 @@ class Db2ParserTest {
                 PRIMARY KEY("Account Id"));
             """);
 
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(table.getName().getSimpleName()).isEqualTo("Account");
         assertThat(table.getName().getQualifier()).isEqualTo("My Schema");
-        assertThat(columns(table).get(0).getName().getSimpleName()).isEqualTo("Account Id");
+        assertThat(columns(table).getFirst().getName().getSimpleName()).isEqualTo("Account Id");
     }
 
     /**
@@ -1272,7 +1274,7 @@ class Db2ParserTest {
     @Test
     void aKeywordKeepsTheCaseTheFileWroteIt() {
         Db2.Ddl ddl = parse("create table bankz.control (control_name char(32));\n");
-        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().get(0);
+        Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();
         assertThat(table.getName().getFullName()).isEqualTo("BANKZ.CONTROL");
         assertThat(columns(table)).hasSize(1);
         assertThat(table.getKeywords()).extracting(Db2.Keyword::getType)
@@ -1363,8 +1365,8 @@ class Db2ParserTest {
           }), source)
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Db2.Ddl.class);
-        Db2.Ddl ddl = (Db2.Ddl) parsed.get(0);
+        assertThat(parsed.getFirst()).isInstanceOf(Db2.Ddl.class);
+        Db2.Ddl ddl = (Db2.Ddl) parsed.getFirst();
         assertThat(ddl.printAll()).as("prints back byte for byte").isEqualTo(source);
         return ddl;
     }

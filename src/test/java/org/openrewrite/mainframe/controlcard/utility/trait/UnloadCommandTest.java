@@ -182,8 +182,8 @@ class UnloadCommandTest implements RewriteTest {
                 List<UnloadCommand> unloads = new UnloadCommand.Matcher().lower(cu).collect(toList());
                 // A GLOBAL governs what follows it, so the unload written above it takes DB2 from the
                 // site and the one below it does not.
-                assertThat(unloads.get(0).isCoded("DB2")).isFalse();
-                assertThat(unloads.get(0).getDb2()).isNull();
+                assertThat(unloads.getFirst().isCoded("DB2")).isFalse();
+                assertThat(unloads.getFirst().getDb2()).isNull();
                 assertThat(unloads.get(1).isCoded("DB2")).isTrue();
                 assertThat(unloads.get(1).getDb2()).isEqualTo("NO");
             })
@@ -284,9 +284,9 @@ class UnloadCommandTest implements RewriteTest {
                 List<UtilityStatement> statements = new UtilityStatement.Matcher().lower(cu)
                   .collect(toList());
                 assertThat(statements).hasSize(2);
-                assertThat(statements.get(0).getVerb()).isEqualTo("RUNSTATS");
-                assertThat(statements.get(0).getObject()).isEqualTo("CLMDB01.CLMTSPOL");
-                assertThat(statements.get(0).getKeywords())
+                assertThat(statements.getFirst().getVerb()).isEqualTo("RUNSTATS");
+                assertThat(statements.getFirst().getObject()).isEqualTo("CLMDB01.CLMTSPOL");
+                assertThat(statements.getFirst().getKeywords())
                   .containsExactly("TABLESPACE", "TABLE", "INDEX");
                 assertThat(statements.get(1).getLine()).isEqualTo(2);
                 assertThat(new UnloadCommand.Matcher().lower(cu)).isEmpty();

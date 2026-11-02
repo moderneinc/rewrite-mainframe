@@ -114,7 +114,7 @@ class DataDescriptionTest implements RewriteTest {
             List.of(), List.of(), List.of(), List.of());
 
         // The translator's DFHEIBLK is indexed with the program but is a record of its own division.
-        Cursor division = entries.get(0).getCursor().dropParentUntil(Cobol.DataDivision.class::isInstance);
+        Cursor division = entries.getFirst().getCursor().dropParentUntil(Cobol.DataDivision.class::isInstance);
         assertThat(DataDescription.recordsOf(division)).extracting(entry -> indexOf(entries, entry))
           .containsExactly(0, 1, 2, 3, 9, 10);
     }

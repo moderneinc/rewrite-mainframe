@@ -96,7 +96,7 @@ class SourcePositionsTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 SourcePositions positions = SourcePositions.of(cu);
-                Statement exec = statementsIn(cu).get(0);
+                Statement exec = statementsIn(cu).getFirst();
                 assertThat(exec).isInstanceOf(Cobol.ExecCicsStatement.class);
 
                 // The period comes with the block: preprocessing takes the whole card out of the text the
@@ -135,8 +135,8 @@ class SourcePositionsTest extends CobolTest {
             spec -> spec.afterRecipe(cu -> {
                 SourcePositions positions = SourcePositions.of(cu);
                 List<Statement> statements = statementsIn(cu);
-                assertThat(statements.get(0)).isInstanceOf(Cobol.MoveStatement.class);
-                assertThat(positions.get(statements.get(0))).isNull();
+                assertThat(statements.getFirst()).isInstanceOf(Cobol.MoveStatement.class);
+                assertThat(positions.get(statements.getFirst())).isNull();
 
                 Range display = positions.get(statements.get(1));
                 assertThat(display).isNotNull();
@@ -167,7 +167,7 @@ class SourcePositionsTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 SourcePositions positions = SourcePositions.of(cu);
-                Range range = positions.get(copyStatementsIn(cu).get(0));
+                Range range = positions.get(copyStatementsIn(cu).getFirst());
                 assertThat(range).isNotNull();
                 assertThat(positions.textOf(range)).isEqualTo("COPY COPYSTMT.");
                 assertThat(range.getStart().getLine()).isEqualTo(9);
@@ -190,7 +190,7 @@ class SourcePositionsTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cpy -> {
                 SourcePositions positions = SourcePositions.of(cpy);
-                Range range = positions.get(copyStatementsIn(cpy).get(0));
+                Range range = positions.get(copyStatementsIn(cpy).getFirst());
                 assertThat(range).isNotNull();
                 assertThat(positions.textOf(range)).isEqualTo("COPY COPYSTMT.");
                 assertThat(range.getStart().getLine()).isEqualTo(2);
@@ -220,8 +220,8 @@ class SourcePositionsTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 SourcePositions positions = SourcePositions.of(cu);
-                Cobol.Word display = ((Cobol.Display) statementsIn(cu).get(0)).getDisplay();
-                Cobol.Word literal = (Cobol.Word) ((Cobol.Display) statementsIn(cu).get(0)).getOperands().get(0);
+                Cobol.Word display = ((Cobol.Display) statementsIn(cu).getFirst()).getDisplay();
+                Cobol.Word literal = (Cobol.Word) ((Cobol.Display) statementsIn(cu).getFirst()).getOperands().getFirst();
 
                 assertThat(positions.textOf(positions.get(literal)))
                   .startsWith("'ACCOUNT FILE").endsWith("UT'").contains("\n000700-");
@@ -246,8 +246,8 @@ class SourcePositionsTest extends CobolTest {
         List<CobolPreprocessor.CopyStatement> copies = new ArrayList<>();
         for (Cobol.Word word : wordsIn(cu)) {
             for (CobolPreprocessor preprocessorStatement : word.getPreprocessorStatements()) {
-                if (preprocessorStatement instanceof CobolPreprocessor.CopyStatement) {
-                    copies.add((CobolPreprocessor.CopyStatement) preprocessorStatement);
+                if (preprocessorStatement instanceof CobolPreprocessor.CopyStatement statement) {
+                    copies.add(statement);
                 }
             }
         }

@@ -50,7 +50,6 @@ import org.openrewrite.mainframe.linkedit.LinkEditParser;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -90,7 +89,7 @@ class ParseCostTest {
     @EnabledIfEnvironmentVariable(named = "MAINFRAME_CORPUS", matches = ".+")
     @Test
     void measure() throws IOException {
-        Path root = Paths.get(System.getenv("MAINFRAME_CORPUS"));
+        Path root = Path.of(System.getenv("MAINFRAME_CORPUS"));
         List<Language> languages = selected(asList(
           new Language("COBOL", Corpus::programs,
             repository -> CobolParser.builder().copybooks(copybooks(root, repository)).build(),

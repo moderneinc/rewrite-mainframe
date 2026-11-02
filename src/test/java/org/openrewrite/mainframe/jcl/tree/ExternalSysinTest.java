@@ -90,11 +90,11 @@ class ExternalSysinTest implements RewriteTest {
     }
 
     private static String wordText(Statement s) {
-        if (s instanceof JobControlStatement) {
-            return ((JobControlStatement) s).getName().getText();
+        if (s instanceof JobControlStatement statement) {
+            return statement.getName().getText();
         }
-        if (s instanceof DataDefinitionStream) {
-            return ((DataDefinitionStream) s).getWord().getText();
+        if (s instanceof DataDefinitionStream stream) {
+            return stream.getWord().getText();
         }
         return "";
     }

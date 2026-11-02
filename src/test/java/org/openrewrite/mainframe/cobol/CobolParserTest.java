@@ -29,7 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +41,7 @@ class CobolParserTest {
     @ParameterizedTest
     @ValueSource(strings = {"ACCTPOST.cbl", "ACCTPOST.CBL", "ACCTPOST.cob", "ACCTPOST.COB", "ACCTPOST.cobol", "cobol/ACCTPOST.Cbl"})
     void acceptsAProgramByExtension(String name) {
-        assertThat(parser.accept(Paths.get(name))).isTrue();
+        assertThat(parser.accept(Path.of(name))).isTrue();
     }
 
     /**
@@ -51,7 +51,7 @@ class CobolParserTest {
     @ParameterizedTest
     @ValueSource(strings = {"ACCTREC.cpy", "ACCTREC.copy", "ACCTREC.dcl", "ACCTPOST.jcl", "ACCTPOST"})
     void rejectsOtherExtensions(String name) {
-        assertThat(parser.accept(Paths.get(name))).isFalse();
+        assertThat(parser.accept(Path.of(name))).isFalse();
     }
 
     /**
@@ -144,9 +144,14 @@ class CobolParserTest {
 
     @Test
     void aProgramThatIsNotUtf8PrintsBackInItsOwnCharset() {
-        byte[] source = ("       IDENTIFICATION DIVISION.\n       PROGRAM-ID. HELLO.\n      *\u00dd STANDARDIZED\n" +
-                         "       PROCEDURE DIVISION.\n           STOP RUN.\n").getBytes(StandardCharsets.ISO_8859_1);
-        Parser.Input input = new Parser.Input(Paths.get("HELLO.cbl"), () -> new ByteArrayInputStream(source));
+        byte[] source = ("""
+                                IDENTIFICATION DIVISION.
+                                PROGRAM-ID. HELLO.
+                               *Ý STANDARDIZED
+                                PROCEDURE DIVISION.
+                                    STOP RUN.
+                         """).getBytes(StandardCharsets.ISO_8859_1);
+        Parser.Input input = new Parser.Input(Path.of("HELLO.cbl"), () -> new ByteArrayInputStream(source));
 
         SourceFile parsed = parser.parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
 
@@ -155,7 +160,7 @@ class CobolParserTest {
     }
 
     private SourceFile parse(String name, String source) {
-        Parser.Input input = new Parser.Input(Paths.get(name),
+        Parser.Input input = new Parser.Input(Path.of(name),
                 () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
         return parser.parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
     }

@@ -28,7 +28,6 @@ import org.openrewrite.text.PlainText;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,7 +56,7 @@ class PlainTextCorpusTest {
 
     @Test
     void readsRealScriptsAndRunBooks() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int members = 0;
         int references = 0;
@@ -113,7 +112,7 @@ class PlainTextCorpusTest {
      */
     @Test
     void readsTheCAndPliOfTheEstate() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int members = 0;
         List<String> failures = new ArrayList<>();
@@ -592,11 +591,11 @@ class PlainTextCorpusTest {
           .parseInputs(Corpus.inputs(singletonList(member)), relativeTo, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).singleElement().isInstanceOf(PlainText.class);
-        return (PlainText) parsed.get(0);
+        return (PlainText) parsed.getFirst();
     }
 
     private static Path fixture() {
-        Path directory = Paths.get(System.getenv("JCL_CORPUS")).resolve("mainframe-fixtures/claims");
+        Path directory = Path.of(System.getenv("JCL_CORPUS")).resolve("mainframe-fixtures/claims");
         assertThat(Files.isDirectory(directory)).as("%s", directory).isTrue();
         return directory;
     }

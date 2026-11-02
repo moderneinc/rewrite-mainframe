@@ -24,13 +24,17 @@ class BmsLineReaderTest {
     @Test
     void classifiesLines() {
         String read = BmsLineReader.readLines(
-          "* a comment\n" +
-          "COSGN00 DFHMSD LANG=COBOL\n" +
-          "        DFHMDF POS=(1,1)\n");
+          """
+          * a comment
+          COSGN00 DFHMSD LANG=COBOL
+                  DFHMDF POS=(1,1)
+          """);
         assertThat(read).isEqualTo(
-          "^^COMMENT^^* a comment\n" +
-          "^^BMS_NAMED^^COSGN00 DFHMSD LANG=COBOL\n" +
-          "^^BMS^^        DFHMDF POS=(1,1)\n");
+          """
+          ^^COMMENT^^* a comment
+          ^^BMS_NAMED^^COSGN00 DFHMSD LANG=COBOL
+          ^^BMS^^        DFHMDF POS=(1,1)
+          """);
     }
 
     /**
@@ -39,11 +43,15 @@ class BmsLineReaderTest {
     @Test
     void continuationComesFromColumnSeventyTwo() {
         String source =
-          "COSGN00 DFHMSD CTRL=(ALARM,FREEKB),                                    -\n" +
-          "               EXTATT=YES\n";
+          """
+          COSGN00 DFHMSD CTRL=(ALARM,FREEKB),                                    -
+                         EXTATT=YES
+          """;
         assertThat(BmsLineReader.readLines(source)).isEqualTo(
-          "^^BMS_NAMED^^COSGN00 DFHMSD CTRL=(ALARM,FREEKB),                                    -\n" +
-          "^^BMS_CONT^^               EXTATT=YES\n");
+          """
+          ^^BMS_NAMED^^COSGN00 DFHMSD CTRL=(ALARM,FREEKB),                                    -
+          ^^BMS_CONT^^               EXTATT=YES
+          """);
     }
 
     @Test

@@ -34,7 +34,6 @@ import org.openrewrite.tree.ParseError;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,7 +56,7 @@ class CorpusCoverageTest {
     @EnabledIfEnvironmentVariable(named = "COBOL_CORPUS", matches = ".+")
     @Test
     void measure() throws IOException {
-        Path root = Paths.get(System.getenv("COBOL_CORPUS"));
+        Path root = Path.of(System.getenv("COBOL_CORPUS"));
 
         // Each application is parsed against its own copybook library, and reported on its own: a
         // number for the corpus as a whole says nothing about which application the parser cannot read.
@@ -167,7 +166,7 @@ class CorpusCoverageTest {
                     // nothing is a gap, not a position that belongs elsewhere, so it is named rather than
                     // passed over.
                     if (!word.getWord().isEmpty() &&
-                        !word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
+						word.getMarkers().findFirst(CopiedWord.class).isEmpty()) {
                         unexplained.add(cu.getSourcePath() + " " + word.getWord());
                     }
                     continue;
@@ -197,7 +196,7 @@ class CorpusCoverageTest {
 
     private static boolean writtenByACopybook(Cobol tree) {
         for (Cobol.Word word : wordsIn(tree)) {
-            if (!word.getWord().isEmpty() && !word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
+            if (!word.getWord().isEmpty() && word.getMarkers().findFirst(CopiedWord.class).isEmpty()) {
                 return false;
             }
         }
@@ -221,8 +220,8 @@ class CorpusCoverageTest {
         new CobolIsoVisitor<Integer>() {
             @Override
             public @Nullable Cobol visit(@Nullable Tree tree, Integer p) {
-                if (tree instanceof Statement) {
-                    statements.add((Statement) tree);
+                if (tree instanceof Statement statement) {
+                    statements.add(statement);
                 }
                 return super.visit(tree, p);
             }

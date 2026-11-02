@@ -50,8 +50,8 @@ class CopiedDebugLinesTest {
         var ctx = new InMemoryExecutionContext(t -> { throw new AssertionError(t); });
         var parsed = parser.parse(ctx, source).toList();
         assertThat(parsed).singleElement().isInstanceOf(Cobol.CompilationUnit.class);
-        assertThat(parsed.get(0).printAll()).isEqualTo(source);
-        return (Cobol.CompilationUnit) parsed.get(0);
+        assertThat(parsed.getFirst().printAll()).isEqualTo(source);
+        return (Cobol.CompilationUnit) parsed.getFirst();
     }
 
     private static List<String> declarations(Cobol.CompilationUnit cu) {
@@ -86,7 +86,7 @@ class CopiedDebugLinesTest {
         var names = declarations(parse(CobolParser.builder().copybooks(books).build(), source));
         assertThat(names).contains("RECORD-DATA", "NORMAL-FIELD", "AFTER-COPY");
         assertThat(names.contains("DEBUG-FIELD")).isEqualTo(debugging);
-        assertThat(books.get(0).printAll()).isEqualTo(content);
+        assertThat(books.getFirst().printAll()).isEqualTo(content);
     }
 
     @ParameterizedTest
@@ -121,7 +121,7 @@ class CopiedDebugLinesTest {
         for (boolean debugging : new boolean[]{true, false, true, false}) {
             var names = declarations(parse(parser, program(debugging, "COPY DEBUGREC.\n", "CONTINUE.\n")));
             assertThat(names.contains("DEBUG-FIELD")).isEqualTo(debugging);
-            assertThat(books.get(0).printAll()).isEqualTo(content);
+            assertThat(books.getFirst().printAll()).isEqualTo(content);
         }
     }
 

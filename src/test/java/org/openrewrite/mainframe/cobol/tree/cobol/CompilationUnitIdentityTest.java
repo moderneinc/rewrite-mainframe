@@ -18,7 +18,7 @@ package org.openrewrite.mainframe.cobol.tree.cobol;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.mainframe.cobol.CobolTest;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -67,7 +67,7 @@ class CompilationUnitIdentityTest extends CobolTest {
               000002 PROGRAM-ID. ONE.                                                \s
               """,
             spec -> spec.path("ONE.CBL").afterRecipe(cu ->
-              assertThat(cu.withSourcePath(Paths.get("moved/ONE.CBL")).getId()).isEqualTo(cu.getId()))
+              assertThat(cu.withSourcePath(Path.of("moved/ONE.CBL")).getId()).isEqualTo(cu.getId()))
           )
         );
     }

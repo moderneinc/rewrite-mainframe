@@ -30,13 +30,17 @@ class BindLineReaderTest {
     @Test
     void continuationComesFromTheDashOnTheLineAbove() {
         String source =
-          "DSN SYSTEM(DB2P)\n" +
-          "BIND PACKAGE(CLMPKG) -   \n" +
-          "     MEMBER(CLMD010)\n";
+          """
+          DSN SYSTEM(DB2P)
+          BIND PACKAGE(CLMPKG) -  \s
+               MEMBER(CLMD010)
+          """;
         assertThat(BindLineReader.readLines(source)).isEqualTo(
-          "^^CARD^^DSN SYSTEM(DB2P)\n" +
-          "^^CARD^^BIND PACKAGE(CLMPKG) -   \n" +
-          "^^CARD_CONT^^     MEMBER(CLMD010)\n");
+          """
+          ^^CARD^^DSN SYSTEM(DB2P)
+          ^^CARD^^BIND PACKAGE(CLMPKG) -  \s
+          ^^CARD_CONT^^     MEMBER(CLMD010)
+          """);
     }
 
     @Test
@@ -108,11 +112,13 @@ class BindLineReaderTest {
     @Test
     void aDeckIsTypedPastTheCommentsItOpensWith() {
         String run =
-          "/* Copyright Amazon.com, Inc. or its affiliates.                   */\n" +
-          "/* All Rights Reserved.                                            */\n" +
-          "  DSN SYSTEM(DAZ1)\n" +
-          "  RUN PROGRAM(DSNTIAD) -\n" +
-          "  PARMS('RC0')\n";
+          """
+          /* Copyright Amazon.com, Inc. or its affiliates.                   */
+          /* All Rights Reserved.                                            */
+            DSN SYSTEM(DAZ1)
+            RUN PROGRAM(DSNTIAD) -
+            PARMS('RC0')
+          """;
         assertThat(BindLineReader.opensWithDsn(run)).isTrue();
         assertThat(BindLineReader.isDsnDeck(run)).isTrue();
         assertThat(BindLineReader.isBindDeck(run)).isFalse();
@@ -130,13 +136,17 @@ class BindLineReaderTest {
     @Test
     void aCommentLineIsNeitherASubcommandNorABreakInOne() {
         assertThat(BindLineReader.readLines(
-          "/* LICENCE */\n" +
-          "RUN PROGRAM(DSNTEP4) - /* CONTINUED */\n" +
-          "  /* THE PARMS DSNTEP4 TAKES */\n" +
-          "PARMS('/ALIGN(LHS) MIXED')\n")).isEqualTo(
-          "^^COMMENT^^/* LICENCE */\n" +
-          "^^CARD^^RUN PROGRAM(DSNTEP4) - /* CONTINUED */\n" +
-          "^^COMMENT^^  /* THE PARMS DSNTEP4 TAKES */\n" +
-          "^^CARD_CONT^^PARMS('/ALIGN(LHS) MIXED')\n");
+          """
+          /* LICENCE */
+          RUN PROGRAM(DSNTEP4) - /* CONTINUED */
+            /* THE PARMS DSNTEP4 TAKES */
+          PARMS('/ALIGN(LHS) MIXED')
+          """)).isEqualTo(
+          """
+          ^^COMMENT^^/* LICENCE */
+          ^^CARD^^RUN PROGRAM(DSNTEP4) - /* CONTINUED */
+          ^^COMMENT^^  /* THE PARMS DSNTEP4 TAKES */
+          ^^CARD_CONT^^PARMS('/ALIGN(LHS) MIXED')
+          """);
     }
 }

@@ -186,8 +186,8 @@ class ReferencesTest implements RewriteTest {
                     tuple("CLMTITL", List.of("RESERVE CHANGE BY CLAIM TYPE"), 8));
                 // Whether a macro is one the estate keeps is the library's answer: SAS finds most of
                 // them in an autocall library nobody checks in.
-                assertThat(macros.get(0).isDefinedBy(List.of("CLMSMAC"))).isFalse();
-                assertThat(macros.get(0).isDefinedBy(List.of("CLMTITL"))).isTrue();
+                assertThat(macros.getFirst().isDefinedBy(List.of("CLMSMAC"))).isFalse();
+                assertThat(macros.getFirst().isDefinedBy(List.of("CLMTITL"))).isTrue();
             })
           )
         );

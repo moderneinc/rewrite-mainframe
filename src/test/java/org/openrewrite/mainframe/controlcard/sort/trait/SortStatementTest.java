@@ -41,7 +41,7 @@ class SortStatementTest implements RewriteTest {
                 List<SortStatement> statements = new SortStatement.Matcher().lower(cu).collect(Collectors.toList());
                 assertThat(statements).hasSize(3);
 
-                SortStatement sort = statements.get(0);
+                SortStatement sort = statements.getFirst();
                 assertThat(sort.getOperator()).isEqualTo("SORT");
                 assertThat(sort.isCopy()).isFalse();
                 assertThat(sort.getFields()).containsExactly(
@@ -97,7 +97,7 @@ class SortStatementTest implements RewriteTest {
                 SORT FIELDS=(1,10,A,53,4,D),FORMAT=CH
               """,
             spec -> spec.afterRecipe(cu -> {
-                SortStatement sort = new SortStatement.Matcher().lower(cu).collect(Collectors.toList()).get(0);
+                SortStatement sort = new SortStatement.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
                 assertThat(sort.getOperand("FORMAT")).isEqualTo("CH");
                 assertThat(sort.getFields()).containsExactly(
                   new SortStatement.Field(1, 10, null, "A"),
@@ -115,7 +115,7 @@ class SortStatementTest implements RewriteTest {
                 SORT   FIELDS=COPY
               """,
             spec -> spec.afterRecipe(cu -> {
-                SortStatement sort = new SortStatement.Matcher().lower(cu).collect(Collectors.toList()).get(0);
+                SortStatement sort = new SortStatement.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
                 assertThat(sort.isCopy()).isTrue();
                 assertThat(sort.getFields()).isEmpty();
             })

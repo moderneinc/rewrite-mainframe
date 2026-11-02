@@ -49,45 +49,47 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DdlControlCardTest {
 
     private static final String DB2CREAT =
-      "/* Copyright Amazon.com, Inc. or its affiliates.                   */\n" +
-      "/* All Rights Reserved.                                            */\n" +
-      "  SET CURRENT SQLID = 'SYSADM';\n" +
-      "\n" +
-      "      CREATE DATABASE CARDDEMO\n" +
-      "             STOGROUP AWST1STG\n" +
-      "             BUFFERPOOL BP0\n" +
-      "             CCSID EBCDIC;\n" +
-      "\n" +
-      "      COMMIT ;\n" +
-      "\n" +
-      "      CREATE TABLE  CARDDEMO.TRANSACTION_TYPE\n" +
-      "       (       TR_TYPE   CHAR(2)      NOT NULL,\n" +
-      "        TR_DESCRIPTION   VARCHAR(50)  NOT NULL,\n" +
-      "                 PRIMARY KEY(TR_TYPE))\n" +
-      "         IN CARDDEMO.CARDSPC1\n" +
-      "         CCSID EBCDIC;\n" +
-      "\n" +
-      "   CREATE UNIQUE INDEX CARDDEMO.XTRAN_TYPE\n" +
-      "                    ON CARDDEMO.TRANSACTION_TYPE\n" +
-      "                        (TR_TYPE   ASC)\n" +
-      "                    USING STOGROUP AWST1STG\n" +
-      "                    CLOSE NO;\n" +
-      "\n" +
-      "      GRANT DELETE, INSERT, SELECT, UPDATE\n" +
-      "            ON TABLE CARDDEMO.TRANSACTION_TYPE\n" +
-      "            TO PUBLIC;\n" +
-      "\n" +
-      "  CREATE TABLE CARDDEMO.TRANSACTION_TYPE_CATEGORY\n" +
-      "       (TRC_TYPE_CODE     CHAR(2)        NOT NULL,\n" +
-      "        TRC_TYPE_CATEGORY CHAR(4)        NOT NULL,\n" +
-      "  PRIMARY KEY(TRC_TYPE_CODE, TRC_TYPE_CATEGORY))\n" +
-      "     IN CARDDEMO.CARDSTTC\n" +
-      "     CCSID EBCDIC;\n" +
-      "\n" +
-      "  ALTER TABLE CARDDEMO.TRANSACTION_TYPE_CATEGORY\n" +
-      "    FOREIGN KEY (TRC_TYPE_CODE)\n" +
-      "      REFERENCES CARDDEMO.TRANSACTION_TYPE (TR_TYPE)\n" +
-      "  ON DELETE RESTRICT;\n";
+      """
+      /* Copyright Amazon.com, Inc. or its affiliates.                   */
+      /* All Rights Reserved.                                            */
+        SET CURRENT SQLID = 'SYSADM';
+      
+            CREATE DATABASE CARDDEMO
+                   STOGROUP AWST1STG
+                   BUFFERPOOL BP0
+                   CCSID EBCDIC;
+      
+            COMMIT ;
+      
+            CREATE TABLE  CARDDEMO.TRANSACTION_TYPE
+             (       TR_TYPE   CHAR(2)      NOT NULL,
+              TR_DESCRIPTION   VARCHAR(50)  NOT NULL,
+                       PRIMARY KEY(TR_TYPE))
+               IN CARDDEMO.CARDSPC1
+               CCSID EBCDIC;
+      
+         CREATE UNIQUE INDEX CARDDEMO.XTRAN_TYPE
+                          ON CARDDEMO.TRANSACTION_TYPE
+                              (TR_TYPE   ASC)
+                          USING STOGROUP AWST1STG
+                          CLOSE NO;
+      
+            GRANT DELETE, INSERT, SELECT, UPDATE
+                  ON TABLE CARDDEMO.TRANSACTION_TYPE
+                  TO PUBLIC;
+      
+        CREATE TABLE CARDDEMO.TRANSACTION_TYPE_CATEGORY
+             (TRC_TYPE_CODE     CHAR(2)        NOT NULL,
+              TRC_TYPE_CATEGORY CHAR(4)        NOT NULL,
+        PRIMARY KEY(TRC_TYPE_CODE, TRC_TYPE_CATEGORY))
+           IN CARDDEMO.CARDSTTC
+           CCSID EBCDIC;
+      
+        ALTER TABLE CARDDEMO.TRANSACTION_TYPE_CATEGORY
+          FOREIGN KEY (TRC_TYPE_CODE)
+            REFERENCES CARDDEMO.TRANSACTION_TYPE (TR_TYPE)
+        ON DELETE RESTRICT;
+      """;
 
     private static final String DB2LTCAT = """
       /* Copyright Amazon.com, Inc. or its affiliates.                   */
@@ -189,13 +191,13 @@ class DdlControlCardTest {
         Db2.Ddl categories = parse(directory, "DB2LTCAT.ctl", DB2LTCAT);
         Db2.Ddl types = parse(directory, "DB2LTTYP.ctl", DB2LTTYP);
 
-        Db2.Insert category = (Db2.Insert) categories.getStatements().get(0);
+        Db2.Insert category = (Db2.Insert) categories.getStatements().getFirst();
         assertThat(category.getTable().getFullName()).isEqualTo("CARDDEMO.TRANSACTION_TYPE_CATEGORY");
         assertThat(category.getValues().getElements()).singleElement().isInstanceOf(Db2.Query.class);
         assertThat(categories.getStatements().get(1)).isInstanceOf(Db2.Commit.class);
         assertThat(tables(categories)).containsExactly("SYSIBM.SYSDUMMY1");
 
-        Db2.Insert type = (Db2.Insert) types.getStatements().get(0);
+        Db2.Insert type = (Db2.Insert) types.getStatements().getFirst();
         assertThat(type.getTable().getFullName()).isEqualTo("CARDDEMO.TRANSACTION_TYPE");
         assertThat(type.getValues().getElements()).singleElement().isInstanceOf(Db2.Query.class);
         // Each branch of the union names the table again.

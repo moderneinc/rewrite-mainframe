@@ -40,7 +40,7 @@ import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
 
 import java.io.ByteArrayInputStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -93,10 +93,10 @@ class PrintEqualsInputTest {
                 parsed.set(true);
             }
         });
-        Parser.Input input = new Parser.Input(Paths.get("MEMBER"), null,
+        Parser.Input input = new Parser.Input(Path.of("MEMBER"), null,
           () -> new ByteArrayInputStream((parsed.get() ? source + "X" : source).getBytes(UTF_8)), true);
         List<SourceFile> results = parser.parseInputs(singletonList(input), null, ctx).collect(toList());
         assertThat(results).hasSize(1);
-        return results.get(0);
+        return results.getFirst();
     }
 }

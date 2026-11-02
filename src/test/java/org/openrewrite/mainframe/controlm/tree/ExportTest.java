@@ -45,15 +45,15 @@ class ExportTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getSections()).hasSize(2);
-                assertThat(cu.getSections().get(0)).isInstanceOf(ControlM.Directive.class);
+                assertThat(cu.getSections().getFirst()).isInstanceOf(ControlM.Directive.class);
 
                 ControlM.Element table = (ControlM.Element) cu.getSections().get(1);
                 assertThat(table.getName()).isEqualTo("DEFTABLE");
-                ControlM.Element folder = table.getElements("SMART_FOLDER").get(0);
+                ControlM.Element folder = table.getElements("SMART_FOLDER").getFirst();
                 assertThat(folder.getAttributeText("TASKTYPE")).isEqualTo("SMART Table");
                 assertThat(folder.getElements("JOB")).hasSize(1);
                 assertThat(folder.getElements("OUTCOND")).hasSize(1);
-                assertThat(folder.getElements("JOB").get(0).getAttributeText("MEMNAME")).isEqualTo("CLMJ010");
+                assertThat(folder.getElements("JOB").getFirst().getAttributeText("MEMNAME")).isEqualTo("CLMJ010");
             })
           )
         );
@@ -77,8 +77,8 @@ class ExportTest implements RewriteTest {
               </DEFTABLE>
               """,
             spec -> spec.afterRecipe(cu -> {
-                ControlM.Element folder = ((ControlM.Element) cu.getSections().get(0)).getElements("FOLDER").get(0);
-                assertThat(folder.getElements("JOB").get(0).getElements()).isEmpty();
+                ControlM.Element folder = ((ControlM.Element) cu.getSections().getFirst()).getElements("FOLDER").getFirst();
+                assertThat(folder.getElements("JOB").getFirst().getElements()).isEmpty();
                 assertThat(folder.getElements("JOB").get(1).getElements()).isNull();
             })
           )
@@ -103,7 +103,7 @@ class ExportTest implements RewriteTest {
                 assertThat(cu.getSections()).hasSize(3);
                 ControlM.Element calendars = (ControlM.Element) cu.getSections().get(2);
                 assertThat(calendars.getElements()).hasSize(2);
-                assertThat(calendars.getElements().get(0)).isInstanceOf(ControlM.Directive.class);
+                assertThat(calendars.getElements().getFirst()).isInstanceOf(ControlM.Directive.class);
                 assertThat(calendars.getElements("CALENDAR")).hasSize(1);
             })
           )
@@ -124,7 +124,7 @@ class ExportTest implements RewriteTest {
               </DEFTABLE>
               """,
             spec -> spec.afterRecipe(cu -> {
-                ControlM.Element job = ((ControlM.Element) cu.getSections().get(0)).getElements("JOB").get(0);
+                ControlM.Element job = ((ControlM.Element) cu.getSections().getFirst()).getElements("JOB").getFirst();
                 assertThat(job.getAttribute("DESCRIPTION").getValue().getText())
                   .isEqualTo("\"RESERVE &amp; PAYMENT\"");
                 assertThat(job.getAttributeText("DESCRIPTION")).isEqualTo("RESERVE & PAYMENT");
@@ -146,7 +146,7 @@ class ExportTest implements RewriteTest {
               </DEFTABLE   >
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(((ControlM.Element) cu.getSections().get(0)).getElements("JOB")).hasSize(1))
+              assertThat(((ControlM.Element) cu.getSections().getFirst()).getElements("JOB")).hasSize(1))
           )
         );
     }
@@ -161,7 +161,7 @@ class ExportTest implements RewriteTest {
               </DEFTABLE>
               """,
             spec -> spec.afterRecipe(cu -> {
-                ControlM.Element job = ((ControlM.Element) cu.getSections().get(0)).getElements("JOB").get(0);
+                ControlM.Element job = ((ControlM.Element) cu.getSections().getFirst()).getElements("JOB").getFirst();
                 assertThat(job.getAttributeText("MEMNAME")).isEqualTo("CLMJ010");
                 assertThat(job.getAttributeText("MEMLIB")).isEqualTo("CLM.PROD.JCL");
             })

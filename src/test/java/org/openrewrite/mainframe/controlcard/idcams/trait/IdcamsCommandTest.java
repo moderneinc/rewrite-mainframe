@@ -46,7 +46,7 @@ class IdcamsCommandTest implements RewriteTest {
                 List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
                 assertThat(commands).hasSize(3);
 
-                IdcamsCommand delete = commands.get(0);
+                IdcamsCommand delete = commands.getFirst();
                 assertThat(delete.getVerb()).isEqualTo("DELETE");
                 assertThat(delete.getObjectType()).isEqualTo("CLUSTER");
                 assertThat(delete.getObjectName()).isEqualTo("CLM.PROD.CLMMAST");
@@ -79,7 +79,7 @@ class IdcamsCommandTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
 
-                IdcamsCommand gdg = commands.get(0);
+                IdcamsCommand gdg = commands.getFirst();
                 assertThat(gdg.getObjectType()).isEqualTo("GDG");
                 assertThat(gdg.getObjectName()).isEqualTo("CLM.PROD.EXTRACT");
                 assertThat(gdg.getDefinedNames()).containsExactly("CLM.PROD.EXTRACT");
@@ -115,7 +115,7 @@ class IdcamsCommandTest implements RewriteTest {
                 List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
                 assertThat(commands).hasSize(2);
 
-                IdcamsCommand define = commands.get(0);
+                IdcamsCommand define = commands.getFirst();
                 assertThat(define.getObjectType()).isEqualTo("GDG");
                 assertThat(define.getObjectName()).isEqualTo("AWS.M2.CARDDEMO.TRANSACT.BKUP");
 
@@ -141,8 +141,8 @@ class IdcamsCommandTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
-                assertThat(commands.get(0).getObjectName()).isEqualTo("VSAM.OLD");
-                assertThat(commands.get(0).getParameter("NEWNAME")).isEqualTo("VSAM.NEW");
+                assertThat(commands.getFirst().getObjectName()).isEqualTo("VSAM.OLD");
+                assertThat(commands.getFirst().getParameter("NEWNAME")).isEqualTo("VSAM.NEW");
                 assertThat(commands.get(1).getObjectName()).isEqualTo("VSAM.NEW");
             })
           )
@@ -161,7 +161,7 @@ class IdcamsCommandTest implements RewriteTest {
               REPRO INFILE(BACKUP) OUTFILE(MASTER) REPLACE
               """,
             spec -> spec.afterRecipe(cu -> {
-                IdcamsCommand repro = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList()).get(0);
+                IdcamsCommand repro = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
                 assertThat(repro.getVerb()).isEqualTo("REPRO");
                 assertThat(repro.getObjectName()).isNull();
                 assertThat(repro.definesDataSet()).isFalse();

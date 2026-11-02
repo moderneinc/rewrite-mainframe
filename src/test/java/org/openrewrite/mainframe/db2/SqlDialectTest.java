@@ -179,7 +179,7 @@ class SqlDialectTest {
     private static String refusalOf(String source) {
         List<SourceFile> parsed = parse(source, new ArrayList<>());
         assertThat(parsed).singleElement().isInstanceOf(ParseError.class);
-        return parsed.get(0).getMarkers().findFirst(ParseExceptionResult.class)
+        return parsed.getFirst().getMarkers().findFirst(ParseExceptionResult.class)
           .map(ParseExceptionResult::getMessage).orElse("");
     }
 }

@@ -29,7 +29,6 @@ import org.openrewrite.mainframe.cobol.Corpus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -60,7 +59,7 @@ class AssemblerCorpusTest {
 
     @Test
     void readsRealAssembler() throws IOException {
-        Path corpus = Paths.get(System.getenv("ASM_CORPUS"));
+        Path corpus = Path.of(System.getenv("ASM_CORPUS"));
 
         int members = 0;
         int sections = 0;
@@ -91,11 +90,11 @@ class AssemblerCorpusTest {
                 List<SourceFile> parsed = AssemblerParser.builder().build()
                   .parseInputs(Corpus.inputs(singletonList(member)), corpus, new InMemoryExecutionContext())
                   .collect(Collectors.toList());
-                if (parsed.size() != 1 || !(parsed.get(0) instanceof Assembler.CompilationUnit)) {
+                if (parsed.size() != 1 || !(parsed.getFirst() instanceof Assembler.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
                 }
-                Assembler.CompilationUnit cu = (Assembler.CompilationUnit) parsed.get(0);
+                Assembler.CompilationUnit cu = (Assembler.CompilationUnit) parsed.getFirst();
 
                 if (!source.equals(cu.printAll())) {
                     failures.add(name + ": did not print back");
@@ -390,11 +389,11 @@ class AssemblerCorpusTest {
           .parseInputs(Corpus.inputs(singletonList(member)), directory, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).singleElement().isInstanceOf(Assembler.CompilationUnit.class);
-        return (Assembler.CompilationUnit) parsed.get(0);
+        return (Assembler.CompilationUnit) parsed.getFirst();
     }
 
     private static Path fixture(String library) {
-        Path directory = Paths.get(System.getenv("ASM_CORPUS"))
+        Path directory = Path.of(System.getenv("ASM_CORPUS"))
           .resolve("mainframe-fixtures/claims").resolve(library);
         assertThat(Files.isDirectory(directory)).as("%s", directory).isTrue();
         return directory;

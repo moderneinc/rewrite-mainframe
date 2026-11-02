@@ -63,8 +63,8 @@ class ExpansionTest implements RewriteTest {
     private static List<String> cards(Jcl.Expansion expansion) {
         List<String> texts = new ArrayList<>();
         for (Statement statement : expansion.getStatements()) {
-            if (statement instanceof Jcl.JobControlStatement) {
-                texts.add(((Jcl.JobControlStatement) statement).getName().getText());
+            if (statement instanceof Jcl.JobControlStatement controlStatement) {
+                texts.add(controlStatement.getName().getText());
             }
         }
         return texts;
@@ -72,9 +72,9 @@ class ExpansionTest implements RewriteTest {
 
     private static Jcl.JobControlStatement card(Jcl.Expansion expansion, String name) {
         for (Statement statement : expansion.getStatements()) {
-            if (statement instanceof Jcl.JobControlStatement &&
-                ((Jcl.JobControlStatement) statement).getSimpleName().equalsIgnoreCase(name)) {
-                return (Jcl.JobControlStatement) statement;
+            if (statement instanceof Jcl.JobControlStatement controlStatement &&
+                controlStatement.getSimpleName().equalsIgnoreCase(name)) {
+                return controlStatement;
             }
         }
         throw new AssertionError("no card named " + name);
@@ -114,7 +114,7 @@ class ExpansionTest implements RewriteTest {
             "//EXTRACT  EXEC CLMBATCH,PGM=CLMB010\n",
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement exec = (Jcl.JobControlStatement) cu.getStatements().get(0);
+                Jcl.JobControlStatement exec = (Jcl.JobControlStatement) cu.getStatements().getFirst();
                 assertThat(exec.getMarkers().findFirst(ExpandedMember.class)).hasValueSatisfying(member -> {
                     assertThat(member.getMemberName()).isEqualTo("CLMBATCH");
                     assertThat(member.getStatus()).isEqualTo(ExpandedMember.Status.EXPANDED);
@@ -131,7 +131,7 @@ class ExpansionTest implements RewriteTest {
             "//COMPILE  EXEC IGYWCL,MEM=CLMB010\n",
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement exec = (Jcl.JobControlStatement) cu.getStatements().get(0);
+                Jcl.JobControlStatement exec = (Jcl.JobControlStatement) cu.getStatements().getFirst();
                 assertThat(exec.getMarkers().findFirst(ExpandedMember.class)).hasValueSatisfying(member -> {
                     assertThat(member.getMemberName()).isEqualTo("IGYWCL");
                     assertThat(member.getStatus()).isEqualTo(ExpandedMember.Status.MISSING);
@@ -162,7 +162,7 @@ class ExpansionTest implements RewriteTest {
             "//EXTRACT  EXEC CLMBATCH,PGM=CLMB010\n",
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.Expansion expansion = expansions(cu).get(0);
+                Jcl.Expansion expansion = expansions(cu).getFirst();
                 // PGM= is an override, HLQ= and REGION= are the procedure's own defaults.
                 assertThat(resolved(card(expansion, "RUN"), "PGM")).isEqualTo("CLMB010");
                 assertThat(resolved(card(expansion, "RUN"), "REGION")).isEqualTo("4M");
@@ -182,7 +182,7 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu ->
-              assertThat(resolved(card(expansions(cu).get(0), "STEPLIB"), "DSN"))
+              assertThat(resolved(card(expansions(cu).getFirst(), "STEPLIB"), "DSN"))
                 .isEqualTo("CLM.TEST.LOADLIB"))
           )
         );
@@ -274,7 +274,7 @@ class ExpansionTest implements RewriteTest {
                 //         PEND
                 """)),
             spec -> spec.afterRecipe(cu ->
-              assertThat(resolved(card(expansions(cu).get(0), "COB"), "PARM"))
+              assertThat(resolved(card(expansions(cu).getFirst(), "COB"), "PARM"))
                 .isEqualTo("'APOST,RENT'"))
           )
         );
@@ -315,7 +315,7 @@ class ExpansionTest implements RewriteTest {
               //         SET ENV=PROD
               //         SET HLQ=CLM.&ENV
               """),
-          BATCH.get(0));
+          BATCH.getFirst());
         rewriteRun(
           jclWithProcedures(
             """
@@ -328,7 +328,7 @@ class ExpansionTest implements RewriteTest {
                 List<Jcl.Expansion> found = expansions(cu);
                 assertThat(found).extracting(Jcl.Expansion::getMemberName)
                   .containsExactly("@JOBCARD", "CLMBATCH");
-                assertThat(found.get(0).getKind()).isEqualTo(Jcl.Expansion.Kind.INCLUDE);
+                assertThat(found.getFirst().getKind()).isEqualTo(Jcl.Expansion.Kind.INCLUDE);
                 // The included SET statements are in effect for the cards after the INCLUDE.
                 assertThat(resolved(card(found.get(1), "STEPLIB"), "DSN")).isEqualTo("CLM.PROD.LOADLIB");
             })
@@ -372,7 +372,7 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement systsin = card(expansions(cu).get(0), "SYSTSIN");
+                Jcl.JobControlStatement systsin = card(expansions(cu).getFirst(), "SYSTSIN");
                 assertThat(resolved(systsin, "DSN")).isEqualTo("CLM.PROD.CTLCARD(RUNTEP2)");
                 assertThat(resolved(systsin, "DISP")).isEqualTo("SHR");
                 // A data set replaces the procedure's DUMMY.
@@ -392,7 +392,7 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.Expansion expansion = expansions(cu).get(0);
+                Jcl.Expansion expansion = expansions(cu).getFirst();
                 assertThat(cards(expansion)).containsExactly("//RUN", "//STEPLIB", "//SYSOUT",
                   "//SYSTSIN", "//CLMMAST");
                 assertThat(resolved(card(expansion, "CLMMAST"), "DSN")).isEqualTo("CLM.PROD.CLMMAST");
@@ -422,7 +422,7 @@ class ExpansionTest implements RewriteTest {
                 //         PEND
                 """)),
             spec -> spec.afterRecipe(cu -> {
-                Jcl.Expansion expansion = expansions(cu).get(0);
+                Jcl.Expansion expansion = expansions(cu).getFirst();
                 assertThat(cards(expansion)).containsExactly("//SORT", "//SORTIN", "//PLAIN",
                   "//REPORT", "//SYSPRINT", "//EXTRA");
                 assertThat(resolved(card(expansion, "SORTIN"), "DSN")).isEqualTo("PROD.SORTIN");
@@ -448,10 +448,10 @@ class ExpansionTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<String> data = new ArrayList<>();
                 for (Statement statement : cu.getStatements()) {
-                    if (statement instanceof Jcl.DataDefinitionStream) {
+                    if (statement instanceof Jcl.DataDefinitionStream stream) {
                         data.add(statement.getMarkers().findFirst(ResolvedText.class)
                           .map(ResolvedText::getText)
-                          .orElseGet(() -> ((Jcl.DataDefinitionStream) statement).getWord().getText()));
+                          .orElseGet(() -> stream.getWord().getText()));
                     }
                 }
                 // DB2SYS is exported and DB2PLAN is not, so only the first is substituted.

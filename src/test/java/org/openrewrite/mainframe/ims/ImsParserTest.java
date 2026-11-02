@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -88,9 +87,11 @@ class ImsParserTest {
     @Test
     void aNameFieldLabelsADataSetGroup() {
         String source =
-          "       DBD     NAME=DBPAUTP0,ACCESS=(HIDAM,VSAM)\n" +
-          "DSG001 DATASET DD1=DDPAUTP0,SIZE=(4096),SCAN=3\n" +
-          "       SEGM    NAME=PAUTSUM0,PARENT=0,BYTES=100\n";
+          """
+                 DBD     NAME=DBPAUTP0,ACCESS=(HIDAM,VSAM)
+          DSG001 DATASET DD1=DDPAUTP0,SIZE=(4096),SCAN=3
+                 SEGM    NAME=PAUTSUM0,PARENT=0,BYTES=100
+          """;
 
         Ims.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -128,9 +129,11 @@ class ImsParserTest {
     @Test
     void aLiteralRunningIntoTheSequenceArea() {
         String source =
-          "CLMF01   FMT\n" +
-          "         DFLD  'CLAIM INQUIRY',POS=(1,2),ATTR=PROT,REMARKS='AB CD EF GH IJ KLM'\n" +
-          "         FMTEND\n";
+          """
+          CLMF01   FMT
+                   DFLD  'CLAIM INQUIRY',POS=(1,2),ATTR=PROT,REMARKS='AB CD EF GH IJ KLM'
+                   FMTEND
+          """;
 
         assertThat(parse("CLMF01.mfs", source).printAll()).isEqualTo(source);
     }
@@ -138,11 +141,13 @@ class ImsParserTest {
     @Test
     void blankLinesBetweenStatements() {
         String source =
-          "      DBD   NAME=CUSTOMER\n" +
-          "\n" +
-          "      DATASET  DD1=CUSTOMER\n" +
-          "\n" +
-          "      END\n";
+          """
+                DBD   NAME=CUSTOMER
+          
+                DATASET  DD1=CUSTOMER
+          
+                END
+          """;
 
         Ims.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -164,8 +169,10 @@ class ImsParserTest {
     @Test
     void noTrailingNewline() {
         String source =
-          "         DBD   NAME=CLMDBD01\n" +
-          "         END";
+          """
+                   DBD   NAME=CLMDBD01
+                   END\
+          """;
 
         Ims.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -178,15 +185,17 @@ class ImsParserTest {
     @Test
     void aMemberThatGensNothing() {
         Parser.Input input = input("CLMU030.dbd",
-          "         COPY  CLMREGS\n" +
-          "CLMU030  CLMSAVE 12,SAVE=U30SAVE,ID=CLMU030\n");
+          """
+                   COPY  CLMREGS
+          CLMU030  CLMSAVE 12,SAVE=U30SAVE,ID=CLMU030
+          """);
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext())
           .collect(Collectors.toList());
 
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(ParseError.class);
-        ParseExceptionResult failure = parsed.get(0).getMarkers()
+        assertThat(parsed.getFirst()).isInstanceOf(ParseError.class);
+        ParseExceptionResult failure = parsed.getFirst().getMarkers()
           .findFirst(ParseExceptionResult.class).orElseThrow(AssertionError::new);
         assertThat(failure.getExceptionType()).isEqualTo("WrongLanguageException");
         assertThat(failure.getMessage())
@@ -200,10 +209,12 @@ class ImsParserTest {
     @Test
     void anAssemblerMemberIsClaimedOnlyWhenItGens(@TempDir Path dir) throws IOException {
         Path database = write(dir, "CUSTOMER.asm",
-          "***********************\n" +
-          "* Friendly Bank - CUSTOMER DBD\n" +
-          "***********************\n" +
-          "      DBD   NAME=CUSTOMER,ACCESS=(HDAM,OSAM)\n");
+          """
+          ***********************
+          * Friendly Bank - CUSTOMER DBD
+          ***********************
+                DBD   NAME=CUSTOMER,ACCESS=(HDAM,OSAM)
+          """);
         Path programSpecification = write(dir, "IBTRAN.asm",
           "      PCB   TYPE=DB,DBDNAME=CUSTOMER,PROCOPT=A\n");
         Path program = write(dir, "CLMU030.asm",
@@ -230,7 +241,7 @@ class ImsParserTest {
         Ims.CompilationUnit cu = parse("CLMPSB03.psb", source);
         assertThat(cu.printAll()).isEqualTo(source);
         assertThat(cu.getStatements()).hasSize(4);
-        assertThat(((Ims.MacroStatement) cu.getStatements().get(0)).getParameter("KEYLEN")).isNotNull();
+        assertThat(((Ims.MacroStatement) cu.getStatements().getFirst()).getParameter("KEYLEN")).isNotNull();
     }
 
     @Test
@@ -249,9 +260,11 @@ class ImsParserTest {
     @Test
     void tabsBetweenWords() {
         String source =
-          "CLMF01\tFMT\n" +
-          "\t\tDFLD 'CLAIM INQUIRY',POS=(1,2)\t\t\n" +
-          "         FMTEND\n";
+          """
+          CLMF01\tFMT
+          \t\tDFLD 'CLAIM INQUIRY',POS=(1,2)\t\t
+                   FMTEND
+          """;
 
         Ims.CompilationUnit cu = parse("CLMF01.mfs", source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -262,20 +275,24 @@ class ImsParserTest {
     @Test
     void aMacroCommentIsAComment() {
         String source =
-          ".* CLAIMS DATABASE\n" +
-          "         DBD   NAME=CLMDBD01\n";
+          """
+          .* CLAIMS DATABASE
+                   DBD   NAME=CLMDBD01
+          """;
 
         Ims.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
-        assertThat(cu.getStatements().get(0)).isInstanceOf(Ims.Comment.class);
+        assertThat(cu.getStatements().getFirst()).isInstanceOf(Ims.Comment.class);
     }
 
     @Test
     void aStage1DeckOpensWithImsctrl() {
         String source =
-          "         IMSCTRL SYSTEM=(VS/2,(ALL,DB/DC)),IMSID=IMSA\n" +
-          "         APPLCTN PSB=CLMPSB02,PGMTYPE=TP\n" +
-          "         IMSGEN\n";
+          """
+                   IMSCTRL SYSTEM=(VS/2,(ALL,DB/DC)),IMSID=IMSA
+                   APPLCTN PSB=CLMPSB02,PGMTYPE=TP
+                   IMSGEN
+          """;
 
         Ims.CompilationUnit cu = parse("STAGE1.gen", source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -309,7 +326,7 @@ class ImsParserTest {
         assertThat(cu.printAll()).isEqualTo(source);
         Ims.MacroStatement dfld = (Ims.MacroStatement) cu.getStatements().get(1);
         // The literal runs to column 71, blanks and all, and picks up again in column 16.
-        assertThat(((Ims.PositionalOperand) dfld.getParameters().get(0)).getValueText())
+        assertThat(((Ims.PositionalOperand) dfld.getParameters().getFirst()).getValueText())
           .isEqualTo(first.substring(15) + blanks(71 - first.length()) + "ENTER'");
         assertThat(dfld.getParameter("POS").getValueText()).isEqualTo("(1,2)");
     }
@@ -317,16 +334,18 @@ class ImsParserTest {
     @Test
     void anOperandFilledToColumn71ResumesMidWord() {
         String source =
-          "         TRANSACT CODE=(CLMINQ,CLMDTL,CLMUPD,CLMADD,CLMDEL,CLMLST,CLMPRX\n" +
-          "               T),MODE=SNGL\n" +
-          "         TRANSACT CODE=CLMLST,PROCLIM=(15,100),SEGSIZE=600,SEGNO=12,PRTX\n" +
-          "               Y=(1),MODE=SNGL\n" +
-          "         SEGM  NAME=CLMDETL1,BYTES=1200,POINTER=(TWIN),FREQ=5000,PARENTX\n" +
-          "               =CLMROOT\n";
+          """
+                   TRANSACT CODE=(CLMINQ,CLMDTL,CLMUPD,CLMADD,CLMDEL,CLMLST,CLMPRX
+                         T),MODE=SNGL
+                   TRANSACT CODE=CLMLST,PROCLIM=(15,100),SEGSIZE=600,SEGNO=12,PRTX
+                         Y=(1),MODE=SNGL
+                   SEGM  NAME=CLMDETL1,BYTES=1200,POINTER=(TWIN),FREQ=5000,PARENTX
+                         =CLMROOT
+          """;
 
         Ims.CompilationUnit cu = parse("CLMGEN01.gen", source);
         assertThat(cu.printAll()).isEqualTo(source);
-        Ims.MacroStatement transact = (Ims.MacroStatement) cu.getStatements().get(0);
+        Ims.MacroStatement transact = (Ims.MacroStatement) cu.getStatements().getFirst();
         assertThat(transact.getParameter("CODE").getValueText())
           .isEqualTo("(CLMINQ,CLMDTL,CLMUPD,CLMADD,CLMDEL,CLMLST,CLMPRT)");
         assertThat(transact.getParameter("MODE").getValueText()).isEqualTo("SNGL");
@@ -393,8 +412,8 @@ class ImsParserTest {
           .parseInputs(singletonList(input(name, source)), null, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Ims.CompilationUnit.class);
-        return (Ims.CompilationUnit) parsed.get(0);
+        assertThat(parsed.getFirst()).isInstanceOf(Ims.CompilationUnit.class);
+        return (Ims.CompilationUnit) parsed.getFirst();
     }
 
     /**
@@ -402,7 +421,7 @@ class ImsParserTest {
      * only asked of one that came off disk.
      */
     private static Parser.Input input(String name, String source) {
-        return new Parser.Input(Paths.get(name),
+        return new Parser.Input(Path.of(name),
           () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
     }
 

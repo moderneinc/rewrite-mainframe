@@ -31,7 +31,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,7 +67,7 @@ class Db2CorpusTest {
 
     @Test
     void readsRealSchemas() throws IOException {
-        Path corpus = Paths.get(System.getenv("DB2_CORPUS"));
+        Path corpus = Path.of(System.getenv("DB2_CORPUS"));
 
         Counts counts = new Counts();
         List<String> failures = new ArrayList<>();
@@ -168,7 +167,7 @@ class Db2CorpusTest {
      */
     @Test
     void readsTheFixtureSchemaObjectByObject() throws IOException {
-        Path claims = Paths.get(System.getenv("DB2_CORPUS"), "mainframe-fixtures", "claims");
+        Path claims = Path.of(System.getenv("DB2_CORPUS"), "mainframe-fixtures", "claims");
         assertThat(Files.isDirectory(claims)).as("%s", claims).isTrue();
 
         List<Path> members = members(claims.resolve("ddl"), ".ddl");
@@ -190,8 +189,8 @@ class Db2CorpusTest {
         List<InstreamDdl> instream = new InstreamDdl.Matcher()
                 .lower(requireNonNull(parseJob(job))).collect(toList());
         assertThat(instream).as("%s", job).hasSize(1);
-        Db2.Ddl added = parse("jcl/CLMJ004 " + instream.get(0).getName(),
-                instream.get(0).getText(), failures);
+        Db2.Ddl added = parse("jcl/CLMJ004 " + instream.getFirst().getName(),
+                instream.getFirst().getText(), failures);
 
         assertThat(failures).isEmpty();
         schemas.add(requireNonNull(added));
@@ -346,13 +345,13 @@ class Db2CorpusTest {
         List<SourceFile> parsed = Db2Parser.builder().build()
                 .parse(new InMemoryExecutionContext(t -> errors.add(t.getMessage())), source)
                 .collect(toList());
-        if (parsed.size() != 1 || !(parsed.get(0) instanceof Db2.Ddl)) {
+        if (parsed.size() != 1 || !(parsed.getFirst() instanceof Db2.Ddl)) {
             failures.add(name + ": did not parse");
             return null;
         }
-        Db2.Ddl schema = (Db2.Ddl) parsed.get(0);
+        Db2.Ddl schema = (Db2.Ddl) parsed.getFirst();
         if (!errors.isEmpty()) {
-            failures.add(name + ": " + errors.get(0));
+            failures.add(name + ": " + errors.getFirst());
             return null;
         }
         if (!source.equals(schema.printAll())) {
@@ -368,8 +367,8 @@ class Db2CorpusTest {
                 .parseInputs(singletonList(new Parser.Input(job, () -> new ByteArrayInputStream(source))),
                         null, new InMemoryExecutionContext())
                 .collect(toList());
-        return parsed.size() == 1 && parsed.get(0) instanceof Jcl.CompilationUnit ?
-                (Jcl.CompilationUnit) parsed.get(0) : null;
+        return parsed.size() == 1 && parsed.getFirst() instanceof Jcl.CompilationUnit ?
+                (Jcl.CompilationUnit) parsed.getFirst() : null;
     }
 
     /**

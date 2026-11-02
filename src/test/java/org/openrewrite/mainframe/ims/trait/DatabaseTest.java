@@ -24,7 +24,7 @@ import org.openrewrite.mainframe.ims.tree.Ims;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -124,12 +124,14 @@ class DatabaseTest {
     @Test
     void aSequenceFieldThatAllowsDuplicates() {
         Database index = database(
-          "         DBD   NAME=CLMDBX01,ACCESS=INDEX\n" +
-          "         DATASET DD1=CLMDBX01,DEVICE=3390\n" +
-          "         SEGM  NAME=CLMXSEG,PARENT=0,BYTES=18\n" +
-          "         FIELD NAME=(CLMXKEY,SEQ,M),BYTES=8,START=1,TYPE=C\n" +
-          "         LCHILD NAME=(CLMROOT,CLMDBD01),INDEX=CLMXADJ,POINTER=SYMB\n" +
-          "         DBDGEN\n");
+          """
+                   DBD   NAME=CLMDBX01,ACCESS=INDEX
+                   DATASET DD1=CLMDBX01,DEVICE=3390
+                   SEGM  NAME=CLMXSEG,PARENT=0,BYTES=18
+                   FIELD NAME=(CLMXKEY,SEQ,M),BYTES=8,START=1,TYPE=C
+                   LCHILD NAME=(CLMROOT,CLMDBD01),INDEX=CLMXADJ,POINTER=SYMB
+                   DBDGEN
+          """);
 
         Segment segment = index.getSegment("CLMXSEG");
         assertThat(segment).isNotNull();
@@ -182,11 +184,13 @@ class DatabaseTest {
     @Test
     void aSequentialDatabaseHasNoSegments() {
         Database gsam = database(
-          "         DBD   NAME=CLMDBG01,ACCESS=(GSAM,BSAM)\n" +
-          "         DATASET DD1=CLMGSIN,DD2=CLMGSOUT,RECFM=FB,RECORD=(200,27800)\n" +
-          "         DBDGEN\n" +
-          "         FINISH\n" +
-          "         END\n");
+          """
+                   DBD   NAME=CLMDBG01,ACCESS=(GSAM,BSAM)
+                   DATASET DD1=CLMGSIN,DD2=CLMGSOUT,RECFM=FB,RECORD=(200,27800)
+                   DBDGEN
+                   FINISH
+                   END
+          """);
 
         assertThat(gsam.isSequential()).isTrue();
         assertThat(gsam.getSegments()).isEmpty();
@@ -221,11 +225,13 @@ class DatabaseTest {
     @Test
     void theAreasOfADedbAreItsDdNames() {
         Database dedb = database(
-          "         DBD   NAME=CLMFPDB,ACCESS=DEDB,RMNAME=DBFHDC44\n" +
-          "         AREA  DD1=CLMAR01,SIZE=4096,UOW=(10,5),ROOT=(20,10)\n" +
-          "         AREA  DD1=CLMAR02,SIZE=4096,UOW=(10,5),ROOT=(20,10)\n" +
-          "         SEGM  NAME=CLMROOT,PARENT=0,BYTES=100\n" +
-          "         DBDGEN\n");
+          """
+                   DBD   NAME=CLMFPDB,ACCESS=DEDB,RMNAME=DBFHDC44
+                   AREA  DD1=CLMAR01,SIZE=4096,UOW=(10,5),ROOT=(20,10)
+                   AREA  DD1=CLMAR02,SIZE=4096,UOW=(10,5),ROOT=(20,10)
+                   SEGM  NAME=CLMROOT,PARENT=0,BYTES=100
+                   DBDGEN
+          """);
 
         assertThat(dedb.getDdNames()).containsExactly("CLMAR01", "CLMAR02");
     }
@@ -254,13 +260,13 @@ class DatabaseTest {
     }
 
     private static Database database(String source) {
-        Parser.Input input = new Parser.Input(Paths.get("CLMDBD01.dbd"),
+        Parser.Input input = new Parser.Input(Path.of("CLMDBD01.dbd"),
           () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).singleElement().isInstanceOf(Ims.CompilationUnit.class);
-        return new Database.Matcher().lower(parsed.get(0)).findFirst().orElseThrow(AssertionError::new);
+        return new Database.Matcher().lower(parsed.getFirst()).findFirst().orElseThrow(AssertionError::new);
     }
 
     private static String blanks(int n) {
