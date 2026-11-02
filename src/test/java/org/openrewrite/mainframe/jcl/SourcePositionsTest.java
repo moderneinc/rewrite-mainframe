@@ -41,10 +41,12 @@ import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.procedureMembe
 class SourcePositionsTest {
 
     private static final String JOB =
-      "//PAYROLL  JOB (ACCT),'PAYROLL',CLASS=A\n" +
-      "//STEP010  EXEC PGM=PAYCALC,PARM='WEEKLY'\n" +
-      "//STEPLIB  DD DSN=CLM.PROD.LOADLIB,DISP=SHR\n" +
-      "//SYSPRINT DD SYSOUT=*\n";
+      """
+      //PAYROLL  JOB (ACCT),'PAYROLL',CLASS=A
+      //STEP010  EXEC PGM=PAYCALC,PARM='WEEKLY'
+      //STEPLIB  DD DSN=CLM.PROD.LOADLIB,DISP=SHR
+      //SYSPRINT DD SYSOUT=*
+      """;
 
     @Test
     void placesEachStatementAtItsOwnWords() {
@@ -90,10 +92,12 @@ class SourcePositionsTest {
     @Test
     void placesAStatementContinuedOverSeveralCards() {
         String source =
-          "//PAYROLL  JOB (ACCT),'PAYROLL'\n" +
-          "//STEP010  EXEC PGM=PAYCALC,\n" +
-          "//             PARM='WEEKLY',\n" +
-          "//             REGION=4M\n";
+          """
+          //PAYROLL  JOB (ACCT),'PAYROLL'
+          //STEP010  EXEC PGM=PAYCALC,
+          //             PARM='WEEKLY',
+          //             REGION=4M
+          """;
 
         Jcl.CompilationUnit cu = parse(source);
         SourcePositions positions = SourcePositions.of(cu);
@@ -119,18 +123,22 @@ class SourcePositionsTest {
     @Test
     void anchorsAnExpandedStepAtTheCardThatBroughtItIn() {
         String source =
-          "//PAYROLL  JOB (ACCT),'PAYROLL'\n" +
-          "//STEP010  EXEC CLMBATCH,PGM=PAYCALC\n";
+          """
+          //PAYROLL  JOB (ACCT),'PAYROLL'
+          //STEP010  EXEC CLMBATCH,PGM=PAYCALC
+          """;
 
         Jcl.CompilationUnit cu = parse(source, singletonList(procedureMember("CLMBATCH",
-          "//CLMBATCH PROC PGM=,HLQ=CLM.PROD\n" +
-          "//RUN      EXEC PGM=&PGM\n" +
-          "//STEPLIB  DD DISP=SHR,DSN=&HLQ..LOADLIB\n" +
-          "//         PEND\n")));
+          """
+          //CLMBATCH PROC PGM=,HLQ=CLM.PROD
+          //RUN      EXEC PGM=&PGM
+          //STEPLIB  DD DISP=SHR,DSN=&HLQ..LOADLIB
+          //         PEND
+          """)));
         SourcePositions positions = SourcePositions.of(cu);
 
         Jcl.Expansion expansion = expansionIn(cu.getStatements());
-        Statement run = expansion.getStatements().get(0);
+        Statement run = expansion.getStatements().getFirst();
         assertThat(positions.get(run)).isNull();
 
         SourcePositions.Expanded expanded = positions.expanded(run);
@@ -157,13 +165,17 @@ class SourcePositionsTest {
     @Test
     void namesTheInnermostMemberAStatementWasWrittenIn() {
         String source =
-          "//PAYROLL  JOB (ACCT),'PAYROLL'\n" +
-          "//         INCLUDE MEMBER=OUTER\n";
+          """
+          //PAYROLL  JOB (ACCT),'PAYROLL'
+          //         INCLUDE MEMBER=OUTER
+          """;
 
         List<Path> library = new ArrayList<>();
         library.add(procedureMember("OUTER",
-          "//*        Shared setup.\n" +
-          "//         INCLUDE MEMBER=INNER\n"));
+          """
+          //*        Shared setup.
+          //         INCLUDE MEMBER=INNER
+          """));
         library.add(procedureMember("INNER",
           "//SYSPRINT DD SYSOUT=*\n"));
 
@@ -172,7 +184,7 @@ class SourcePositionsTest {
 
         Jcl.Expansion outer = expansionIn(cu.getStatements());
         Jcl.Expansion inner = expansionIn(outer.getStatements());
-        SourcePositions.Expanded expanded = positions.expanded(inner.getStatements().get(0));
+        SourcePositions.Expanded expanded = positions.expanded(inner.getStatements().getFirst());
 
         assertThat(expanded).isNotNull();
         assertThat(expanded.getMemberName()).isEqualTo("INNER");
@@ -212,9 +224,9 @@ class SourcePositionsTest {
 
     private static Jcl.JobControlStatement statement(Jcl.CompilationUnit cu, String name) {
         for (Statement statement : cu.getStatements()) {
-            if (statement instanceof Jcl.JobControlStatement &&
-                ((Jcl.JobControlStatement) statement).getSimpleName().equalsIgnoreCase(name)) {
-                return (Jcl.JobControlStatement) statement;
+            if (statement instanceof Jcl.JobControlStatement controlStatement &&
+                controlStatement.getSimpleName().equalsIgnoreCase(name)) {
+                return controlStatement;
             }
         }
         throw new AssertionError("no statement named " + name);
@@ -222,8 +234,8 @@ class SourcePositionsTest {
 
     private static Jcl.Expansion expansionIn(List<Statement> statements) {
         for (Statement statement : statements) {
-            if (statement instanceof Jcl.Expansion) {
-                return (Jcl.Expansion) statement;
+            if (statement instanceof Jcl.Expansion expansion) {
+                return expansion;
             }
         }
         throw new AssertionError("no expansion");
@@ -240,8 +252,8 @@ class SourcePositionsTest {
           }), source)
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Jcl.CompilationUnit.class);
-        Jcl.CompilationUnit cu = (Jcl.CompilationUnit) parsed.get(0);
+        assertThat(parsed.getFirst()).isInstanceOf(Jcl.CompilationUnit.class);
+        Jcl.CompilationUnit cu = (Jcl.CompilationUnit) parsed.getFirst();
         assertThat(cu.printAll()).isEqualTo(source);
         return cu;
     }

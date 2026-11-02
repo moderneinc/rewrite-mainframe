@@ -32,7 +32,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -60,7 +59,7 @@ class BindCorpusTest {
 
     @Test
     void readsRealBindDecks() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int decks = 0;
         int commands = 0;
@@ -164,7 +163,7 @@ class BindCorpusTest {
      */
     @Test
     void readsTheFixtureDecksNameByName() throws IOException {
-        Path cardlib = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "cardlib");
+        Path cardlib = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "cardlib");
         assertThat(Files.isDirectory(cardlib)).as("%s", cardlib).isTrue();
 
         List<BindCommand> binds = new ArrayList<>();
@@ -224,8 +223,8 @@ class BindCorpusTest {
                 .parseInputs(singletonList(new Parser.Input(member, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
                 .collect(Collectors.toList());
-        return parsed.size() == 1 && parsed.get(0) instanceof Bind.CompilationUnit ?
-                (Bind.CompilationUnit) parsed.get(0) : null;
+        return parsed.size() == 1 && parsed.getFirst() instanceof Bind.CompilationUnit ?
+                (Bind.CompilationUnit) parsed.getFirst() : null;
     }
 
     private static Jcl.@Nullable CompilationUnit parseJob(Path job, String source) {
@@ -233,7 +232,7 @@ class BindCorpusTest {
                 .parseInputs(singletonList(new Parser.Input(job, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
                 .collect(Collectors.toList());
-        return parsed.size() == 1 && parsed.get(0) instanceof Jcl.CompilationUnit ?
-                (Jcl.CompilationUnit) parsed.get(0) : null;
+        return parsed.size() == 1 && parsed.getFirst() instanceof Jcl.CompilationUnit ?
+                (Jcl.CompilationUnit) parsed.getFirst() : null;
     }
 }

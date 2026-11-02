@@ -126,7 +126,7 @@ class TableTest implements RewriteTest {
                 List<ForeignKey> foreignKeys = new ForeignKey.Matcher().lower(cu).collect(toList());
                 assertThat(foreignKeys).hasSize(1);
 
-                ForeignKey foreignKey = foreignKeys.get(0);
+                ForeignKey foreignKey = foreignKeys.getFirst();
                 assertThat(foreignKey.getTable()).isEqualTo("CARDDEMO.TRANSACTION_TYPE_CATEGORY");
                 assertThat(foreignKey.getName()).isNull();
                 assertThat(foreignKey.getColumns()).containsExactly("TRC_TYPE_CODE");
@@ -165,7 +165,7 @@ class TableTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<ForeignKey> foreignKeys = new ForeignKey.Matcher().lower(cu).collect(toList());
                 assertThat(foreignKeys).hasSize(3);
-                assertThat(foreignKeys.get(0).getName()).isEqualTo("TRC_TYPE_CODE");
+                assertThat(foreignKeys.getFirst().getName()).isEqualTo("TRC_TYPE_CODE");
 
                 ForeignKey named = foreignKeys.get(1);
                 assertThat(named.getTable()).isEqualTo("CLM.CLAIM_HIST");

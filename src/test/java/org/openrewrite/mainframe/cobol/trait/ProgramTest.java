@@ -31,7 +31,7 @@ class ProgramTest {
     private static Program program(String source) {
         Cobol.CompilationUnit cu = (Cobol.CompilationUnit) CobolParser.builder().build().parse(source)
           .findFirst().orElseThrow();
-        return new Program(new Cursor(new Cursor(null, cu), cu.getProgramUnits().get(0)));
+        return new Program(new Cursor(new Cursor(null, cu), cu.getProgramUnits().getFirst()));
     }
 
     @Test

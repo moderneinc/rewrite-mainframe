@@ -58,7 +58,7 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Utility.Block global = (Utility.Block) cu.getStatements().get(0);
+                Utility.Block global = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(global.isVerb("GLOBAL")).isTrue();
                 assertThat(global.getOperand("SQLID").getValueText()).isEqualTo("CLM");
 
@@ -66,14 +66,14 @@ class UtilityParserTest implements RewriteTest {
                 assertThat(unload.getOperand("TABLESPACE").getValueText()).isEqualTo("CLMDB01.CLMTSPOL");
                 assertThat(unload.getOperand("DB2").getValueText()).isEqualTo("NO");
 
-                Utility.Block select = unload.getBlocks("SELECT").get(0);
+                Utility.Block select = unload.getBlocks("SELECT").getFirst();
                 assertThat(select.getValueText()).isEqualTo("*");
                 assertThat(select.getOperand("FROM").getValueText()).isEqualTo("CLM.POLICY");
                 // The value of a keyword runs to the next keyword, however many cards away.
                 assertThat(select.getOperand("WHERE").getValueText()).isEqualTo("STATUS_CODE = 'A'");
                 assertThat(select.getOperand("OUTDDN").getValueText()).isEqualTo("(POLUNL)");
 
-                Utility.Block format = select.getBlocks("FORMAT").get(0);
+                Utility.Block format = select.getBlocks("FORMAT").getFirst();
                 assertThat(format.getValueText()).isEqualTo("DSNTIAUL");
                 // The railroad writes LOADDDN inside the format block, and a deck writes it after it.
                 assertThat(format.getOperand("LOADDDN").getValueText()).isEqualTo("POLLOAD");
@@ -104,16 +104,16 @@ class UtilityParserTest implements RewriteTest {
                   FORMAT DELIMITED SEP ',' DELIM '"'
               """,
             spec -> spec.afterRecipe(cu -> {
-                Utility.Block unload = (Utility.Block) cu.getStatements().get(0);
+                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(unload.getBlocks("SELECT")).hasSize(2);
 
-                Utility.Block first = unload.getBlocks("SELECT").get(0);
+                Utility.Block first = unload.getBlocks("SELECT").getFirst();
                 assertThat(first.getValueText()).isEqualTo("CLAIM_NO, POLICY_NO");
                 assertThat(first.getOperand("OUTDDN").getValueText()).isEqualTo("(OPENCLM)");
 
                 Utility.Block second = unload.getBlocks("SELECT").get(1);
                 assertThat(second.getOperand("ORDER").getValueText()).isEqualTo("BY POSTED_DATE DESC");
-                Utility.Block delimited = second.getBlocks("FORMAT").get(0);
+                Utility.Block delimited = second.getBlocks("FORMAT").getFirst();
                 assertThat(delimited.getValueText()).isEqualTo("DELIMITED");
                 assertThat(delimited.getOperand("SEP").getValueText()).isEqualTo("','");
                 assertThat(delimited.getOperand("DELIM").getValueText()).isEqualTo("'\"'");
@@ -137,12 +137,12 @@ class UtilityParserTest implements RewriteTest {
                        WHEN (STATUS_CODE = 'A')
               """,
             spec -> spec.afterRecipe(cu -> {
-                Utility.Block unload = (Utility.Block) cu.getStatements().get(0);
+                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(unload.getOperand("SHRLEVEL").getValueText()).isEqualTo("REFERENCE");
                 assertThat(unload.getOperand("UNLDDN").getValueText()).isEqualTo("SYSREC");
                 assertThat(unload.getBlocks("SELECT")).isEmpty();
 
-                Utility.Block from = unload.getBlocks("FROM").get(0);
+                Utility.Block from = unload.getBlocks("FROM").getFirst();
                 // The field list is written in parentheses over as many cards as it needs, and no
                 // word inside them can open an operand.
                 assertThat(from.getValueText()).startsWith("TABLE CLM.POLICY ( POLICY_NO");
@@ -191,7 +191,7 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Utility.Block runstats = (Utility.Block) cu.getStatements().get(0);
+                Utility.Block runstats = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(runstats.getOperand("TABLESPACE").getValueText()).isEqualTo("CLMDB01.CLMTSPOL");
                 assertThat(runstats.getOperand("TABLE").getValueText()).isEqualTo("(ALL)");
                 assertThat(runstats.getOperand("INDEX").getValueText()).isEqualTo("(ALL)");
@@ -213,7 +213,7 @@ class UtilityParserTest implements RewriteTest {
                   SELECT * FROM CLM.CLAIM_HIST OUTDDN (HSTUNL)
               """,
             spec -> spec.afterRecipe(cu -> {
-                Utility.Block template = (Utility.Block) cu.getStatements().get(0);
+                Utility.Block template = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(template.getValueText()).isEqualTo("HSTCARD");
                 assertThat(template.getOperand("DSN").getValueText())
                   .isEqualTo("'&HLQ..UNLOAD.&DB..&TS..LOADCARD'");
@@ -242,9 +242,9 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(1);
-                Utility.Block unload = (Utility.Block) cu.getStatements().get(0);
+                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(unload.getOperand("COPYDDN").getValueText()).isEqualTo("COPYIN");
-                Utility.Block select = unload.getBlocks("SELECT").get(0);
+                Utility.Block select = unload.getBlocks("SELECT").getFirst();
                 assertThat(select.getOperand("FROM").getValueText()).isEqualTo("MY.TAB");
                 assertThat(select.getOperand("OUTDDN").getValueText()).isEqualTo("(SREC001)");
             })
@@ -270,8 +270,8 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(1);
-                Utility.Block unload = (Utility.Block) cu.getStatements().get(0);
-                assertThat(unload.getBlocks("SELECT").get(0).getValueText()).isEqualTo("*");
+                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
+                assertThat(unload.getBlocks("SELECT").getFirst().getValueText()).isEqualTo("*");
             })
           )
         );

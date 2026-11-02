@@ -33,7 +33,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -65,7 +64,7 @@ class UnloadCorpusTest {
 
     @Test
     void readsRealUtilityDecks() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int members = 0;
         int statements = 0;
@@ -157,7 +156,7 @@ class UnloadCorpusTest {
      */
     @Test
     void readsTheFixtureDecksDeckByDeck() throws IOException {
-        Path claims = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims");
+        Path claims = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims");
         assertThat(Files.isDirectory(claims)).as("%s", claims).isTrue();
 
         // 22.1: six unload decks, four of them members of ctlcard and two written in stream. The
@@ -235,7 +234,7 @@ class UnloadCorpusTest {
      */
     @Test
     void readsWhatEachFixtureDeckLeavesToTheSite() throws IOException {
-        Path ctlcard = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
+        Path ctlcard = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
 
         UnloadCommand defaults = unloadOf(ctlcard.resolve("UNLCLM04.ctl"));
         assertThat(defaults.getInheritedKeywords())
@@ -317,8 +316,8 @@ class UnloadCorpusTest {
                 .parseInputs(singletonList(new Parser.Input(member, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
                 .collect(toList());
-        return parsed.size() == 1 && parsed.get(0) instanceof Utility.CompilationUnit ?
-                (Utility.CompilationUnit) parsed.get(0) : null;
+        return parsed.size() == 1 && parsed.getFirst() instanceof Utility.CompilationUnit ?
+                (Utility.CompilationUnit) parsed.getFirst() : null;
     }
 
     private static Jcl.@Nullable CompilationUnit parseJob(Path job, String source) {
@@ -326,7 +325,7 @@ class UnloadCorpusTest {
                 .parseInputs(singletonList(new Parser.Input(job, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
                 .collect(toList());
-        return parsed.size() == 1 && parsed.get(0) instanceof Jcl.CompilationUnit ?
-                (Jcl.CompilationUnit) parsed.get(0) : null;
+        return parsed.size() == 1 && parsed.getFirst() instanceof Jcl.CompilationUnit ?
+                (Jcl.CompilationUnit) parsed.getFirst() : null;
     }
 }

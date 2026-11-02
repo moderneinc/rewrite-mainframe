@@ -24,13 +24,17 @@ class MacroLinesTest {
     @Test
     void theFirstOperationLooksPastTheListingControls() {
         assertThat(MacroLines.firstOperation(
-          "***********************\n" +
-          "         TITLE   'ASSEMBLE OF DBDNAME=DBPAUTP0 '\n" +
-          "       DBD     NAME=DBPAUTP0,ACCESS=(HIDAM,VSAM)\n")).isEqualTo("DBD");
+          """
+          ***********************
+                   TITLE   'ASSEMBLE OF DBDNAME=DBPAUTP0 '
+                 DBD     NAME=DBPAUTP0,ACCESS=(HIDAM,VSAM)
+          """)).isEqualTo("DBD");
 
         assertThat(MacroLines.firstOperation(
-          "         COPY  CLMREGS\n" +
-          "CLMROOTD DSECT\n")).isEqualTo("COPY");
+          """
+                   COPY  CLMREGS
+          CLMROOTD DSECT
+          """)).isEqualTo("COPY");
 
         assertThat(MacroLines.firstOperation("* nothing but a comment\n")).isNull();
     }

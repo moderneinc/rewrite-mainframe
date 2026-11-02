@@ -78,7 +78,7 @@ class ExpandedStepTest implements RewriteTest {
         rewriteRun(
           jclWithProcedures(EXTRACT, LIBRARY,
             spec -> spec.afterRecipe(cu -> {
-                Step extract = steps(cu).get(0);
+                Step extract = steps(cu).getFirst();
                 assertThat(extract.getName()).isEqualTo("EXTRACT");
                 assertThat(extract.getProcedure()).isEqualTo("CLMBATCH");
                 assertThat(extract.getProgram()).isNull();
@@ -100,7 +100,7 @@ class ExpandedStepTest implements RewriteTest {
         rewriteRun(
           jclWithProcedures(EXTRACT, LIBRARY,
             spec -> spec.afterRecipe(cu -> {
-                Step run = steps(cu).get(0).getProcedureSteps().get(0);
+                Step run = steps(cu).getFirst().getProcedureSteps().getFirst();
                 assertThat(run.getDataDefinitions()).extracting(DataDefinition::getName)
                   .containsExactly("STEPLIB", "SYSOUT", "SYSTSIN", "CLMMAST");
                 assertThat(run.getDataDefinition("STEPLIB").getDataSets())
@@ -117,7 +117,7 @@ class ExpandedStepTest implements RewriteTest {
         rewriteRun(
           jclWithProcedures(EXTRACT, LIBRARY,
             spec -> spec.afterRecipe(cu -> {
-                Step run = steps(cu).get(0).getProcedureSteps().get(0);
+                Step run = steps(cu).getFirst().getProcedureSteps().getFirst();
                 assertThat(run.getSymbolic("ENV")).isNotNull()
                   .satisfies(env -> {
                       assertThat(env.getValue()).isEqualTo("PROD");
@@ -159,10 +159,10 @@ class ExpandedStepTest implements RewriteTest {
               """,
             LIBRARY,
             spec -> spec.afterRecipe(cu -> {
-                Step compile = steps(cu).get(0);
+                Step compile = steps(cu).getFirst();
                 assertThat(compile.getProcedureSteps()).extracting(Step::getQualifiedName)
                   .containsExactly("CMPB010.COB", "CMPB010.LKED");
-                Step cob = compile.getProcedureSteps().get(0);
+                Step cob = compile.getProcedureSteps().getFirst();
                 assertThat(cob.getProgram()).isEqualTo("IGYCRCTL");
                 assertThat(cob.getDataDefinition("SYSIN").getDataSets())
                   .extracting(DataSet::getMember).containsExactly("CLMB010");
@@ -210,7 +210,7 @@ class ExpandedStepTest implements RewriteTest {
                 //         PEND
                 """)),
             spec -> spec.afterRecipe(cu -> {
-                Step unload = steps(cu).get(0).getProcedureSteps().get(0);
+                Step unload = steps(cu).getFirst().getProcedureSteps().getFirst();
                 assertThat(unload.getProgram()).isEqualTo("INZUTILB");
                 assertThat(unload.getParm()).isEqualTo("DB2T,CLMU001,HIDDEN(DB2T)");
                 assertThat(unload.getParmPositions())
@@ -226,9 +226,9 @@ class ExpandedStepTest implements RewriteTest {
         rewriteRun(
           jclWithProcedures(
             "//CMPI060  EXEC IMSCOBOL,MBR=CLMI060\n",
-            singletonList(LIBRARY.get(0)),
+            singletonList(LIBRARY.getFirst()),
             spec -> spec.afterRecipe(cu -> {
-                Step step = steps(cu).get(0);
+                Step step = steps(cu).getFirst();
                 assertThat(step.getProcedure()).isEqualTo("IMSCOBOL");
                 assertThat(step.isProcedureMissing()).isTrue();
                 assertThat(step.getProcedureSteps()).isEmpty();

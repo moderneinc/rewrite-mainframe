@@ -37,7 +37,6 @@ import org.openrewrite.tree.ParseError;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -68,7 +67,7 @@ class FixtureCoverageTest {
 
     @Test
     void everyMemberIsReadByOneReaderOrNone() throws IOException {
-        Path fixture = Paths.get(System.getenv("JCL_CORPUS")).resolve("mainframe-fixtures");
+        Path fixture = Path.of(System.getenv("JCL_CORPUS")).resolve("mainframe-fixtures");
         assertThat(Files.isDirectory(fixture)).as("%s", fixture).isTrue();
 
         Map<String, Parser> readers = new LinkedHashMap<>();
@@ -107,7 +106,7 @@ class FixtureCoverageTest {
                 claimedTwice.add(name + ": " + String.join(" and ", claims));
                 continue;
             }
-            String reader = claims.get(0);
+            String reader = claims.getFirst();
             read.merge(reader, 1, Integer::sum);
             String failure = readBack(readers.get(reader), fixture, member);
             if (failure != null) {
@@ -162,10 +161,10 @@ class FixtureCoverageTest {
         if (parsed.size() != 1) {
             return parsed.size() + " source files from one member";
         }
-        if (parsed.get(0) instanceof ParseError) {
+        if (parsed.getFirst() instanceof ParseError) {
             return "did not parse";
         }
-        return new String(Files.readAllBytes(member)).equals(parsed.get(0).printAll()) ?
+        return new String(Files.readAllBytes(member)).equals(parsed.getFirst().printAll()) ?
           null : "did not print back";
     }
 }

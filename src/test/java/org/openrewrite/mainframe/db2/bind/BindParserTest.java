@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -80,7 +79,7 @@ class BindParserTest implements RewriteTest {
               END
               """,
             spec -> spec.afterRecipe(cu -> {
-                assertThat(((Bind.Command) cu.getStatements().get(0)).getParameter("SYSTEM").getValueText())
+                assertThat(((Bind.Command) cu.getStatements().getFirst()).getParameter("SYSTEM").getValueText())
                   .isEqualTo("(DB2D)");
                 Bind.Command command = (Bind.Command) cu.getStatements().get(1);
                 assertThat(command.getParameter("PACKAGE").getValueText()).isEqualTo("(STOCKTRD)");
@@ -104,7 +103,7 @@ class BindParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(1);
-                Bind.Command command = (Bind.Command) cu.getStatements().get(0);
+                Bind.Command command = (Bind.Command) cu.getStatements().getFirst();
                 assertThat(command.getParameter("PLAN").getValueText()).isEqualTo("(&PLAN.)");
                 assertThat(command.getParameter("PKLIST").getValueText()).isEqualTo("(&COLLID..*)");
             })
@@ -122,7 +121,7 @@ class BindParserTest implements RewriteTest {
                NULLID.*,PHBANK.* )
               """,
             spec -> spec.afterRecipe(cu -> {
-                Bind.Command command = (Bind.Command) cu.getStatements().get(0);
+                Bind.Command command = (Bind.Command) cu.getStatements().getFirst();
                 assertThat(command.getParameter("PKLIST").getValueText()).isEqualTo("( NULLID.*,PHBANK.* )");
             })
           )
@@ -149,7 +148,7 @@ class BindParserTest implements RewriteTest {
     @ParameterizedTest
     @ValueSource(strings = {"BINDPKG1.bnd", "BINDPKG1.BND", "cardlib/BINDPKG1.Bnd"})
     void acceptsADeckByExtension(String name) {
-        assertThat(BindParser.builder().build().accept(Paths.get(name))).isTrue();
+        assertThat(BindParser.builder().build().accept(Path.of(name))).isTrue();
     }
 
     /**
@@ -175,7 +174,7 @@ class BindParserTest implements RewriteTest {
      */
     @Test
     void aMemberThatBindsNothingIsSaidSo() {
-        Parser.Input input = new Parser.Input(Paths.get("DSNONLY.bnd"),
+        Parser.Input input = new Parser.Input(Path.of("DSNONLY.bnd"),
           () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nEND\n".getBytes(StandardCharsets.UTF_8)));
         SourceFile parsed = BindParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
@@ -193,7 +192,7 @@ class BindParserTest implements RewriteTest {
      */
     @Test
     void aMemberThatFreesIsRead() {
-        Parser.Input input = new Parser.Input(Paths.get("FREEPKG.bnd"),
+        Parser.Input input = new Parser.Input(Path.of("FREEPKG.bnd"),
           () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nFREE PACKAGE(CLMPKG.CLMD010)\nEND\n".getBytes(StandardCharsets.UTF_8)));
         SourceFile parsed = BindParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
@@ -341,7 +340,7 @@ class BindParserTest implements RewriteTest {
         assertThat(parsed).allMatch(Bind.CompilationUnit.class::isInstance);
         assertThat(parsed).extracting(SourceFile::printAll).containsExactly(tiad, tep4, free);
 
-        assertThat(new RunCommand.Matcher().lower(parsed.get(0))).singleElement().satisfies(run -> {
+        assertThat(new RunCommand.Matcher().lower(parsed.getFirst())).singleElement().satisfies(run -> {
             assertThat(run.getProgram()).isEqualTo("DSNTIAD");
             assertThat(run.getPlan()).isNull();
             assertThat(run.getParameters()).isEqualTo("RC0");

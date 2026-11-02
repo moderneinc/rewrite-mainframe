@@ -61,28 +61,28 @@ class InstreamDdlTest implements RewriteTest {
 
                 // SYSTSIN carries the DSN and RUN commands that submit the DDL, not DDL itself.
                 assertThat(streams).hasSize(1);
-                assertThat(streams.get(0).getName()).isEqualTo("SYSIN");
+                assertThat(streams.getFirst().getName()).isEqualTo("SYSIN");
 
-                Db2.Ddl ddl = streams.get(0).parse(new InMemoryExecutionContext(t -> {
+                Db2.Ddl ddl = streams.getFirst().parse(new InMemoryExecutionContext(t -> {
                     throw new IllegalStateException(t);
                 }));
 
                 List<Table> tables = new Table.Matcher().lower(ddl).collect(toList());
                 assertThat(tables).hasSize(1);
-                assertThat(tables.get(0).getQualifiedName()).isEqualTo("GENASA1.CUSTOMER");
-                assertThat(tables.get(0).getTablespace()).isEqualTo("GENASA1.GENATS01");
-                assertThat(tables.get(0).getColumns()).extracting(Column::getName)
+                assertThat(tables.getFirst().getQualifiedName()).isEqualTo("GENASA1.CUSTOMER");
+                assertThat(tables.getFirst().getTablespace()).isEqualTo("GENASA1.GENATS01");
+                assertThat(tables.getFirst().getColumns()).extracting(Column::getName)
                   .containsExactly("customerNumber", "firstName");
-                assertThat(tables.get(0).getPrimaryKey()).containsExactly("customerNumber");
+                assertThat(tables.getFirst().getPrimaryKey()).containsExactly("customerNumber");
 
                 List<Index> indexes = new Index.Matcher().lower(ddl).collect(toList());
                 assertThat(indexes).hasSize(1);
-                assertThat(indexes.get(0).getTable()).isEqualTo("GENASA1.CUSTOMER");
-                assertThat(indexes.get(0).isUnique()).isTrue();
+                assertThat(indexes.getFirst().getTable()).isEqualTo("GENASA1.CUSTOMER");
+                assertThat(indexes.getFirst().isUnique()).isTrue();
 
                 // The stream is read back exactly as the job holds it, which is what makes parsing
                 // it the same as parsing a file.
-                assertThat(ddl.printAll()).isEqualTo(streams.get(0).getText());
+                assertThat(ddl.printAll()).isEqualTo(streams.getFirst().getText());
             })
           )
         );

@@ -77,7 +77,7 @@ class ScheduledJobTest implements RewriteTest {
     void readsThePanel() {
         rewriteRun(
           controlM(PANEL, spec -> spec.afterRecipe(cu -> {
-              ScheduledJob job = jobsOf(cu).get(0);
+              ScheduledJob job = jobsOf(cu).getFirst();
               assertThat(job.getName()).isEqualTo("CLMJ010");
               assertThat(job.getMemberName()).isEqualTo("CLMJ010");
               assertThat(job.getLibrary()).isEqualTo("CLM.PROD.JCL");
@@ -109,7 +109,7 @@ class ScheduledJobTest implements RewriteTest {
               List<ScheduledJob> jobs = jobsOf(cu);
               assertThat(jobs).hasSize(2);
 
-              ScheduledJob table = jobs.get(0);
+              ScheduledJob table = jobs.getFirst();
               assertThat(table.isTable()).isTrue();
               assertThat(table.getName()).isEqualTo("CLMNIGHT");
               assertThat(table.getMemberName()).isNull();
@@ -147,7 +147,7 @@ class ScheduledJobTest implements RewriteTest {
     void readsOnlyTheCalendarsNamed() {
         rewriteRun(
           controlM(PANEL, spec -> spec.afterRecipe(cu ->
-            assertThat(jobsOf(cu).get(0).getCalendarReferences()).singleElement().satisfies(reference -> {
+            assertThat(jobsOf(cu).getFirst().getCalendarReferences()).singleElement().satisfies(reference -> {
                 assertThat(reference.getKind()).isEqualTo(CalendarReference.Kind.DAYS);
                 assertThat(reference.getCalendar()).isEqualTo("CLMWORK");
             })))
@@ -159,7 +159,7 @@ class ScheduledJobTest implements RewriteTest {
         rewriteRun(
           controlM(EXPORT, spec -> spec.afterRecipe(cu -> {
               List<ScheduledJob> jobs = jobsOf(cu);
-              assertThat(jobs.get(0).getCalendarReferences()).singleElement()
+              assertThat(jobs.getFirst().getCalendarReferences()).singleElement()
                 .extracting(CalendarReference::getCalendar).isEqualTo("CLMWORK");
               // CONFCAL is written empty, which is the export's way of saying it names none
               assertThat(jobs.get(1).getCalendarReferences()).singleElement().satisfies(reference -> {
@@ -206,7 +206,7 @@ class ScheduledJobTest implements RewriteTest {
               | APPL TYPE                                  APPL VER                         |
               """,
             spec -> spec.afterRecipe(cu -> {
-                ScheduledJob job = jobsOf(cu).get(0);
+                ScheduledJob job = jobsOf(cu).getFirst();
                 assertThat(job.getInConditions())
                   .extracting(InCondition::toString)
                   .containsExactly("IN CLMNIGHT_CLMJ020_OK 0101", "IN CLMNIGHT_CLMJ010_OK $$$$",
@@ -226,9 +226,10 @@ class ScheduledJobTest implements RewriteTest {
           controlM(
             PANEL.replace(
               "| IN       CLMMAST-CLOSED       ODAT                                          |",
-              "| IN      (CLMNIGHT_CLMJ010_OK  0101      |CLMNIGHT_CLMJ020_OK) 0101          |\n" +
-              "|          ¬CLMHOLD             ODAT                                          |"),
-            spec -> spec.afterRecipe(cu -> assertThat(jobsOf(cu).get(0).getInConditions())
+              """
+              | IN      (CLMNIGHT_CLMJ010_OK  0101      |CLMNIGHT_CLMJ020_OK) 0101          |
+              |          ¬CLMHOLD             ODAT                                          |"""),
+            spec -> spec.afterRecipe(cu -> assertThat(jobsOf(cu).getFirst().getInConditions())
               .extracting(InCondition::getName)
               .containsExactly("CLMNIGHT_CLMJ010_OK", "CLMNIGHT_CLMJ020_OK", "CLMHOLD")))
         );
@@ -242,7 +243,7 @@ class ScheduledJobTest implements RewriteTest {
               "| APPL    CLAIMS                          GROUP CLMNIGHT                      |",
               "| APPL    CLAIMS                  TBL CLMNIGHT             RBC CLMWORKDAYS    |"),
             spec -> spec.afterRecipe(cu -> {
-                ScheduledJob job = jobsOf(cu).get(0);
+                ScheduledJob job = jobsOf(cu).getFirst();
                 assertThat(job.getApplication()).isEqualTo("CLAIMS");
                 assertThat(job.getGroup()).isEqualTo("CLMNIGHT");
             }))
@@ -270,8 +271,8 @@ class ScheduledJobTest implements RewriteTest {
                 List<ScheduledJob> jobs = jobsOf(cu);
                 assertThat(jobs).extracting(ScheduledJob::toString)
                   .containsExactly("JOB CLMJ110", "TABLE CLMNIGHT", "JOB CLMJ010");
-                assertThat(jobs.get(0).getGroup()).isEqualTo("CLMDAY");
-                assertThat(jobs.get(0).getOutConditions()).extracting(OutCondition::isDeleted)
+                assertThat(jobs.getFirst().getGroup()).isEqualTo("CLMDAY");
+                assertThat(jobs.getFirst().getOutConditions()).extracting(OutCondition::isDeleted)
                   .containsExactly(true, false);
                 assertThat(jobs.get(2).getGroupMembership()).satisfies(membership -> {
                     assertThat(membership.getGroup()).isEqualTo("CLMNIGHT");

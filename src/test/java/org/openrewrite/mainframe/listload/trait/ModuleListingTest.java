@@ -94,7 +94,7 @@ class ModuleListingTest implements RewriteTest {
     void whatAModuleSummarySaysAboutTheModule() {
         rewriteRun(
           text(AMBLIST, spec -> spec.afterRecipe(cu -> {
-              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().get(0);
+              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();
               assertThat(module.getName()).isEqualTo("CLMI010");
               assertThat(module.getLibrary()).isEqualTo("LOADLIB");
               assertThat(module.getDataSetName()).isEqualTo("CLM.PROD.LOADLIB");
@@ -116,7 +116,7 @@ class ModuleListingTest implements RewriteTest {
         rewriteRun(
           text(AMBLIST, spec -> spec.afterRecipe(cu -> {
               ModuleListing.Entry entry = new ModuleListing.Matcher().require(cu, null)
-                .getModules().get(0).getEntry();
+                .getModules().getFirst().getEntry();
               assertThat(entry.getName()).isEqualTo("DLITCBL");
               assertThat(entry.getOffset()).isEqualTo("F8");
               assertThat(entry.getLine()).isEqualTo(19);
@@ -128,7 +128,7 @@ class ModuleListingTest implements RewriteTest {
     void theSectionsTheModuleIsMadeOf() {
         rewriteRun(
           text(AMBLIST, spec -> spec.afterRecipe(cu -> {
-              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().get(0);
+              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();
               assertThat(module.getCsects())
                 .extracting(ModuleListing.Csect::getName, ModuleListing.Csect::getOffset,
                   ModuleListing.Csect::getLength, ModuleListing.Csect::getType)
@@ -159,7 +159,7 @@ class ModuleListingTest implements RewriteTest {
 
         rewriteRun(
           text(report, spec -> spec.afterRecipe(cu -> assertThat(
-            new ModuleListing.Matcher().require(cu, null).getModules().get(0).getCsects())
+            new ModuleListing.Matcher().require(cu, null).getModules().getFirst().getCsects())
             .extracting(ModuleListing.Csect::getName)
             .containsExactly("CLMB010")))
         );
@@ -169,7 +169,7 @@ class ModuleListingTest implements RewriteTest {
     void whatCompiledEachSection() {
         rewriteRun(
           text(AMBLIST, spec -> spec.afterRecipe(cu -> assertThat(
-            new ModuleListing.Matcher().require(cu, null).getModules().get(0).getCsects())
+            new ModuleListing.Matcher().require(cu, null).getModules().getFirst().getCsects())
             .extracting(csect -> csect.getTranslator().getProductId(),
               csect -> csect.getTranslator().getLanguage(),
               csect -> csect.getTranslator().getVersion(),
@@ -201,7 +201,7 @@ class ModuleListingTest implements RewriteTest {
     void theDeckABinderListingEchoes() {
         rewriteRun(
           text(BINDER, spec -> spec.afterRecipe(cu -> {
-              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().get(0);
+              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();
               assertThat(module.getName()).isEqualTo("CLMC020");
               assertThat(module.getLine()).isEqualTo(9);
               assertThat(module.getEntry().getName()).isEqualTo("CLMC020");
@@ -221,7 +221,7 @@ class ModuleListingTest implements RewriteTest {
     void theSectionsABinderMapPlaces() {
         rewriteRun(
           text(BINDER, spec -> spec.afterRecipe(cu -> {
-              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().get(0);
+              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();
               assertThat(module.getCsects())
                 .extracting(ModuleListing.Csect::getName, ModuleListing.Csect::getOffset,
                   ModuleListing.Csect::getLength, ModuleListing.Csect::getDdName, ModuleListing.Csect::getMember)
@@ -251,7 +251,7 @@ class ModuleListingTest implements RewriteTest {
 
         rewriteRun(
           text(listing, spec -> spec.afterRecipe(cu -> assertThat(
-            new ModuleListing.Matcher().require(cu, null).getModules().get(0).getCsects())
+            new ModuleListing.Matcher().require(cu, null).getModules().getFirst().getCsects())
             .extracting(ModuleListing.Csect::getName)
             .containsExactly("CLMC020", "DFHECI", "CLMU020")))
         );

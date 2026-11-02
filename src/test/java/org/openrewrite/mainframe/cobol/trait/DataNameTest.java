@@ -28,7 +28,6 @@ import org.openrewrite.test.RewriteTest;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -163,13 +162,13 @@ class DataNameTest implements RewriteTest {
             """
         );
 
-        DataName set = usagesOf(names, "ERR-FLG-OFF").get(0);
+        DataName set = usagesOf(names, "ERR-FLG-OFF").getFirst();
         assertThat(set.isSet()).isTrue();
         assertThat(set.isConditionName()).isTrue();
         assertThat(set.getLevel()).isEqualTo(88);
         assertThat(set.getConditionalVariable()).isNotNull().extracting(DataName::getName).isEqualTo("WS-ERR-FLG");
 
-        DataName tested = usagesOf(names, "END-OF-FILE").get(0);
+        DataName tested = usagesOf(names, "END-OF-FILE").getFirst();
         assertThat(tested.isSet()).isFalse();
         assertThat(tested.getConditionalVariable()).isNotNull().extracting(DataName::getName).isEqualTo("WS-EOF-FLG");
 
@@ -238,16 +237,16 @@ class DataNameTest implements RewriteTest {
         assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
           .containsExactly("WS-ROW", "WS-IDX", "WS-BUF");
 
-        DataName row = usagesOf(names, "WS-ROW").get(0);
+        DataName row = usagesOf(names, "WS-ROW").getFirst();
         assertThat(row.isSubscripted()).isTrue();
         assertThat(row.isReferenceModified()).isFalse();
         assertThat(row.getDefinition()).isNotNull().extracting(DataName::getLevel).isEqualTo(5);
 
-        DataName index = usagesOf(names, "WS-IDX").get(0);
+        DataName index = usagesOf(names, "WS-IDX").getFirst();
         assertThat(index.isSubscripted()).isFalse();
         assertThat(index.getDefinition()).isNotNull();
 
-        DataName buffer = usagesOf(names, "WS-BUF").get(0);
+        DataName buffer = usagesOf(names, "WS-BUF").getFirst();
         assertThat(buffer.isReferenceModified()).isTrue();
         assertThat(buffer.isSubscripted()).isFalse();
         assertThat(buffer.getDefinition()).isNotNull();
@@ -305,8 +304,8 @@ class DataNameTest implements RewriteTest {
           .containsExactly("CUST-ID", "REC-A", "CUST-ID", "REC-B", "CUST-ID", "CUST-NM");
 
         List<DataName> usages = usagesOf(names, "CUST-ID");
-        assertThat(usages.get(0).getQualifiers()).containsExactly("REC-A");
-        assertThat(usages.get(0).getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-A");
+        assertThat(usages.getFirst().getQualifiers()).containsExactly("REC-A");
+        assertThat(usages.getFirst().getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-A");
         assertThat(usages.get(1).getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-B");
         assertThat(usages.get(2).getQualifiers()).isEmpty();
         assertThat(usages.get(2).getDefinition()).isNull();
@@ -315,11 +314,11 @@ class DataNameTest implements RewriteTest {
         assertThat(DataName.candidatesOf(usages.get(2).getCursor(), "cust-id", List.of("rec-b")))
           .extracting(c -> c.getParent().getName()).containsExactly("REC-B");
 
-        DataName qualifier = usagesOf(names, "REC-A").get(0);
+        DataName qualifier = usagesOf(names, "REC-A").getFirst();
         assertThat(qualifier.getQualifiers()).isEmpty();
         assertThat(qualifier.getDefinition()).isNotNull().extracting(DataName::getLevel).isEqualTo(1);
 
-        assertThat(usagesOf(names, "CUST-NM").get(0).getDefinition()).isNotNull();
+        assertThat(usagesOf(names, "CUST-NM").getFirst().getDefinition()).isNotNull();
         assertThat(names).filteredOn(DataName::isDefinition).allSatisfy(d -> assertThat(d.isReferenced()).isTrue());
     }
 
@@ -344,7 +343,7 @@ class DataNameTest implements RewriteTest {
         );
 
         List<DataName> keys = usagesOf(names, "KEY-GRP");
-        assertThat(keys.get(0).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
+        assertThat(keys.getFirst().getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
         assertThat(keys.get(1).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-B");
         assertThat(keys.get(2).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
     }
@@ -450,12 +449,12 @@ class DataNameTest implements RewriteTest {
         List<Cobol.Word> records = definitionsOf(names, "OUT-REC");
         List<Cobol.Word> keys = definitionsOf(names, "OUT-KEY");
         assertThat(usagesOf(names, "OUT-REC")).extracting(u -> u.getDefinition().getTree())
-          .containsExactly(records.get(0), records.get(1), records.get(0));
+          .containsExactly(records.getFirst(), records.get(1), records.getFirst());
         assertThat(usagesOf(names, "OUT-KEY")).extracting(u -> u.getDefinition().getTree())
-          .containsExactly(keys.get(0), keys.get(1));
-        assertThat(usagesOf(names, "KEY-EMPTY").get(0).getDefinition()).isNotNull();
+          .containsExactly(keys.getFirst(), keys.get(1));
+        assertThat(usagesOf(names, "KEY-EMPTY").getFirst().getDefinition()).isNotNull();
 
-        assertThat(usagesOf(names, "OUT-REC").get(0).getQualifiers()).isEmpty();
+        assertThat(usagesOf(names, "OUT-REC").getFirst().getQualifiers()).isEmpty();
         assertThat(usagesOf(names, "OUT-KEY")).extracting(DataName::getQualifiers)
           .containsExactly(List.of("OUT-REC"), List.of());
     }
@@ -496,13 +495,13 @@ class DataNameTest implements RewriteTest {
 
         assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
           .containsExactly("CUST-REC", "CUST-ID", "CUST-FILE");
-        assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull()
+        assertThat(usagesOf(names, "CUST-REC").getFirst().getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
 
         // HIDEPGM's own CUST-FILE hides OUTERPGM's GLOBAL file of that name.
-        assertThat(usagesOf(names, "CUST-ID").get(0).getDefinition()).isNotNull()
+        assertThat(usagesOf(names, "CUST-ID").getFirst().getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
-        assertThat(usagesOf(names, "CUST-FILE").get(0).getDefinition()).isNotNull()
+        assertThat(usagesOf(names, "CUST-FILE").getFirst().getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
     }
 
@@ -533,7 +532,7 @@ class DataNameTest implements RewriteTest {
         assertThat(names).filteredOn(n -> !n.isDefinition())
           .allSatisfy(u -> assertThat(u.getCopybook()).isNull());
 
-        DataName set = usagesOf(names, "FLTCMT-EYE-VALID").get(0);
+        DataName set = usagesOf(names, "FLTCMT-EYE-VALID").getFirst();
         assertThat(set.getDefinition()).isNotNull().extracting(DataName::getCopybook).isEqualTo("FLTCMT");
         assertThat(set.getConditionalVariable()).isNotNull().extracting(DataName::getName).isEqualTo("FLTCMT-EYE");
 
@@ -577,7 +576,7 @@ class DataNameTest implements RewriteTest {
             });
             assertThat(usage.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("SQLCA");
         });
-        assertThat(usagesOf(names, "WS-LEN").get(0).getDefinition()).isNotNull()
+        assertThat(usagesOf(names, "WS-LEN").getFirst().getDefinition()).isNotNull()
           .extracting(DataName::isSystemSupplied).isEqualTo(false);
     }
 
@@ -598,7 +597,7 @@ class DataNameTest implements RewriteTest {
         );
 
         List<DataName> dates = usagesOf(names, "EIBDATE");
-        assertThat(dates.get(0).getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(true);
+        assertThat(dates.getFirst().getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(true);
         assertThat(dates.get(1).getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(false);
 
         // Unqualified, the name is ambiguous, as the compiler reads it once the translator has inserted DFHEIBLK.
@@ -719,7 +718,7 @@ class DataNameTest implements RewriteTest {
             """
         );
 
-        DataName usage = usagesOf(names, "APPLIDO").get(0);
+        DataName usage = usagesOf(names, "APPLIDO").getFirst();
         assertThat(usage.getQualifiers()).containsExactly("MAPBO", "MAPS");
         assertThat(usage.getParent()).extracting(DataName::getName).isEqualTo("MAPBO");
     }
@@ -750,10 +749,10 @@ class DataNameTest implements RewriteTest {
         assertThat(names).filteredOn(n -> !n.isDefinition()).allSatisfy(usage ->
           assertThat(usage.getDefinition()).as(usage.getName()).isNotNull());
 
-        DataName number = usagesOf(names, "CTANUM").get(0);
+        DataName number = usagesOf(names, "CTANUM").getFirst();
         assertThat(number.getQualifiers()).containsExactly("DCLCTAB");
         assertThat(number.getParent()).extracting(DataName::getName).isEqualTo("DCLCTAB");
-        assertThat(usagesOf(names, "DCLCTAA").get(0).getQualifiers()).isEmpty();
+        assertThat(usagesOf(names, "DCLCTAA").getFirst().getQualifiers()).isEmpty();
     }
 
     @Test
@@ -810,7 +809,7 @@ class DataNameTest implements RewriteTest {
         assertThat(definitions).hasSize(2).allMatch(DataName::isReferenced);
         assertThat(usagesOf(names, "WS-SHARED")).satisfiesExactly(
           outer -> assertThat(outer.getDefinition()).isNotNull()
-            .extracting(d -> d.getTree().getId()).isEqualTo(definitions.get(0).getTree().getId()),
+            .extracting(d -> d.getTree().getId()).isEqualTo(definitions.getFirst().getTree().getId()),
           inner -> assertThat(inner.getDefinition()).isNotNull()
             .extracting(d -> d.getTree().getId()).isEqualTo(definitions.get(1).getTree().getId()));
     }
@@ -861,8 +860,8 @@ class DataNameTest implements RewriteTest {
           .containsExactly("FLAG-ON", "WS-REC", "CUST-REC", "EIBCALEN", "WS-NEAR");
         // INNERPGM declares nothing, so each usage reads through to a GLOBAL item of a containing program.
         assertThat(names).filteredOn(n -> !n.isDefinition()).allMatch(DataName::isGlobal);
-        assertThat(usagesOf(names, "CUST-REC").get(0).getDefinition()).isNotNull();
-        assertThat(usagesOf(names, "EIBCALEN").get(0).getDefinition()).isNotNull()
+        assertThat(usagesOf(names, "CUST-REC").getFirst().getDefinition()).isNotNull();
+        assertThat(usagesOf(names, "EIBCALEN").getFirst().getDefinition()).isNotNull()
           .extracting(DataName::isSystemSupplied).isEqualTo(true);
         // Credited through the condition name SET in INNERPGM.
         assertThat(definitionOf(names, "WS-FLAG").isReferenced()).isTrue();
@@ -870,11 +869,11 @@ class DataNameTest implements RewriteTest {
         // MIDPGM's WS-REC is not GLOBAL, so it neither reaches INNERPGM nor hides OUTERPGM's.
         assertThat(names).filteredOn(n -> n.isDefinition() && n.getName().equals("WS-REC"))
           .extracting(DataName::isGlobal).containsExactly(true, false);
-        assertThat(usagesOf(names, "WS-REC").get(0).getDefinition()).isNotNull()
+        assertThat(usagesOf(names, "WS-REC").getFirst().getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
-        assertThat(usagesOf(names, "WS-NEAR").get(0).getDefinition()).isNotNull()
+        assertThat(usagesOf(names, "WS-NEAR").getFirst().getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("MIDPGM");
-        assertThat(DataName.candidatesOf(usagesOf(names, "WS-NEAR").get(0).getCursor(), "WS-NEAR", List.of()))
+        assertThat(DataName.candidatesOf(usagesOf(names, "WS-NEAR").getFirst().getCursor(), "WS-NEAR", List.of()))
           .extracting(d -> Program.nameOf(d.getCursor())).containsExactly("MIDPGM");
     }
 
@@ -912,7 +911,7 @@ class DataNameTest implements RewriteTest {
     @EnabledIfEnvironmentVariable(named = "COBOL_CORPUS", matches = ".+")
     @Test
     void readsRealPrograms() throws IOException {
-        Path root = Paths.get(System.getenv("COBOL_CORPUS"));
+        Path root = Path.of(System.getenv("COBOL_CORPUS"));
         Map<String, List<DataName>> programs = new HashMap<>();
         int definitions = 0;
         int usages = 0;

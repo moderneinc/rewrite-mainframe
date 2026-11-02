@@ -94,8 +94,8 @@ class CobolPreprocessorReplaceTest extends CobolTest {
                   .flatMap(area -> area.getReplaceByStatement().getClauses().stream())
                   .toList();
                 assertThat(clauses).hasSize(3);
-                assertThat(clauses.get(0).getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
-                assertThat(words(clauses.get(0).getReplacement())).containsExactly("B", "OF", "C");
+                assertThat(clauses.getFirst().getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
+                assertThat(words(clauses.getFirst().getReplacement())).containsExactly("B", "OF", "C");
                 assertThat(clauses.get(1).getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
                 assertThat(words(clauses.get(1).getReplacement())).containsExactly("E", "(", "1", ")");
                 assertThat(clauses.get(2).getReplacement()).isInstanceOf(CobolPreprocessor.Word.class);

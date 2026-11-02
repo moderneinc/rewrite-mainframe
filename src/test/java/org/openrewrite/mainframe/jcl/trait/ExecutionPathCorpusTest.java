@@ -25,7 +25,6 @@ import org.openrewrite.mainframe.jcl.tree.Jcl;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -96,14 +95,14 @@ class ExecutionPathCorpusTest {
 
         // No line of CLMUNLD says which table it unloads: the member is the value of DECK=, the
         // SYSIN that reads it is written in proc CLMUNL, and the gap is reported against that step.
-        assertThat(unloads.get("CLMUNLD").get(0).getGaps())
+        assertThat(unloads.get("CLMUNLD").getFirst().getGaps())
                 .allSatisfy(gap -> assertThat(gap.getStep()).isEqualTo("UNLPOL.UNL"));
 
         // CLMUNLD is the one whose four load bearing keywords are all uncoded, which is what the
         // fixture wrote it for; CLMUNLP codes each of them.
-        assertThat(names(unloads.get("CLMUNLD").get(0)))
+        assertThat(names(unloads.get("CLMUNLD").getFirst()))
                 .containsExactly("FORMAT", "DB2", "QUIESCE", "LOCK");
-        assertThat(names(unloads.get("CLMUNLP").get(0))).isEmpty();
+        assertThat(names(unloads.get("CLMUNLP").getFirst())).isEmpty();
     }
 
     private static List<ExecutionPath.Verdict> verdicts(List<ExecutionPath> paths) {
@@ -129,7 +128,7 @@ class ExecutionPathCorpusTest {
     }
 
     private static Path fixture() throws IOException {
-        for (Path repository : Corpus.repositories(Paths.get(System.getenv("JCL_CORPUS")))) {
+        for (Path repository : Corpus.repositories(Path.of(System.getenv("JCL_CORPUS")))) {
             if (Corpus.isFixture(repository)) {
                 return repository;
             }

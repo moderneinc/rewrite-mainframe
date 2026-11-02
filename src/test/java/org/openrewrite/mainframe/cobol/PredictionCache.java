@@ -56,8 +56,8 @@ final class PredictionCache {
     }
 
     private static String unordered(SemanticContext context) {
-        SemanticContext[] operands = context instanceof SemanticContext.AND ? ((SemanticContext.AND) context).opnds :
-          context instanceof SemanticContext.OR ? ((SemanticContext.OR) context).opnds : null;
+        SemanticContext[] operands = context instanceof SemanticContext.AND and ? and.opnds :
+          context instanceof SemanticContext.OR or ? or.opnds : null;
         if (operands == null) {
             return context.toString();
         }

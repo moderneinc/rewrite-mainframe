@@ -45,9 +45,9 @@ class StepTest implements RewriteTest {
                 List<Step> steps = steps(cu);
                 assertThat(steps).extracting(Step::getName).containsExactly("STEP010", "STEP020");
                 assertThat(steps).extracting(Step::getProgram).containsExactly("ACCTPOST", "ACCTRPT");
-                assertThat(steps.get(0).getProcedure()).isNull();
+                assertThat(steps.getFirst().getProcedure()).isNull();
 
-                Step step = steps.get(0);
+                Step step = steps.getFirst();
                 assertThat(step.getDataDefinitions()).extracting(DataDefinition::getName)
                   .containsExactly("ACCTDD", "TRANDD", "SYSOUT");
                 // The DDs of the next step are its own.
@@ -95,7 +95,7 @@ class StepTest implements RewriteTest {
               //SYSIN    DD  DUMMY
               """,
             spec -> spec.afterRecipe(cu -> {
-                Step step = steps(cu).get(0);
+                Step step = steps(cu).getFirst();
                 assertThat(step.getDataDefinitions()).extracting(DataDefinition::getName)
                   .containsExactly("STEPLIB", "SYSIN");
                 assertThat(step.getDataDefinition("STEPLIB").getDataSets()).extracting(DataSet::getName)
@@ -122,18 +122,18 @@ class StepTest implements RewriteTest {
               //TEMP     DD  DSN=&&WORK,DISP=(NEW,PASS)
               """,
             spec -> spec.afterRecipe(cu -> {
-                Step step = steps(cu).get(0);
+                Step step = steps(cu).getFirst();
 
-                DataSet cards = step.getDataDefinition("CARDS").getDataSets().get(0);
+                DataSet cards = step.getDataDefinition("CARDS").getDataSets().getFirst();
                 assertThat(cards.getName()).isEqualTo("PROD.PARMLIB");
                 assertThat(cards.getMember()).isEqualTo("ACCTCARD");
                 assertThat(cards.isGenerationDataGroup()).isFalse();
 
-                DataSet generation = step.getDataDefinition("NEWGEN").getDataSets().get(0);
+                DataSet generation = step.getDataDefinition("NEWGEN").getDataSets().getFirst();
                 assertThat(generation.getName()).isEqualTo("PROD.ACCOUNT.HIST");
                 assertThat(generation.isGenerationDataGroup()).isTrue();
 
-                assertThat(step.getDataDefinition("TEMP").getDataSets().get(0).isTemporary()).isTrue();
+                assertThat(step.getDataDefinition("TEMP").getDataSets().getFirst().isTemporary()).isTrue();
             })
           )
         );
@@ -171,7 +171,7 @@ class StepTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu -> {
-                Step step = steps(cu).get(0);
+                Step step = steps(cu).getFirst();
                 DataDefinition sysin = step.getDataDefinition("SYSIN");
                 assertThat(sysin.isInStream()).isTrue();
                 assertThat(sysin.getDataSets()).isEmpty();
@@ -205,7 +205,7 @@ class StepTest implements RewriteTest {
                 assertThat(dds).extracting(DataDefinition::getName)
                   .containsExactly("JOBLIB", "ACCTDD", "RPTDD");
                 // A JOBLIB is the job's, not any step's.
-                assertThat(dds.get(0).getStep()).isNull();
+                assertThat(dds.getFirst().getStep()).isNull();
                 assertThat(dds.get(1).getStep().getName()).isEqualTo("STEP010");
                 assertThat(dds.get(2).getStep().getName()).isEqualTo("STEP020");
             })
@@ -267,7 +267,7 @@ class StepTest implements RewriteTest {
               //SYSPRINT DD  SYSOUT=*
               """,
             spec -> spec.afterRecipe(cu -> {
-                Step step = steps(cu).get(0);
+                Step step = steps(cu).getFirst();
                 assertThat(step.getParm()).isEqualTo("DB2P,CLMU001,HIDDEN(USER,PSWD)");
                 assertThat(step.getParmPositions())
                   .containsExactly("DB2P", "CLMU001", "HIDDEN(USER,PSWD)");
@@ -284,7 +284,7 @@ class StepTest implements RewriteTest {
           jcl(
             "//STEP010  EXEC PGM=ACCTPOST\n",
             spec -> spec.afterRecipe(cu -> {
-                Step step = steps(cu).get(0);
+                Step step = steps(cu).getFirst();
                 assertThat(step.getParm()).isNull();
                 assertThat(step.getParmPositions()).isEmpty();
                 assertThat(step.getParmPosition(0)).isNull();

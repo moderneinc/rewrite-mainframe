@@ -28,7 +28,7 @@ import org.openrewrite.tree.ParseError;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -108,7 +108,7 @@ class BmsParserTest {
         Bms.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
         assertThat(cu.getStatements()).hasSize(2);
-        Bms.MacroStatement field = (Bms.MacroStatement) cu.getStatements().get(0);
+        Bms.MacroStatement field = (Bms.MacroStatement) cu.getStatements().getFirst();
         assertThat(field.getParameter("INITIAL").getValueText()).isEqualTo("'NEW LABEL:'");
         assertThat(field.getOperands()).anySatisfy(operand -> assertThat(operand).isInstanceOf(Bms.Comment.class));
     }
@@ -121,18 +121,20 @@ class BmsParserTest {
 
         Bms.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
-        Bms.MacroStatement mapset = (Bms.MacroStatement) cu.getStatements().get(0);
+        Bms.MacroStatement mapset = (Bms.MacroStatement) cu.getStatements().getFirst();
         assertThat(mapset.getParameter("DSATTS").getValueText()).isEqualTo("(COLOR,HILIGHT)");
         assertThat(mapset.getParameter("CTRL").getValueText()).isEqualTo("FREEKB");
 
         // Broken inside a word, the list picks up in column 16.
         source =
-          "DATE     DFHMDF POS=(1,6),LENGTH=10,INITIAL='dd/mm/yyyy',ATTRB=(PROT,BRX\n" +
-          "               T)\n";
+          """
+          DATE     DFHMDF POS=(1,6),LENGTH=10,INITIAL='dd/mm/yyyy',ATTRB=(PROT,BRX
+                         T)
+          """;
 
         cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
-        assertThat(((Bms.MacroStatement) cu.getStatements().get(0)).getParameter("ATTRB").getValueText())
+        assertThat(((Bms.MacroStatement) cu.getStatements().getFirst()).getParameter("ATTRB").getValueText())
           .isEqualTo("(PROT,BRT)");
     }
 
@@ -155,7 +157,7 @@ class BmsParserTest {
 
         Bms.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
-        Bms.MacroStatement mapset = (Bms.MacroStatement) cu.getStatements().get(0);
+        Bms.MacroStatement mapset = (Bms.MacroStatement) cu.getStatements().getFirst();
         assertThat(mapset.getSimpleName()).isEqualTo("COSGN00");
         assertThat(mapset.isOperation("DFHMSD")).isTrue();
     }
@@ -163,7 +165,7 @@ class BmsParserTest {
     @Test
     void aSourceTheReaderCannotFollowIsAParseError() {
         // A carriage return with no line feed ends a line for the line reader but not for the lexer.
-        Parser.Input input = new Parser.Input(Paths.get("COSGN00.bms"), () -> new ByteArrayInputStream(
+        Parser.Input input = new Parser.Input(Path.of("COSGN00.bms"), () -> new ByteArrayInputStream(
           "COSGN00 DFHMSD LANG=COBOL\r        DFHMDF POS=(1,1)\n".getBytes(StandardCharsets.UTF_8)));
         SourceFile parsed = BmsParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
@@ -188,8 +190,9 @@ class BmsParserTest {
     @Test
     void noTrailingNewline() {
         String source =
-          "COSGN00 DFHMSD LANG=COBOL\n" +
-          "        END";
+          """
+          COSGN00 DFHMSD LANG=COBOL
+                  END""";
 
         Bms.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -199,9 +202,11 @@ class BmsParserTest {
     @Test
     void anEmptyLineBetweenStatements() {
         String source =
-          "COSGN00 DFHMSD LANG=COBOL\n" +
-          "\n" +
-          "        END\n";
+          """
+          COSGN00 DFHMSD LANG=COBOL
+          
+                  END
+          """;
 
         Bms.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -215,27 +220,29 @@ class BmsParserTest {
     @Test
     void anApostropheInAComment() {
         String source =
-          "* Don't take this as the start of a string\n" +
-          "COSGN00 DFHMSD LANG=COBOL\n";
+          """
+          * Don't take this as the start of a string
+          COSGN00 DFHMSD LANG=COBOL
+          """;
 
         Bms.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
         assertThat(cu.getStatements()).hasSize(2);
-        assertThat(cu.getStatements().get(0)).isInstanceOf(Bms.Comment.class);
-        assertThat(((Bms.Comment) cu.getStatements().get(0)).getWord().getText())
+        assertThat(cu.getStatements().getFirst()).isInstanceOf(Bms.Comment.class);
+        assertThat(((Bms.Comment) cu.getStatements().getFirst()).getWord().getText())
           .isEqualTo("* Don't take this as the start of a string");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"COSGN00.bms", "COSGN00.BMS", "bms/COSGN00.Bms"})
     void acceptsAMapSetByExtension(String name) {
-        assertThat(BmsParser.builder().build().accept(Paths.get(name))).isTrue();
+        assertThat(BmsParser.builder().build().accept(Path.of(name))).isTrue();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"COSGN00.cbl", "COSGN00.cpy", "COSGN00.jcl", "COSGN00"})
     void rejectsOtherExtensions(String name) {
-        assertThat(BmsParser.builder().build().accept(Paths.get(name))).isFalse();
+        assertThat(BmsParser.builder().build().accept(Path.of(name))).isFalse();
     }
 
     /**
@@ -245,7 +252,7 @@ class BmsParserTest {
      */
     @Test
     void aFileThatIsNotAMapSetIsSaidSo() {
-        Parser.Input input = new Parser.Input(Paths.get("COSGN00.bms"),
+        Parser.Input input = new Parser.Input(Path.of("COSGN00.bms"),
           () -> new ByteArrayInputStream("         MACRO\n         MYMAC\n         MEND\n".getBytes(StandardCharsets.UTF_8)));
         SourceFile parsed = BmsParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
@@ -275,8 +282,8 @@ class BmsParserTest {
           .parse(new InMemoryExecutionContext(), source)
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Bms.CompilationUnit.class);
-        return (Bms.CompilationUnit) parsed.get(0);
+        assertThat(parsed.getFirst()).isInstanceOf(Bms.CompilationUnit.class);
+        return (Bms.CompilationUnit) parsed.getFirst();
     }
 
     /**

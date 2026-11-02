@@ -129,6 +129,6 @@ class InputLayoutTest implements RewriteTest {
     private static List<InputLayout.Field> fields(PlainText cu) {
         List<InputLayout.Layout> layouts = new InputLayout.Matcher().require(cu, null).getLayouts();
         assertThat(layouts).hasSize(1);
-        return layouts.get(0).getFields();
+        return layouts.getFirst().getFields();
     }
 }

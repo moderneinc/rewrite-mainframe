@@ -28,7 +28,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -73,7 +72,7 @@ class ListLoadCorpusTest {
 
     @Test
     void readsRealModuleListings() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int listings = 0;
         int modules = 0;
@@ -156,7 +155,7 @@ class ListLoadCorpusTest {
      */
     @Test
     void readsTheFixtureListingsModuleByModule() throws IOException {
-        Path listload = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "listload");
+        Path listload = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "listload");
         assertThat(Files.isDirectory(listload)).as("%s", listload).isTrue();
 
         TreeMap<String, List<ModuleListing.Module>> byMember = new TreeMap<>();
@@ -232,7 +231,7 @@ class ListLoadCorpusTest {
      */
     @Test
     void whatTheBinderPrintedAgreesWithWhatAmblistFound() throws IOException {
-        Path listload = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "listload");
+        Path listload = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "listload");
         TreeMap<String, ModuleListing.Module> listed = new TreeMap<>();
         TreeMap<String, ModuleListing.Module> printed = new TreeMap<>();
 
@@ -267,7 +266,7 @@ class ListLoadCorpusTest {
      */
     @Test
     void typesTheRequestDecksAndNothingElse() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
         List<String> claimedTwice = new ArrayList<>();
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> listings = Corpus.moduleListings(repository);
@@ -289,7 +288,7 @@ class ListLoadCorpusTest {
         }
         assertThat(claimedTwice).isEmpty();
 
-        Path ctlcard = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
+        Path ctlcard = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
         List<Path> decks = Corpus.moduleListings(ctlcard);
         assertThat(decks).extracting(p -> p.getFileName().toString())
           .containsExactly("LSTCLM01.ctl", "LSTCLM02.ctl");
@@ -331,6 +330,6 @@ class ListLoadCorpusTest {
           .parseInputs(singletonList(new Parser.Input(member, () -> new ByteArrayInputStream(source.getBytes()))),
             null, new InMemoryExecutionContext())
           .collect(Collectors.toList());
-        return parsed.size() == 1 && parsed.get(0) instanceof PlainText ? (PlainText) parsed.get(0) : null;
+        return parsed.size() == 1 && parsed.getFirst() instanceof PlainText ? (PlainText) parsed.getFirst() : null;
     }
 }

@@ -60,7 +60,7 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).hasSize(1);
-        DliCall gu = calls.get(0);
+        DliCall gu = calls.getFirst();
         assertThat(gu.getIface()).isEqualTo("CBLTDLI");
         // The literal is padded to four bytes in the source and trimmed here.
         assertThat(gu.getFunction()).isEqualTo("GU");
@@ -87,8 +87,8 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).hasSize(1);
-        assertThat(calls.get(0).getFunction()).isEqualTo("ISRT");
-        assertThat(calls.get(0).getAccess()).isEqualTo(DliCall.Access.CREATE);
+        assertThat(calls.getFirst().getFunction()).isEqualTo("ISRT");
+        assertThat(calls.getFirst().getAccess()).isEqualTo(DliCall.Access.CREATE);
     }
 
     @Test
@@ -109,8 +109,8 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).hasSize(1);
-        assertThat(calls.get(0).getFunction()).isNull();
-        assertThat(calls.get(0).getAccess()).isEqualTo(DliCall.Access.UNKNOWN);
+        assertThat(calls.getFirst().getFunction()).isNull();
+        assertThat(calls.getFirst().getAccess()).isEqualTo(DliCall.Access.UNKNOWN);
     }
 
     @Test
@@ -130,14 +130,14 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).hasSize(1);
-        ProgramEntry pcbs = calls.get(0).getEntry();
+        ProgramEntry pcbs = calls.getFirst().getEntry();
         assertThat(pcbs).isNotNull();
         assertThat(pcbs.getPcbNames()).containsExactly("IO-PCB", "ACCT-DB-PCB", "HIST-DB-PCB");
         assertThat(pcbs.indexOf("NOT-A-PCB")).isEqualTo(-1);
         assertThat(pcbs.isIoPcb("IO-PCB")).isTrue();
         assertThat(pcbs.isIoPcb("ACCT-DB-PCB")).isFalse();
         // The position is what a PSB listing has to be joined on to name the database.
-        assertThat(calls.get(0).getPcbPosition()).isEqualTo(1);
+        assertThat(calls.getFirst().getPcbPosition()).isEqualTo(1);
     }
 
     @Test
@@ -160,10 +160,10 @@ class DliCallTest implements RewriteTest {
             """
         );
 
-        ProgramEntry pcbs = calls.get(0).getEntry();
+        ProgramEntry pcbs = calls.getFirst().getEntry();
         assertThat(pcbs).isNotNull();
         assertThat(pcbs.getPcbNames()).containsExactly("IO-PCB", "ACCT-DB-PCB", "HIST-DB-PCB");
-        assertThat(calls.get(0).getPcbPosition()).isEqualTo(2);
+        assertThat(calls.getFirst().getPcbPosition()).isEqualTo(2);
     }
 
     @Test
@@ -184,7 +184,7 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).hasSize(2);
-        assertThat(calls.get(0).isMessageCall()).isTrue();
+        assertThat(calls.getFirst().isMessageCall()).isTrue();
         assertThat(calls.get(1).isMessageCall()).isFalse();
     }
 
@@ -305,7 +305,7 @@ class DliCallTest implements RewriteTest {
             """
         );
 
-        DliCall call = calls.get(0);
+        DliCall call = calls.getFirst();
         assertThat(call.getFunctionDataName()).extracting(DataName::getName).isEqualTo("GU-FUNC");
         assertThat(call.getPcbDataName()).extracting(DataName::getName, DataName::getQualifiers)
           .containsExactly("DB-PCB", List.of("PCB-LIST"));
@@ -495,8 +495,8 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).hasSize(1);
-        assertThat(calls.get(0).getSsas()).containsExactly("ACCT-SSA");
-        assertThat(calls.get(0).getSegments()).containsExactly("ACCOUNT");
+        assertThat(calls.getFirst().getSsas()).containsExactly("ACCT-SSA");
+        assertThat(calls.getFirst().getSegments()).containsExactly("ACCOUNT");
     }
 
     @Test
@@ -514,7 +514,7 @@ class DliCallTest implements RewriteTest {
             """
         );
 
-        assertThat(calls.get(0).getSegments()).containsExactly("CUSTOMER");
+        assertThat(calls.getFirst().getSegments()).containsExactly("CUSTOMER");
     }
 
     /**
@@ -654,7 +654,7 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).hasSize(1);
-        DliCall gu = calls.get(0);
+        DliCall gu = calls.getFirst();
         assertThat(gu.getIface()).isEqualTo("EXEC DLI");
         assertThat(gu.getFunction()).isEqualTo("GU");
         assertThat(gu.getPcb()).isEqualTo("1");

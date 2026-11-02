@@ -24,13 +24,17 @@ class ImsLineReaderTest {
     @Test
     void classifiesLines() {
         String read = ImsLineReader.readLines(
-          "* a comment\n" +
-          "DSG001 DATASET DD1=CLMDB01\n" +
-          "         SEGM  NAME=CLMROOT,PARENT=0\n");
+          """
+          * a comment
+          DSG001 DATASET DD1=CLMDB01
+                   SEGM  NAME=CLMROOT,PARENT=0
+          """);
         assertThat(read).isEqualTo(
-          "^^COMMENT^^* a comment\n" +
-          "^^IMS_NAMED^^DSG001 DATASET DD1=CLMDB01\n" +
-          "^^IMS^^         SEGM  NAME=CLMROOT,PARENT=0\n");
+          """
+          ^^COMMENT^^* a comment
+          ^^IMS_NAMED^^DSG001 DATASET DD1=CLMDB01
+          ^^IMS^^         SEGM  NAME=CLMROOT,PARENT=0
+          """);
     }
 
     /**

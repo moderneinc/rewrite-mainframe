@@ -64,8 +64,8 @@ class ReferencesTest implements RewriteTest {
                 List<String> library = List.of("CLMSAVE", "CLMRTRN", "CLMREGS", "CLMRECD", "CLMPCBD");
                 assertThat(macros).filteredOn(macro -> macro.isDefinedBy(library))
                   .extracting(MacroCall::getName).containsExactly("CLMSAVE", "CLMRTRN");
-                assertThat(macros.get(0).getOperands()).containsExactly("12", "SAVE=U40SAVE", "ID=CLMU040");
-                assertThat(macros.get(0).getOperand("SAVE")).isEqualTo("U40SAVE");
+                assertThat(macros.getFirst().getOperands()).containsExactly("12", "SAVE=U40SAVE", "ID=CLMU040");
+                assertThat(macros.getFirst().getOperand("SAVE")).isEqualTo("U40SAVE");
             })
           )
         );
@@ -149,10 +149,12 @@ class ReferencesTest implements RewriteTest {
     void readsTheDdNameADcbAssigns() {
         rewriteRun(
           assembler(
-            "A10CRD   DCB   DDNAME=PURGCARD,DSORG=PS,MACRF=(GM),RECFM=FB,           X\n" +
-            "               LRECL=80,EODAD=A10NOCD\n" +
-            "A10RPT   DCB   DDNAME=PURGRPT,DSORG=PS,MACRF=(PM),RECFM=FBA,           X\n" +
-            "               LRECL=133\n",
+            """
+            A10CRD   DCB   DDNAME=PURGCARD,DSORG=PS,MACRF=(GM),RECFM=FB,           X
+                           LRECL=80,EODAD=A10NOCD
+            A10RPT   DCB   DDNAME=PURGRPT,DSORG=PS,MACRF=(PM),RECFM=FBA,           X
+                           LRECL=133
+            """,
             spec -> spec.afterRecipe(cu -> assertThat(new DataControlBlock.Matcher().lower(cu)
               .collect(Collectors.toList()))
               .extracting(DataControlBlock::getName, DataControlBlock::getDdName,

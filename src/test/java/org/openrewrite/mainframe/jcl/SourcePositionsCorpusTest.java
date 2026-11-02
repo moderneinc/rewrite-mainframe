@@ -27,7 +27,6 @@ import org.openrewrite.marker.Range;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,7 +48,7 @@ class SourcePositionsCorpusTest {
 
     @Test
     void placesEveryStatementOfTheCorpus() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int members = 0;
         int words = 0;
@@ -155,8 +154,8 @@ class SourcePositionsCorpusTest {
     private static void gather(List<Statement> statements, boolean expansion,
                                List<Statement> written, List<Statement> expanded) {
         for (Statement statement : statements) {
-            if (statement instanceof Jcl.Expansion) {
-                gather(((Jcl.Expansion) statement).getStatements(), true, written, expanded);
+            if (statement instanceof Jcl.Expansion expansion1) {
+                gather(expansion1.getStatements(), true, written, expanded);
             } else {
                 (expansion ? expanded : written).add(statement);
             }

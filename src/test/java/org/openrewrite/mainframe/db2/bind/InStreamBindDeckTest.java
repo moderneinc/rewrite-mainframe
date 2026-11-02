@@ -46,16 +46,16 @@ class InStreamBindDeckTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<InStreamBindDeck> decks = InStreamBindDeck.of(cu);
                 assertThat(decks).hasSize(1);
-                assertThat(decks.get(0).getDdName()).isEqualTo("SYSTSIN");
-                assertThat(decks.get(0).getLine()).isEqualTo(5);
+                assertThat(decks.getFirst().getDdName()).isEqualTo("SYSTSIN");
+                assertThat(decks.getFirst().getLine()).isEqualTo(5);
 
                 List<BindCommand> commands = new BindCommand.Matcher()
-                  .lower(decks.get(0).getDeck()).collect(Collectors.toList());
+                  .lower(decks.getFirst().getDeck()).collect(Collectors.toList());
                 assertThat(commands).hasSize(1);
-                assertThat(commands.get(0).getCollection()).isEqualTo("STOCKTRD");
-                assertThat(commands.get(0).getMembers()).containsExactly("ACCT01");
+                assertThat(commands.getFirst().getCollection()).isEqualTo("STOCKTRD");
+                assertThat(commands.getFirst().getMembers()).containsExactly("ACCT01");
                 // The deck's own lines are counted from its first card; the job says where that is.
-                assertThat(commands.get(0).getLine()).isEqualTo(2);
+                assertThat(commands.getFirst().getLine()).isEqualTo(2);
             })
           )
         );
@@ -77,10 +77,10 @@ class InStreamBindDeckTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<InStreamBindDeck> decks = InStreamBindDeck.of(cu);
                 assertThat(decks).hasSize(1);
-                assertThat(decks.get(0).getDdName()).isEqualTo("SYSTSIN");
+                assertThat(decks.getFirst().getDdName()).isEqualTo("SYSTSIN");
 
                 BindCommand bind = new BindCommand.Matcher()
-                  .lower(decks.get(0).getDeck()).findFirst().orElseThrow();
+                  .lower(decks.getFirst().getDeck()).findFirst().orElseThrow();
                 assertThat(bind.getPlans()).containsExactly("&SYSUID");
                 assertThat(bind.getMembers()).containsExactly("CBLDB21");
             })
@@ -129,7 +129,7 @@ class InStreamBindDeckTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<InStreamBindDeck> decks = InStreamBindDeck.of(cu);
                 assertThat(decks).hasSize(2);
-                assertThat(decks.get(0).getLine()).isEqualTo(4);
+                assertThat(decks.getFirst().getLine()).isEqualTo(4);
                 assertThat(decks.get(1).getLine()).isEqualTo(10);
 
                 BindCommand plan = new BindCommand.Matcher()

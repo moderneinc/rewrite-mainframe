@@ -29,7 +29,7 @@ import org.openrewrite.test.RewriteTest;
 import org.openrewrite.text.PlainTextParser;
 
 import java.io.ByteArrayInputStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -193,7 +193,7 @@ class CopybookReferenceTest implements RewriteTest {
                      05  SQLCODE    PIC S9(9) COMP-5.                             \s
           """;
         List<SourceFile> copybooks = CopybookParser.builder().build().parseInputs(singletonList(
-            new Parser.Input(Paths.get("SQLCA.cpy"), () -> new ByteArrayInputStream(sqlca.getBytes(UTF_8)))),
+            new Parser.Input(Path.of("SQLCA.cpy"), () -> new ByteArrayInputStream(sqlca.getBytes(UTF_8)))),
           null, new InMemoryExecutionContext()).collect(toList());
         SourceFile program = CobolParser.builder().copybooks(copybooks).build().parse(
           """
@@ -213,7 +213,7 @@ class CopybookReferenceTest implements RewriteTest {
 
         assertThat(references).singleElement().satisfies(reference -> {
             assertThat(reference.isSystemSupplied()).isFalse();
-            assertThat(reference.getSourcePath()).isEqualTo(Paths.get("SQLCA.cpy"));
+            assertThat(reference.getSourcePath()).isEqualTo(Path.of("SQLCA.cpy"));
         });
     }
 
@@ -222,7 +222,7 @@ class CopybookReferenceTest implements RewriteTest {
         CopybookReference reference = copying("COSGN00", mapset("COSGN00.bms", COSGN00));
 
         assertThat(reference.isResolved()).isTrue();
-        assertThat(reference.getSourcePath()).isEqualTo(Paths.get("COSGN00.bms"));
+        assertThat(reference.getSourcePath()).isEqualTo(Path.of("COSGN00.bms"));
         //noinspection DataFlowIssue
         assertThat(reference.getCopybook().printAll()).contains("02  TRNNAMEI  PIC X(4).");
     }
@@ -230,7 +230,7 @@ class CopybookReferenceTest implements RewriteTest {
     @Test
     void aSourceThatCannotBeCopiedIsPassedOver() {
         List<SourceFile> library = PlainTextParser.builder().build().parseInputs(singletonList(
-            new Parser.Input(Paths.get("COSGN00.copy"), () -> new ByteArrayInputStream("COSGN00".getBytes(UTF_8)))),
+            new Parser.Input(Path.of("COSGN00.copy"), () -> new ByteArrayInputStream("COSGN00".getBytes(UTF_8)))),
           null, new InMemoryExecutionContext()).collect(toList());
 
         assertThat(copying("COSGN00", library).isMissing()).isTrue();
@@ -243,14 +243,14 @@ class CopybookReferenceTest implements RewriteTest {
                      05  TRNNAMEI   PIC X(4).                                     \s
           """;
         List<SourceFile> copybook = CopybookParser.builder().build().parseInputs(singletonList(
-            new Parser.Input(Paths.get("COSGN00.cpy"), () -> new ByteArrayInputStream(cosgn00.getBytes(UTF_8)))),
+            new Parser.Input(Path.of("COSGN00.cpy"), () -> new ByteArrayInputStream(cosgn00.getBytes(UTF_8)))),
           null, new InMemoryExecutionContext()).collect(toList());
 
         // Ahead of the copybook in the library, whether it parsed or not.
         for (String mapset : new String[]{COSGN00, "not a map set"}) {
             List<SourceFile> library = new ArrayList<>(mapset("COSGN00.bms", mapset));
             library.addAll(copybook);
-            assertThat(copying("COSGN00", library).getSourcePath()).isEqualTo(Paths.get("COSGN00.cpy"));
+            assertThat(copying("COSGN00", library).getSourcePath()).isEqualTo(Path.of("COSGN00.cpy"));
         }
     }
 
@@ -264,7 +264,7 @@ class CopybookReferenceTest implements RewriteTest {
 
     private static List<SourceFile> mapset(String path, String source) {
         return BmsParser.builder().build().parseInputs(singletonList(
-            new Parser.Input(Paths.get(path), () -> new ByteArrayInputStream(source.getBytes(UTF_8)))),
+            new Parser.Input(Path.of(path), () -> new ByteArrayInputStream(source.getBytes(UTF_8)))),
           null, new InMemoryExecutionContext()).collect(toList());
     }
 
@@ -285,6 +285,6 @@ class CopybookReferenceTest implements RewriteTest {
             return reference.getTree();
         }).visit(program, 0);
         assertThat(references).hasSize(1);
-        return references.get(0);
+        return references.getFirst();
     }
 }

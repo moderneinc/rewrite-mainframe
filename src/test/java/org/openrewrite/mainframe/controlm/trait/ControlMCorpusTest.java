@@ -26,7 +26,6 @@ import org.openrewrite.mainframe.controlm.tree.ControlM;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,7 +48,7 @@ class ControlMCorpusTest {
 
     @Test
     void readsRealSchedules() throws IOException {
-        Path corpus = Paths.get(System.getenv("CONTROLM_CORPUS"));
+        Path corpus = Path.of(System.getenv("CONTROLM_CORPUS"));
 
         int members = 0;
         int jobs = 0;
@@ -77,11 +76,11 @@ class ControlMCorpusTest {
                 List<SourceFile> parsed = ControlMParser.builder().build()
                   .parse(new InMemoryExecutionContext(), source)
                   .collect(Collectors.toList());
-                if (parsed.isEmpty() || !(parsed.get(0) instanceof ControlM.CompilationUnit)) {
+                if (parsed.isEmpty() || !(parsed.getFirst() instanceof ControlM.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
                 }
-                ControlM.CompilationUnit cu = (ControlM.CompilationUnit) parsed.get(0);
+                ControlM.CompilationUnit cu = (ControlM.CompilationUnit) parsed.getFirst();
                 if (!source.equals(cu.printAll())) {
                     failures.add(name + ": did not print back");
                     continue;

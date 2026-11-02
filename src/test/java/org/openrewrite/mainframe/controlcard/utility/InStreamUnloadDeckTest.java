@@ -55,11 +55,11 @@ class InStreamUnloadDeckTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<InStreamUnloadDeck> decks = InStreamUnloadDeck.of(cu);
                 assertThat(decks).hasSize(1);
-                assertThat(decks.get(0).getDdName()).isEqualTo("SYSIN");
-                assertThat(decks.get(0).getLine()).isEqualTo(5);
+                assertThat(decks.getFirst().getDdName()).isEqualTo("SYSIN");
+                assertThat(decks.getFirst().getLine()).isEqualTo(5);
 
                 UnloadCommand unload = new UnloadCommand.Matcher()
-                  .lower(decks.get(0).getDeck()).findFirst().orElseThrow();
+                  .lower(decks.getFirst().getDeck()).findFirst().orElseThrow();
                 assertThat(unload.getTableSpace()).isEqualTo("CLMDB01.CLMTSPOL");
                 assertThat(unload.getOutputDdNames()).containsExactly("POLUNL");
                 assertThat(unload.getLock()).isEqualTo("YES");
@@ -95,14 +95,14 @@ class InStreamUnloadDeckTest implements RewriteTest {
                 List<InStreamUnloadDeck> decks = InStreamUnloadDeck.of(cu);
                 assertThat(decks).hasSize(1);
                 // Nothing of the procedure is written in the job, so the deck is reached at the EXEC.
-                assertThat(decks.get(0).getLine()).isEqualTo(2);
+                assertThat(decks.getFirst().getLine()).isEqualTo(2);
 
                 UnloadCommand unload = new UnloadCommand.Matcher()
-                  .lower(decks.get(0).getDeck()).findFirst().orElseThrow();
+                  .lower(decks.getFirst().getDeck()).findFirst().orElseThrow();
                 assertThat(unload.getTableSpace()).isEqualTo("CLMDB01.CLMTSHST");
 
                 // The cards belong to the procedure, so they cannot be written back through the job.
-                assertThatThrownBy(() -> decks.get(0).write(cu))
+                assertThatThrownBy(() -> decks.getFirst().write(cu))
                   .isInstanceOf(IllegalStateException.class);
             })
           )
@@ -118,14 +118,14 @@ class InStreamUnloadDeckTest implements RewriteTest {
         rewriteRun(
           jcl(JOB,
             spec -> spec.afterRecipe(cu -> {
-                InStreamUnloadDeck deck = InStreamUnloadDeck.of(cu).get(0);
+                InStreamUnloadDeck deck = InStreamUnloadDeck.of(cu).getFirst();
                 Jcl.CompilationUnit written = deck.withDeck(quiesced(deck.getDeck())).write(cu);
 
                 assertThat(written.printAll())
                   .isEqualTo(cu.printAll().replace("QUIESCE YES", "QUIESCE NO"));
                 // What the job now runs reads back through the island as what was written.
                 assertThat(new UnloadCommand.Matcher()
-                  .lower(InStreamUnloadDeck.of(written).get(0).getDeck())
+                  .lower(InStreamUnloadDeck.of(written).getFirst().getDeck())
                   .findFirst().orElseThrow().getQuiesce()).isEqualTo("NO");
             })
           )
@@ -141,7 +141,7 @@ class InStreamUnloadDeckTest implements RewriteTest {
         rewriteRun(
           jcl(JOB,
             spec -> spec.afterRecipe(cu -> {
-                InStreamUnloadDeck deck = InStreamUnloadDeck.of(cu).get(0);
+                InStreamUnloadDeck deck = InStreamUnloadDeck.of(cu).getFirst();
                 assertThat(deck.write(cu).printAll()).isEqualTo(cu.printAll());
             })
           )
@@ -157,7 +157,7 @@ class InStreamUnloadDeckTest implements RewriteTest {
         rewriteRun(
           jcl(JOB,
             spec -> spec.afterRecipe(cu -> {
-                InStreamUnloadDeck deck = InStreamUnloadDeck.of(cu).get(0);
+                InStreamUnloadDeck deck = InStreamUnloadDeck.of(cu).getFirst();
                 Jcl.CompilationUnit written = deck.write(cu);
                 assertThatThrownBy(() -> deck.write(written)).isInstanceOf(IllegalStateException.class);
             })
@@ -188,7 +188,7 @@ class InStreamUnloadDeckTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu -> {
-                Utility.CompilationUnit deck = InStreamUnloadDeck.of(cu).get(0).getDeck();
+                Utility.CompilationUnit deck = InStreamUnloadDeck.of(cu).getFirst().getDeck();
                 Template template = new Template.Matcher().lower(deck).findFirst().orElseThrow();
                 assertThat(template.getName()).isEqualTo("HSTCARD");
                 assertThat(template.getVariables()).containsExactly("DB", "TS");

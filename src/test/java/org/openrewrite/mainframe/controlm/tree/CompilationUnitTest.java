@@ -309,7 +309,7 @@ class CompilationUnitTest implements RewriteTest {
               | APPL TYPE                                  APPL VER                         |
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<ControlM> lines = ((ControlM.DefinitionSection) cu.getSections().get(0)).getLines();
+                List<ControlM> lines = ((ControlM.DefinitionSection) cu.getSections().getFirst()).getLines();
                 assertThat(fieldsOf(lines.get(1))).containsExactly("SET VAR=%%RUNDATE=%%$CALCDATE %%ODATE -1");
                 // A value written up to the border is still a value of its own line.
                 assertThat(fieldsOf(lines.get(2)))
@@ -326,8 +326,7 @@ class CompilationUnitTest implements RewriteTest {
     private static List<String> fieldsOf(ControlM line) {
         List<String> fields = new ArrayList<>();
         for (ControlM field : ((ControlM.Line) line).getParameters()) {
-            if (field instanceof ControlM.Parameter) {
-                ControlM.Parameter parameter = (ControlM.Parameter) field;
+            if (field instanceof ControlM.Parameter parameter) {
                 fields.add(parameter.getOption() + (parameter.getValue() == null ? "" : "=" + parameter.getValue().getText()));
             } else {
                 fields.add(((ControlM.Word) field).getText());

@@ -46,7 +46,7 @@ class InlineExecStatementTest extends CobolTest {
               @Override
               public Cobol.Evaluate visitEvaluate(Cobol.Evaluate evaluate, Integer p) {
                   assertThat(evaluate.getWhenPhrase()).hasSize(1);
-                  assertThat(evaluate.getWhenPhrase().get(0).getStatements()).singleElement().isInstanceOf(statementType(command));
+                  assertThat(evaluate.getWhenPhrase().getFirst().getStatements()).singleElement().isInstanceOf(statementType(command));
                   assertThat(evaluate.getWhenOther().getStatements()).singleElement().isInstanceOf(Cobol.Continue.class);
                   return super.visitEvaluate(evaluate, p);
               }
@@ -81,10 +81,15 @@ class InlineExecStatementTest extends CobolTest {
 
     @Test
     void multilineCommandsCanEndBeforeOrdinarySourceOnTheSameLine() {
-        rewriteRun(cobol(source("IF FLAG-NUM = 1 EXEC CICS SEND TEXT FROM(BUFFER-TEXT)\n" +
-          "LENGTH(16) RESP(RESPONSE) END-EXEC END-IF.")));
-        rewriteRun(cobol(source("EVALUATE FLAG-NUM\nWHEN 1 EXEC CICS SEND TEXT FROM(BUFFER-TEXT)\n" +
-          "LENGTH(16) RESP(RESPONSE) END-EXEC\nWHEN OTHER CONTINUE\nEND-EVALUATE.")));
+        rewriteRun(cobol(source("""
+          IF FLAG-NUM = 1 EXEC CICS SEND TEXT FROM(BUFFER-TEXT)
+          LENGTH(16) RESP(RESPONSE) END-EXEC END-IF.""")));
+        rewriteRun(cobol(source("""
+          EVALUATE FLAG-NUM
+          WHEN 1 EXEC CICS SEND TEXT FROM(BUFFER-TEXT)
+          LENGTH(16) RESP(RESPONSE) END-EXEC
+          WHEN OTHER CONTINUE
+          END-EVALUATE.""")));
     }
 
     @Test

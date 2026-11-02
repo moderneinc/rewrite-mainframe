@@ -120,8 +120,12 @@ class CobolSymbolicMapTest implements RewriteTest {
             """,
           copybook -> assertThat(copybook)
             .contains("           02  FILLER   PICTURE X(4).")
-            .contains("FLDC    PICTURE X.\n           02  FLDP    PICTURE X.\n" +
-                      "           02  FLDH    PICTURE X.\n           02  FLDV    PICTURE X.\n")
+            .contains("""
+                      FLDC    PICTURE X.
+                                 02  FLDP    PICTURE X.
+                                 02  FLDH    PICTURE X.
+                                 02  FLDV    PICTURE X.
+                      """)
         );
 
         symbolicMap(

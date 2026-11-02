@@ -57,9 +57,9 @@ class InstreamSasTest implements RewriteTest {
                 assertThat(streams).extracting(InstreamSas::getName, InstreamSas::getLine)
                   .containsExactly(tuple("SYSIN", 4));
 
-                PlainText program = streams.get(0).parse();
+                PlainText program = streams.getFirst().parse();
                 // The text starts at the first card, so the program's own lines are the job's.
-                assertThat(streams.get(0).getText()).isEqualTo(program.printAll());
+                assertThat(streams.getFirst().getText()).isEqualTo(program.printAll());
                 // The program has no member name of its own, so it is given the job's under .sas —
                 // which is what says it is SAS to every trait that reads it.
                 assertThat(program.getSourcePath()).hasToString("jcl/CLMSTAT.sas");

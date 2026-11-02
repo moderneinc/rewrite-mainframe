@@ -62,7 +62,7 @@ class ExportScaleTest {
           .collect(Collectors.toList());
         long read = System.nanoTime() - start;
         assertThat(parsed).singleElement().isInstanceOf(ControlM.CompilationUnit.class);
-        ControlM.CompilationUnit cu = (ControlM.CompilationUnit) parsed.get(0);
+        ControlM.CompilationUnit cu = (ControlM.CompilationUnit) parsed.getFirst();
 
         start = System.nanoTime();
         String printed = cu.printAll();

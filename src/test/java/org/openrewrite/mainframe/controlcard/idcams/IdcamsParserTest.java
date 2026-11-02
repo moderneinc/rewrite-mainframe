@@ -51,7 +51,7 @@ class IdcamsParserTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(3);
 
-                Idcams.Command delete = (Idcams.Command) cu.getStatements().get(0);
+                Idcams.Command delete = (Idcams.Command) cu.getStatements().getFirst();
                 assertThat(delete.getVerb().getText()).isEqualTo("DELETE");
                 assertThat(delete.getNamedParameters()).hasSize(3);
 
@@ -81,7 +81,7 @@ class IdcamsParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Idcams.Command define = (Idcams.Command) cu.getStatements().get(0);
+                Idcams.Command define = (Idcams.Command) cu.getStatements().getFirst();
                 assertThat(define.getParameter("ALIAS").getValueText())
                   .isEqualTo("(NAME('SYS1.DB2.V9.SDSNLOAD') REL('SYS1.DB2.V12.SDSNLOAD'))");
                 assertThat(define.getParameter("CAT").getValueText()).isEqualTo("('CAT.MCAT')");
@@ -104,7 +104,7 @@ class IdcamsParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Idcams.Command alter = (Idcams.Command) cu.getStatements().get(0);
+                Idcams.Command alter = (Idcams.Command) cu.getStatements().getFirst();
                 assertThat(alter.getNamedParameters()).hasSize(2);
                 assertThat(alter.getParameter("NEWNM").getValueText()).isEqualTo("(HLQ.DEVB.DFHCSD)");
             })
@@ -129,7 +129,7 @@ class IdcamsParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(1);
-                assertThat(((Idcams.Command) cu.getStatements().get(0)).getNamedParameters()).hasSize(3);
+                assertThat(((Idcams.Command) cu.getStatements().getFirst()).getNamedParameters()).hasSize(3);
             })
           )
         );

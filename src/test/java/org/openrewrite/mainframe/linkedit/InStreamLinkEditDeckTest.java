@@ -42,10 +42,10 @@ class InStreamLinkEditDeckTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<InStreamLinkEditDeck> decks = InStreamLinkEditDeck.of(cu);
                 assertThat(decks).hasSize(1);
-                assertThat(decks.get(0).getDdName()).isEqualTo("SYSIN");
-                assertThat(decks.get(0).getLine()).isEqualTo(4);
+                assertThat(decks.getFirst().getDdName()).isEqualTo("SYSIN");
+                assertThat(decks.getFirst().getLine()).isEqualTo(4);
 
-                LinkEditDeck deck = new LinkEditDeck.Matcher().require(decks.get(0).getDeck(), null);
+                LinkEditDeck deck = new LinkEditDeck.Matcher().require(decks.getFirst().getDeck(), null);
                 assertThat(deck.getModule().getText()).isEqualTo("DFH$PCPE");
                 assertThat(deck.getEntry().getText()).isEqualTo("DFH$PCPE");
                 // The deck's own lines are counted from its first card; the job says where that is.
@@ -78,9 +78,9 @@ class InStreamLinkEditDeckTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<InStreamLinkEditDeck> decks = InStreamLinkEditDeck.of(cu);
                 assertThat(decks).hasSize(1);
-                assertThat(decks.get(0).getDdName()).isEqualTo("SYSLIN");
+                assertThat(decks.getFirst().getDdName()).isEqualTo("SYSLIN");
 
-                LinkEditDeck deck = new LinkEditDeck.Matcher().require(decks.get(0).getDeck(), null);
+                LinkEditDeck deck = new LinkEditDeck.Matcher().require(decks.getFirst().getDeck(), null);
                 assertThat(deck.getIncludes()).singleElement().satisfies(include ->
                   assertThat(include.getMember()).isEqualTo("CLMU020"));
                 assertThat(deck.getAliases()).extracting(LinkEditDeck.Name::getText).containsExactly("CLMRESV");

@@ -37,7 +37,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -68,7 +67,7 @@ class ControlCardCorpusTest {
 
     @Test
     void readsRealControlCardMembers() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int members = 0;
         int statements = 0;
@@ -211,7 +210,7 @@ class ControlCardCorpusTest {
      */
     @Test
     void typesTheFixtureMembersByWhatTheySay() throws IOException {
-        Path ctlcard = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
+        Path ctlcard = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
         assertThat(Files.isDirectory(ctlcard)).as("%s", ctlcard).isTrue();
 
         assertThat(names(Corpus.idcamsCards(ctlcard)))
@@ -234,7 +233,7 @@ class ControlCardCorpusTest {
      */
     @Test
     void readsTheFixtureCardsNameByName() throws IOException {
-        Path ctlcard = Paths.get(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
+        Path ctlcard = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "ctlcard");
 
         List<IdcamsCommand> defines = new ArrayList<>();
         for (Path member : Corpus.idcamsCards(ctlcard)) {
@@ -259,7 +258,7 @@ class ControlCardCorpusTest {
                 new String(Files.readAllBytes(ctlcard.resolve("SRTCLM01.ctl"))));
         assertThat(sortExtract).isNotNull();
         List<SortStatement> statements = new SortStatement.Matcher().lower(sortExtract).collect(Collectors.toList());
-        assertThat(statements.get(0).getFields()).containsExactly(
+        assertThat(statements.getFirst().getFields()).containsExactly(
                 new SortStatement.Field(53, 4, "CH", "A"),
                 new SortStatement.Field(1, 10, "CH", "A"));
         assertThat(statements.get(1).getOperand("COND")).contains("57,1,CH,EQ,C'O'");
@@ -338,17 +337,17 @@ class ControlCardCorpusTest {
 
     private static Sort.@Nullable CompilationUnit parseSort(Path member, String source) {
         SourceFile parsed = parse(SortParser.builder().build(), member, source);
-        return parsed instanceof Sort.CompilationUnit ? (Sort.CompilationUnit) parsed : null;
+        return parsed instanceof Sort.CompilationUnit cu ? cu : null;
     }
 
     private static Idcams.@Nullable CompilationUnit parseIdcams(Path member, String source) {
         SourceFile parsed = parse(IdcamsParser.builder().build(), member, source);
-        return parsed instanceof Idcams.CompilationUnit ? (Idcams.CompilationUnit) parsed : null;
+        return parsed instanceof Idcams.CompilationUnit cu ? cu : null;
     }
 
     private static Jcl.@Nullable CompilationUnit parseJob(Path job, String source) {
         SourceFile parsed = parse(JclParser.builder().build(), job, source);
-        return parsed instanceof Jcl.CompilationUnit ? (Jcl.CompilationUnit) parsed : null;
+        return parsed instanceof Jcl.CompilationUnit cu ? cu : null;
     }
 
     /**
@@ -360,6 +359,6 @@ class ControlCardCorpusTest {
                 .parseInputs(singletonList(new Parser.Input(path, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
                 .collect(Collectors.toList());
-        return parsed.size() == 1 ? parsed.get(0) : null;
+        return parsed.size() == 1 ? parsed.getFirst() : null;
     }
 }

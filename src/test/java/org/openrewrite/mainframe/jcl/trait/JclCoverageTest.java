@@ -26,7 +26,6 @@ import org.openrewrite.mainframe.jcl.tree.Statement;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -51,7 +50,7 @@ class JclCoverageTest {
 
     @Test
     void listsWhatFellToUnknown() throws Exception {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
         List<Path> members = new ArrayList<>();
         for (Path repository : Corpus.repositories(corpus)) {
             members.addAll(Corpus.jobs(repository));
@@ -65,17 +64,16 @@ class JclCoverageTest {
             List<SourceFile> parsed = JclParser.builder().build()
                     .parse(new InMemoryExecutionContext(), new String(Files.readAllBytes(member)))
                     .collect(Collectors.toList());
-            if (parsed.isEmpty() || !(parsed.get(0) instanceof Jcl.CompilationUnit)) {
+            if (parsed.isEmpty() || !(parsed.getFirst() instanceof Jcl.CompilationUnit)) {
                 continue;
             }
-            for (Statement s : ((Jcl.CompilationUnit) parsed.get(0)).getStatements()) {
+            for (Statement s : ((Jcl.CompilationUnit) parsed.getFirst()).getStatements()) {
                 byType.merge(s.getClass().getSimpleName(), 1, Integer::sum);
-                if (s instanceof Jcl.JobControlStatement) {
-                    Jcl.JobControlStatement j = (Jcl.JobControlStatement) s;
+                if (s instanceof Jcl.JobControlStatement j) {
                     byOperation.merge(j.getOperation() == null ? "(none)" :
                             j.getOperation().getText().toUpperCase(), 1, Integer::sum);
-                } else if (s instanceof Jcl.Unknown) {
-                    String text = ((Jcl.Unknown) s).getWord().getText();
+                } else if (s instanceof Jcl.Unknown unknown) {
+                    String text = unknown.getWord().getText();
                     unknownTexts.merge(text.length() > 30 ? text.substring(0, 30) : text, 1, Integer::sum);
                 }
             }

@@ -27,7 +27,6 @@ import org.openrewrite.mainframe.ims.tree.Ims;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -55,7 +54,7 @@ class ImsCorpusTest {
 
     @Test
     void readsRealDefinitions() throws IOException {
-        Path corpus = Paths.get(System.getenv("IMS_CORPUS"));
+        Path corpus = Path.of(System.getenv("IMS_CORPUS"));
 
         int members = 0;
         int databases = 0;
@@ -97,11 +96,11 @@ class ImsCorpusTest {
                         .parseInputs(Corpus.inputs(singletonList(member)), corpus,
                                 new InMemoryExecutionContext())
                         .collect(Collectors.toList());
-                if (parsed.size() != 1 || !(parsed.get(0) instanceof Ims.CompilationUnit)) {
+                if (parsed.size() != 1 || !(parsed.getFirst() instanceof Ims.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
                 }
-                Ims.CompilationUnit cu = (Ims.CompilationUnit) parsed.get(0);
+                Ims.CompilationUnit cu = (Ims.CompilationUnit) parsed.getFirst();
 
                 if (!source.equals(cu.printAll())) {
                     failures.add(name + ": did not print back");
@@ -323,7 +322,7 @@ class ImsCorpusTest {
         assertThat(psbs.stream().flatMap(psb -> psb.getPcbs().stream())
                 .mapToInt(pcb -> pcb.getSensitiveSegments().size()).sum()).isEqualTo(14);
         Pcb fieldSensitive = psbs.get(1).getPcbs().get(1);
-        assertThat(fieldSensitive.getSensitiveSegments().get(0).getSensitiveFields())
+        assertThat(fieldSensitive.getSensitiveSegments().getFirst().getSensitiveFields())
                 .extracting(SensitiveField::getName, SensitiveField::getStart)
                 .containsExactly(
                         tuple("CLMKEY", 1),
@@ -337,7 +336,7 @@ class ImsCorpusTest {
 
         // Section 6.1, program by program: which PCB the nth mask is depends on what runs under the
         // PSB, and the two exceptions name a PCB instead of counting.
-        assertThat(psbs.get(0).getPcbAtMask(1, BATCH)).isNotNull()
+        assertThat(psbs.getFirst().getPcbAtMask(1, BATCH)).isNotNull()
                 .extracting(Pcb::getDatabaseName).isEqualTo("CLMDBD01");
         assertThat(psbs.get(1).getPcbAtMask(1, MESSAGE_DRIVEN)).isNull();
         assertThat(psbs.get(1).getPcbAtMask(3, MESSAGE_DRIVEN)).isNotNull()
@@ -365,7 +364,7 @@ class ImsCorpusTest {
         List<SourceFile> deck = fixture("stage1");
         assertThat(deck).hasSize(1);
 
-        List<Application> applications = new Application.Matcher().lower(deck.get(0))
+        List<Application> applications = new Application.Matcher().lower(deck.getFirst())
                 .collect(Collectors.toList());
         assertThat(applications).extracting(Application::getPsbName, Application::getProgramType,
                         Application::isMessageDriven, Application::getLine)
@@ -378,7 +377,7 @@ class ImsCorpusTest {
                         tuple("CLMPSB06", "BATCH", false, 31));
 
         // Both transactions are under the one APPLCTN, so both are answered by the one program.
-        assertThat(applications.get(0).getTransactions())
+        assertThat(applications.getFirst().getTransactions())
                 .extracting(Transaction::getCode, Transaction::getScratchpadSize, Transaction::getLine)
                 .containsExactly(
                         tuple("CLMINQ", 150, 18),
@@ -387,7 +386,7 @@ class ImsCorpusTest {
 
         // Five databases, and CLMDBG01 is not among them: a GSAM database is allocated by the batch
         // job that reads it and is never known to the control region.
-        assertThat(new DatabaseAccess.Matcher().lower(deck.get(0)).collect(Collectors.toList()))
+        assertThat(new DatabaseAccess.Matcher().lower(deck.getFirst()).collect(Collectors.toList()))
                 .extracting(DatabaseAccess::getName, DatabaseAccess::getAccess, DatabaseAccess::getLine)
                 .containsExactly(
                         tuple("CLMDBD01", "UP", 36),
@@ -413,10 +412,10 @@ class ImsCorpusTest {
 
         // Six format sets, on four model 2 displays, one model 1 and one printer.
         assertThat(formats).extracting(FormatSet::getName,
-                        format -> format.getDevices().get(0).getType(),
-                        format -> format.getDevices().get(0).getModel(),
-                        format -> format.getDevices().get(0).isPrinter(),
-                        format -> format.getDivisions().get(0).getType())
+                        format -> format.getDevices().getFirst().getType(),
+                        format -> format.getDevices().getFirst().getModel(),
+                        format -> format.getDevices().getFirst().isPrinter(),
+                        format -> format.getDivisions().getFirst().getType())
                 .containsExactly(
                         tuple("CLMF01", "3270", 2, false, "INOUT"),
                         tuple("CLMF02", "3270", 2, false, "INOUT"),
@@ -441,7 +440,7 @@ class ImsCorpusTest {
                         tuple("CLMPFK2", asList("PAGE", "EXIT", "BACK", "FWD")),
                         tuple("CLMPFK4", asList("EXIT", "FWD")),
                         tuple("CLMPFK5", asList("EXIT", "FWD")));
-        assertThat(formats.get(0).getDevices().get(0).getFunctionKeys())
+        assertThat(formats.getFirst().getDevices().getFirst().getFunctionKeys())
                 .extracting(Device.FunctionKey::getNumber).containsExactly(1, 3, 7, 8);
 
         // Four MIDs and seven MODs, each on its format set, and the NXT= chain that always returns to
@@ -463,7 +462,7 @@ class ImsCorpusTest {
 
         // Section 19.5's field by field claim about CLMI1I: four MFLDs of 8, 10, 1 and 8, laid over
         // cpy/CLMMSGI after the four byte prefix IMS supplies and no MFLD describes.
-        assertThat(messages.get(0).getFields())
+        assertThat(messages.getFirst().getFields())
                 .extracting(MessageField::getDeviceFieldName, MessageField::getLength,
                         MessageField::getOffset,
                         field -> field.getDeviceField() == null ? null :
@@ -506,7 +505,7 @@ class ImsCorpusTest {
      * One gen library of the fixture, parsed.
      */
     private static List<SourceFile> fixture(String library) throws IOException {
-        Path directory = Paths.get(System.getenv("IMS_CORPUS"))
+        Path directory = Path.of(System.getenv("IMS_CORPUS"))
                 .resolve("mainframe-fixtures/claims/ims").resolve(library);
         assertThat(Files.isDirectory(directory)).as("%s", directory).isTrue();
 
@@ -517,7 +516,7 @@ class ImsCorpusTest {
                             new InMemoryExecutionContext())
                     .collect(Collectors.toList());
             assertThat(parsed).singleElement().isInstanceOf(Ims.CompilationUnit.class);
-            members.add(parsed.get(0));
+            members.add(parsed.getFirst());
         }
         return members;
     }

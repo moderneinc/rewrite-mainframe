@@ -34,7 +34,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Arrays;
 
@@ -49,13 +48,13 @@ class JclParserTest {
     @ParameterizedTest
     @ValueSource(strings = {"POST.jcl", "POST.JCL", "POST.prc", "POST.PRC", "POST.proc", "jobs/POST.Jcl"})
     void acceptsAJobByExtension(String name) {
-        assertThat(parser.accept(Paths.get(name))).isTrue();
+        assertThat(parser.accept(Path.of(name))).isTrue();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"POST.cbl", "POST.cpy", "POST.bms", "POST.ctl", "POST.prm", "POST.txt.bak"})
     void rejectsOtherExtensions(String name) {
-        assertThat(parser.accept(Paths.get(name))).isFalse();
+        assertThat(parser.accept(Path.of(name))).isFalse();
     }
 
     /**
@@ -78,7 +77,7 @@ class JclParserTest {
 
     @Test
     void anExtensionlessPathThatIsNotAFileIsNotAccepted() {
-        assertThat(parser.accept(Paths.get("nowhere/IEFBR14DE"))).isFalse();
+        assertThat(parser.accept(Path.of("nowhere/IEFBR14DE"))).isFalse();
     }
 
     /**
@@ -115,13 +114,13 @@ class JclParserTest {
     @ParameterizedTest
     @ValueSource(strings = {"deploy/ims_maclib.jcl.j2", "cntl/PROCLIB.prc.j2", "some.xml.dir/POST.jcl.j2"})
     void acceptsATemplatedJob(String name) {
-        assertThat(parser.accept(Paths.get(name))).isTrue();
+        assertThat(parser.accept(Path.of(name))).isTrue();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"deploy/zos_connect_app_config.xml.j2", "build/datasets.yaml.j2", "jmp/dfsjvmpr.props.j2"})
     void rejectsATemplateOfSomethingElse(String name) {
-        assertThat(parser.accept(Paths.get(name))).isFalse();
+        assertThat(parser.accept(Path.of(name))).isFalse();
     }
 
     /**
@@ -137,7 +136,7 @@ class JclParserTest {
     }
 
     private SourceFile parse(String name, String source) {
-        Parser.Input input = new Parser.Input(Paths.get(name),
+        Parser.Input input = new Parser.Input(Path.of(name),
                 () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
         return parser.parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
     }
@@ -163,8 +162,8 @@ class JclParserTest {
           .collect(toList());
 
         assertThat(parsed).hasSize(2).allMatch(Jcl.CompilationUnit.class::isInstance);
-        assertThat(parsed.get(1).getSourcePath()).isEqualTo(Paths.get("CLMBATCH.prc"));
-        assertThat(new Step.Matcher().lower((Jcl.CompilationUnit) parsed.get(0)).findFirst()
+        assertThat(parsed.get(1).getSourcePath()).isEqualTo(Path.of("CLMBATCH.prc"));
+        assertThat(new Step.Matcher().lower((Jcl.CompilationUnit) parsed.getFirst()).findFirst()
           .orElseThrow().getProcedureSteps())
           .extracting(Step::getProgram)
           .containsExactly("CLMB010");

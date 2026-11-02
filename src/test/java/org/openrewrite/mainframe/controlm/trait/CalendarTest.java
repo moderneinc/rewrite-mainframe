@@ -37,7 +37,7 @@ class CalendarTest implements RewriteTest {
           controlM(
             defcal("NYY"),
             spec -> spec.afterRecipe(cu -> {
-                Calendar calendar = new Calendar.Matcher().lower(cu).collect(Collectors.toList()).get(0);
+                Calendar calendar = new Calendar.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
                 assertThat(calendar.getName()).isEqualTo("CLMWORK");
                 assertThat(calendar.getType()).isEqualTo("Regular");
                 assertThat(calendar.getDataCenter()).isEqualTo("CTMPROD");
@@ -62,7 +62,7 @@ class CalendarTest implements RewriteTest {
           controlM(
             defcal(marks(31 + 27, 31 + 29)),
             spec -> spec.afterRecipe(cu -> {
-                Calendar calendar = new Calendar.Matcher().lower(cu).collect(Collectors.toList()).get(0);
+                Calendar calendar = new Calendar.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
                 assertThat(calendar.getDays(2026)).containsExactly(LocalDate.of(2026, 2, 28));
             })
           )

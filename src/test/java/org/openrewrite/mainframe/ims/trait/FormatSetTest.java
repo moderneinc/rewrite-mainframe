@@ -24,7 +24,7 @@ import org.openrewrite.mainframe.ims.tree.Ims;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -72,12 +72,12 @@ class FormatSetTest {
 
     @Test
     void theScreenAFormatSetDraws() {
-        FormatSet format = formatSets(INQUIRY).get(0);
+        FormatSet format = formatSets(INQUIRY).getFirst();
 
         assertThat(format.getName()).isEqualTo("CLMF01");
         assertThat(format.getLine()).isEqualTo(1);
 
-        Device device = format.getDevices().get(0);
+        Device device = format.getDevices().getFirst();
         assertThat(device.getType()).isEqualTo("3270");
         assertThat(device.getModel()).isEqualTo(2);
         assertThat(device.isPrinter()).isFalse();
@@ -86,7 +86,7 @@ class FormatSetTest {
         assertThat(device.getSystemControlArea()).isEqualTo("X'00A0'");
         assertThat(format.getDivisions()).singleElement().extracting(Division::getType).isEqualTo("INOUT");
 
-        DevicePage page = format.getDevicePages().get(0);
+        DevicePage page = format.getDevicePages().getFirst();
         assertThat(page.getName()).isEqualTo("CLMDP1");
         assertThat(page.getCursorPosition()).isEqualTo(new Position(3, 12));
         assertThat(page.getFill()).isEqualTo("PT");
@@ -111,13 +111,13 @@ class FormatSetTest {
      */
     @Test
     void aFunctionKeyPutsItsLiteralInAField() {
-        Device device = formatSets(INQUIRY).get(0).getDevices().get(0);
+        Device device = formatSets(INQUIRY).getFirst().getDevices().getFirst();
 
         assertThat(device.getFunctionKeyField()).isEqualTo("CLMPFK");
         assertThat(device.getFunctionKeys())
           .extracting(Device.FunctionKey::getNumber, Device.FunctionKey::getLiteral)
           .containsExactly(tuple(1, "PAGE"), tuple(3, "EXIT"));
-        assertThat(messages(INQUIRY).get(0).getFields())
+        assertThat(messages(INQUIRY).getFirst().getFields())
           .extracting(MessageField::getDeviceFieldName).contains("CLMPFK");
     }
 
@@ -127,7 +127,7 @@ class FormatSetTest {
      */
     @Test
     void aMessageFieldIsAScreenFieldAndAPlaceInTheProgramsArea() {
-        Message message = messages(INQUIRY).get(0);
+        Message message = messages(INQUIRY).getFirst();
 
         assertThat(message.getName()).isEqualTo("CLMI1I");
         assertThat(message.isInput()).isTrue();
@@ -155,34 +155,36 @@ class FormatSetTest {
     @Test
     void twoDevicePagesCarryTheSameLabels() {
         String source =
-          "CLMF02   FMT\n" +
-          "         DEV   TYPE=(3270,2),FEAT=IGNORE\n" +
-          "         DIV   TYPE=INOUT\n" +
-          "CLMDP2A  DPAGE CURSOR=((3,12)),FILL=PT\n" +
-          "DTLSEQ1  DFLD  POS=(7,2),LTH=4,ATTR=PROT\n" +
-          "CLMDP2B  DPAGE CURSOR=((3,12)),FILL=PT\n" +
-          "DTLSEQ1  DFLD  POS=(6,2),LTH=4,ATTR=PROT\n" +
-          "         FMTEND\n" +
-          "CLMI2O   MSG   TYPE=OUTPUT,SOR=(CLMF02,IGNORE),NXT=CLMI2I\n" +
-          "         LPAGE SOR=(CLMDP2A)\n" +
-          "         SEG\n" +
-          "         MFLD  DTLSEQ1,LTH=4\n" +
-          "         MSGEND\n" +
-          "CLMI2P   MSG   TYPE=OUTPUT,SOR=(CLMF02,IGNORE),NXT=CLMI2I\n" +
-          "         LPAGE SOR=(CLMDP2B)\n" +
-          "         SEG\n" +
-          "         MFLD  DTLSEQ1,LTH=4\n" +
-          "         MSGEND\n";
+          """
+          CLMF02   FMT
+                   DEV   TYPE=(3270,2),FEAT=IGNORE
+                   DIV   TYPE=INOUT
+          CLMDP2A  DPAGE CURSOR=((3,12)),FILL=PT
+          DTLSEQ1  DFLD  POS=(7,2),LTH=4,ATTR=PROT
+          CLMDP2B  DPAGE CURSOR=((3,12)),FILL=PT
+          DTLSEQ1  DFLD  POS=(6,2),LTH=4,ATTR=PROT
+                   FMTEND
+          CLMI2O   MSG   TYPE=OUTPUT,SOR=(CLMF02,IGNORE),NXT=CLMI2I
+                   LPAGE SOR=(CLMDP2A)
+                   SEG
+                   MFLD  DTLSEQ1,LTH=4
+                   MSGEND
+          CLMI2P   MSG   TYPE=OUTPUT,SOR=(CLMF02,IGNORE),NXT=CLMI2I
+                   LPAGE SOR=(CLMDP2B)
+                   SEG
+                   MFLD  DTLSEQ1,LTH=4
+                   MSGEND
+          """;
 
-        assertThat(formatSets(source).get(0).getDevicePages())
+        assertThat(formatSets(source).getFirst().getDevicePages())
           .extracting(DevicePage::getName).containsExactly("CLMDP2A", "CLMDP2B");
 
         List<Message> messages = messages(source);
-        assertThat(messages.get(0).getLogicalPages()).singleElement()
+        assertThat(messages.getFirst().getLogicalPages()).singleElement()
           .extracting(LogicalPage::getDevicePageName).isEqualTo("CLMDP2A");
-        assertThat(messages.get(0).getFields().get(0).getDeviceField()).isNotNull()
+        assertThat(messages.getFirst().getFields().getFirst().getDeviceField()).isNotNull()
           .extracting(DeviceField::getPosition).isEqualTo(new Position(7, 2));
-        assertThat(messages.get(1).getFields().get(0).getDeviceField()).isNotNull()
+        assertThat(messages.get(1).getFields().getFirst().getDeviceField()).isNotNull()
           .extracting(DeviceField::getPosition).isEqualTo(new Position(6, 2));
 
         // Both messages lay the same field over the same displacement, which is why one copybook
@@ -198,20 +200,22 @@ class FormatSetTest {
     @Test
     void aLiteralFieldAndOneFilledBySystem() {
         String source =
-          "IVTNO    MSG   TYPE=INPUT,SOR=(IVTNOF,IGNORE)\n" +
-          "         SEG\n" +
-          "         MFLD  'IVTNO     ',LTH=10\n" +
-          "         MFLD  (SDATE,DATE2)\n" +
-          "         MSGEND\n" +
-          "IVTNOF   FMT\n" +
-          "         DEV   TYPE=3270-A02,FEAT=IGNORE\n" +
-          "         DIV   TYPE=INOUT\n" +
-          "         DPAGE CURSOR=((10,34))\n" +
-          "SDATE    DFLD  POS=(8,59),LTH=8,ATTR=PROT\n" +
-          "         FMTEND\n" +
-          "         END\n";
+          """
+          IVTNO    MSG   TYPE=INPUT,SOR=(IVTNOF,IGNORE)
+                   SEG
+                   MFLD  'IVTNO     ',LTH=10
+                   MFLD  (SDATE,DATE2)
+                   MSGEND
+          IVTNOF   FMT
+                   DEV   TYPE=3270-A02,FEAT=IGNORE
+                   DIV   TYPE=INOUT
+                   DPAGE CURSOR=((10,34))
+          SDATE    DFLD  POS=(8,59),LTH=8,ATTR=PROT
+                   FMTEND
+                   END
+          """;
 
-        Message message = messages(source).get(0);
+        Message message = messages(source).getFirst();
         assertThat(message.getFields())
           .extracting(MessageField::getDeviceFieldName, MessageField::getLiteral,
             MessageField::getLength, MessageField::getOffset)
@@ -225,7 +229,7 @@ class FormatSetTest {
         DeviceField sdate = message.getFields().get(1).getDeviceField();
         assertThat(sdate).isNotNull();
         assertThat(sdate.getDevicePage()).isNotNull().extracting(DevicePage::getName).isNull();
-        assertThat(formatSets(source).get(0).getDevices().get(0).getType()).isEqualTo("3270-A02");
+        assertThat(formatSets(source).getFirst().getDevices().getFirst().getType()).isEqualTo("3270-A02");
     }
 
     /**
@@ -235,12 +239,14 @@ class FormatSetTest {
     @Test
     void everySegmentOfAMessageCarriesItsOwnPrefix() {
         Message message = messages(
-          "CLMI9O   MSG   TYPE=OUTPUT,SOR=(CLMF09,IGNORE)\n" +
-          "         SEG\n" +
-          "         MFLD  HDRLINE,LTH=10\n" +
-          "         SEG\n" +
-          "         MFLD  DTLLINE,LTH=20\n" +
-          "         MSGEND\n").get(0);
+          """
+          CLMI9O   MSG   TYPE=OUTPUT,SOR=(CLMF09,IGNORE)
+                   SEG
+                   MFLD  HDRLINE,LTH=10
+                   SEG
+                   MFLD  DTLLINE,LTH=20
+                   MSGEND
+          """).getFirst();
 
         assertThat(message.getSegments()).extracting(MessageSegment::getLength, MessageSegment::getOffset)
           .containsExactly(tuple(14, 0), tuple(24, 14));
@@ -254,23 +260,25 @@ class FormatSetTest {
     @Test
     void aPrintedFormatIsNotAnswered() {
         String source =
-          "CLMF06   FMT\n" +
-          "         DEV   TYPE=3270P,FEAT=IGNORE,PAGE=(30,DEFN)\n" +
-          "         DIV   TYPE=OUTPUT\n" +
-          "CLMDP6   DPAGE\n" +
-          "ACKCLM   DFLD  POS=(6,20),LTH=10\n" +
-          "         FMTEND\n" +
-          "CLMI6O   MSG   TYPE=OUTPUT,SOR=(CLMF06,IGNORE)\n" +
-          "         SEG\n" +
-          "         MFLD  ACKCLM,LTH=10\n" +
-          "         MSGEND\n";
+          """
+          CLMF06   FMT
+                   DEV   TYPE=3270P,FEAT=IGNORE,PAGE=(30,DEFN)
+                   DIV   TYPE=OUTPUT
+          CLMDP6   DPAGE
+          ACKCLM   DFLD  POS=(6,20),LTH=10
+                   FMTEND
+          CLMI6O   MSG   TYPE=OUTPUT,SOR=(CLMF06,IGNORE)
+                   SEG
+                   MFLD  ACKCLM,LTH=10
+                   MSGEND
+          """;
 
-        Device device = formatSets(source).get(0).getDevices().get(0);
+        Device device = formatSets(source).getFirst().getDevices().getFirst();
         assertThat(device.isPrinter()).isTrue();
         assertThat(device.getFunctionKeyField()).isNull();
-        assertThat(formatSets(source).get(0).getDivisions().get(0).isInput()).isFalse();
-        assertThat(formatSets(source).get(0).getDevicePages().get(0).getCursorPosition()).isNull();
-        assertThat(messages(source).get(0).getNextName()).isNull();
+        assertThat(formatSets(source).getFirst().getDivisions().getFirst().isInput()).isFalse();
+        assertThat(formatSets(source).getFirst().getDevicePages().getFirst().getCursorPosition()).isNull();
+        assertThat(messages(source).getFirst().getNextName()).isNull();
     }
 
     private static List<FormatSet> formatSets(String source) {
@@ -286,13 +294,13 @@ class FormatSetTest {
           .parseInputs(singletonList(input(source)), null, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Ims.CompilationUnit.class);
-        assertThat(parsed.get(0).printAll()).isEqualTo(source);
-        return parsed.get(0);
+        assertThat(parsed.getFirst()).isInstanceOf(Ims.CompilationUnit.class);
+        assertThat(parsed.getFirst().printAll()).isEqualTo(source);
+        return parsed.getFirst();
     }
 
     private static Parser.Input input(String source) {
-        return new Parser.Input(Paths.get("CLMF01.mfs"),
+        return new Parser.Input(Path.of("CLMF01.mfs"),
           () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
     }
 

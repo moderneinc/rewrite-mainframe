@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,11 +54,11 @@ class LinkEditParserTest implements RewriteTest {
                 assertThat(cu.getStatements()).hasSize(4);
                 LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().get(1);
                 assertThat(include.getOperator().getText()).isEqualTo("INCLUDE");
-                assertThat(include.getParameters().get(0).getKeyword().getText()).isEqualTo("OBJLIB");
-                assertThat(include.getParameters().get(0).getValueText()).isEqualTo("(CLMU020)");
+                assertThat(include.getParameters().getFirst().getKeyword().getText()).isEqualTo("OBJLIB");
+                assertThat(include.getParameters().getFirst().getValueText()).isEqualTo("(CLMU020)");
                 LinkEdit.ControlStatement name = (LinkEdit.ControlStatement) cu.getStatements().get(3);
-                assertThat(name.getParameters().get(0).getKeyword().getText()).isEqualTo("CLMC020");
-                assertThat(name.getParameters().get(0).getValueText()).isEqualTo("(R)");
+                assertThat(name.getParameters().getFirst().getKeyword().getText()).isEqualTo("CLMC020");
+                assertThat(name.getParameters().getFirst().getValueText()).isEqualTo("(R)");
             })
           )
         );
@@ -79,7 +78,7 @@ class LinkEditParserTest implements RewriteTest {
                 NAME CLMU020(R)
               """,
             spec -> spec.afterRecipe(cu -> {
-                LinkEdit.ControlStatement entry = (LinkEdit.ControlStatement) cu.getStatements().get(0);
+                LinkEdit.ControlStatement entry = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
                 assertThat(entry.getParameters()).singleElement().satisfies(operand -> {
                     assertThat(operand.getKeyword().getText()).isEqualTo("CLMU020");
                     assertThat(operand.getValue()).isEmpty();
@@ -106,10 +105,10 @@ class LinkEditParserTest implements RewriteTest {
                 NAME CLMC030(R)
               """,
             spec -> spec.afterRecipe(cu -> {
-                LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().get(0);
+                LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
                 assertThat(include.getParameters()).extracting(o -> o.getKeyword().getText())
                   .containsExactly("OBJLIB", "SYSLIB");
-                assertThat(include.getParameters().get(0).getValueText()).isEqualTo("(CLMU010,CLMU020)");
+                assertThat(include.getParameters().getFirst().getValueText()).isEqualTo("(CLMU010,CLMU020)");
                 LinkEdit.ControlStatement mode = (LinkEdit.ControlStatement) cu.getStatements().get(1);
                 assertThat(mode.getParameters()).extracting(o -> o.getKeyword().getText())
                   .containsExactly("AMODE", "RMODE");
@@ -131,10 +130,10 @@ class LinkEditParserTest implements RewriteTest {
           data("  INCLUDE OBJLIB(CLMU010,") + "X\n" +
           "                 CLMU030)\n" +
           "  NAME CLMI050(R)\n";
-        LinkEdit.CompilationUnit cu = LinkEditParser.parse(Paths.get("CLMI050.lnk"), source);
+        LinkEdit.CompilationUnit cu = LinkEditParser.parse(Path.of("CLMI050.lnk"), source);
 
         assertThat(cu.getStatements()).hasSize(2);
-        LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().get(0);
+        LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
         assertThat(include.getParameters()).singleElement().satisfies(operand ->
           assertThat(operand.getValueText()).isEqualTo("(CLMU010, CLMU030)"));
         assertThat(cu.printAll()).isEqualTo(source);
@@ -149,10 +148,10 @@ class LinkEditParserTest implements RewriteTest {
         String source =
           data("  INCLUDE OBJLIB(CLMU010)") + " 00000100\n" +
           data("  NAME CLMB020(R)") + " 00000200\n";
-        LinkEdit.CompilationUnit cu = LinkEditParser.parse(Paths.get("CLMB020.lnk"), source);
+        LinkEdit.CompilationUnit cu = LinkEditParser.parse(Path.of("CLMB020.lnk"), source);
 
         assertThat(cu.getStatements()).hasSize(2);
-        LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().get(0);
+        LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
         assertThat(include.getParameters()).singleElement().satisfies(operand ->
           assertThat(operand.getKeyword().getText()).isEqualTo("OBJLIB"));
         assertThat(cu.printAll()).isEqualTo(source);
@@ -191,7 +190,7 @@ class LinkEditParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(5);
-                LinkEdit.ControlStatement setopt = (LinkEdit.ControlStatement) cu.getStatements().get(0);
+                LinkEdit.ControlStatement setopt = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
                 assertThat(setopt.getParameters()).singleElement().satisfies(operand -> {
                     assertThat(operand.getKeyword().getText()).isEqualTo("PARM");
                     assertThat(operand.getValueText()).isEqualTo("(AMODE=31)");
@@ -204,7 +203,7 @@ class LinkEditParserTest implements RewriteTest {
     @ParameterizedTest
     @ValueSource(strings = {"CLMB010.lnk", "CLMB010.LNK", "linkeditjcl/ABNDPROC.lked"})
     void acceptsADeckByExtension(String name) {
-        assertThat(LinkEditParser.builder().build().accept(Paths.get(name))).isTrue();
+        assertThat(LinkEditParser.builder().build().accept(Path.of(name))).isTrue();
     }
 
     /**
@@ -230,7 +229,7 @@ class LinkEditParserTest implements RewriteTest {
      */
     @Test
     void aMemberThatLinksNothingIsSaidSo() {
-        Parser.Input input = new Parser.Input(Paths.get("LNKOPTS.lnk"),
+        Parser.Input input = new Parser.Input(Path.of("LNKOPTS.lnk"),
           () -> new ByteArrayInputStream(" SETOPT  PARM(AMODE=31)\n SETOPT  PARM(RMODE=24)\n".getBytes(StandardCharsets.UTF_8)));
         SourceFile parsed = LinkEditParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();

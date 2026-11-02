@@ -73,9 +73,11 @@ class SequenceFieldTest {
     @Test
     void aLineTooLongToHaveASequenceField() {
         String source =
-          "//TEST JOB 'X'\n" +
-          "//  PARM=('IMSPLEX={{ ims.dfs_imsplex }},ROUTE={{ ims.dfs_ssid }},WAIT=30')\n" +
-          "//SYSPRINT DD SYSOUT=*\n";
+          """
+          //TEST JOB 'X'
+          //  PARM=('IMSPLEX={{ ims.dfs_imsplex }},ROUTE={{ ims.dfs_ssid }},WAIT=30')
+          //SYSPRINT DD SYSOUT=*
+          """;
 
         assertThat(parse(source).printAll()).isEqualTo(source);
         assertThat(commentAreasIn(source)).isEmpty();
@@ -88,10 +90,12 @@ class SequenceFieldTest {
     @Test
     void aLongLineDoesNotSwallowWhatFollows() {
         String source =
-          "//TEST JOB 'X'\n" +
-          "//  PARM=('IMSPLEX={{ ims.dfs_imsplex }},ROUTE={{ ims.dfs_ssid }},WAIT=30')\n" +
-          "//LDTTYPE  EXEC PGM=IEFBR14,COND=(0,NE)\n" +
-          "//RUNTEP2  EXEC PGM=IKJEFT01,DYNAMNBR=20\n";
+          """
+          //TEST JOB 'X'
+          //  PARM=('IMSPLEX={{ ims.dfs_imsplex }},ROUTE={{ ims.dfs_ssid }},WAIT=30')
+          //LDTTYPE  EXEC PGM=IEFBR14,COND=(0,NE)
+          //RUNTEP2  EXEC PGM=IKJEFT01,DYNAMNBR=20
+          """;
 
         Jcl.CompilationUnit cu = parse(source);
         assertThat(cu.printAll()).isEqualTo(source);
@@ -107,8 +111,8 @@ class SequenceFieldTest {
             @Override
             public Jcl visitWord(Jcl.Word word, Integer p) {
                 for (Marker marker : word.getMarkers().getMarkers()) {
-                    if (marker instanceof CommentArea) {
-                        comments.add(((CommentArea) marker).getComment());
+                    if (marker instanceof CommentArea area) {
+                        comments.add(area.getComment());
                     }
                 }
                 return super.visitWord(word, p);
@@ -132,7 +136,7 @@ class SequenceFieldTest {
           }), source)
           .collect(Collectors.toList());
         assertThat(parsed).hasSize(1);
-        assertThat(parsed.get(0)).isInstanceOf(Jcl.CompilationUnit.class);
-        return (Jcl.CompilationUnit) parsed.get(0);
+        assertThat(parsed.getFirst()).isInstanceOf(Jcl.CompilationUnit.class);
+        return (Jcl.CompilationUnit) parsed.getFirst();
     }
 }

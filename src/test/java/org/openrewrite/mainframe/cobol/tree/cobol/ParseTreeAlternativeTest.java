@@ -88,7 +88,7 @@ class ParseTreeAlternativeTest extends CobolTest {
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
               public Cobol.TableCall visitTableCall(Cobol.TableCall tableCall, ExecutionContext ctx) {
-                  dimensions.add(tableCall.getSubscripts().get(0).getContents().stream()
+                  dimensions.add(tableCall.getSubscripts().getFirst().getContents().stream()
                     .filter(Cobol.Subscript.class::isInstance).count());
                   return tableCall;
               }

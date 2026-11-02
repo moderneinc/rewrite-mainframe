@@ -33,7 +33,7 @@ import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Space;
 import org.openrewrite.marker.Markers;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -64,23 +64,23 @@ class CopybookSharingTest {
     @Test
     void programsCopyingOneCopybookAttachOneTreeThatIsNotItsSourceFile() {
         List<SourceFile> copybooks = CopybookParser.builder().build().parseInputs(List.of(
-          Parser.Input.fromString(Paths.get("LEAF.cpy"), """
+          Parser.Input.fromString(Path.of("LEAF.cpy"), """
             000100     05  LEAF-ID              PIC X(6).
             000200     05  LEAF-NAME            PIC X(20).
             """),
-          Parser.Input.fromString(Paths.get("OUTER.cpy"), """
+          Parser.Input.fromString(Path.of("OUTER.cpy"), """
             000100     COPY LEAF.
             000200     COPY NOWHERE.
             """)), null, ctx).collect(Collectors.toList());
         List<SourceFile> programs = CobolParser.builder().copybooks(copybooks).build().parseInputs(List.of(
-          Parser.Input.fromString(Paths.get("PGMONE.cbl"), program("PGMONE")),
-          Parser.Input.fromString(Paths.get("PGMTWO.cbl"), program("PGMTWO"))), null, ctx).collect(Collectors.toList());
+          Parser.Input.fromString(Path.of("PGMONE.cbl"), program("PGMONE")),
+          Parser.Input.fromString(Path.of("PGMTWO.cbl"), program("PGMTWO"))), null, ctx).collect(Collectors.toList());
 
-        CobolPreprocessor.Copybook outer = copybook(programs.get(0), "OUTER");
+        CobolPreprocessor.Copybook outer = copybook(programs.getFirst(), "OUTER");
         assertThat(copybook(programs.get(1), "OUTER")).isSameAs(outer);
         assertThat(copiedFrom(programs.get(1))).containsEntry("LEAF-NAME", "LEAF");
 
-        assertThat(copybook(outer, "LEAF")).isNotSameAs(copybooks.get(0));
+        assertThat(copybook(outer, "LEAF")).isNotSameAs(copybooks.getFirst());
     }
 
     @Test
@@ -91,7 +91,7 @@ class CopybookSharingTest {
         List<CobolPreprocessor> read = MAPPER.readValue(json, STATEMENTS);
 
         assertThat(((CobolPreprocessor.CopyStatement) read.get(1)).getCopybook())
-          .isSameAs(((CobolPreprocessor.CopyStatement) read.get(0)).getCopybook());
+          .isSameAs(((CobolPreprocessor.CopyStatement) read.getFirst()).getCopybook());
     }
 
     @Test
@@ -102,7 +102,7 @@ class CopybookSharingTest {
 
         List<CobolPreprocessor> read = MAPPER.readValue(MAPPER.treeAsTokens(json), STATEMENTS);
 
-        assertThat(((CobolPreprocessor.CopyStatement) read.get(0)).getCopybook().getId()).isEqualTo(copybook.getId());
+        assertThat(((CobolPreprocessor.CopyStatement) read.getFirst()).getCopybook().getId()).isEqualTo(copybook.getId());
     }
 
     private static String program(String name) {
@@ -129,7 +129,7 @@ class CopybookSharingTest {
                 }
                 return super.visitWord(word, found);
             }
-        }.reduce(program, new ArrayList<>()).get(0);
+        }.reduce(program, new ArrayList<>()).getFirst();
     }
 
     private static CobolPreprocessor.Copybook copybook(CobolPreprocessor.Copybook copybook, String name) {
@@ -142,7 +142,7 @@ class CopybookSharingTest {
                 }
                 return super.visitCopyStatement(copy, found);
             }
-        }.reduce(copybook, new ArrayList<>()).get(0);
+        }.reduce(copybook, new ArrayList<>()).getFirst();
     }
 
     private static boolean named(CobolPreprocessor.CopyStatement copy, String name) {
@@ -161,7 +161,7 @@ class CopybookSharingTest {
     }
 
     private static CobolPreprocessor.Copybook emptyCopybook() {
-        return new CobolPreprocessor.Copybook(randomId(), Space.EMPTY, Markers.EMPTY, Paths.get("EMPTY.cpy"),
+        return new CobolPreprocessor.Copybook(randomId(), Space.EMPTY, Markers.EMPTY, Path.of("EMPTY.cpy"),
           null, null, false, null, List.of(), null);
     }
 

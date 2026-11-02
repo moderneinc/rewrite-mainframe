@@ -31,7 +31,6 @@ import org.openrewrite.test.RewriteTest;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -261,7 +260,7 @@ class SearchableTextTest implements RewriteTest {
     @EnabledIfEnvironmentVariable(named = "COBOL_CORPUS", matches = ".+")
     @Test
     void readsRealPrograms() throws IOException {
-        Path root = Paths.get(System.getenv("COBOL_CORPUS"));
+        Path root = Path.of(System.getenv("COBOL_CORPUS"));
         Map<SearchableText.Layer, Integer> byLayer = new EnumMap<>(SearchableText.Layer.class);
         int comments = 0;
         int continued = 0;

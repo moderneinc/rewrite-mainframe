@@ -29,7 +29,6 @@ import org.openrewrite.mainframe.jcl.tree.Statement;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -56,7 +55,7 @@ class JclCorpusTest {
 
     @Test
     void readsRealJcl() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
 
         int members = 0;
         int steps = 0;
@@ -168,7 +167,7 @@ class JclCorpusTest {
      */
     @Test
     void runsTheFixturesJobsThroughItsProcedures() throws IOException {
-        Path corpus = Paths.get(System.getenv("JCL_CORPUS"));
+        Path corpus = Path.of(System.getenv("JCL_CORPUS"));
         Path fixture = null;
         for (Path repository : Corpus.repositories(corpus)) {
             if (Corpus.isFixture(repository)) {
@@ -237,11 +236,10 @@ class JclCorpusTest {
             return read + " steps read, " + written + " EXEC cards written";
         }
         for (Statement statement : cu.getStatements()) {
-            if (statement instanceof Jcl.Unknown) {
-                return "could not place '" + ((Jcl.Unknown) statement).getWord().getText() + "'";
+            if (statement instanceof Jcl.Unknown unknown) {
+                return "could not place '" + unknown.getWord().getText() + "'";
             }
-            if (statement instanceof Jcl.JobControlStatement) {
-                Jcl.JobControlStatement jcl = (Jcl.JobControlStatement) statement;
+            if (statement instanceof Jcl.JobControlStatement jcl) {
                 String operation = jcl.getOperation() == null ? "" : jcl.getOperation().getText();
                 if (!operation.matches("[A-Za-z]+")) {
                     return "read '" + operation + "' as an operation";
@@ -252,7 +250,7 @@ class JclCorpusTest {
     }
 
     private static String cause(List<SourceFile> parsed) {
-        return parsed.isEmpty() ? "did not parse" : parsed.get(0).getMarkers()
+        return parsed.isEmpty() ? "did not parse" : parsed.getFirst().getMarkers()
                 .findFirst(ParseExceptionResult.class)
                 .map(e -> e.getMessage().split("\n", 2)[0])
                 .orElse("did not parse");

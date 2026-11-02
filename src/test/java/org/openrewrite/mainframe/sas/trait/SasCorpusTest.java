@@ -28,7 +28,6 @@ import org.openrewrite.text.PlainText;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,7 +53,7 @@ class SasCorpusTest {
 
     @Test
     void readsRealSas() throws IOException {
-        Path corpus = Paths.get(System.getenv("SAS_CORPUS"));
+        Path corpus = Path.of(System.getenv("SAS_CORPUS"));
 
         int members = 0;
         int statements = 0;
@@ -311,8 +310,8 @@ class SasCorpusTest {
         assertThat(streams).extracting(InstreamSas::getName, InstreamSas::getLine)
           .containsExactly(tuple("SYSIN", 35));
 
-        PlainText program = streams.get(0).parse();
-        assertThat(streams.get(0).getText()).isEqualTo(program.printAll());
+        PlainText program = streams.getFirst().parse();
+        assertThat(streams.getFirst().getText()).isEqualTo(program.printAll());
 
         // The three the job runs by name are members; this one is only in the job.
         assertThat(new Library.Matcher().require(program, null).getReferences())
@@ -346,14 +345,14 @@ class SasCorpusTest {
           .parseInputs(Corpus.inputs(singletonList(member)), directory, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).singleElement().isInstanceOf(Jcl.CompilationUnit.class);
-        return (Jcl.CompilationUnit) parsed.get(0);
+        return (Jcl.CompilationUnit) parsed.getFirst();
     }
 
     private static List<InputLayout.Field> layout(@Nullable PlainText program) {
         assertThat(program).isNotNull();
         List<InputLayout.Layout> layouts = new InputLayout.Matcher().require(program, null).getLayouts();
         assertThat(layouts).hasSize(1);
-        return layouts.get(0).getFields();
+        return layouts.getFirst().getFields();
     }
 
     /**
@@ -361,7 +360,7 @@ class SasCorpusTest {
      * starts.
      */
     private static int end(List<InputLayout.Field> fields) {
-        InputLayout.Field last = fields.get(fields.size() - 1);
+        InputLayout.Field last = fields.getLast();
         return last.getColumn() + last.getBytes();
     }
 
@@ -370,11 +369,11 @@ class SasCorpusTest {
           .parseInputs(Corpus.inputs(singletonList(member)), directory, new InMemoryExecutionContext())
           .collect(Collectors.toList());
         assertThat(parsed).singleElement().isInstanceOf(PlainText.class);
-        return (PlainText) parsed.get(0);
+        return (PlainText) parsed.getFirst();
     }
 
     private static Path fixture(String library) {
-        Path directory = Paths.get(System.getenv("SAS_CORPUS"))
+        Path directory = Path.of(System.getenv("SAS_CORPUS"))
           .resolve("mainframe-fixtures/claims").resolve(library);
         assertThat(Files.isDirectory(directory)).as("%s", directory).isTrue();
         return directory;

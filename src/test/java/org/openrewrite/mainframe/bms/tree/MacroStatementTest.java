@@ -104,7 +104,7 @@ class MacroStatementTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<Bms.MacroStatement> statements = statementsIn(cu);
                 assertThat(statements).hasSize(1);
-                Bms.MacroStatement mapset = statements.get(0);
+                Bms.MacroStatement mapset = statements.getFirst();
                 assertThat(mapset.getSimpleName()).isEqualTo("COSGN00");
                 assertThat(mapset.getParameter("CTRL").getValueText()).isEqualTo("(ALARM,FREEKB)");
                 assertThat(mapset.getParameter("EXTATT").getValueText()).isEqualTo("YES");
