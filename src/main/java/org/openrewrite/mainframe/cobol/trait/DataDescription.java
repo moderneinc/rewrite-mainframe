@@ -61,9 +61,8 @@ public class DataDescription implements Trait<Cobol.DataDescriptionEntry> {
 
     /**
      * The entry this one's REDEFINES clause names, or null where it has none. COBOL writes a
-     * redefinition right after the entry it redefines or after other redefinitions of it, and every
-     * one names the original. So it is the nearest earlier entry under the same parent, at the same
-     * level, with that name.
+     * redefinition right after the entry it redefines or after other redefinitions of it. So it is
+     * the nearest earlier entry under the same parent, at the same level, with that name.
      */
     public @Nullable DataDescription getRedefines() {
         Cursor redefined = DataName.redefinedEntry(cursor);

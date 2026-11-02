@@ -310,7 +310,10 @@ class DataNameTest implements RewriteTest {
         assertThat(usages.get(1).getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-B");
         assertThat(usages.get(2).getQualifiers()).isEmpty();
         assertThat(usages.get(2).getDefinition()).isNull();
+        assertThat(usages.get(2).getCandidates()).extracting(c -> c.getParent().getName()).containsExactly("REC-A", "REC-B");
         assertThat(usages.get(2).isGlobal()).isFalse();
+        assertThat(DataName.candidatesOf(usages.get(2).getCursor(), "cust-id", List.of("rec-b")))
+          .extracting(c -> c.getParent().getName()).containsExactly("REC-B");
 
         DataName qualifier = usagesOf(names, "REC-A").get(0);
         assertThat(qualifier.getQualifiers()).isEmpty();
@@ -318,6 +321,97 @@ class DataNameTest implements RewriteTest {
 
         assertThat(usagesOf(names, "CUST-NM").get(0).getDefinition()).isNotNull();
         assertThat(names).filteredOn(DataName::isDefinition).allSatisfy(d -> assertThat(d.isReferenced()).isTrue());
+    }
+
+    @Test
+    void resolvesAQualifierThroughTheNameItQualifies() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. QUALPGM.                                            \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  REC-A.                                                      \s
+            000000     05  KEY-GRP.                                                \s
+            000000         10  CUST-ID  PIC X(5).                                  \s
+            000000 01  REC-B.                                                      \s
+            000000     05  KEY-GRP.                                                \s
+            000000         10  CUST-NM  PIC X(5).                                  \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     MOVE CUST-ID OF KEY-GRP TO CUST-NM OF KEY-GRP.              \s
+            000000     EXEC SQL SELECT ID INTO :KEY-GRP.CUST-ID FROM T1 END-EXEC.  \s
+            """
+        );
+
+        List<DataName> keys = usagesOf(names, "KEY-GRP");
+        assertThat(keys.get(0).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
+        assertThat(keys.get(1).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-B");
+        assertThat(keys.get(2).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
+    }
+
+    @Test
+    void resolvesAnIndexNameToTheTableItIndexes() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. OUTERPGM.                                           \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-TABLE GLOBAL.                                            \s
+            000000     05  WS-CELL  PIC X OCCURS 9 INDEXED BY WS-IX.               \s
+            000000     05  WS-ROW   PIC X OCCURS 5 INDEXED BY WS-RX.               \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     SET WS-IX TO 1.                                             \s
+            000000     SEARCH WS-ROW AT END DISPLAY 'NONE'                         \s
+            000000         WHEN WS-CELL (1) = 'A' DISPLAY 'FOUND'                  \s
+            000000     END-SEARCH.                                                 \s
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. INNERPGM.                                           \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     SET WS-IX UP BY 1.                                          \s
+            000000 END PROGRAM INNERPGM.                                           \s
+            000000 END PROGRAM OUTERPGM.                                           \s
+            """
+        );
+
+        DataName index = definitionOf(names, "WS-IX");
+        assertThat(index.isIndexName()).isTrue();
+        assertThat(index.getEntry()).isNull();
+        assertThat(index.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("WS-CELL");
+        assertThat(usagesOf(names, "WS-IX")).allSatisfy(usage ->
+          assertThat(usage.getDefinition()).isNotNull().extracting(DataName::getTree).isEqualTo(index.getTree()));
+        assertThat(definitionOf(names, "WS-CELL").isIndexName()).isFalse();
+        assertThat(definitionOf(names, "WS-RX").isReferenced()).isTrue();
+    }
+
+    @Test
+    void resolvesAClauseOperandWithinTheEntryItBelongsTo() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. RENPGM.                                             \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  REC-A.                                                      \s
+            000000     05  FLD-1  PIC X.                                           \s
+            000000     05  FLD-2  PIC X.                                           \s
+            000000     05  TBL OCCURS 3 ASCENDING KEY IS T-KEY INDEXED BY A-IX.    \s
+            000000         10  T-KEY  PIC X.                                       \s
+            000000 66  BOTH-FLDS RENAMES FLD-1 THRU FLD-2.                         \s
+            000000 01  REC-B.                                                      \s
+            000000     05  FLD-1  PIC X.                                           \s
+            000000     05  FLD-2  PIC X.                                           \s
+            000000     05  TBL OCCURS 3 ASCENDING KEY IS T-KEY INDEXED BY B-IX.    \s
+            000000         10  T-KEY  PIC X.                                       \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        assertThat(usagesOf(names, "FLD-1")).singleElement()
+          .satisfies(usage -> assertThat(usage.getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A"));
+        assertThat(usagesOf(names, "T-KEY")).extracting(usage -> usage.getDefinition() == null ? null : usage.getDefinition().getTree())
+          .containsExactlyElementsOf(definitionsOf(names, "T-KEY"));
     }
 
     @Test
@@ -780,6 +874,8 @@ class DataNameTest implements RewriteTest {
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
         assertThat(usagesOf(names, "WS-NEAR").get(0).getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("MIDPGM");
+        assertThat(DataName.candidatesOf(usagesOf(names, "WS-NEAR").get(0).getCursor(), "WS-NEAR", List.of()))
+          .extracting(d -> Program.nameOf(d.getCursor())).containsExactly("MIDPGM");
     }
 
     @Test
