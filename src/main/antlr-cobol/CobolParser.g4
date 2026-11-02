@@ -1512,19 +1512,24 @@ dataUsingClause
    ;
 
 dataValueClause
-   : (VALUE | VALUES) (IS | ARE)? dataValueInterval+
+   : (VALUE | VALUES) (IS | ARE)? dataValueInterval+ dataValueFalse?
    ;
 
 dataValueInterval
    : dataValueIntervalFrom dataValueIntervalTo?
    ;
 
+// Any literal but TRUE and FALSE, which are never values. FALSE starts the FALSE phrase.
 dataValueIntervalFrom
-   : literal | cobolWord
+   : NONNUMERICLITERAL | figurativeConstant | numericLiteral | cicsDfhRespLiteral | cicsDfhValueLiteral | cobolWord
    ;
 
 dataValueIntervalTo
    : (THROUGH | THRU) literal
+   ;
+
+dataValueFalse
+   : (WHEN SET TO)? FALSE IS? literal
    ;
 
 dataWithLowerBoundsClause
@@ -1922,25 +1927,25 @@ evaluateValue
 // exec cics statement
 
 execCicsStatement
-   : EXECCICSLINE+ {!ahead($ctx, EXECCICSLINE)}?
+   : EXECCICSLINE
    ;
 
 // exec dli statement
 
 execDliStatement
-   : EXECDLILINE+ {!ahead($ctx, EXECDLILINE)}?
+   : EXECDLILINE
    ;
 
 // exec sql statement
 
 execSqlStatement
-   : EXECSQLLINE+ {!ahead($ctx, EXECSQLLINE)}?
+   : EXECSQLLINE
    ;
 
 // exec sql ims statement
 
 execSqlImsStatement
-   : EXECSQLIMSLINE+ {!ahead($ctx, EXECSQLIMSLINE)}?
+   : EXECSQLIMSLINE
    ;
 
 // exhibit statement

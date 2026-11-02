@@ -3128,6 +3128,18 @@ public class CobolParserBaseListener implements CobolParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterDataValueFalse(CobolParser.DataValueFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDataValueFalse(CobolParser.DataValueFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterDataWithLowerBoundsClause(CobolParser.DataWithLowerBoundsClauseContext ctx) { }
 	/**
 	 * {@inheritDoc}

@@ -2603,6 +2603,16 @@ public interface CobolParserListener extends ParseTreeListener {
 	 */
 	void exitDataValueIntervalTo(CobolParser.DataValueIntervalToContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolParser#dataValueFalse}.
+	 * @param ctx the parse tree
+	 */
+	void enterDataValueFalse(CobolParser.DataValueFalseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#dataValueFalse}.
+	 * @param ctx the parse tree
+	 */
+	void exitDataValueFalse(CobolParser.DataValueFalseContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolParser#dataWithLowerBoundsClause}.
 	 * @param ctx the parse tree
 	 */

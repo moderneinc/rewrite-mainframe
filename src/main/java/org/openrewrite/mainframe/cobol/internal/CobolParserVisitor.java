@@ -1633,7 +1633,18 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.VALUE(), ctx.VALUES(), ctx.IS(), ctx.ARE()),
-                convertAllList(ctx.dataValueInterval())
+                convertAllList(ctx.dataValueInterval()),
+                visitNullable(ctx.dataValueFalse())
+        );
+    }
+
+    @Override
+    public Object visitDataValueFalse(CobolParser.DataValueFalseContext ctx) {
+        return new Cobol.DataValueFalse(randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                wordsList(ctx.WHEN(), ctx.SET(), ctx.TO(), ctx.FALSE(), ctx.IS()),
+                (Literal) visit(ctx.literal())
         );
     }
 
@@ -2094,7 +2105,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecCicsStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECCICSLINE())
+                (Cobol.Word) visit(ctx.EXECCICSLINE())
         );
     }
 
@@ -2103,7 +2114,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecDliStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECDLILINE())
+                (Cobol.Word) visit(ctx.EXECDLILINE())
         );
     }
 
@@ -2112,7 +2123,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecSqlImsStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECSQLIMSLINE())
+                (Cobol.Word) visit(ctx.EXECSQLIMSLINE())
         );
     }
 
@@ -2121,7 +2132,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ExecSqlStatement(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAll(ctx.EXECSQLLINE())
+                (Cobol.Word) visit(ctx.EXECSQLLINE())
         );
     }
 

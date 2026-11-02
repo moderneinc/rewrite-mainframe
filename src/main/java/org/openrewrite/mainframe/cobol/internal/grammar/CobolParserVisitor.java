@@ -1574,6 +1574,12 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDataValueIntervalTo(CobolParser.DataValueIntervalToContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#dataValueFalse}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDataValueFalse(CobolParser.DataValueFalseContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#dataWithLowerBoundsClause}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

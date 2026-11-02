@@ -141,6 +141,37 @@ class ExecStatementTest extends CobolTest {
     }
 
     @Test
+    void consecutiveExecsInOneSentenceAreOneStatementEach() {
+        rewriteRun(
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                        \s
+              000000 PROGRAM-ID. ONESENT.                                            \s
+              000000 PROCEDURE DIVISION.                                             \s
+              000000 MAIN-PARA.                                                      \s
+              000000     EXEC CICS ASSIGN APPLID(WS-APPLID) END-EXEC                 \s
+              000000     EXEC CICS RETURN END-EXEC                                   \s
+              000000     EXEC SQL OPEN C1 END-EXEC                                   \s
+              000000     EXEC SQL CLOSE C1 END-EXEC                                  \s
+              000000     EXEC DLI SCHD PSB(PSB1) END-EXEC                            \s
+              000000     EXEC DLI TERM END-EXEC                                      \s
+              000000     EXEC SQLIMS COMMIT END-EXEC                                 \s
+              000000     EXEC SQLIMS ROLLBACK END-EXEC.                              \s
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(execsPerStatement(cu)).containsExactly(
+              List.of("EXEC CICS ASSIGN APPLID ( WS-APPLID ) END-EXEC"),
+              List.of("EXEC CICS RETURN END-EXEC"),
+              List.of("EXEC SQL OPEN C1 END-EXEC"),
+              List.of("EXEC SQL CLOSE C1 END-EXEC"),
+              List.of("EXEC DLI SCHD PSB ( PSB1 ) END-EXEC"),
+              List.of("EXEC DLI TERM END-EXEC"),
+              List.of("EXEC SQLIMS COMMIT END-EXEC"),
+              List.of("EXEC SQLIMS ROLLBACK END-EXEC .")))
+          )
+        );
+    }
+
+    @Test
     void execSql() {
         rewriteRun(
           cobol(
@@ -280,40 +311,44 @@ class ExecStatementTest extends CobolTest {
         new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.ExecCicsStatement visitExecCicsStatement(Cobol.ExecCicsStatement exec, Integer p) {
-                execs.add(commands(exec.getExecCicsLines()));
+                execs.add(commands(exec.getExecCicsLine()));
                 return super.visitExecCicsStatement(exec, p);
             }
 
             @Override
             public Cobol.ExecDliStatement visitExecDliStatement(Cobol.ExecDliStatement exec, Integer p) {
-                execs.add(commands(exec.getExecDliLines()));
+                execs.add(commands(exec.getExecDliLine()));
                 return super.visitExecDliStatement(exec, p);
             }
 
             @Override
             public Cobol.ExecSqlStatement visitExecSqlStatement(Cobol.ExecSqlStatement exec, Integer p) {
-                execs.add(commands(exec.getExecSqlLines()));
+                execs.add(commands(exec.getExecSqlLine()));
                 return super.visitExecSqlStatement(exec, p);
+            }
+
+            @Override
+            public Cobol.ExecSqlImsStatement visitExecSqlImsStatement(Cobol.ExecSqlImsStatement exec, Integer p) {
+                execs.add(commands(exec.getExecSqlImsLine()));
+                return super.visitExecSqlImsStatement(exec, p);
             }
         }.visit(cu, 0);
         return execs;
     }
 
-    private static List<String> commands(List<Cobol.Word> lines) {
+    private static List<String> commands(Cobol.Word line) {
         List<String> commands = new ArrayList<>();
-        for (Cobol.Word line : lines) {
-            for (CobolPreprocessor statement : line.getPreprocessorStatements()) {
-                if (statement instanceof CobolPreprocessor.ExecStatement) {
-                    List<String> words = new ArrayList<>();
-                    new CobolPreprocessorIsoVisitor<Integer>() {
-                        @Override
-                        public CobolPreprocessor.Word visitWord(CobolPreprocessor.Word word, Integer p) {
-                            words.add(word.getCobolWord().getWord());
-                            return word;
-                        }
-                    }.visit(statement, 0);
-                    commands.add(String.join(" ", words));
-                }
+        for (CobolPreprocessor statement : line.getPreprocessorStatements()) {
+            if (statement instanceof CobolPreprocessor.ExecStatement) {
+                List<String> words = new ArrayList<>();
+                new CobolPreprocessorIsoVisitor<Integer>() {
+                    @Override
+                    public CobolPreprocessor.Word visitWord(CobolPreprocessor.Word word, Integer p) {
+                        words.add(word.getCobolWord().getWord());
+                        return word;
+                    }
+                }.visit(statement, 0);
+                commands.add(String.join(" ", words));
             }
         }
         return commands;

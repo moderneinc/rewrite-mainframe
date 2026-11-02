@@ -475,6 +475,11 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.DataValueFalse visitDataValueFalse(Cobol.DataValueFalse dataValueFalse, P p) {
+        return (Cobol.DataValueFalse) super.visitDataValueFalse(dataValueFalse, p);
+    }
+
+    @Override
     public Cobol.DataValueInterval visitDataValueInterval(Cobol.DataValueInterval dataValueInterval, P p) {
         return (Cobol.DataValueInterval) super.visitDataValueInterval(dataValueInterval, p);
     }
