@@ -89,14 +89,27 @@ public class CopybookReference implements Trait<CobolPreprocessor> {
     }
 
     /**
-     * The file the copybook was read from. Null when the reference resolved to no copybook, or to one
-     * no file holds, as a system-supplied copybook or a map set's symbolic map is. Ask
-     * {@link #isResolved()} whether the program's declarations are complete.
+     * The file the program depends on through this reference, as {@link #sourcePathOf} gives it, or
+     * null when the reference resolved to no copybook. Ask {@link #isResolved()} whether the
+     * program's declarations are complete.
      */
     public @Nullable Path getSourcePath() {
         CobolPreprocessor.Copybook copybook = getCopybook();
-        return isResolved() && !isSystemSupplied() && copybook != null &&
-               !copybook.getMarkers().findFirst(SymbolicMap.class).isPresent() ? copybook.getSourcePath() : null;
+        return isResolved() && copybook != null ? sourcePathOf(copybook) : null;
+    }
+
+    /**
+     * The file a program copying this copybook depends on, which is the copybook's own or the map
+     * set a symbolic map is generated from. Null for a copybook the CICS translator or the Db2
+     * precompiler supplies. Static for a recipe that reads copy statements without a trait.
+     */
+    public static @Nullable Path sourcePathOf(CobolPreprocessor.Copybook copybook) {
+        if (copybook.getMarkers().findFirst(SystemCopybook.class).isPresent()) {
+            return null;
+        }
+        return copybook.getMarkers().findFirst(SymbolicMap.class)
+                .map(SymbolicMap::getMapset)
+                .orElse(copybook.getSourcePath());
     }
 
     /**

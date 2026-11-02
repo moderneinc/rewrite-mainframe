@@ -71,8 +71,9 @@ public class CobolRelationships extends DataTable<CobolRelationships.Row> {
         Integer dependentLine;
 
         @Column(displayName = "Dependency path",
-                description = "The source file the dependency was written in, or null when the dependency is " +
-                              "a name that has no source here, such as a vendor copybook.")
+                description = "The source file the dependency was written in, or the map set a symbolic map " +
+                              "is generated from. Null when the dependency is a name that has no source here, " +
+                              "such as a vendor copybook.")
         @Nullable
         String dependencyPath;
 

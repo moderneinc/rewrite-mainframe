@@ -39,6 +39,7 @@ import org.openrewrite.mainframe.cobol.SourcePositions;
 import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.marker.MissingCopybook;
 import org.openrewrite.mainframe.cobol.table.CobolRelationships;
+import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.trait.DliCall;
 import org.openrewrite.mainframe.cobol.trait.Literals;
 import org.openrewrite.mainframe.cobol.trait.SqlStatement;
@@ -1340,7 +1341,8 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
     }
 
     private static @Nullable String pathOf(CobolPreprocessor.@Nullable Copybook copybook) {
-        return copybook == null ? null : copybook.getSourcePath().toString();
+        Path path = copybook == null ? null : CopybookReference.sourcePathOf(copybook);
+        return path == null ? null : path.toString();
     }
 
     private static @Nullable Integer lineOf(@Nullable SourcePositions positions, Cobol node) {

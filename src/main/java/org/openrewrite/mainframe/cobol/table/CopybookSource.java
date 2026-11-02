@@ -38,7 +38,7 @@ public class CopybookSource extends DataTable<CopybookSource.Row> {
         String copybookName;
 
         @Column(displayName = "Copybook source path",
-                description = "The source path of the copybook that was resolved during resolution of copybooks.")
+                description = "The source path of the copybook a copy statement resolved to, or of the map set a symbolic map is generated from.")
         String copybookSourcePath;
 
         @Column(displayName = "Resolution status",
