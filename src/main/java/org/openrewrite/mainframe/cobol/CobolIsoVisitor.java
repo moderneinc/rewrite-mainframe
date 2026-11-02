@@ -580,6 +580,11 @@ public class CobolIsoVisitor<P> extends CobolVisitor<P> {
     }
 
     @Override
+    public Cobol.Enter visitEnter(Cobol.Enter enter, P p) {
+        return (Cobol.Enter) super.visitEnter(enter, p);
+    }
+
+    @Override
     public Cobol.Entry visitEntry(Cobol.Entry entry, P p) {
         return super.visitEntry(entry, p);
     }

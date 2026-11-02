@@ -2292,6 +2292,34 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
+    @Test
+    void enterStatement() {
+        List<String> enters = new ArrayList<>();
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<>() {
+              @Override
+              public Cobol.Enter visitEnter(Cobol.Enter enter, ExecutionContext ctx) {
+                  enters.add(enter.printTrimmed(getCursor().getParentOrThrow()));
+                  return super.visitEnter(enter, ctx);
+              }
+          })),
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+                     PROGRAM-ID. HELLO.
+                     PROCEDURE DIVISION.
+                     ENTER LINKAGE.
+                     CALL 'ASMPGM'.
+                     MOVE 1 TO RETURN-CODE
+                     ENTER COBOL.
+                     ENTER ASSEMBLER ASMRTN.
+                     GOBACK.
+              """
+          )
+        );
+        assertThat(enters).containsExactly("ENTER LINKAGE", "ENTER COBOL", "ENTER ASSEMBLER ASMRTN");
+    }
+
     /**
      * The name in the EXIT statement's format-1, `paragraph-name. EXIT.`, opens a paragraph. It is
      * a procedure name that PERFORM THRU and GO TO can target, so it has to reach the LST as one

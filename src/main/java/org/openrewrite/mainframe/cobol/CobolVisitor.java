@@ -1057,6 +1057,13 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         return e.withDot((Cobol.Word) visit(e.getDot(), p));
     }
 
+    public Cobol visitEnter(Cobol.Enter enter, P p) {
+        Cobol.Enter e = enter;
+        e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.ENTER_PREFIX, p));
+        e = e.withMarkers(visitMarkers(e.getMarkers(), p));
+        return e.withWords(ListUtils.map(e.getWords(), it -> (Cobol.Word) visit(it, p)));
+    }
+
     public Cobol.Entry visitEntry(Cobol.Entry entry, P p) {
         Cobol.Entry e = entry;
         e = e.withPrefix(visitSpace(e.getPrefix(), Space.Location.ENTRY_PREFIX, p));

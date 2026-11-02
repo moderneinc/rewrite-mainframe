@@ -1920,6 +1920,15 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     @Override
+    public Cobol.Enter visitEnterStatement(CobolParser.EnterStatementContext ctx) {
+        List<Cobol.Word> words = new ArrayList<>(Objects.requireNonNull(wordsList(ctx.ENTER(), ctx.LINKAGE())));
+        for (CobolParser.CobolWordContext word : ctx.cobolWord()) {
+            words.add((Cobol.Word) visit(word));
+        }
+        return new Cobol.Enter(randomId(), EMPTY, Markers.EMPTY, words);
+    }
+
+    @Override
     public Object visitEntryStatement(CobolParser.EntryStatementContext ctx) {
         return new Cobol.Entry(randomId(),
                 EMPTY,

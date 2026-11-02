@@ -352,11 +352,14 @@ class FullContextPredictionTest {
               CALL 'P' USING BY CONTENT LENGTH OF A BY VALUE B BY REFERENCE C
               DIVIDE A INTO B GIVING C
               DIVIDE A INTO B C ROUNDED
+              ENTER COBOL
+              ENTER ASSEMBLER ASMRTN
               STOP RUN.
           """;
         assertThat(fullContextFallbacks(program, "subscript", "andOrCondition", "basis", "arithmeticExpression",
           "evaluateSelect", "evaluateCondition", "moveToSendingArea", "callByContent", "callByValue",
-          "callByReference", "divideStatement", "moveStatement", "functionName", "ifThen", "ifElse")).isZero();
+          "callByReference", "divideStatement", "moveStatement", "functionName", "ifThen", "ifElse",
+          "enterStatement")).isZero();
     }
 
     @Test
