@@ -999,6 +999,24 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
+    @Test
+    void programCollatingSequenceWithoutIs() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. COLLPROG.
+              000003 ENVIRONMENT DIVISION.
+              000004 CONFIGURATION SECTION.
+              000005 OBJECT-COMPUTER. IBM-370
+              000006     PROGRAM COLLATING SEQUENCE STD-ALPHA.
+              000007 PROCEDURE DIVISION.
+              000008     GOBACK.
+              """
+          )
+        );
+    }
+
     /**
      * The REPOSITORY paragraph declares the classes, interfaces, functions and program prototypes
      * a program refers to. `FUNCTION ALL INTRINSIC` is the only form without a name.
