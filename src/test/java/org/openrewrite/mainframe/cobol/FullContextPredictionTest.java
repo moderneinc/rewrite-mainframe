@@ -186,7 +186,8 @@ class FullContextPredictionTest {
               05  WS-A        PIC X(4) VALUE 'ABCD'.
               05  FILLER      PIC X VALUE SPACE.
               05  WS-N        PIC 9(3) COMP VALUE 7.
-                  88  WS-N-SET    VALUE 1 THRU 9.
+                  88  WS-N-SET    VALUE 1 THRU 9 FALSE 0.
+                  88  WS-N-TEN    VALUE 10 WHEN SET TO FALSE IS 11.
               05  WS-T OCCURS 3 TIMES INDEXED BY WS-I.
                   10  WS-E    PIC X.
           01  WS-OLD REDEFINES WS-REC PIC X(20).
@@ -197,7 +198,7 @@ class FullContextPredictionTest {
               STOP RUN.
           """;
         assertThat(fullContextFallbacks(program, "qualifiedDataName", "qualifiedDataNameFormat1",
-          "dataDescriptionEntryFormat1", "dataValueClause")).isZero();
+          "dataDescriptionEntryFormat1", "dataValueClause", "dataValueFalse")).isZero();
     }
 
     @Test
@@ -359,13 +360,13 @@ class FullContextPredictionTest {
     }
 
     @Test
-    void lineLoopsAndNestedPrograms() {
+    void consecutiveExecStatementsAndNestedPrograms() {
         String program = """
           IDENTIFICATION DIVISION.
           PROGRAM-ID. OUTER.
           PROCEDURE DIVISION USING A B BY VALUE C D.
-          *>EXECCICS EXEC CICS SEND MAP('M')
-          *>EXECCICS END-EXEC
+          *>EXECCICS EXEC CICS SEND MAP('M') END-EXEC
+          *>EXECCICS EXEC CICS RETURN END-EXEC
               STOP RUN.
           IDENTIFICATION DIVISION.
           PROGRAM-ID. INNER.

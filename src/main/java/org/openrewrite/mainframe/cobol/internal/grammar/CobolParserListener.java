@@ -2263,16 +2263,6 @@ public interface CobolParserListener extends ParseTreeListener {
 	 */
 	void exitDataDescriptionEntryFormat3(CobolParser.DataDescriptionEntryFormat3Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link CobolParser#dataDescriptionEntryExecSql}.
-	 * @param ctx the parse tree
-	 */
-	void enterDataDescriptionEntryExecSql(CobolParser.DataDescriptionEntryExecSqlContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link CobolParser#dataDescriptionEntryExecSql}.
-	 * @param ctx the parse tree
-	 */
-	void exitDataDescriptionEntryExecSql(CobolParser.DataDescriptionEntryExecSqlContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link CobolParser#dataAlignedClause}.
 	 * @param ctx the parse tree
 	 */
@@ -2602,6 +2592,16 @@ public interface CobolParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitDataValueIntervalTo(CobolParser.DataValueIntervalToContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link CobolParser#dataValueFalse}.
+	 * @param ctx the parse tree
+	 */
+	void enterDataValueFalse(CobolParser.DataValueFalseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#dataValueFalse}.
+	 * @param ctx the parse tree
+	 */
+	void exitDataValueFalse(CobolParser.DataValueFalseContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link CobolParser#dataWithLowerBoundsClause}.
 	 * @param ctx the parse tree

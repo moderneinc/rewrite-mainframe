@@ -588,7 +588,8 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     @Override
     public Cobol.DataValueClause visitDataValueClause(Cobol.DataValueClause dataValueClause, P p) {
         Cobol.DataValueClause d = dataValueClause;
-        return d.withCobols(ListUtils.map(d.getCobols(), it -> visitAndCast(it, p)));
+        d = d.withCobols(ListUtils.map(d.getCobols(), it -> visitAndCast(it, p)));
+        return d.withFalseValue(visitAndCast(d.getFalseValue(), p));
     }
 
     @Override

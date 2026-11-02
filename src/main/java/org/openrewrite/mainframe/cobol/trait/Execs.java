@@ -165,27 +165,18 @@ final class Execs {
      * Whether {@code cursor}'s word is the stand-in for the block it carries rather than one of the
      * words within it.
      * <p>
-     * A block in the procedure division parses to a statement whose lines are the stand-ins, so
-     * membership of that list is the test. A block written anywhere else is elided onto the word
-     * that follows it and has no statement to belong to, which is why anything with no such parent
-     * counts.
+     * A block in the procedure division parses to a statement whose line is the stand-in, so being
+     * that line is the test. A block written anywhere else is elided onto the word that follows it
+     * and has no statement to belong to, which is why anything with no such parent counts.
      */
     static boolean isStandIn(Cursor cursor, Cobol.Word word) {
         Object parent = cursor.getParentTreeCursor().getValue();
-        List<Cobol.Word> lines =
-                parent instanceof Cobol.ExecCicsStatement ? ((Cobol.ExecCicsStatement) parent).getExecCicsLines() :
-                parent instanceof Cobol.ExecDliStatement ? ((Cobol.ExecDliStatement) parent).getExecDliLines() :
-                parent instanceof Cobol.ExecSqlStatement ? ((Cobol.ExecSqlStatement) parent).getExecSqlLines() :
-                parent instanceof Cobol.ExecSqlImsStatement ? ((Cobol.ExecSqlImsStatement) parent).getExecSqlLmsLines() :
+        Cobol.Word line =
+                parent instanceof Cobol.ExecCicsStatement ? ((Cobol.ExecCicsStatement) parent).getExecCicsLine() :
+                parent instanceof Cobol.ExecDliStatement ? ((Cobol.ExecDliStatement) parent).getExecDliLine() :
+                parent instanceof Cobol.ExecSqlStatement ? ((Cobol.ExecSqlStatement) parent).getExecSqlLine() :
+                parent instanceof Cobol.ExecSqlImsStatement ? ((Cobol.ExecSqlImsStatement) parent).getExecSqlImsLine() :
                         null;
-        if (lines == null) {
-            return true;
-        }
-        for (Cobol.Word line : lines) {
-            if (line == word) {
-                return true;
-            }
-        }
-        return false;
+        return line == null || line == word;
     }
 }

@@ -1370,12 +1370,6 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDataDescriptionEntryFormat3(CobolParser.DataDescriptionEntryFormat3Context ctx);
 	/**
-	 * Visit a parse tree produced by {@link CobolParser#dataDescriptionEntryExecSql}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDataDescriptionEntryExecSql(CobolParser.DataDescriptionEntryExecSqlContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link CobolParser#dataAlignedClause}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -1573,6 +1567,12 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitDataValueIntervalTo(CobolParser.DataValueIntervalToContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link CobolParser#dataValueFalse}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDataValueFalse(CobolParser.DataValueFalseContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link CobolParser#dataWithLowerBoundsClause}.
 	 * @param ctx the parse tree
