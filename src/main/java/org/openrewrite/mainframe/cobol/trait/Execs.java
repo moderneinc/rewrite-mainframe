@@ -25,8 +25,10 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
 
@@ -67,6 +69,16 @@ final class Execs {
             }
         }.visit(exec.getCobol(), 0);
         return words;
+    }
+
+    /**
+     * As {@link #wordsOf(CobolPreprocessor.ExecStatement)}, kept on {@code at}'s root. A trait asks
+     * about every word of a block, so each block is read once.
+     */
+    static List<Cobol.Word> wordsOf(Cursor at, CobolPreprocessor.ExecStatement exec) {
+        Map<CobolPreprocessor.ExecStatement, List<Cobol.Word>> blocks =
+                at.getRoot().computeMessageIfAbsent("cobol.execWords", k -> new IdentityHashMap<>());
+        return blocks.computeIfAbsent(exec, Execs::wordsOf);
     }
 
     /**
@@ -133,12 +145,15 @@ final class Execs {
 
     /**
      * The option whose operand holds {@code word}, or null where there is none, as in an SQL block.
+     * The block's options are kept on {@code at}'s root with its words.
      */
-    static @Nullable Option optionHolding(CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
+    static @Nullable Option optionHolding(Cursor at, CobolPreprocessor.ExecStatement exec, Cobol.Word word) {
         if (isSql(exec)) {
             return null;
         }
-        for (Option option : optionsOf(wordsOf(exec))) {
+        Map<CobolPreprocessor.ExecStatement, List<Option>> blocks =
+                at.getRoot().computeMessageIfAbsent("cobol.execOptions", k -> new IdentityHashMap<>());
+        for (Option option : blocks.computeIfAbsent(exec, block -> optionsOf(wordsOf(at, block)))) {
             if (option.holds(word)) {
                 return option;
             }
