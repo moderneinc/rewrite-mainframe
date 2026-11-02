@@ -26,11 +26,9 @@ import org.openrewrite.mainframe.cobol.tree.Statement;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -39,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static java.util.Collections.*;
 
@@ -194,7 +193,7 @@ public class LiteralAssignment implements Trait<Cobol> {
 
         final Map<String, Set<String>> literals = new HashMap<>();
         final Map<String, List<Item>> items = new HashMap<>();
-        final List<Item> records = new ArrayList<>();
+        final Map<UUID, Item> byEntry = new HashMap<>();
         final Set<Item> open = newSetFromMap(new IdentityHashMap<>());
 
         /**
@@ -240,13 +239,12 @@ public class LiteralAssignment implements Trait<Cobol> {
         }
 
         /**
-         * Builds the item hierarchy the way {@link DataName} does, with the literals each item's
+         * Builds an item for each entry, placed as {@link DataDescription} places it, with the literals its
          * {@code VALUE} clause gives it. An item the program does not own is open from the start.
          * That is anything outside working and local storage, anything {@code EXTERNAL}, and a
          * {@code RENAMES}, which spans items it does not nest.
          */
         private void declare(Cursor program) {
-            Deque<Item> nesting = new ArrayDeque<>();
             List<Item> initialized = new ArrayList<>();
             new CopybookSkippingVisitor<Integer>() {
                 @Override
@@ -259,7 +257,7 @@ public class LiteralAssignment implements Trait<Cobol> {
                     Object section = getCursor().firstEnclosing(DataDivisionSection.class);
                     boolean owned = section instanceof Cobol.WorkingStorageSection ||
                                     section instanceof Cobol.LocalStorageSection;
-                    declare(entry, owned, nesting, initialized);
+                    declare(getCursor(), owned, initialized);
                     return super.visitDataDescriptionEntry(entry, p);
                 }
 
@@ -275,28 +273,17 @@ public class LiteralAssignment implements Trait<Cobol> {
             initialized.forEach(item -> write(item, true));
         }
 
-        private void declare(Cobol.DataDescriptionEntry entry, boolean owned, Deque<Item> nesting, List<Item> initialized) {
-            int level = DliCall.levelOf(entry);
-            Item parent;
-            if (level == 88) {
-                parent = nesting.peek();
-            } else if (level == 66) {
-                parent = nesting.peekLast();
-            } else {
-                if (level == 1 || level == 77) {
-                    nesting.clear();
-                }
-                while (!nesting.isEmpty() && nesting.peek().level >= level) {
-                    nesting.pop();
-                }
-                parent = nesting.peek();
-            }
-            List<Item> siblings = parent == null ? records : parent.children;
+        private void declare(Cursor at, boolean owned, List<Item> initialized) {
+            Cobol.DataDescriptionEntry entry = at.getValue();
+            DataDescription declared = new DataDescription(at);
+            int level = declared.getLevel();
+            Item parent = itemOf(declared.getParent());
             Item item = new Item(level, parent);
+            byEntry.put(entry.getId(), item);
             boolean external = false;
             for (Cobol clause : entry.getClauses() == null ? Collections.<Cobol>emptyList() : entry.getClauses()) {
                 if (clause instanceof Cobol.DataRedefinesClause) {
-                    Item redefined = last(siblings, Names.upperOf(((Cobol.DataRedefinesClause) clause).getDataName()));
+                    Item redefined = itemOf(declared.getRedefines());
                     if (redefined != null) {
                         item.aliases = redefined.aliases;
                         item.aliases.add(item);
@@ -310,9 +297,8 @@ public class LiteralAssignment implements Trait<Cobol> {
             if (!owned || external || level == 66 || parent != null && open.contains(parent)) {
                 open.add(item);
             }
-            if (level != 88 && level != 66) {
-                siblings.add(item);
-                nesting.push(item);
+            if (parent != null && level != 88 && level != 66) {
+                parent.children.add(item);
             }
             Cobol.Word name = entry.getName();
             if (name != null && !"FILLER".equalsIgnoreCase(name.getWord())) {
@@ -331,13 +317,8 @@ public class LiteralAssignment implements Trait<Cobol> {
             return true;
         }
 
-        private static @Nullable Item last(List<Item> siblings, @Nullable String name) {
-            for (int i = siblings.size() - 1; i >= 0; i--) {
-                if (siblings.get(i).name != null && siblings.get(i).name.equals(name)) {
-                    return siblings.get(i);
-                }
-            }
-            return null;
+        private @Nullable Item itemOf(@Nullable DataDescription entry) {
+            return entry == null ? null : byEntry.get(entry.getTree().getId());
         }
 
         /**

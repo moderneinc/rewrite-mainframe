@@ -78,6 +78,29 @@ class DataNameTest implements RewriteTest {
     }
 
     @Test
+    void resolvesARedefinesObjectByPosition() {
+        List<DataName> names = names(
+          """
+            000000 IDENTIFICATION DIVISION.                                        \s
+            000000 PROGRAM-ID. REDEF.                                              \s
+            000000 DATA DIVISION.                                                  \s
+            000000 WORKING-STORAGE SECTION.                                        \s
+            000000 01  WS-A.                                                       \s
+            000000     05  WS-DATE     PIC X(8).                                   \s
+            000000     05  WS-DATE-N   REDEFINES WS-DATE PIC 9(8).                 \s
+            000000 01  WS-B.                                                       \s
+            000000     05  WS-DATE     PIC X(8).                                   \s
+            000000     05  WS-DATE-N   REDEFINES WS-DATE PIC 9(8).                 \s
+            000000 PROCEDURE DIVISION.                                             \s
+            000000     GOBACK.                                                     \s
+            """
+        );
+
+        assertThat(usagesOf(names, "WS-DATE")).extracting(usage -> usage.getDefinition() == null ? null : usage.getDefinition().getTree())
+          .containsExactlyElementsOf(definitionsOf(names, "WS-DATE"));
+    }
+
+    @Test
     void tellsADefinitionFromAUsage() {
         List<DataName> names = names(
           """
