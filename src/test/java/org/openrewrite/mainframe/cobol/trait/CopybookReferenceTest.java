@@ -25,7 +25,6 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.bms.BmsParser;
 import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.CopybookParser;
-import org.openrewrite.mainframe.cobol.marker.SymbolicMap;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.text.PlainTextParser;
 
@@ -223,11 +222,8 @@ class CopybookReferenceTest implements RewriteTest {
         CopybookReference reference = copying("COSGN00", mapset("COSGN00.bms", COSGN00));
 
         assertThat(reference.isResolved()).isTrue();
-        // No file holds what assembling the map set writes.
-        assertThat(reference.getSourcePath()).isNull();
+        assertThat(reference.getSourcePath()).isEqualTo(Paths.get("COSGN00.bms"));
         //noinspection DataFlowIssue
-        assertThat(reference.getCopybook().getMarkers().findFirst(SymbolicMap.class))
-          .hasValueSatisfying(symbolicMap -> assertThat(symbolicMap.getMapset()).isEqualTo(Paths.get("COSGN00.bms")));
         assertThat(reference.getCopybook().printAll()).contains("02  TRNNAMEI  PIC X(4).");
     }
 

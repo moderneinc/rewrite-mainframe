@@ -23,11 +23,9 @@ import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.mainframe.cobol.marker.SymbolicMap;
 import org.openrewrite.mainframe.cobol.table.CopybookSource;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
-import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.internal.StringUtils;
 
 import java.nio.file.Path;
@@ -71,14 +69,6 @@ public class FindCopybook extends Recipe {
                         return reference.getTree();
                     }
                     Path sourcePath = reference.getSourcePath();
-                    CobolPreprocessor.Copybook copybook = reference.getCopybook();
-                    if (sourcePath == null && copybook != null) {
-                        // A symbolic map is in no file. The program depends on the map set it is
-                        // generated from.
-                        sourcePath = copybook.getMarkers().findFirst(SymbolicMap.class)
-                                .map(SymbolicMap::getMapset)
-                                .orElse(null);
-                    }
                     copybookSource.insertRow(ctx, row(reference,
                             sourcePath == null ? "" : sourcePath.toString(),
                             sourcePath == null ? CopybookSource.ResolutionStatus.NO_SOURCE_PATH :

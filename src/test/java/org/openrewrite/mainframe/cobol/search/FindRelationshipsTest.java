@@ -19,9 +19,14 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Recipe;
+import org.openrewrite.SourceFile;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.mainframe.bms.BmsParser;
+import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.table.CobolRelationships;
 import org.openrewrite.mainframe.cobol.table.CobolRelationships.Row;
@@ -29,10 +34,15 @@ import org.openrewrite.mainframe.linkedit.tree.LinkEdit;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.text.PlainText;
 
+import java.io.ByteArrayInputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.assembler.Assertions.assembler;
@@ -59,6 +69,40 @@ class FindRelationshipsTest extends CobolTest {
     private static String lineAt(String source, @Nullable Integer line) {
         assertThat(line).isNotNull();
         return source.split("\n", -1)[line - 1];
+    }
+
+    @Test
+    void aCopyNamesTheFileItDependsOn() {
+        List<SourceFile> mapset = BmsParser.builder().build().parseInputs(singletonList(
+            new Parser.Input(Paths.get("COSGN00.bms"), () -> new ByteArrayInputStream(
+              """
+                COSGN00 DFHMSD LANG=COBOL,MODE=INOUT,STORAGE=AUTO
+                COSGN0A DFHMDI SIZE=(24,80)
+                TRNNAME DFHMDF POS=(1,8),LENGTH=4
+                        DFHMSD TYPE=FINAL
+                        END
+                """.getBytes(UTF_8)))),
+          null, new InMemoryExecutionContext()).collect(toList());
+
+        rewriteRun(
+          spec -> spec.parser(CobolParser.builder().copybooks(mapset)).dataTable(Row.class, rows ->
+            // A symbolic map is generated from its map set. DFHAID is the CICS translator's, in no file.
+            assertThat(rows).filteredOn(r -> r.getAction() == COPY)
+              .extracting(Row::getDependency, Row::getDependencyPath)
+              .containsExactly(tuple("COSGN00", "COSGN00.bms"), tuple("DFHAID", null))),
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                         *
+                     PROGRAM-ID. SIGNON.                                              *
+                     DATA DIVISION.                                                   *
+                     WORKING-STORAGE SECTION.                                         *
+                         COPY COSGN00.                                                *
+                         COPY DFHAID.                                                 *
+              """,
+            "",
+            spec -> spec.after(s -> s)
+          )
+        );
     }
 
 	@DocumentExample @Test void IC201A() {
