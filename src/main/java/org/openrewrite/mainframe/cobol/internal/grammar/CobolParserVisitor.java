@@ -3698,6 +3698,12 @@ public interface CobolParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitCicsDfhValueLiteral(CobolParser.CicsDfhValueLiteralContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link CobolParser#cicsName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCicsName(CobolParser.CicsNameContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link CobolParser#figurativeConstant}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
