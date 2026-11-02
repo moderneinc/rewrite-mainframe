@@ -115,7 +115,7 @@ class ParseCostTest {
         List<Path> repositories = Corpus.repositories(root);
         FullContextWatch watch = new FullContextWatch();
         CacheReport caches = new CacheReport();
-        StringBuilder report = new StringBuilder(String.format(Locale.ROOT, "%-10s %7s  %-18s  %-18s  %-18s  %s%n",
+        StringBuilder report = new StringBuilder(String.format(Locale.ROOT, "%-10s %7s  %-29s  %-29s  %-29s  %s%n",
           "", "files", "pass 1, cold", "passes 2-3, warm", "pass 4, cleared", "building the cache"));
         int files = 0;
         for (Language language : languages) {
@@ -200,6 +200,7 @@ class ParseCostTest {
             }
 
             long[] nanos = new long[4];
+            long[] cpuNanos = new long[4];
             long[] bytes = new long[4];
             for (int pass = 0; pass < 4; pass++) {
                 if (pass == 3) {
@@ -210,11 +211,13 @@ class ParseCostTest {
                     ctx.putMessage(PredictionListener.KEY, watch);
                 }
                 long allocatedBefore = allocated();
+                long cpuBefore = cpu();
                 long start = System.nanoTime();
                 for (int i = 0; i < parsers.size(); i++) {
                     parsers.get(i).parseInputs(inputs.get(i), root, ctx).collect(toList());
                 }
                 nanos[pass] = System.nanoTime() - start;
+                cpuNanos[pass] = cpu() - cpuBefore;
                 bytes[pass] = allocated() - allocatedBefore;
                 if (pass == 0) {
                     grammars.forEach(caches::add);
@@ -222,11 +225,14 @@ class ParseCostTest {
             }
 
             long warmNanos = (nanos[1] + nanos[2]) / 2;
+            long warmCpuNanos = (cpuNanos[1] + cpuNanos[2]) / 2;
             long warmBytes = (bytes[1] + bytes[2]) / 2;
-            return String.format(Locale.ROOT,
-              "%-10s %,7d  %6.2f s %6.2f GB  %6.2f s %6.2f GB  %6.2f s %6.2f GB  %6.2f s %6.2f GB%n",
-              name, files, nanos[0] / 1e9, bytes[0] / 1e9, warmNanos / 1e9, warmBytes / 1e9,
-              nanos[3] / 1e9, bytes[3] / 1e9, (nanos[3] - warmNanos) / 1e9, (bytes[3] - warmBytes) / 1e9);
+            String cell = "%6.2f s %6.2f cpu %6.2f GB";
+            return String.format(Locale.ROOT, "%-10s %,7d  " + cell + "  " + cell + "  " + cell + "  " + cell + "%n",
+              name, files, nanos[0] / 1e9, cpuNanos[0] / 1e9, bytes[0] / 1e9,
+              warmNanos / 1e9, warmCpuNanos / 1e9, warmBytes / 1e9,
+              nanos[3] / 1e9, cpuNanos[3] / 1e9, bytes[3] / 1e9,
+              (nanos[3] - warmNanos) / 1e9, (cpuNanos[3] - warmCpuNanos) / 1e9, (bytes[3] - warmBytes) / 1e9);
         }
     }
 
@@ -329,6 +335,13 @@ class ParseCostTest {
     private static String nameOf(Parser parser) {
         Class<?> type = parser.getClass();
         return (type.isAnonymousClass() ? type.getSuperclass() : type).getSimpleName();
+    }
+
+    /**
+     * The CPU time this thread has used. Like the allocation count, it counts this thread and not the collector's.
+     */
+    private static long cpu() {
+        return ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
     }
 
     private static long allocated() {
