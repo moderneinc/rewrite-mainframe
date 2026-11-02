@@ -1629,22 +1629,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitDataValueClause(CobolParser.DataValueClauseContext ctx) {
+        CobolParser.DataValueFalseContext whenFalse = ctx.dataValueFalse();
         return new Cobol.DataValueClause(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.VALUE(), ctx.VALUES(), ctx.IS(), ctx.ARE()),
                 convertAllList(ctx.dataValueInterval()),
-                visitNullable(ctx.dataValueFalse())
-        );
-    }
-
-    @Override
-    public Object visitDataValueFalse(CobolParser.DataValueFalseContext ctx) {
-        return new Cobol.DataValueFalse(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                wordsList(ctx.WHEN(), ctx.SET(), ctx.TO(), ctx.FALSE(), ctx.IS()),
-                (Name) visit(ctx.literal())
+                whenFalse == null ? null : wordsList(whenFalse.WHEN(), whenFalse.SET(), whenFalse.TO(), whenFalse.FALSE(), whenFalse.IS()),
+                whenFalse == null ? null : (Name) visit(whenFalse.literal())
         );
     }
 

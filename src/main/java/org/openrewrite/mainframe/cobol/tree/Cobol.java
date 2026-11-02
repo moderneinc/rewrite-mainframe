@@ -2105,38 +2105,20 @@ public interface Cobol extends Tree {
         List<Cobol> cobols;
 
         /**
+         * WHEN SET TO FALSE IS, or as much of it as is written, or null without a FALSE phrase.
+         */
+        @Nullable
+        List<Word> falseWords;
+
+        /**
          * The value SET condition-name TO FALSE moves, which is not one of the condition's values.
          */
         @Nullable
-        DataValueFalse falseValue;
+        Name falseValue;
 
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
             return v.visitDataValueClause(this, p);
-        }
-    }
-
-    @Value
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @With
-    class DataValueFalse implements Cobol {
-
-        @EqualsAndHashCode.Include
-        UUID id;
-
-        Space prefix;
-        Markers markers;
-
-        /**
-         * WHEN SET TO FALSE IS, or as much of it as is written.
-         */
-        List<Word> words;
-
-        Name value;
-
-        @Override
-        public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {
-            return v.visitDataValueFalse(this, p);
         }
     }
 

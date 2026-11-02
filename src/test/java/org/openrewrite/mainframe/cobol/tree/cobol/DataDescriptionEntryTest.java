@@ -158,7 +158,7 @@ class DataDescriptionEntryTest extends CobolTest {
                       values.add(interval.printTrimmed(getCursor()));
                   }
                   if (clause.getFalseValue() != null) {
-                      falseValues.add(clause.getFalseValue().getValue().printTrimmed(getCursor()));
+                      falseValues.add(clause.getFalseValue().printTrimmed(getCursor()));
                   }
                   return clause;
               }

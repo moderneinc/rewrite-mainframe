@@ -836,15 +836,8 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         d = d.withMarkers(visitMarkers(d.getMarkers(), p));
         d = d.withWords(ListUtils.map(d.getWords(), it -> (Cobol.Word) visit(it, p)));
         d = d.withCobols(ListUtils.map(d.getCobols(), t -> visit(t, p)));
-        return d.withFalseValue((Cobol.DataValueFalse) visit(d.getFalseValue(), p));
-    }
-
-    public Cobol visitDataValueFalse(Cobol.DataValueFalse dataValueFalse, P p) {
-        Cobol.DataValueFalse d = dataValueFalse;
-        d = d.withPrefix(visitSpace(d.getPrefix(), Space.Location.DATA_VALUE_FALSE_PREFIX, p));
-        d = d.withMarkers(visitMarkers(d.getMarkers(), p));
-        d = d.withWords(ListUtils.map(d.getWords(), it -> (Cobol.Word) visit(it, p)));
-        return d.withValue((Name) visit(d.getValue(), p));
+        d = d.withFalseWords(ListUtils.map(d.getFalseWords(), it -> (Cobol.Word) visit(it, p)));
+        return d.withFalseValue((Name) visit(d.getFalseValue(), p));
     }
 
     public Cobol visitDataValueInterval(Cobol.DataValueInterval dataValueInterval, P p) {
