@@ -207,7 +207,7 @@ class CobolSymbolicMapTest implements RewriteTest {
     }
 
     @Test
-    void modeSaysWhichRecordsAreWritten() {
+    void modeSaysWhichRecordsAreWrittenAndWhichHoldsTheAttribute() {
         symbolicMap(
           """
             SET1    DFHMSD LANG=COBOL,MODE=IN
@@ -228,7 +228,32 @@ class CobolSymbolicMapTest implements RewriteTest {
                     DFHMSD TYPE=FINAL
                     END
             """,
-          copybook -> assertThat(copybook).startsWith("       01  MAP1O.\n").doesNotContain("MAP1I")
+          copybook -> assertThat(copybook).isEqualTo(
+            """
+                     01  MAP1O.
+                         02  FILLER PICTURE X(2).
+                         02  FLDA    PICTURE X.
+                         02  FLDO  PIC X(4).
+              """)
+        );
+    }
+
+    @Test
+    void aBaseIsTheStorageEveryMapRedefines() {
+        symbolicMap(
+          """
+            SET1    DFHMSD LANG=COBOL,MODE=INOUT,BASE=MAPAREA
+            MAP1    DFHMDI SIZE=(24,80)
+            FLD     DFHMDF POS=(1,1),LENGTH=4
+            MAP2    DFHMDI SIZE=(24,80)
+            FLD2    DFHMDF POS=(1,1),LENGTH=4
+                    DFHMSD TYPE=FINAL
+                    END
+            """,
+          copybook -> assertThat(copybook)
+            .contains("01  MAP1I REDEFINES MAPAREA.")
+            .contains("01  MAP1O REDEFINES MAP1I.")
+            .contains("01  MAP2I REDEFINES MAPAREA.")
         );
     }
 

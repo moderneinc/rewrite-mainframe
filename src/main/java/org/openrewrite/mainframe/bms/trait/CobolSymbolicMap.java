@@ -62,12 +62,13 @@ final class CobolSymbolicMap {
         boolean input = "IN".equals(mode) || "INOUT".equals(mode);
         boolean output = !"IN".equals(mode);
         boolean automatic = "AUTO".equals(upper(mapset.getStorage()));
+        String base = upper(Operands.textOf(mapset.getTree(), "BASE"));
 
         CobolSymbolicMap symbolicMap = new CobolSymbolicMap();
         String first = null;
         for (int i = 0; i < maps.size(); i++) {
             MapDefinition map = maps.get(i);
-            boolean prefix = prefix(mapset, map, automatic);
+            boolean prefix = prefix(mapset, map);
             if (fields.get(i).isEmpty() && !prefix) {
                 continue;
             }
@@ -75,15 +76,16 @@ final class CobolSymbolicMap {
             String name = map.getName().toUpperCase(Locale.ROOT);
             String inputRecord = name + Field.Subfield.INPUT.getSuffix();
             String outputRecord = name + Field.Subfield.OUTPUT.getSuffix();
-            // Without STORAGE=AUTO every map's records share the storage of the first map's.
-            String shared = automatic ? null : first;
+            // Without STORAGE=AUTO the maps share storage. It is the BASE the program declares,
+            // else the first map's records.
+            String shared = base != null ? base : automatic ? null : first;
             if (input) {
                 symbolicMap.record(inputRecord, shared, prefix);
                 symbolicMap.inputFields(fields.get(i), attributes);
             }
             if (output) {
                 symbolicMap.record(outputRecord, input ? inputRecord : shared, prefix);
-                symbolicMap.outputFields(fields.get(i), attributes);
+                symbolicMap.outputFields(fields.get(i), attributes, input);
             }
             if (first == null) {
                 first = input ? inputRecord : outputRecord;
@@ -93,24 +95,24 @@ final class CobolSymbolicMap {
     }
 
     /**
-     * Whether the map's records begin with the 12-byte terminal prefix, from the map's own
-     * {@code TIOAPFX}, else the map set's, else {@code STORAGE=AUTO}, which implies it.
+     * Whether a map's records begin with the 12-byte terminal prefix, from its own {@code TIOAPFX},
+     * else the map set's default. A null map asks for that default.
      */
-    private static boolean prefix(Mapset mapset, MapDefinition map, boolean automatic) {
-        String tioapfx = upper(Operands.textOf(map.getTree(), "TIOAPFX"));
+    static boolean prefix(Mapset mapset, @Nullable MapDefinition map) {
+        String tioapfx = map == null ? null : upper(Operands.textOf(map.getTree(), "TIOAPFX"));
         if (tioapfx == null) {
             tioapfx = upper(Operands.textOf(mapset.getTree(), "TIOAPFX"));
         }
-        return tioapfx == null ? automatic : "YES".equals(tioapfx);
+        return tioapfx == null ? "AUTO".equals(upper(mapset.getStorage())) : "YES".equals(tioapfx);
     }
 
     /**
-     * The attribute bytes each field carries, from the map's own {@code DSATTS} or {@code EXTATT},
-     * else the map set's. {@code EXTATT=YES} carries colour, programmed symbols, highlighting and
-     * validation.
+     * The attribute bytes each field of a map carries, from its own {@code DSATTS} or
+     * {@code EXTATT}, else the map set's default. A null map asks for that default.
+     * {@code EXTATT=YES} carries colour, programmed symbols, highlighting and validation.
      */
-    private static Set<Field.Subfield> attributes(Mapset mapset, MapDefinition map) {
-        Set<Field.Subfield> attributes = attributes(map.getTree());
+    static Set<Field.Subfield> attributes(Mapset mapset, @Nullable MapDefinition map) {
+        Set<Field.Subfield> attributes = map == null ? null : attributes(map.getTree());
         if (attributes == null) {
             attributes = attributes(mapset.getTree());
         }
@@ -191,7 +193,11 @@ final class CobolSymbolicMap {
         }
     }
 
-    private void outputFields(List<Field> fields, Set<Field.Subfield> attributes) {
+    /**
+     * With an input record, the attribute redefines the flag there. Without one, the output record
+     * holds the attribute where the flag would be.
+     */
+    private void outputFields(List<Field> fields, Set<Field.Subfield> attributes, boolean input) {
         for (Field field : fields) {
             String name = name(field);
             Integer occurs = field.getOccurs();
@@ -201,8 +207,11 @@ final class CobolSymbolicMap {
                 line("             03  FILLER PICTURE X(2).");
                 line("             03  " + name + "A    PICTURE X.");
                 indent = "             03  ";
-            } else {
+            } else if (input) {
                 line("           02  FILLER PICTURE X(3).");
+            } else {
+                line("           02  FILLER PICTURE X(2).");
+                line("           02  " + name + "A    PICTURE X.");
             }
             for (Field.Subfield attribute : attributes) {
                 line(indent + name + attribute.getSuffix() + "    PICTURE X.");
