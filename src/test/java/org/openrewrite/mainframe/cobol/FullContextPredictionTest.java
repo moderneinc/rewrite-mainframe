@@ -537,6 +537,43 @@ class FullContextPredictionTest {
           "subscript", "displayStatement", "stringSendingPhrase", "dataValueClause")).isZero();
     }
 
+    @Test
+    void formsThatReadTwoWaysTakeOneWithoutRetrying() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. TWOWAYS.
+          ENVIRONMENT DIVISION.
+          CONFIGURATION SECTION.
+          SPECIAL-NAMES.
+              SYSLST IS PRINTER,
+              CLASS ALPHA-NATIONAL IS '@', '#', '$',
+                                     'A' THRU 'I',
+              CLASS DIGITS IS '0' THRU '9'.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          01  A           PIC 9.
+          01  B           PIC X(8).
+          01  C           PIC X(8).
+          01  T.
+              05  E       PIC 9 OCCURS 3 INDEXED BY I.
+          01  ERROR-STATE PIC 9.
+              88  ERROR-FOUND VALUE 1.
+          PROCEDURE DIVISION.
+              DISPLAY A UPON PRINTER.
+              DISPLAY A UPON CONSOLE.
+              IF A = 1 OR (ERROR-FOUND) PERFORM P1 END-IF.
+              IF A = ((A + 1) * 2 + 1) OR ((A + 1) * 2 - 1) PERFORM P1 END-IF.
+              SEARCH E WHEN E (I) = 1 NEXT SENTENCE END-SEARCH.
+              DIVIDE 2 INTO A.
+              UNSTRING B DELIMITED BY ALL ' ' OR ALL '*' INTO C END-UNSTRING.
+              STOP RUN.
+          P1.
+              EXIT.
+          """;
+        assertThat(fullContextFallbacks(program, "displayUpon", "configurationSection", "andOrCondition", "abbreviation",
+          "searchWhen", "divideStatement", "unstringDelimitedByPhrase", "unstringOrAllPhrase")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(
           new org.openrewrite.mainframe.cobol.CobolParser.ImpliedSeparators(new CobolLexer(CharStreams.fromString(program)))));
