@@ -22,6 +22,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
@@ -907,7 +908,7 @@ public class DataName implements Trait<Cobol.Word> {
         private void defineAll(Cursor division, boolean global) {
             Index index = this;
             List<Definition> records = recordsByDivision.computeIfAbsent(division.<Cobol>getValue().getId(), k -> new ArrayList<>());
-            new CopybookSkippingVisitor<Deque<Definition>>() {
+            new CobolIsoVisitor<Deque<Definition>>() {
                 @Override
                 public Cobol preVisit(Cobol tree, Deque<Definition> open) {
                     // No entry is under an entry of another section or file.
@@ -934,7 +935,7 @@ public class DataName implements Trait<Cobol.Word> {
             if (program == null) {
                 return usages;
             }
-            new CopybookSkippingVisitor<Integer>() {
+            new CobolIsoVisitor<Integer>() {
                 @Override
                 public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit unit, Integer p) {
                     // A nested program's names are its own, indexed from its own cursor.
@@ -1080,7 +1081,7 @@ public class DataName implements Trait<Cobol.Word> {
 
         @Override
         public <P> TreeVisitor<? extends Tree, P> asVisitor(VisitFunction2<DataName, P> visitor) {
-            return new CopybookSkippingVisitor<P>() {
+            return new CobolIsoVisitor<P>() {
                 @Override
                 public Cobol.Word visitWord(Cobol.Word word, P p) {
                     Cobol.Word visited = super.visitWord(word, p);

@@ -35,20 +35,28 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
  */
 class CopiedWordTest implements RewriteTest {
 
-    private List<Cobol.Word> copiedWords(String source) {
-        List<Cobol.Word> copied = new ArrayList<>();
+    private List<Cobol.Word> reachedWords(String source) {
+        List<Cobol.Word> reached = new ArrayList<>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
               public Cobol.Word visitWord(Cobol.Word word, ExecutionContext ctx) {
-                  if (!word.getWord().isEmpty() && word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
-                      copied.add(word);
-                  }
+                  reached.add(word);
                   return super.visitWord(word, ctx);
               }
           })),
           cobol(source)
         );
+        return reached;
+    }
+
+    private List<Cobol.Word> copiedWords(String source) {
+        List<Cobol.Word> copied = new ArrayList<>();
+        for (Cobol.Word word : reachedWords(source)) {
+            if (!word.getWord().isEmpty() && word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
+                copied.add(word);
+            }
+        }
         return copied;
     }
 
@@ -95,6 +103,29 @@ class CopiedWordTest implements RewriteTest {
             """
         )).containsEntry("SUB-CALLED", "INCEPTION_3")
           .containsEntry("DN1", "INCEPTION_3");
+    }
+
+    @Test
+    void visitReachesCopybookTextOnlyAsCopiedWords() {
+        List<Cobol.Word> reached = reachedWords(
+          """
+            000000 IDENTIFICATION DIVISION.                                         *
+                   PROGRAM-ID. IC109A.                                              *
+                   DATA DIVISION.                                                   *
+                   LINKAGE SECTION.                                                 *
+                       01  GRP-01.                                                  *
+                           COPY INCEPTION_3.                                        *
+                       01  GRP-02.                                                  *
+                           COPY INCEPTION.                                          *
+                       01  GRP-03.                                                  *
+                           COPY USE_COPY_AND_INCLUDE.                               *
+            """
+        );
+        // GRP-01 copies INCEPTION_3 directly and GRP-02 through INCEPTION and INCEPTION_2.
+        assertThat(reached).filteredOn(word -> word.getWord().equals("DN1")).hasSize(2)
+          .allSatisfy(word -> assertThat(copybook(word)).isEqualTo("INCEPTION_3"));
+        // Only statements written inside a copybook name these two.
+        assertThat(reached).extracting(Cobol.Word::getWord).doesNotContain("INCEPTION_2", "EMPTY_INCLUDE");
     }
 
     @Test

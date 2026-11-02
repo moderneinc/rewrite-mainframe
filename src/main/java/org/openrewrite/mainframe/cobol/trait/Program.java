@@ -18,6 +18,7 @@ package org.openrewrite.mainframe.cobol.trait;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
+import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.trait.SimpleTraitMatcher;
@@ -94,7 +95,7 @@ public class Program implements Trait<Cobol.ProgramUnit> {
             return false;
         }
         AtomicBoolean declared = new AtomicBoolean();
-        new CopybookSkippingVisitor<AtomicBoolean>() {
+        new CobolIsoVisitor<AtomicBoolean>() {
             @Override
             public Cobol.DataDescriptionEntry visitDataDescriptionEntry(Cobol.DataDescriptionEntry entry, AtomicBoolean found) {
                 if ("DFHEIBLK".equals(Names.upperOf(entry.getName()))) {
@@ -112,7 +113,7 @@ public class Program implements Trait<Cobol.ProgramUnit> {
             return false;
         }
         AtomicBoolean issued = new AtomicBoolean();
-        new CopybookSkippingVisitor<AtomicBoolean>() {
+        new CobolIsoVisitor<AtomicBoolean>() {
             @Override
             public Cobol.ExecDliStatement visitExecDliStatement(Cobol.ExecDliStatement exec, AtomicBoolean found) {
                 found.set(true);

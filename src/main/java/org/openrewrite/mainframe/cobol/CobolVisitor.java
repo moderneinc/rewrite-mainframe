@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.tree.*;
 import org.openrewrite.internal.ListUtils;
 
@@ -25,9 +26,34 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
     @Nullable
     protected CobolPreprocessorVisitor<P> cobolPreprocessorVisitor;
 
+    /**
+     * Visits the preprocessor statements a word carries. A copybook's text reaches this visitor once,
+     * as the words the program copied. So the copybook a COPY or EXEC SQL INCLUDE statement carries is
+     * not visited, and neither is a COPY or INCLUDE statement written inside a copybook. A visitor that
+     * needs the copybook's tree visits {@code getCopybook()} itself or overrides this method.
+     */
     protected CobolPreprocessorVisitor<P> getCobolPreprocessorVisitor() {
         if (cobolPreprocessorVisitor == null) {
-            cobolPreprocessorVisitor = new CobolPreprocessorVisitor<>(this);
+            cobolPreprocessorVisitor = new CobolPreprocessorVisitor<P>(this) {
+                @Override
+                public CobolPreprocessor visitCopybook(CobolPreprocessor.Copybook copybook, P p) {
+                    return copybook;
+                }
+
+                @Override
+                public CobolPreprocessor visitCopyStatement(CobolPreprocessor.CopyStatement copy, P p) {
+                    return isCopied(copy) ? copy : super.visitCopyStatement(copy, p);
+                }
+
+                @Override
+                public CobolPreprocessor visitExecSqlIncludeStatement(CobolPreprocessor.ExecSqlIncludeStatement include, P p) {
+                    return isCopied(include) ? include : super.visitExecSqlIncludeStatement(include, p);
+                }
+
+                private boolean isCopied(CobolPreprocessor statement) {
+                    return statement.getMarkers().findFirst(CopiedStatement.class).isPresent();
+                }
+            };
         }
         return cobolPreprocessorVisitor;
     }

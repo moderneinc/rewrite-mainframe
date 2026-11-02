@@ -22,6 +22,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.SourcePositions;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
@@ -352,7 +353,7 @@ public class SearchableText implements Trait<Cobol.Word> {
 
         @Override
         public <P> TreeVisitor<? extends Tree, P> asVisitor(VisitFunction2<SearchableText, P> visitor) {
-            return new CopybookSkippingVisitor<P>() {
+            return new CobolIsoVisitor<P>() {
                 @Override
                 public Cobol.Word visitWord(Cobol.Word word, P p) {
                     Cobol.Word visited = super.visitWord(word, p);
