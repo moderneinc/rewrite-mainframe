@@ -3286,6 +3286,7 @@ public interface Cobol extends Tree {
         Space prefix;
         Markers markers;
         Word word;
+        @Nullable
         Word dot;
         CommentEntry commentEntry;
 
@@ -8497,6 +8498,7 @@ public interface Cobol extends Tree {
         Space prefix;
         Markers markers;
         List<Statement> statements;
+        @Nullable
         Word dot;
 
         @Override

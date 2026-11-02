@@ -16,7 +16,9 @@
 package org.openrewrite.mainframe.cobol.internal;
 
 import lombok.RequiredArgsConstructor;
+import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.antlr.v4.runtime.tree.Trees;
@@ -83,6 +85,8 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     private final Duration timeout;
 
+    private final BufferedTokenStream tokens;
+
     private final long start = System.nanoTime();
 
     private final Set<String> templateKeys = new HashSet<>();
@@ -98,6 +102,12 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     private final Set<Character> commentIndicators = new HashSet<>();
     private int cursor = 0;
+
+    /**
+     * How many commas with no space after them CobolParser's token filter hid right before the token being read.
+     * They are whitespace in its prefix.
+     */
+    private int hiddenCommas;
 
     // Trigger condition to remove whitespace added by the template.
     private boolean removeTemplateCommentArea;
@@ -709,7 +719,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.AUTHOR()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -1623,7 +1633,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.VALUE(), ctx.VALUES(), ctx.IS(), ctx.ARE()),
-                convertAllList(ctx.dataValueInterval(), ctx.COMMACHAR())
+                convertAllList(ctx.dataValueInterval())
         );
     }
 
@@ -1662,7 +1672,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.DATE_COMPILED()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -1675,7 +1685,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.DATE_WRITTEN()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -1791,7 +1801,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.DISPLAY()),
-                convertAllList(ctx.displayOperand(), ctx.COMMACHAR()),
+                convertAllList(ctx.displayOperand()),
                 visitNullable(ctx.displayAt()),
                 visitNullable(ctx.displayUpon()),
                 visitNullable(ctx.displayWith()),
@@ -2182,7 +2192,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 Markers.EMPTY,
                 visit(ctx.FD(), ctx.SD()),
                 (Cobol.Word) visit(ctx.fileName()),
-                convertAllList(ctx.DOT_FS(), ctx.COMMACHAR(), ctx.fileDescriptionEntryClause()),
+                convertAllList(ctx.DOT_FS(), ctx.fileDescriptionEntryClause()),
                 convertAll(ctx.dataDescriptionEntry())
         );
     }
@@ -2369,7 +2379,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.INSTALLATION()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -4519,7 +4529,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.ReportGroupSumClause(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAllList(singletonList(ctx.SUM()), ctx.identifier(), ctx.COMMACHAR(), singletonList(ctx.UPON()), ctx.dataName())
+                convertAllList(singletonList(ctx.SUM()), ctx.identifier(), singletonList(ctx.UPON()), ctx.dataName())
         );
     }
 
@@ -4795,7 +4805,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 (Cobol.Word) visit(ctx.SECURITY()),
-                (Cobol.Word) visit(ctx.DOT_FS()),
+                visitNullable(ctx.DOT_FS()),
                 visitNullable(ctx.commentEntry()),
                 null,
                 null
@@ -5290,7 +5300,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 convertAll(ctx.statement()),
-                (Cobol.Word) visit(ctx.DOT_FS())
+                visitNullable(ctx.DOT_FS())
         );
     }
 
@@ -5637,7 +5647,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
         return new Cobol.StringSendingPhrase(randomId(),
                 EMPTY,
                 Markers.EMPTY,
-                convertAllList(ctx.stringSending(), ctx.COMMACHAR()),
+                convertAllList(ctx.stringSending()),
                 visit(ctx.stringDelimitedByPhrase(), ctx.stringForPhrase())
         );
     }
@@ -5848,7 +5858,14 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     public Cobol.Word visitTerminal(TerminalNode node) {
         String nodeText = node.getText();
         List<Object> objects = new ArrayList<>();
+        hiddenCommas = 0;
+        for (int i = node.getSymbol().getTokenIndex() - 1; i >= 0 && tokens.get(i).getChannel() != Token.DEFAULT_CHANNEL; i--) {
+            if (tokens.get(i).getType() == CobolParser.COMMACHAR) {
+                hiddenCommas++;
+            }
+        }
         Space prefix = processTokenText(nodeText, objects);
+        hiddenCommas = 0;
         Markers markers = Markers.EMPTY;
         // The tag stands in for an EXEC block that the grammar was never handed, so the word has no text of its own.
         String text = END_OF_FILE.equals(nodeText) || nodeText.startsWith(EXEC_TAG) ? "" :
@@ -6275,11 +6292,15 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
             // Do not consume whitespace in blank column areas.
             isColumnArea = columnAreaStarts.get(delimIndex);
             if (!Character.isWhitespace(c) || isColumnArea) {
-                if (c == ',' || c == ';' && delimIndex + 1 < source.length() - 1) {
+                if ((c == ',' || c == ';') && delimIndex + 1 < source.length()) {
                     char next = source.charAt(delimIndex + 1);
                     if (next == ' ' || next == '\r' || next == '\n' || commentAreaStarts.get(delimIndex + 1)) {
                         continue;
                     }
+                }
+                if (c == ',' && hiddenCommas > 0) {
+                    hiddenCommas--;
+                    continue;
                 }
                 break; // found it!
             }

@@ -21,6 +21,9 @@ parser grammar CobolParser;
 
 options { tokenVocab = CobolLexer; }
 
+// Inserted by CobolParser before a word that heads a paragraph or section after a sentence without a period.
+tokens { IMPLICIT_PERIOD }
+
 @members {
     private static IntervalSet statementStart;
 
@@ -47,15 +50,15 @@ options { tokenVocab = CobolLexer; }
     /**
      * Whether the next token opens a subscript group. A reference modifier opens with the same parenthesis and
      * is told apart only by the colon at its top level, so the group is scanned to its closing parenthesis.
-     * A parenthesis after a name always belongs to the name, so the only other question at that point is
-     * which of the two it opens.
+     * A parenthesis after a name belongs to the name unless a comma separates them, so the only other question
+     * at that point is which of the two it opens.
      */
     boolean startsSubscripts() {
         return subscriptsAt(1);
     }
 
     private boolean subscriptsAt(int i) {
-        if (_input.LA(i) != LPARENCHAR) {
+        if (_input.LA(i) != LPARENCHAR || separatedAt(i)) {
             return false;
         }
         int depth = 0;
@@ -71,6 +74,24 @@ options { tokenVocab = CobolLexer; }
                 return false;
             }
         }
+    }
+
+    /**
+     * Whether a comma separates the parenthesis at {@code i} from what precedes it, as one separates the
+     * arguments of {@code FUNCTION MAX(A * B, (C + 1) / 2)}. Such a parenthesis opens an argument, not a subscript.
+     */
+    boolean separatedAt(int i) {
+        BufferedTokenStream tokens = (BufferedTokenStream) _input;
+        for (int j = tokens.LT(i).getTokenIndex() - 1; j >= 0; j--) {
+            Token hidden = tokens.get(j);
+            if (hidden.getChannel() == Token.DEFAULT_CHANNEL) {
+                return false;
+            }
+            if (hidden.getType() == SEPARATOR && hidden.getText().startsWith(",")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -437,32 +458,33 @@ programIdParagraph
 
 // - author paragraph ----------------------------------
 
+// GnuCOBOL's IBM dialect accepts these paragraphs without the period after their name.
 authorParagraph
-   : AUTHOR DOT_FS commentEntry?
+   : AUTHOR DOT_FS? commentEntry?
    ;
 
 // - installation paragraph ----------------------------------
 
 installationParagraph
-   : INSTALLATION DOT_FS commentEntry?
+   : INSTALLATION DOT_FS? commentEntry?
    ;
 
 // - date written paragraph ----------------------------------
 
 dateWrittenParagraph
-   : DATE_WRITTEN DOT_FS commentEntry?
+   : DATE_WRITTEN DOT_FS? commentEntry?
    ;
 
 // - date compiled paragraph ----------------------------------
 
 dateCompiledParagraph
-   : DATE_COMPILED DOT_FS commentEntry?
+   : DATE_COMPILED DOT_FS? commentEntry?
    ;
 
 // - security paragraph ----------------------------------
 
 securityParagraph
-   : SECURITY DOT_FS commentEntry?
+   : SECURITY DOT_FS? commentEntry?
    ;
 
 // - remarks paragraph ----------------------------------
@@ -780,7 +802,7 @@ fileSection
    ;
 
 fileDescriptionEntry
-   : (FD | SD) fileName ((DOT_FS | COMMACHAR)? fileDescriptionEntryClause)* DOT_FS dataDescriptionEntry*
+   : (FD | SD) fileName (DOT_FS? fileDescriptionEntryClause)* DOT_FS dataDescriptionEntry*
    ;
 
 fileDescriptionEntryClause
@@ -1222,7 +1244,7 @@ reportGroupSourceClause
    ;
 
 reportGroupSumClause
-   : SUM (identifier COMMACHAR?)+ (UPON (dataName COMMACHAR?)+)?
+   : SUM identifier+ (UPON dataName+)?
    ;
 
 reportGroupTypeClause
@@ -1490,7 +1512,7 @@ dataUsingClause
    ;
 
 dataValueClause
-   : (VALUE | VALUES) (IS | ARE)? (dataValueInterval COMMACHAR?)+
+   : (VALUE | VALUES) (IS | ARE)? dataValueInterval+
    ;
 
 dataValueInterval
@@ -1574,7 +1596,7 @@ paragraph
    ;
 
 sentence
-   : statement* DOT_FS
+   : statement* (DOT_FS | IMPLICIT_PERIOD)
    ;
 
 imperativeStatements
@@ -1785,7 +1807,7 @@ disableStatement
 // display statement
 
 displayStatement
-   : DISPLAY (displayOperand COMMACHAR?)+ displayAt? displayUpon? displayWith? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_DISPLAY | {!ahead($ctx, END_DISPLAY)}?)
+   : DISPLAY displayOperand+ displayAt? displayUpon? displayWith? (onExceptionClause | {!startsPhrase($ctx, EXCEPTION)}?) (notOnExceptionClause | {!startsNotPhrase($ctx, EXCEPTION)}?) (END_DISPLAY | {!ahead($ctx, END_DISPLAY)}?)
    ;
 
 displayOperand
@@ -2511,7 +2533,7 @@ stringStatement
    ;
 
 stringSendingPhrase
-   : (stringSending COMMACHAR?)+ (stringDelimitedByPhrase | stringForPhrase)
+   : stringSending+ (stringDelimitedByPhrase | stringForPhrase)
    ;
 
 stringSending
@@ -2863,7 +2885,7 @@ abbreviation
 // identifier ----------------------------------
 
 identifier
-   : qualifiedDataName tableCallSubscripts* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR}? | functionCall | specialRegister
+   : qualifiedDataName ({startsSubscripts()}? tableCallSubscripts)* {!startsSubscripts()}? referenceModifier? {_input.LA(1) != LPARENCHAR || separatedAt(1)}? | functionCall | specialRegister
    ;
 
 tableCallSubscripts
