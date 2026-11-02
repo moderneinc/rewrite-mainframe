@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
+import org.antlr.v4.runtime.misc.IntervalSet;
+import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -38,8 +40,11 @@ import org.openrewrite.tree.ParsingExecutionContextView;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -100,8 +105,9 @@ public class CobolParser implements Parser {
             // Any character with no token is skipped silently: a trailing SUB has to parse, and ForwardingErrorListener throws.
             CobolLexer lexer = new CobolLexer(CharStreams.fromString(cobolParserOutput.getOut()));
             lexer.removeErrorListeners();
+            CommonTokenStream tokens = new CommonTokenStream(new ImpliedSeparators(lexer));
             org.openrewrite.mainframe.cobol.internal.grammar.CobolParser parser =
-                    new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(new CommonTokenStream(lexer)) {{
+                    new org.openrewrite.mainframe.cobol.internal.grammar.CobolParser(tokens) {{
                         _interp = new TimeLimitingParserATNSimulator(this, _ATN, _decisionToDFA, _sharedContextCache);
                     }};
             parser.removeErrorListeners();
@@ -122,7 +128,8 @@ public class CobolParser implements Parser {
                         preprocessed.getPreprocessorStatements(),
                         preprocessed.getReplacements(),
                         printWithoutColumns.getElidedExecs(),
-                        timeout
+                        timeout,
+                        tokens
                 ).visitCompilationUnit(tokenizedCU);
                 parserListener.parsed(input, compilationUnit);
                 return requirePrintEqualsInput(compilationUnit, input, relativeTo, ctx);
@@ -278,5 +285,196 @@ public class CobolParser implements Parser {
             Arrays.sort(((SemanticContext.AND) config.semanticContext).opnds, OPERAND_ORDER);
         }
         return config;
+    }
+
+    /**
+     * The lexer's tokens with commas and periods where GnuCOBOL's IBM dialect reads them. A comma is a decimal point
+     * only in a program declaring DECIMAL-POINT IS COMMA. Otherwise it separates outside parentheses, even with no
+     * space after it, and delimits a subscript or an argument inside them. A name that starts a line in Area A and
+     * heads a paragraph or section ends the sentence before it, as if a period preceded it. That sentence has to have
+     * begun in Area B, since a program writing its statements in Area A says nothing by starting a word there.
+     */
+    static final class ImpliedSeparators implements TokenSource {
+
+        /**
+         * Area A is columns 8 to 11, the first four of a line once the sequence and indicator areas are printed away.
+         */
+        private static final int AREA_B = 4;
+
+        private static final IntervalSet PARAGRAPH_NAME_START = org.openrewrite.mainframe.cobol.internal.grammar.CobolParser._ATN
+                .nextTokens(org.openrewrite.mainframe.cobol.internal.grammar.CobolParser._ATN
+                        .ruleToStartState[org.openrewrite.mainframe.cobol.internal.grammar.CobolParser.RULE_paragraphName]);
+
+        /**
+         * Words that still need the name after them, which is then their operand however it is laid out.
+         */
+        private static final IntervalSet NEEDS_OPERAND = new IntervalSet(CobolLexer.TO, CobolLexer.FROM, CobolLexer.BY,
+                CobolLexer.INTO, CobolLexer.GIVING, CobolLexer.THRU, CobolLexer.THROUGH, CobolLexer.OF, CobolLexer.IN,
+                CobolLexer.USING);
+
+        private final TokenSource lexer;
+        private final Deque<Token> lookahead = new ArrayDeque<>();
+        private final Deque<Token> ready = new ArrayDeque<>();
+        private int parenthesisDepth;
+        private boolean inProcedureDivision;
+        private int previous = Token.INVALID_TYPE;
+        private int beforePrevious = Token.INVALID_TYPE;
+        private int previousLine;
+        private boolean sentenceInAreaB;
+        private boolean decimalPointIsComma;
+
+        ImpliedSeparators(TokenSource lexer) {
+            this.lexer = lexer;
+        }
+
+        @Override
+        public Token nextToken() {
+            if (!ready.isEmpty()) {
+                return ready.poll();
+            }
+            Token token = lookahead.isEmpty() ? lexer.nextToken() : lookahead.poll();
+            if (token.getType() == CobolLexer.NUMERICLITERAL && !decimalPointIsComma && token.getText().indexOf(',') >= 0) {
+                List<Token> pieces = split(token);
+                for (int i = pieces.size() - 1; i > 0; i--) {
+                    lookahead.addFirst(pieces.get(i));
+                }
+                token = pieces.get(0);
+            }
+            if (token.getChannel() != Token.DEFAULT_CHANNEL) {
+                return token;
+            }
+            if (headsParagraph(token)) {
+                ready.add(read(token));
+                return implicitPeriod(token);
+            }
+            return read(token);
+        }
+
+        private boolean headsParagraph(Token token) {
+            if (!inProcedureDivision || !sentenceInAreaB || previous == CobolLexer.DOT_FS || NEEDS_OPERAND.contains(previous) ||
+                token.getLine() == previousLine || token.getCharPositionInLine() >= AREA_B ||
+                !PARAGRAPH_NAME_START.contains(token.getType())) {
+                return false;
+            }
+            int next = nextOnDefaultChannel();
+            return next == CobolLexer.DOT_FS || next == CobolLexer.SECTION;
+        }
+
+        private int nextOnDefaultChannel() {
+            for (Token token : lookahead) {
+                if (token.getChannel() == Token.DEFAULT_CHANNEL) {
+                    return token.getType();
+                }
+            }
+            while (true) {
+                Token token = lexer.nextToken();
+                lookahead.add(token);
+                if (token.getChannel() == Token.DEFAULT_CHANNEL || token.getType() == Token.EOF) {
+                    return token.getType();
+                }
+            }
+        }
+
+        private Token read(Token token) {
+            int type = token.getType();
+            if (type == CobolLexer.COMMACHAR && parenthesisDepth == 0) {
+                ((WritableToken) token).setChannel(Token.HIDDEN_CHANNEL);
+                return token;
+            }
+            if (previous == CobolLexer.DOT_FS) {
+                // An EXEC block is a statement whatever column the parser's input stands it up in.
+                sentenceInAreaB = token.getCharPositionInLine() >= AREA_B || type == CobolLexer.EXECCICSLINE ||
+                                  type == CobolLexer.EXECDLILINE || type == CobolLexer.EXECSQLLINE ||
+                                  type == CobolLexer.EXECSQLIMSLINE;
+            }
+            if (type == CobolLexer.LPARENCHAR) {
+                parenthesisDepth++;
+            } else if (type == CobolLexer.RPARENCHAR && parenthesisDepth > 0) {
+                parenthesisDepth--;
+            } else if (type == CobolLexer.DOT_FS) {
+                parenthesisDepth = 0;
+            } else if (type == CobolLexer.DIVISION) {
+                inProcedureDivision = previous == CobolLexer.PROCEDURE;
+            } else if (type == CobolLexer.COMMA && (previous == CobolLexer.DECIMAL_POINT ||
+                                                    previous == CobolLexer.IS && beforePrevious == CobolLexer.DECIMAL_POINT)) {
+                decimalPointIsComma = true;
+            }
+            beforePrevious = previous;
+            previous = type;
+            previousLine = token.getLine();
+            return token;
+        }
+
+        /**
+         * The pieces a numeric literal falls into where its commas are no decimal points: each run between them read
+         * as the lexer reads it alone, and the commas.
+         */
+        private List<Token> split(Token literal) {
+            List<Token> pieces = new ArrayList<>();
+            String text = literal.getText();
+            for (int at = 0; ; ) {
+                int comma = text.indexOf(',', at);
+                int end = comma < 0 ? text.length() : comma;
+                CobolLexer alone = new CobolLexer(CharStreams.fromString(text.substring(at, end)));
+                alone.removeErrorListeners();
+                for (Token token = alone.nextToken(); token.getType() != Token.EOF; token = alone.nextToken()) {
+                    pieces.add(piece(literal, token.getType(), token.getChannel(), token.getText(), at + token.getStartIndex()));
+                }
+                if (comma < 0) {
+                    return pieces;
+                }
+                pieces.add(piece(literal, CobolLexer.COMMACHAR, Token.DEFAULT_CHANNEL, ",", comma));
+                at = comma + 1;
+            }
+        }
+
+        private Token piece(Token literal, int type, int channel, String text, int offset) {
+            CommonToken piece = new CommonToken(new Pair<>(this, literal.getInputStream()), type, channel,
+                    literal.getStartIndex() + offset, literal.getStartIndex() + offset + text.length() - 1);
+            piece.setText(text);
+            piece.setLine(literal.getLine());
+            piece.setCharPositionInLine(literal.getCharPositionInLine() + offset);
+            return piece;
+        }
+
+        private Token implicitPeriod(Token before) {
+            CommonToken period = new CommonToken(new Pair<>(this, before.getInputStream()),
+                    org.openrewrite.mainframe.cobol.internal.grammar.CobolParser.IMPLICIT_PERIOD, Token.DEFAULT_CHANNEL,
+                    before.getStartIndex(), before.getStartIndex() - 1);
+            period.setLine(before.getLine());
+            period.setCharPositionInLine(before.getCharPositionInLine());
+            period.setText("");
+            return period;
+        }
+
+        @Override
+        public int getLine() {
+            return lexer.getLine();
+        }
+
+        @Override
+        public int getCharPositionInLine() {
+            return lexer.getCharPositionInLine();
+        }
+
+        @Override
+        public CharStream getInputStream() {
+            return lexer.getInputStream();
+        }
+
+        @Override
+        public String getSourceName() {
+            return lexer.getSourceName();
+        }
+
+        @Override
+        public void setTokenFactory(TokenFactory<?> factory) {
+            lexer.setTokenFactory(factory);
+        }
+
+        @Override
+        public TokenFactory<?> getTokenFactory() {
+            return lexer.getTokenFactory();
+        }
     }
 }

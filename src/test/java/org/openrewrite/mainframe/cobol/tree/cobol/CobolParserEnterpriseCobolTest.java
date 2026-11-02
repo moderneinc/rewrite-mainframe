@@ -519,6 +519,192 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
         return words.stream().map(Cobol.Word::getWord).collect(joining(" "));
     }
 
+    @Test
+    void aWordInAreaAEndsASentenceThatBeganInAreaB() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. AREAA.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  WS-A       PIC 9.
+              000006 PROCEDURE DIVISION.
+              000007 FIRST-PARA.
+              000008     MOVE 1 TO WS-A
+              000009 SECOND-PARA.
+              000010     EXEC SQL COMMIT END-EXEC
+              000011 PROCESS.
+              000012     DISPLAY WS-A
+              000013 LAST-SECTION SECTION.
+              000014 LAST-PARA.
+              000015     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(treesOf(cu, Cobol.Paragraph.class)).extracting(p -> ((Cobol.Word) p.getParagraphName()).getWord())
+                  .containsExactly("FIRST-PARA", "SECOND-PARA", "PROCESS", "LAST-PARA");
+                assertThat(treesOf(cu, Cobol.ProcedureSection.class)).hasSize(1);
+                assertThat(treesOf(cu, Cobol.MoveToStatement.class)).singleElement().extracting(m -> m.getNames().size()).isEqualTo(1);
+                assertThat(treesOf(cu, Cobol.Sentence.class)).extracting(s -> s.getDot() == null).containsExactly(true, true, true, false);
+            })
+          ),
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. AREAAA.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  WS-A       PIC 9.
+              000006 01  WS-B       PIC 9.
+              000007 PROCEDURE DIVISION.
+              000008 MAIN-PARA.
+              000009 MOVE 1 TO WS-A
+              000010 WS-B.
+              000011 GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu ->
+              assertThat(treesOf(cu, Cobol.MoveToStatement.class)).singleElement().extracting(m -> m.getNames().size()).isEqualTo(2))
+          )
+        );
+    }
+
+    @Test
+    void aWordAnEarlierWordStillNeedsIsNoParagraph() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. THRUPGM.
+              000003 PROCEDURE DIVISION.
+              000004 MAIN-PARA.
+              000005     PERFORM A-PARA THRU
+              000006 A-EXIT.
+              000007     GOBACK.
+              000008 A-PARA.
+              000009     CONTINUE.
+              000010 A-EXIT.
+              000011     EXIT.
+              """,
+            spec -> spec.afterRecipe(cu ->
+              assertThat(treesOf(cu, Cobol.Paragraph.class)).extracting(p -> ((Cobol.Word) p.getParagraphName()).getWord())
+                .containsExactly("MAIN-PARA", "A-PARA", "A-EXIT"))
+          )
+        );
+    }
+
+    @Test
+    void aCommaInParenthesesSeparatesArgumentsAndSubscripts() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. COMMAS.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  A          PIC 9.
+              000006 01  B          PIC 9.
+              000007 01  C          PIC 9.
+              000008 01  X          PIC 99.
+              000009 01  GRID.
+              000010     05  ROW    OCCURS 2.
+              000011         10  CELL PIC 9 OCCURS 2.
+              000012 PROCEDURE DIVISION.
+              000013     COMPUTE X = FUNCTION MAX(A * B, (C + 1) / 2, 3 + 4).
+              000014     MOVE CELL (1, 2) TO X.
+              000015     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                Cursor root = new Cursor(null, cu);
+                assertThat(treesOf(cu, Cobol.Argument.class)).hasSize(3);
+                assertThat(treesOf(cu, Cobol.TableCall.class)).extracting(t -> t.getQualifiedDataName().printTrimmed(root))
+                  .containsExactly("CELL");
+            })
+          )
+        );
+    }
+
+    @Test
+    void aCommaIsADecimalPointOnlyUnderDecimalPointIsComma() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. COMMAS.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  X          PIC 9V9.
+              000006     88  X-OK   VALUE 1,2,3.
+              000007 01  GRID.
+              000008     05  ROW    OCCURS 2.
+              000009         10  CELL PIC 9 OCCURS 2.
+              000010 PROCEDURE DIVISION.
+              000011     MOVE CELL (1,2) TO X.
+              000012     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(treesOf(cu, Cobol.DataValueInterval.class)).hasSize(3);
+                assertThat(treesOf(cu, Cobol.Subscript.class)).hasSize(2);
+            })
+          ),
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. DECIMALS.
+              000003 ENVIRONMENT DIVISION.
+              000004 CONFIGURATION SECTION.
+              000005 SPECIAL-NAMES.
+              000006     DECIMAL-POINT IS COMMA.
+              000007 DATA DIVISION.
+              000008 WORKING-STORAGE SECTION.
+              000009 01  X          PIC 9V9.
+              000010     88  X-OK   VALUE 1,2,3.
+              000011 PROCEDURE DIVISION.
+              000012     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.DataValueInterval.class)).hasSize(2))
+          )
+        );
+    }
+
+    @Test
+    void aCommaOutsideParenthesesSeparatesWithoutASpace() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. COMMAS.
+              000003 DATA DIVISION.
+              000004 LINKAGE SECTION.
+              000005 01  PARM-A     PIC X.
+              000006 01  PARM-B     PIC X.
+              000007 01  PARM-C     PIC X.
+              000008 PROCEDURE DIVISION USING PARM-A, PARM-B,PARM-C.
+              000009     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(treesOf(cu, Cobol.ProcedureDivisionByReference.class)).hasSize(3))
+          )
+        );
+    }
+
+    @Test
+    void anIdentificationDivisionParagraphNeedsNoPeriod() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. DATEWR.
+              000003 AUTHOR.        A WRITER.
+              000004 DATE-WRITTEN   MAY 2020.
+              000005 PROCEDURE DIVISION.
+              000006     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu ->
+              assertThat(treesOf(cu, Cobol.IdentificationDivisionParagraph.class)).extracting(p -> p.getDot() == null)
+                .containsExactly(false, true))
+          )
+        );
+    }
+
     private static <T extends Cobol> List<T> treesOf(Cobol.CompilationUnit cu, Class<T> type) {
         List<T> found = new ArrayList<>();
         new CobolIsoVisitor<List<T>>() {

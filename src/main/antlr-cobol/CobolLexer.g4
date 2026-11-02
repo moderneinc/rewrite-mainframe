@@ -672,9 +672,10 @@ IDENTIFIER : ([A-Z0-9]+ | COLONCHAR [A-Z0-9]+ COLONCHAR) ([-_]+ ([A-Z0-9]+ | COL
  * However, client code contains custom whitespace rules that do not match the language spec.
  * The customized whitespace allows for new lines to exist anywhere in the source code.
  *
- * SEPARATOR rule skips over the customized whitespace.
+ * SEPARATOR puts the customized whitespace on the hidden channel, where a comma separating arguments still tells the
+ * parser that the parenthesis after it opens no subscript.
  */
-SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> skip;
+SEPARATOR : (';' | COMMACHAR) (' ' | '\r'? '\n') -> channel(HIDDEN);
 NEWLINE : '\r'? '\n' -> channel(HIDDEN);
 EXECCICSLINE : EXECCICSTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
 EXECDLILINE : EXECDLITAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}');
