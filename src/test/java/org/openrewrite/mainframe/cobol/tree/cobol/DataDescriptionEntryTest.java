@@ -158,7 +158,7 @@ class DataDescriptionEntryTest extends CobolTest {
                       values.add(interval.printTrimmed(getCursor()));
                   }
                   if (clause.getFalseValue() != null) {
-                      falseValues.add(clause.getFalseValue().getLiteral().printTrimmed(getCursor()));
+                      falseValues.add(clause.getFalseValue().getValue().printTrimmed(getCursor()));
                   }
                   return clause;
               }
@@ -172,10 +172,11 @@ class DataDescriptionEntryTest extends CobolTest {
               000000 01  WS-FLAG PIC X.                                              \s
               000000     88  WS-YES VALUE 'Y' FALSE 'N'.                             \s
               000000     88  WS-ON VALUE 'A' 'B' WHEN SET TO FALSE IS 'C'.           \s
+              000000     88  WS-OK VALUE DFHRESP(NORMAL) FALSE DFHRESP(NOTFND).      \s
               """
           )
         );
-        assertThat(values).containsExactly("'Y'", "'A'", "'B'");
-        assertThat(falseValues).containsExactly("'N'", "'C'");
+        assertThat(values).containsExactly("'Y'", "'A'", "'B'", "DFHRESP(NORMAL)");
+        assertThat(falseValues).containsExactly("'N'", "'C'", "DFHRESP(NOTFND)");
     }
 }

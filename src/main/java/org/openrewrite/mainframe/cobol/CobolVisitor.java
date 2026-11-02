@@ -844,7 +844,7 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         d = d.withPrefix(visitSpace(d.getPrefix(), Space.Location.DATA_VALUE_FALSE_PREFIX, p));
         d = d.withMarkers(visitMarkers(d.getMarkers(), p));
         d = d.withWords(ListUtils.map(d.getWords(), it -> (Cobol.Word) visit(it, p)));
-        return d.withLiteral((Literal) visit(d.getLiteral(), p));
+        return d.withValue((Name) visit(d.getValue(), p));
     }
 
     public Cobol visitDataValueInterval(Cobol.DataValueInterval dataValueInterval, P p) {

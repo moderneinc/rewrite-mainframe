@@ -1644,7 +1644,7 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.WHEN(), ctx.SET(), ctx.TO(), ctx.FALSE(), ctx.IS()),
-                (Literal) visit(ctx.literal())
+                (Name) visit(ctx.literal())
         );
     }
 

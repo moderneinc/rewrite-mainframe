@@ -594,7 +594,7 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
 
     @Override
     public Cobol.DataValueFalse visitDataValueFalse(Cobol.DataValueFalse dataValueFalse, P p) {
-        return dataValueFalse.withLiteral(visitAndCast(dataValueFalse.getLiteral(), p));
+        return dataValueFalse.withValue(visitAndCast(dataValueFalse.getValue(), p));
     }
 
     @Override

@@ -2132,7 +2132,7 @@ public interface Cobol extends Tree {
          */
         List<Word> words;
 
-        Literal literal;
+        Name value;
 
         @Override
         public <P> Cobol acceptCobol(CobolVisitor<P> v, P p) {

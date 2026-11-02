@@ -132,9 +132,9 @@ class ExecStatementTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(paragraphNames(cu)).containsExactly("MAIN-PARA", "A-EXIT");
-                assertThat(execsPerStatement(cu)).containsExactly(
-                  List.of("EXEC CICS ASKTIME ABSTIME ( WS-ABSTIME ) END-EXEC ."),
-                  List.of("EXEC CICS RETURN END-EXEC ."));
+                assertThat(execs(cu)).containsExactly(
+                  "EXEC CICS ASKTIME ABSTIME ( WS-ABSTIME ) END-EXEC .",
+                  "EXEC CICS RETURN END-EXEC .");
             })
           )
         );
@@ -158,15 +158,15 @@ class ExecStatementTest extends CobolTest {
               000000     EXEC SQLIMS COMMIT END-EXEC                                 \s
               000000     EXEC SQLIMS ROLLBACK END-EXEC.                              \s
               """,
-            spec -> spec.afterRecipe(cu -> assertThat(execsPerStatement(cu)).containsExactly(
-              List.of("EXEC CICS ASSIGN APPLID ( WS-APPLID ) END-EXEC"),
-              List.of("EXEC CICS RETURN END-EXEC"),
-              List.of("EXEC SQL OPEN C1 END-EXEC"),
-              List.of("EXEC SQL CLOSE C1 END-EXEC"),
-              List.of("EXEC DLI SCHD PSB ( PSB1 ) END-EXEC"),
-              List.of("EXEC DLI TERM END-EXEC"),
-              List.of("EXEC SQLIMS COMMIT END-EXEC"),
-              List.of("EXEC SQLIMS ROLLBACK END-EXEC .")))
+            spec -> spec.afterRecipe(cu -> assertThat(execs(cu)).containsExactly(
+              "EXEC CICS ASSIGN APPLID ( WS-APPLID ) END-EXEC",
+              "EXEC CICS RETURN END-EXEC",
+              "EXEC SQL OPEN C1 END-EXEC",
+              "EXEC SQL CLOSE C1 END-EXEC",
+              "EXEC DLI SCHD PSB ( PSB1 ) END-EXEC",
+              "EXEC DLI TERM END-EXEC",
+              "EXEC SQLIMS COMMIT END-EXEC",
+              "EXEC SQLIMS ROLLBACK END-EXEC ."))
           )
         );
     }
@@ -296,40 +296,34 @@ class ExecStatementTest extends CobolTest {
         return types;
     }
 
+    /**
+     * The EXEC block each EXEC statement stands for, so that a statement and its command are known to belong together.
+     * A line carrying more than one block shows them joined by a plus.
+     */
     private static List<String> execs(Cobol.CompilationUnit cu) {
         List<String> execs = new ArrayList<>();
-        execsPerStatement(cu).forEach(execs::addAll);
-        return execs;
-    }
-
-    /**
-     * The EXEC blocks reachable from each EXEC statement, so that a statement and the command it stands for are known
-     * to belong together.
-     */
-    private static List<List<String>> execsPerStatement(Cobol.CompilationUnit cu) {
-        List<List<String>> execs = new ArrayList<>();
         new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.ExecCicsStatement visitExecCicsStatement(Cobol.ExecCicsStatement exec, Integer p) {
-                execs.add(commands(exec.getExecCicsLine()));
+                execs.add(String.join(" + ", commands(exec.getExecCicsLine())));
                 return super.visitExecCicsStatement(exec, p);
             }
 
             @Override
             public Cobol.ExecDliStatement visitExecDliStatement(Cobol.ExecDliStatement exec, Integer p) {
-                execs.add(commands(exec.getExecDliLine()));
+                execs.add(String.join(" + ", commands(exec.getExecDliLine())));
                 return super.visitExecDliStatement(exec, p);
             }
 
             @Override
             public Cobol.ExecSqlStatement visitExecSqlStatement(Cobol.ExecSqlStatement exec, Integer p) {
-                execs.add(commands(exec.getExecSqlLine()));
+                execs.add(String.join(" + ", commands(exec.getExecSqlLine())));
                 return super.visitExecSqlStatement(exec, p);
             }
 
             @Override
             public Cobol.ExecSqlImsStatement visitExecSqlImsStatement(Cobol.ExecSqlImsStatement exec, Integer p) {
-                execs.add(commands(exec.getExecSqlImsLine()));
+                execs.add(String.join(" + ", commands(exec.getExecSqlImsLine())));
                 return super.visitExecSqlImsStatement(exec, p);
             }
         }.visit(cu, 0);

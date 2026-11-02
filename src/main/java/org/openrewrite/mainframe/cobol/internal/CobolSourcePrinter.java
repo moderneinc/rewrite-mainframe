@@ -935,7 +935,7 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     public Cobol visitDataValueFalse(Cobol.DataValueFalse dataValueFalse, PrintOutputCapture<P> p) {
         beforeSyntax(dataValueFalse, Space.Location.DATA_VALUE_FALSE_PREFIX, p);
         visit(dataValueFalse.getWords(), p);
-        visit(dataValueFalse.getLiteral(), p);
+        visit(dataValueFalse.getValue(), p);
         afterSyntax(dataValueFalse, p);
         return dataValueFalse;
     }
