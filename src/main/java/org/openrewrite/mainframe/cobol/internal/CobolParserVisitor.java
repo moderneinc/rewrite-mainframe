@@ -5357,24 +5357,22 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     @Override
-    public Cobol.SortProcedurePhrase visitSortCollatingAlphanumeric(CobolParser.SortCollatingAlphanumericContext ctx) {
-        return new Cobol.SortProcedurePhrase(randomId(),
+    public Cobol.Sortable visitSortCollatingAlphanumeric(CobolParser.SortCollatingAlphanumericContext ctx) {
+        return new Cobol.Sortable(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.FOR(), ctx.ALPHANUMERIC(), ctx.IS()),
-                (Cobol.Word) visit(ctx.alphabetName()),
-                null
+                convertAll(singletonList(ctx.alphabetName()))
         );
     }
 
     @Override
-    public Cobol.SortProcedurePhrase visitSortCollatingNational(CobolParser.SortCollatingNationalContext ctx) {
-        return new Cobol.SortProcedurePhrase(randomId(),
+    public Cobol.Sortable visitSortCollatingNational(CobolParser.SortCollatingNationalContext ctx) {
+        return new Cobol.Sortable(randomId(),
                 EMPTY,
                 Markers.EMPTY,
                 wordsList(ctx.FOR(), ctx.NATIONAL(), ctx.IS()),
-                (Cobol.Word) visit(ctx.alphabetName()),
-                null
+                convertAll(singletonList(ctx.alphabetName()))
         );
     }
 

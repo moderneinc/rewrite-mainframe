@@ -2341,6 +2341,24 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void sortCollatingSequenceForAlphanumericAndNational() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. SORTCOLL.
+              000003 PROCEDURE DIVISION.
+              000004     SORT SORT-FILE ON ASCENDING KEY SORT-KEY
+              000005         COLLATING SEQUENCE IS STD-ALPHA FOR ALPHANUMERIC IS ALPHA-2
+              000006         FOR NATIONAL IS NAT-1
+              000007         INPUT PROCEDURE IS P-IN
+              000008         OUTPUT PROCEDURE IS P-OUT.
+              """
+          )
+        );
+    }
+
+    @Test
     void stringStatement() {
         rewriteRun(
           cobol(
