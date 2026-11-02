@@ -537,6 +537,30 @@ class FullContextPredictionTest {
           "subscript", "displayStatement", "stringSendingPhrase", "dataValueClause")).isZero();
     }
 
+    @Test
+    void usageAfterValueNotBeforeAnOperatorAndAdvancingByName() {
+        String program = """
+          IDENTIFICATION DIVISION.
+          PROGRAM-ID. FORMS.
+          ENVIRONMENT DIVISION.
+          CONFIGURATION SECTION.
+          SPECIAL-NAMES.
+              C01 IS TOP-OF-PAGE.
+          DATA DIVISION.
+          WORKING-STORAGE SECTION.
+          77  SUB   PIC S9(4) VALUE +0 BINARY.
+          01  A     PIC 9.
+          PROCEDURE DIVISION.
+              IF A NOT = 1 AND NOT = 2
+                 WRITE PRT-REC AFTER ADVANCING TOP-OF-PAGE
+                 WRITE PRT-REC AFTER ADVANCING SUB
+                 SEND CD-OUT FROM PRT-REC AFTER ADVANCING TOP-OF-PAGE
+              END-IF.
+              STOP RUN.
+          """;
+        assertThat(fullContextFallbacks(program, "dataValueClause", "abbreviation", "writeAdvancingPhrase", "sendAdvancingPhrase")).isZero();
+    }
+
     private static long fullContextFallbacks(String program, String... rules) {
         CobolParser parser = new CobolParser(new CommonTokenStream(
           new org.openrewrite.mainframe.cobol.CobolParser.ImpliedSeparators(new CobolLexer(CharStreams.fromString(program)))));
