@@ -144,6 +144,11 @@ public class CopybookParser implements Parser {
                 return !AssemblerParser.isCopyMember(path);
             }
         }
+        for (String extension : CobolParser.COBOL_FILE_EXTENSIONS) {
+            if (s.endsWith(extension)) {
+                return !CobolParser.holdsProgram(path);
+            }
+        }
         return false;
     }
 
