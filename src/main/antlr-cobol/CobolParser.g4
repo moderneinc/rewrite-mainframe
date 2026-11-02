@@ -1368,7 +1368,7 @@ libraryIsGlobalClause
 // data description entry ----------------------------------
 
 dataDescriptionEntry
-   : dataDescriptionEntryFormat1 | dataDescriptionEntryFormat2 | dataDescriptionEntryFormat3 | dataDescriptionEntryExecSql
+   : dataDescriptionEntryFormat1 | dataDescriptionEntryFormat2 | dataDescriptionEntryFormat3
    ;
 
 dataDescriptionEntryFormat1
@@ -1385,10 +1385,6 @@ dataDescriptionEntryFormat2
 
 dataDescriptionEntryFormat3
    : LEVEL_NUMBER_88 conditionName dataValueClause DOT_FS
-   ;
-
-dataDescriptionEntryExecSql
-   : EXECSQLLINE+ DOT_FS?
    ;
 
 dataAlignedClause

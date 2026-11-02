@@ -1337,18 +1337,6 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitDataDescriptionEntryExecSql(CobolParser.DataDescriptionEntryExecSqlContext ctx) {
-        return new Cobol.DataDescriptionEntry(randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                convertAll(ctx.EXECSQLLINE()),
-                null,
-                null,
-                visitNullable(ctx.DOT_FS())
-        );
-    }
-
-    @Override
     public Cobol.DataDescriptionEntry visitDataDescriptionEntryFormat1(CobolParser.DataDescriptionEntryFormat1Context ctx) {
         return new Cobol.DataDescriptionEntry(randomId(),
                 EMPTY,

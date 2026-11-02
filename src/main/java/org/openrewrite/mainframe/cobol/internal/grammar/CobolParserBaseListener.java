@@ -2720,18 +2720,6 @@ public class CobolParserBaseListener implements CobolParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterDataDescriptionEntryExecSql(CobolParser.DataDescriptionEntryExecSqlContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitDataDescriptionEntryExecSql(CobolParser.DataDescriptionEntryExecSqlContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterDataAlignedClause(CobolParser.DataAlignedClauseContext ctx) { }
 	/**
 	 * {@inheritDoc}
