@@ -21,8 +21,11 @@ import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.marker.SystemCopybook;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
+import org.openrewrite.marker.Marker;
 
+import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
@@ -52,13 +55,21 @@ final class SystemCopybooks {
         if (SystemCopybooks.class.getResource(resource) == null) {
             return null;
         }
+        return supplied(member, () -> SystemCopybooks.class.getResourceAsStream(resource), new SystemCopybook(randomId()));
+    }
+
+    /**
+     * A member no file in the repository holds, read as a copybook named after it and carrying the
+     * marker that says where it came from. One that does not parse is returned as the parse error.
+     */
+    static SourceFile supplied(String member, Supplier<InputStream> source, Marker marker) {
         SourceFile parsed = CopybookParser.builder().build().parseInputs(singletonList(new Parser.Input(
-                        Paths.get(member + ".cpy"), () -> SystemCopybooks.class.getResourceAsStream(resource))),
+                        Paths.get(member + ".cpy"), source)),
                 null, new InMemoryExecutionContext()).findFirst().orElseThrow(IllegalStateException::new);
         if (!(parsed instanceof CobolPreprocessor.Copybook)) {
             return parsed;
         }
         CobolPreprocessor.Copybook copybook = (CobolPreprocessor.Copybook) parsed;
-        return copybook.withMarkers(copybook.getMarkers().add(new SystemCopybook(randomId())));
+        return copybook.withMarkers(copybook.getMarkers().add(marker));
     }
 }

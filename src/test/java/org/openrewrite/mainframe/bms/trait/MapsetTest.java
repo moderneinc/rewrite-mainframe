@@ -152,4 +152,24 @@ class MapsetTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void thePrefixAndAttributesAreTheSymbolicMapsOwn() {
+        rewriteRun(
+          bms(
+            """
+              SET1    DFHMSD LANG=COBOL,MODE=INOUT,STORAGE=AUTO,DSATTS=COLOR
+              MAP1    DFHMDI SIZE=(24,80)
+              FLD     DFHMDF POS=(1,1),LENGTH=4
+                      DFHMSD TYPE=FINAL
+                      END
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                Mapset mapset = new Mapset.Matcher().lower(cu).findFirst().orElseThrow();
+                assertThat(mapset.hasTerminalPrefix()).isTrue();
+                assertThat(mapset.hasExtendedAttributes()).isTrue();
+            })
+          )
+        );
+    }
 }

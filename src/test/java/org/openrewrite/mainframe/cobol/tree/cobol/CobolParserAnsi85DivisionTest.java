@@ -446,6 +446,152 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     @Test
+    void aUsageWrittenAfterTheValueIsTheUsageClause() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. USAGES.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 77  SUB   PIC S9(4) VALUE +0 BINARY.
+              000006 77  NAT   PIC N(5) VALUE SPACES NATIONAL.
+              000007 77  FP    VALUE NULL FUNCTION-POINTER.
+              000008 PROCEDURE DIVISION.
+              000009     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> clauses = new ArrayList<>();
+                new CobolIsoVisitor<Integer>() {
+                    @Override
+                    public Cobol.DataValueClause visitDataValueClause(Cobol.DataValueClause value, Integer p) {
+                        clauses.add(value.printTrimmed(getCursor().getParentOrThrow()));
+                        return value;
+                    }
+
+                    @Override
+                    public Cobol.DataUsageClause visitDataUsageClause(Cobol.DataUsageClause usage, Integer p) {
+                        clauses.add(usage.printTrimmed(getCursor().getParentOrThrow()));
+                        return usage;
+                    }
+                }.visit(cu, 0);
+                assertThat(clauses).containsExactly("VALUE +0", "BINARY", "VALUE SPACES", "NATIONAL", "VALUE NULL", "FUNCTION-POINTER");
+            })
+          )
+        );
+    }
+
+    @Test
+    void notBeforeARelationalOperatorInAnAbbreviationIsPartOfTheOperator() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ABBREV.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 01  A     PIC 9.
+              000006 PROCEDURE DIVISION.
+              000007     IF A = 1 AND NOT = 2 OR 3
+              000008         DISPLAY A
+              000009     END-IF.
+              000010     IF A = 1 OR NOT GREATER THAN OR EQUAL TO 5
+              000011         DISPLAY A
+              000012     END-IF.
+              000013     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> abbreviations = new ArrayList<>();
+                new CobolIsoVisitor<Integer>() {
+                    @Override
+                    public Cobol.Abbreviation visitAbbreviation(Cobol.Abbreviation abbreviation, Integer p) {
+                        abbreviations.add((abbreviation.getNot() == null ? "" : "logical NOT, ") +
+                                          (abbreviation.getRelationalOperator() == null ? "operator carried" :
+                                            "operator " + abbreviation.getRelationalOperator().printTrimmed(getCursor())));
+                        return abbreviation;
+                    }
+                }.visit(cu, 0);
+                assertThat(abbreviations).containsExactly("operator NOT =", "operator carried",
+                  "logical NOT, operator GREATER THAN OR EQUAL TO");
+            })
+          )
+        );
+    }
+
+    @Test
+    void advancingByANameSpecialNamesDeclaresIsAMnemonic() {
+        rewriteRun(
+          cobol(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. ADVANCE.
+              000003 ENVIRONMENT DIVISION.
+              000004 CONFIGURATION SECTION.
+              000005 SPECIAL-NAMES.
+              000006     C01 IS TOP-OF-PAGE.
+              000007 INPUT-OUTPUT SECTION.
+              000008 FILE-CONTROL.
+              000009     SELECT PRT ASSIGN TO PRTOUT.
+              000010 DATA DIVISION.
+              000011 FILE SECTION.
+              000012 FD  PRT.
+              000013 01  PRT-REC  PIC X(80).
+              000014 WORKING-STORAGE SECTION.
+              000015 01  WS-LINES PIC 9 VALUE 2.
+              000016 PROCEDURE DIVISION.
+              000017     WRITE PRT-REC AFTER ADVANCING TOP-OF-PAGE.
+              000018     WRITE PRT-REC AFTER ADVANCING WS-LINES.
+              000019     SEND CD-OUT FROM PRT-REC AFTER ADVANCING TOP-OF-PAGE.
+              000020     GOBACK.
+              000021 IDENTIFICATION DIVISION.
+              000022 PROGRAM-ID. NESTED.
+              000023 PROCEDURE DIVISION.
+              000024     WRITE PRT-REC AFTER ADVANCING TOP-OF-PAGE.
+              000025     GOBACK.
+              000026 END PROGRAM NESTED.
+              000027 END PROGRAM ADVANCE.
+              000028 IDENTIFICATION DIVISION.
+              000029 PROGRAM-ID. OTHERPGM.
+              000030 DATA DIVISION.
+              000031 WORKING-STORAGE SECTION.
+              000032 01  TOP-OF-PAGE PIC 9 VALUE 3.
+              000033 PROCEDURE DIVISION.
+              000034     WRITE PRT-REC AFTER ADVANCING TOP-OF-PAGE.
+              000035     GOBACK.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<String> advancing = new ArrayList<>();
+                new CobolIsoVisitor<Integer>() {
+                    @Override
+                    public Cobol.WriteAdvancingMnemonic visitWriteAdvancingMnemonic(Cobol.WriteAdvancingMnemonic mnemonic, Integer p) {
+                        advancing.add("mnemonic " + mnemonic.printTrimmed(getCursor().getParentOrThrow()));
+                        return mnemonic;
+                    }
+
+                    @Override
+                    public Cobol.WriteAdvancingLines visitWriteAdvancingLines(Cobol.WriteAdvancingLines lines, Integer p) {
+                        advancing.add("lines " + lines.printTrimmed(getCursor().getParentOrThrow()));
+                        return lines;
+                    }
+
+                    @Override
+                    public Cobol.SendPhrase visitSendPhrase(Cobol.SendPhrase phrase, Integer p) {
+                        if (phrase.getTarget() instanceof Cobol.SendAdvancingLines) {
+                            advancing.add("send lines");
+                        } else if (phrase.getTarget() instanceof Cobol.Word) {
+                            advancing.add("send mnemonic");
+                        }
+                        return phrase;
+                    }
+                }.visit(cu, 0);
+                assertThat(advancing).containsExactly("mnemonic TOP-OF-PAGE", "lines WS-LINES", "send mnemonic",
+                  "mnemonic TOP-OF-PAGE", "lines TOP-OF-PAGE");
+            })
+          )
+        );
+    }
+
+    @Test
     void helloWorld() {
         rewriteRun(
           cobol(
