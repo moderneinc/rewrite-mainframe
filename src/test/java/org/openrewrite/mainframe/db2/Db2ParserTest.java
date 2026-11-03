@@ -860,6 +860,31 @@ class Db2ParserTest {
      * ampersand rather than in angle brackets.
      */
     @Test
+    void anAsteriskInColumnOneIsAComment() {
+        Db2.Ddl ddl = parse(
+          """
+            ******************************************************************
+            SET CURRENT SQLID='&$DBUSER.';
+            CREATE TABLE &$DBSCH..C_ENVIRONTBL
+            * WHERE A VIEW IS RUN
+              (ENVIRONID INTEGER NOT NULL);
+            """);
+        assertThat(ddl.getStatements()).hasSize(2);
+    }
+
+    @Test
+    void setsTheCurrentApplicationCompatibility() {
+        Db2.Ddl ddl = parse("SET CURRENT APPLICATION COMPATIBILITY = 'V12R1M503';\n");
+        assertThat(ddl.getStatements()).singleElement().isInstanceOf(Db2.Set.class);
+    }
+
+    @Test
+    void aLobTablespaceMaySayWhetherItIsLogged() {
+        Db2.Ddl ddl = parse("CREATE LOB TABLESPACE FORFLBLB IN GENEVA LOG YES DSSIZE 4 G;\n");
+        assertThat(ddl.getStatements()).hasSize(1);
+    }
+
+    @Test
     void aJclSymbolicIsAlsoAName() {
         Db2.Ddl ddl = parse("CREATE TABLE &$DBSCH..LOOKUP (ENVIRONID INTEGER NOT NULL);\n");
         Db2.CreateTable table = (Db2.CreateTable) ddl.getStatements().getFirst();

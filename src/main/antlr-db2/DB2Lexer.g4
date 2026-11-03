@@ -7,6 +7,9 @@ LINE_COMMENT : '--' ~[\r\n]* -> channel(HIDDEN);
 // An unclosed one runs to the end, which is what DB2 does with it. CBSA's DRPI301 ends its SYSIN
 // stream with an indented /*, one column short of the delimiter JCL would have read.
 BLOCK_COMMENT : '/*' (.*? '*/' | .*? EOF) -> channel(HIDDEN);
+// DSNTEP2 reads a line with an asterisk in column 1 as a comment. The predicate follows the
+// asterisk, so the lexer's start state stays cached and only a token that starts with one tests it.
+STAR_COMMENT : '*' {_tokenStartCharPositionInLine == 0}? ~[\r\n]* -> channel(HIDDEN);
 
 // DB2 for z/OS reserved words. A reserved word cannot be an unqualified identifier, so tokenising
 // these costs nothing a program could have written. Every other keyword DB2 has is non-reserved and
@@ -301,6 +304,7 @@ ACTION : 'ACTION';
 ADMIN : 'ADMIN';
 ALIAS : 'ALIAS';
 ALWAYS : 'ALWAYS';
+APPLICATION : 'APPLICATION';
 APPEND : 'APPEND';
 ASC : 'ASC';
 ASUTIME : 'ASUTIME';
@@ -318,6 +322,7 @@ CHANGE : 'CHANGE';
 CHANGED : 'CHANGED';
 CHANGES : 'CHANGES';
 COMPARISONS : 'COMPARISONS';
+COMPATIBILITY : 'COMPATIBILITY';
 COMPRESS : 'COMPRESS';
 CONTEXT : 'CONTEXT';
 COPY : 'COPY';
@@ -362,6 +367,7 @@ LENGTH : 'LENGTH';
 LIMIT : 'LIMIT';
 LOAD : 'LOAD';
 LOB : 'LOB';
+LOG : 'LOG';
 LOGGED : 'LOGGED';
 MAIN : 'MAIN';
 MASK : 'MASK';

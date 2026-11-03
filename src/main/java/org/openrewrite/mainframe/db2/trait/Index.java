@@ -19,11 +19,14 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.mainframe.db2.tree.Db2;
+import org.openrewrite.mainframe.db2.tree.Db2Container;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
 
 /**
  * An index, which is how a batch job reaches a table cheaply and so which columns a query is
@@ -54,7 +57,8 @@ public class Index implements Trait<Db2.CreateIndex> {
     }
 
     public List<Key> getKeys() {
-        List<Db2.IndexKey> indexKeys = getTree().getKeys().getElements();
+        Db2Container<Db2.IndexKey> container = getTree().getKeys();
+        List<Db2.IndexKey> indexKeys = container == null ? emptyList() : container.getElements();
         List<Key> keys = new ArrayList<>(indexKeys.size());
         for (Db2.IndexKey key : indexKeys) {
             Db2.Keyword direction = key.getDirection();

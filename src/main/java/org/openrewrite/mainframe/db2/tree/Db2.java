@@ -235,6 +235,10 @@ public interface Db2 extends Tree {
 
         Name table;
 
+        /**
+         * Null for an index on an auxiliary table, which DB2 keys on the row its LOB belongs to.
+         */
+        @Nullable
         Db2Container<IndexKey> keys;
 
         List<Db2> options;
@@ -1853,6 +1857,7 @@ public interface Db2 extends Tree {
             And,
             Any,
             Append,
+            Application,
             As,
             Asc,
             Asensitive,
@@ -1898,6 +1903,7 @@ public interface Db2 extends Tree {
             Comment,
             Commit,
             Comparisons,
+            Compatibility,
             Compress,
             Concat,
             Condition,
@@ -2043,6 +2049,7 @@ public interface Db2 extends Tree {
             Lock,
             Lockmax,
             Locksize,
+            Log,
             Logged,
             Long,
             Loop,

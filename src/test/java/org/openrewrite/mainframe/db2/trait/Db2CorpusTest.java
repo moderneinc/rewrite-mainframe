@@ -140,7 +140,7 @@ class Db2CorpusTest {
         // A fixture the walk could not see, a symbolic link say, would otherwise pass as an
         // application with no DDL in it.
         assertThat(fixtureFound).as("mainframe-fixtures under %s", corpus).isTrue();
-        assertThat(skipped).as("members held out of the corpus").hasSize(50);
+        assertThat(skipped).as("members held out of the corpus").hasSize(39);
 
         // Counting what the source says against what the traits found is the only thing that tells
         // a table the grammar failed to read from one that was never there.
@@ -321,12 +321,6 @@ class Db2CorpusTest {
             // DB2's command line processor lets a file end its statements with something other than
             // a semicolon. z/OSMF's build.sql uses @, which this parser does not read.
             return "sets its own statement terminator";
-        }
-        String first = source.split("\n", 2)[0].trim();
-        if (first.length() > 1 && first.chars().allMatch(c -> c == '*')) {
-            // Eleven GenevaERS members lost the -- from the banner comment on their first line. DB2
-            // would reject them too, and the four members that kept theirs parse.
-            return "its banner comment lost its --";
         }
         if ("GVBQVWS.DDL".equals(member.getFileName().toString())) {
             // Names four of its views GROUP, USER, EXIT and VIEW, which DB2 for z/OS reserves.
