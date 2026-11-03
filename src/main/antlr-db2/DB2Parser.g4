@@ -359,7 +359,7 @@ partitionValue
 
 createIndex
     : CREATE indexModifier* INDEX qualifiedName ON qualifiedName
-      (LPAREN indexKey (COMMA indexKey)* RPAREN | XMLPATTERN STRING)
+      (LPAREN indexKey (COMMA indexKey)* RPAREN | XMLPATTERN STRING)?
       indexOption* end
     ;
 
@@ -424,6 +424,7 @@ namedTablespaceOption
     | COMPRESS (YES | NO)
     | DEFINE (YES | NO)
     | TRACKMOD (YES | NO)
+    | LOG (YES | NO)
     | LOGGED | NOT LOGGED
     | MEMBER CLUSTER
     | PAGENUM (ABSOLUTE | RELATIVE)
@@ -1046,7 +1047,7 @@ identifier
     ;
 
 dataType
-    : typeName (LPAREN NUMBER (COMMA NUMBER)? RPAREN)? typeAttribute*
+    : typeName (LPAREN NUMBER IDENTIFIER? (COMMA NUMBER)? RPAREN)? typeAttribute*
     ;
 
 typeName
@@ -1082,12 +1083,12 @@ end
 // DB2's non-reserved keywords. A word here is a keyword in the statements that use it and an
 // ordinary name everywhere else, which is why genapp can call a column `value`.
 nonReserved
-    : ABSOLUTE | ACCESS | ACTION | ADMIN | ALWAYS | ASUTIME | AT | ATOMIC | ATTRIBUTES | AUX
-    | CACHE | CALLED | CARDINALITY | CASCADE | CHANGE | CHANGED | CHANGES | COMPARISONS | COMPRESS
+    : ABSOLUTE | ACCESS | ACTION | ADMIN | ALWAYS | APPLICATION | ASUTIME | AT | ATOMIC | ATTRIBUTES | AUX
+    | CACHE | CALLED | CARDINALITY | CASCADE | CHANGE | CHANGED | CHANGES | COMPARISONS | COMPATIBILITY | COMPRESS
     | CONTEXT | COPY | CURSORS | CYCLE | DATACLAS | DB2 | DB2SQL | DEBUG | DEFER | DEFINE | DEFINER
     | EACH | ENABLE | ENFORCED | ENVIRONMENT | EVERY | EXCLUDE | EXCLUDING | EXCLUSIVE | GENERATE
     | HASH | HIDDEN_KW | HISTORY | ID | IDENTITY | IMPLICITLY | INCLUDE | INCLUDING | INCREMENT
-    | INDEXBP | INLINE | INPUT | INSTEAD | KEYS | LARGE | LENGTH | LIMIT | LOAD | LOB | LOGGED
+    | INDEXBP | INLINE | INPUT | INSTEAD | KEYS | LARGE | LENGTH | LIMIT | LOAD | LOB | LOG | LOGGED
     | MAIN | MASK | MAXPARTITIONS | MAXROWS | MAXVALUE | MEMBER | MGMTCLAS | MINVALUE | MIXED
     | MODE | NAME | NEW | NEW_TABLE | OLD_TABLE | ONLY | OPTION | OPTIONS | ORGANIZE | PAGE
     | PAGENUM | PCTFREE | PERMISSION | QUALIFIER | RANDOM | RANGE | REGENERATE | REGISTERS
