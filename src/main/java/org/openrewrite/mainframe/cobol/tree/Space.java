@@ -295,6 +295,7 @@ public class Space {
         ENABLE_PREFIX,
         END_KEY_CLAUSE_PREFIX,
         END_PROGRAM_PREFIX,
+        ENTER_PREFIX,
         ENTRY_PREFIX,
         ENVIRONMENT_DIVISION_PREFIX,
         EVALUATE_PREFIX,

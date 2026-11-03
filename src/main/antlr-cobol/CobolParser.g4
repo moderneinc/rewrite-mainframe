@@ -1662,7 +1662,7 @@ imperativeStatements
    ;
 
 statement
-   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement | jsonXmlStatement | allocateStatement | freeStatement
+   : acceptStatement | addStatement | alterStatement | callStatement | cancelStatement | closeStatement | computeStatement | continueStatement | deleteStatement | disableStatement | displayStatement | divideStatement | enableStatement | enterStatement | entryStatement | evaluateStatement | exhibitStatement | execCicsStatement | execDliStatement | execSqlStatement | execSqlImsStatement | exitStatement | generateStatement | gobackStatement | goToStatement | ifStatement | initializeStatement | initiateStatement | inspectStatement | mergeStatement | moveStatement | multiplyStatement | nextSentenceStatement | openStatement | performStatement | purgeStatement | readStatement | receiveStatement | releaseStatement | returnStatement | rewriteStatement | searchStatement | sendStatement | serviceStatement | setStatement | sortStatement | startStatement | stopStatement | stringStatement | subtractStatement | terminateStatement | unstringStatement | writeStatement | xmlParseStatement | jsonXmlStatement | allocateStatement | freeStatement
    ;
 
 // accept statement
@@ -1925,6 +1925,12 @@ enableStatement
    ;
 
 // entry statement
+
+// Enterprise COBOL checks ENTER's syntax and ignores it, and takes a user-defined word or COBOL as its language
+// name. Older programs also write ENTER LINKAGE, though LINKAGE is reserved.
+enterStatement
+   : ENTER (LINKAGE | cobolWord) cobolWord?
+   ;
 
 entryStatement
    : ENTRY literal (USING identifier+)?
@@ -3136,7 +3142,7 @@ cobolWord
    | BACKGROUND_COLOR | BACKGROUND_COLOUR | BEEP | BELL | BIT | BLINK | BLOB | BLOB_FILE | BLOB_LOCATOR | BOUNDS
    | CAPABLE | CCSVERSION | CHANGED | CHANNEL | CHAR | CLOB | CLOB_FILE | CLOB_LOCATOR | CLOSE_DISPOSITION | COBOL | COL | COMMITMENT | CONTROL_POINT | CONVENTION | CRUNCH | CURSOR
    | DBCLOB | DBCLOB_FILE | DBCLOB_LOCATOR | DEFAULT | DEFAULT_DISPLAY | DEFINITION | DISK | DONTCARE | DOUBLE
-   | EBCDIC | EMPTY_CHECK | ENTER | ENTRY_PROCEDURE | EOL | EOS | ERASE | ESCAPE | EVENT | EXCLUSIVE | EXPORT | EXTENDED
+   | EBCDIC | EMPTY_CHECK | ENTRY_PROCEDURE | EOL | EOS | ERASE | ESCAPE | EVENT | EXCLUSIVE | EXPORT | EXTENDED
    | FOREGROUND_COLOR | FOREGROUND_COLOUR | FULL | FUNCTIONNAME
    | GRID
    | HIGHLIGHT

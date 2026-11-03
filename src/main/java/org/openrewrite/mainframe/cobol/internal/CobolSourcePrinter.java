@@ -1145,6 +1145,14 @@ public class CobolSourcePrinter<P> extends CobolVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public Cobol visitEnter(Cobol.Enter enter, PrintOutputCapture<P> p) {
+        beforeSyntax(enter, Space.Location.ENTER_PREFIX, p);
+        visit(enter.getWords(), p);
+        afterSyntax(enter, p);
+        return enter;
+    }
+
+    @Override
     public Cobol.Entry visitEntry(Cobol.Entry entry, PrintOutputCapture<P> p) {
         beforeSyntax(entry, Space.Location.ENTRY_PREFIX, p);
         visit(entry.getEntry(), p);

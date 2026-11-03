@@ -729,6 +729,11 @@ public class NameVisitor<P> extends CobolIsoVisitor<P> {
     }
 
     @Override
+    public Cobol.Enter visitEnter(Cobol.Enter enter, P p) {
+        return enter;
+    }
+
+    @Override
     public Cobol.Entry visitEntry(Cobol.Entry entry, P p) {
         Cobol.Entry e = entry;
         e = e.withLiteral(visitAndCast(e.getLiteral(), p));
