@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 /**
  * A table, and the columns a program's {@code EXEC SQL} names.
@@ -85,12 +86,23 @@ public class Table implements Trait<Db2.CreateTable> {
     }
 
     /**
-     * The primary key's columns in key order, or empty for a table declaring none.
+     * The primary key's columns in key order, or empty for a table declaring none. A key declared on
+     * a column, as in {@code ID INTEGER NOT NULL PRIMARY KEY}, is that column alone.
      */
     public List<String> getPrimaryKey() {
         for (Db2.Constraint constraint : constraints()) {
             if (Db2.has(constraint.getKeywords(), Db2.Keyword.Type.Primary)) {
                 return Constraints.columnNames(constraint.getColumns());
+            }
+        }
+        List<Db2.ColumnDefinition> columns =
+                Db2.elementsOf(Constraints.elementsOf(getTree()), Db2.ColumnDefinition.class);
+        for (Db2.ColumnDefinition column : columns) {
+            for (Db2 attribute : column.getAttributes()) {
+                if (attribute instanceof Db2.Option &&
+                    Db2.has(((Db2.Option) attribute).getKeywords(), Db2.Keyword.Type.Primary)) {
+                    return singletonList(column.getName().getSimpleName());
+                }
             }
         }
         return emptyList();
