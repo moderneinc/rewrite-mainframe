@@ -158,6 +158,20 @@ class EmbeddedSqlTest {
           .getHostVariables()).extracting(HostVariable::getName).containsExactly("WS-ID", "WS-NOTE");
     }
 
+    @Test
+    void pairsAValueWithItsNullIndicator() {
+        EmbeddedSql insert = EmbeddedSql.read(
+          "INSERT INTO CLM.LOG (ID, NOTE, AT) VALUES (:WS-ID, :WS-NOTE :WS-NOTE-IND, :WS-AT INDICATOR :WS-AT-IND)");
+        assertThat(insert.getHostVariables()).containsExactly(new HostVariable("WS-ID", List.of()),
+          new HostVariable("WS-NOTE", List.of()), new HostVariable("WS-AT", List.of()));
+        assertThat(insert.getIndicatorVariables()).containsExactly(
+          new HostVariable("WS-NOTE-IND", List.of()), new HostVariable("WS-AT-IND", List.of()));
+
+        EmbeddedSql update = EmbeddedSql.read("UPDATE CLM.LOG SET NOTE = :WS-NOTE:WS-IND WHERE ID = :WS-ID");
+        assertThat(update.getHostVariables()).containsExactly(new HostVariable("WS-NOTE", List.of()));
+        assertThat(update.getIndicatorVariables()).containsExactly(new HostVariable("WS-IND", List.of()));
+    }
+
     /**
      * Every statement is parsed on one pool of daemon threads rather than on an executor built for
      * it, so reading an estate neither starts a thread a statement nor holds the JVM open.
