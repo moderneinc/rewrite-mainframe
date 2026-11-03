@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -106,8 +107,15 @@ public class EmbeddedSql {
     private static final Pattern INTO = Pattern.compile("(?<!" + NAME_CHARACTER + ")INTO\\s+(:.*?)(?=" +
             "(?<!" + NAME_CHARACTER + ")(?:FROM|WHERE)(?!" + NAME_CHARACTER + ")|$)", CASE_INSENSITIVE | DOTALL);
 
-    private static final Pattern HOST_VARIABLE =
-            Pattern.compile(":(?:(" + NAME_CHARACTER + "+)\\.)?(" + NAME_CHARACTER + "+)");
+    private static final String QUALIFIED_NAME = "(?:(" + NAME_CHARACTER + "+)\\.)?(" + NAME_CHARACTER + "+)";
+
+    /**
+     * A host variable and the null indicator riding with it, if any, written {@code :VALUE :IND},
+     * {@code :VALUE:IND} or {@code :VALUE INDICATOR :IND}. Groups 1 and 2 are the value's structure
+     * and name, 3 and 4 the indicator's.
+     */
+    private static final Pattern HOST_VARIABLE = Pattern.compile(
+            ":" + QUALIFIED_NAME + "(?:\\s*(?:INDICATOR\\s*)?:" + QUALIFIED_NAME + ")?", CASE_INSENSITIVE);
 
     /**
      * The query a cursor is declared for. What sits between the name and {@code CURSOR} is the
@@ -194,7 +202,7 @@ public class EmbeddedSql {
             return new EmbeddedSql(emptyList(), hostVariables, indicators, emptyList(), null);
         }
 
-        Map<String, HostVariable> names = new HashMap<>();
+        Map<String, MatchResult> names = new HashMap<>();
         Statement parsed = parse(withPlaceholders(TAIL.matcher(query).replaceFirst(""), names));
         List<String> tables = tablesIn(parsed);
         String target = targetOf(parsed);
@@ -248,13 +256,16 @@ public class EmbeddedSql {
      * {@code :DB2-ISSUEDATE} parses — into {@code :DB2 - ISSUEDATE}, which is worse than failing.
      * Each host variable is renamed to a numbered placeholder the parser keeps whole, and named back
      * on the way out. Numbered, so two structures' fields of the same name stay apart.
+     * <p>
+     * A placeholder stands for a host variable together with its null indicator. JSQLParser reads
+     * {@code :H0 :H1} as a JSON path and rejects the {@code INDICATOR} form.
      */
-    private static String withPlaceholders(String sql, Map<String, HostVariable> names) {
+    private static String withPlaceholders(String sql, Map<String, MatchResult> names) {
         Matcher host = HOST_VARIABLE.matcher(sql);
         StringBuffer renamed = new StringBuffer();
         while (host.find()) {
             String placeholder = "H" + names.size();
-            names.put(placeholder, hostVariable(host));
+            names.put(placeholder, host.toMatchResult());
             host.appendReplacement(renamed, ":" + placeholder);
         }
         host.appendTail(renamed);
@@ -272,29 +283,27 @@ public class EmbeddedSql {
     }
 
     /**
-     * The host variables named in a clause, without the colon SQL introduces them with. Each
-     * comma-separated position contributes one, and anything further in the same position is a null
-     * indicator riding with it — written {@code :VALUE INDICATOR :IND} or, as often, {@code :VALUE
-     * :IND}. Counting an indicator as a position of its own leaves the clause one longer than the
-     * select list, and then nothing pairs at all.
+     * The host variables named in a clause, without the colon SQL introduces them with.
      */
     private static List<@Nullable HostVariable> hostVariablesOf(String clause, List<HostVariable> indicators) {
         List<@Nullable HostVariable> variables = new ArrayList<>();
-        for (String position : clause.split(",")) {
-            Matcher host = HOST_VARIABLE.matcher(position);
-            if (host.find()) {
-                variables.add(hostVariable(host));
-            }
-            while (host.find()) {
-                indicators.add(hostVariable(host));
-            }
+        Matcher host = HOST_VARIABLE.matcher(clause);
+        while (host.find()) {
+            variables.add(hostVariable(host, indicators));
         }
         return variables;
     }
 
-    private static HostVariable hostVariable(Matcher host) {
-        String structure = host.group(1);
-        return new HostVariable(host.group(2), structure == null ? emptyList() : singletonList(structure));
+    private static HostVariable hostVariable(MatchResult host, List<HostVariable> indicators) {
+        if (host.group(4) != null) {
+            indicators.add(hostVariableAt(host, 3));
+        }
+        return hostVariableAt(host, 1);
+    }
+
+    private static HostVariable hostVariableAt(MatchResult host, int group) {
+        String structure = host.group(group);
+        return new HostVariable(host.group(group + 1), structure == null ? emptyList() : singletonList(structure));
     }
 
     private static List<String> selected(Select select) {
@@ -342,7 +351,7 @@ public class EmbeddedSql {
         return row;
     }
 
-    private static EmbeddedSql inserted(Insert insert, Map<String, HostVariable> names, List<String> tables,
+    private static EmbeddedSql inserted(Insert insert, Map<String, MatchResult> names, List<String> tables,
                                         @Nullable String target) {
         if (insert.getColumns() == null) {
             return new EmbeddedSql(emptyList(), emptyList(), emptyList(), tables, target);
@@ -351,11 +360,13 @@ public class EmbeddedSql {
         for (Column column : insert.getColumns()) {
             columns.add(column.getColumnName());
         }
-        List<@Nullable HostVariable> variables = inEachPosition(firstRow(insert.getSelect()), columns.size(), names);
-        return new EmbeddedSql(columns, variables, emptyList(), tables, target);
+        List<HostVariable> indicators = new ArrayList<>();
+        List<@Nullable HostVariable> variables =
+                inEachPosition(firstRow(insert.getSelect()), columns.size(), names, indicators);
+        return new EmbeddedSql(columns, variables, indicators, tables, target);
     }
 
-    private static EmbeddedSql updated(Update update, Map<String, HostVariable> names, List<String> tables,
+    private static EmbeddedSql updated(Update update, Map<String, MatchResult> names, List<String> tables,
                                        @Nullable String target) {
         List<String> columns = new ArrayList<>();
         List<Expression> values = new ArrayList<>();
@@ -365,18 +376,23 @@ public class EmbeddedSql {
                 values.add(i < set.getValues().size() ? set.getValues().get(i) : null);
             }
         }
-        return new EmbeddedSql(columns, inEachPosition(values, columns.size(), names), emptyList(), tables, target);
+        List<HostVariable> indicators = new ArrayList<>();
+        List<@Nullable HostVariable> variables = inEachPosition(values, columns.size(), names, indicators);
+        return new EmbeddedSql(columns, variables, indicators, tables, target);
     }
 
     /**
      * The host variable in each value position, null where a literal or an expression sits there.
      */
     private static List<@Nullable HostVariable> inEachPosition(List<@Nullable Expression> values, int columns,
-                                                               Map<String, HostVariable> names) {
+                                                               Map<String, MatchResult> names,
+                                                               List<HostVariable> indicators) {
         List<@Nullable HostVariable> variables = new ArrayList<>(columns);
         for (int i = 0; i < columns; i++) {
             Expression value = i >= values.size() ? null : values.get(i);
-            variables.add(value instanceof JdbcNamedParameter ? names.get(((JdbcNamedParameter) value).getName()) : null);
+            MatchResult named = value instanceof JdbcNamedParameter ?
+                    names.get(((JdbcNamedParameter) value).getName()) : null;
+            variables.add(named == null ? null : hostVariable(named, indicators));
         }
         return variables;
     }
