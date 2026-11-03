@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.Lexer;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorLexer;
+import org.openrewrite.mainframe.db2.internal.grammar.DB2Lexer;
 
 import java.util.List;
 
@@ -31,7 +32,8 @@ class LexerStartStateTest {
     void everyTokenStartsFromTheCachedStartState() {
         for (Lexer lexer : List.of(
           new CobolPreprocessorLexer(CharStreams.fromString("       MOVE A TO B.\n")),
-          new CobolLexer(CharStreams.fromString("MOVE A TO B.\n")))) {
+          new CobolLexer(CharStreams.fromString("MOVE A TO B.\n")),
+          new DB2Lexer(CharStreams.fromString("* A COMMENT\nSELECT * FROM T;\n")))) {
             lexer.getAllTokens();
             assertThat(lexer.getInterpreter().decisionToDFA[Lexer.DEFAULT_MODE].s0)
               .as(lexer.getGrammarFileName())

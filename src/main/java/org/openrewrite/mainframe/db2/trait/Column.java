@@ -45,8 +45,9 @@ public class Column implements Trait<Db2.ColumnDefinition> {
     }
 
     /**
-     * The first parenthesised argument — a character count for the string types, a precision for the
-     * numeric ones — or null for a type that takes none.
+     * The first parenthesised argument — a character count for the string types, with a LOB's
+     * {@code K}, {@code M} or {@code G} multiplied out, a precision for the numeric ones — or null for
+     * a type that takes none.
      */
     public @Nullable Integer getLength() {
         return argument(0);
@@ -117,6 +118,17 @@ public class Column implements Trait<Db2.ColumnDefinition> {
         return Constraints.enclosingTable(cursor);
     }
 
+    private static int lengthOf(String argument) {
+        int digits = 0;
+        while (digits < argument.length() && Character.isDigit(argument.charAt(digits))) {
+            digits++;
+        }
+        long length = Long.parseLong(argument.substring(0, digits));
+        String unit = argument.substring(digits).trim().toUpperCase(Locale.ROOT);
+        long multiplier = "K".equals(unit) ? 1L << 10 : "M".equals(unit) ? 1L << 20 : "G".equals(unit) ? 1L << 30 : 1;
+        return (int) Math.min(length * multiplier, Integer.MAX_VALUE);
+    }
+
     private @Nullable Integer argument(int index) {
         int seen = 0;
         if (getTree().getType().getArguments() == null) {
@@ -126,7 +138,7 @@ public class Column implements Trait<Db2.ColumnDefinition> {
             String text = argument.getText();
             if (!text.isEmpty() && Character.isDigit(text.charAt(0))) {
                 if (seen++ == index) {
-                    return Integer.parseInt(text);
+                    return lengthOf(text);
                 }
             }
         }

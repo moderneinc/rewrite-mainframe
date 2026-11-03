@@ -258,7 +258,14 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
             List<Db2RightPadded<Db2.Word>> args = new ArrayList<>(2);
             Space before = sourceBefore("(");
             for (TerminalNode number : ctx.NUMBER()) {
-                args.add(Db2RightPadded.build(word(number)).withAfter(space()));
+                Db2.Word argument = word(number);
+                // A LOB's length may carry its unit, as in CLOB(32 M), and the two are one argument.
+                if (args.isEmpty() && ctx.IDENTIFIER() != null) {
+                    int end = ctx.IDENTIFIER().getSymbol().getStopIndex() + 1;
+                    argument = argument.withText(source.substring(number.getSymbol().getStartIndex(), end));
+                    cursor = end;
+                }
+                args.add(Db2RightPadded.build(argument).withAfter(space()));
                 if (args.size() < ctx.NUMBER().size()) {
                     skip(",");
                 }
@@ -350,7 +357,7 @@ public class Db2ParserVisitor extends DB2ParserBaseVisitor<Db2> {
         Db2.Name name = name(ctx.qualifiedName(0));
         Db2.Keyword on = keyword(ctx.ON());
         Db2.Name table = name(ctx.qualifiedName(1));
-        Db2Container<Db2.IndexKey> keys =
+        Db2Container<Db2.IndexKey> keys = ctx.LPAREN() == null ? null :
                 container(ctx.LPAREN(), ctx.indexKey(), ctx.COMMA(), ctx.RPAREN(), this::indexKey);
         return new Db2.CreateIndex(randomId(), prefix, Markers.EMPTY, keywords, name, on, table,
                 keys, options(ctx.indexOption()));

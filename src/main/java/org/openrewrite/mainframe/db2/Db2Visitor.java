@@ -50,7 +50,9 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withOn(visitAndCast(x.getOn(), p));
         x = x.withTable(visitAndCast(x.getTable(), p));
-        x = x.withKeys(visitContainer(x.getKeys(), p));
+        if (x.getKeys() != null) {
+            x = x.withKeys(visitContainer(x.getKeys(), p));
+        }
         x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
         return x;
     }

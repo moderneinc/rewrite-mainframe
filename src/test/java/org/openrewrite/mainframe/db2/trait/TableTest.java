@@ -229,6 +229,40 @@ class TableTest implements RewriteTest {
     }
 
     @Test
+    void aLobLengthMayNameItsUnit() {
+        rewriteRun(
+          db2(
+            """
+              CREATE TABLE GENEVA.E_LOGICTBL
+                (LOGIC CLOB(32 M), BODY BLOB(1G), NOTE CLOB(64K));
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                Table table = new Table.Matcher().lower(cu).findFirst().orElseThrow();
+                assertThat(table.getColumn("LOGIC").getLength()).isEqualTo(32 * 1024 * 1024);
+                assertThat(table.getColumn("BODY").getLength()).isEqualTo(1024 * 1024 * 1024);
+                assertThat(table.getColumn("NOTE").getLength()).isEqualTo(64 * 1024);
+            })
+          )
+        );
+    }
+
+    @Test
+    void anIndexOnAnAuxiliaryTableHasNoKeyColumns() {
+        rewriteRun(
+          db2(
+            """
+              CREATE UNIQUE INDEX GENEVA.LOGIC_IDX ON GENEVA.LOGIC_LOB;
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                Index index = new Index.Matcher().lower(cu).findFirst().orElseThrow();
+                assertThat(index.getTable()).isEqualTo("GENEVA.LOGIC_LOB");
+                assertThat(index.getKeyColumns()).isEmpty();
+            })
+          )
+        );
+    }
+
+    @Test
     void whatAnIndexCovers() {
         rewriteRun(
           db2(
