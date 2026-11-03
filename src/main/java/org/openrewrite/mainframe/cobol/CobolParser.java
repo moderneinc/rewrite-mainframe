@@ -32,11 +32,15 @@ import org.openrewrite.mainframe.cobol.internal.CobolPreprocessorOutputSourcePri
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
+import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
 import org.openrewrite.tree.ParsingExecutionContextView;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -148,6 +152,43 @@ public class CobolParser implements Parser {
     }
 
     /**
+     * Whether a member with a program's extension holds a program rather than a copybook kept under the same extension.
+     * A program's division header usually sits in its first cards, so those are read first. A member whose first cards
+     * are not in reference format, such as a control card deck or an EBCDIC member, stays with this parser, which
+     * reports it as no program. So does a member that cannot be read.
+     */
+    static boolean holdsProgram(Path path) {
+        String head = ControlCards.head(path);
+        if (IDENTIFICATION_DIVISION.matcher(head).find() || !inReferenceFormat(head)) {
+            return true;
+        }
+        try {
+            String member = new String(Files.readAllBytes(path), StandardCharsets.ISO_8859_1);
+            return IDENTIFICATION_DIVISION.matcher(member).find();
+        } catch (IOException e) {
+            return true;
+        }
+    }
+
+    /**
+     * Whether every card long enough to reach the indicator area holds an indicator there.
+     */
+    private static boolean inReferenceFormat(String cards) {
+        CobolDialect dialect = CobolDialect.ibmAnsi85();
+        int indicatorArea = dialect.getColumns().getIndicatorArea();
+        for (String card : cards.split("\\R")) {
+            if (card.length() > indicatorArea) {
+                char indicator = card.charAt(indicatorArea);
+                if (indicator != ' ' && indicator != '-' && !dialect.getCommentIndicators().contains(indicator) &&
+                    !CobolStringUtils.DEBUGGING_INDICATORS.contains(indicator)) {
+                    return false;
+                }
+            }
+        }
+        return !cards.isEmpty();
+    }
+
+    /**
      * Whether a file the grammar could not read is not a program at all. Only asked after a
      * failure: a program the grammar reads has its division header wherever it is, and a control
      * card kept as {@code .cbl} has none.
@@ -174,7 +215,7 @@ public class CobolParser implements Parser {
         String s = path.toString().toLowerCase();
         for (String COBOL_FILE_EXTENSION : COBOL_FILE_EXTENSIONS) {
             if (s.endsWith(COBOL_FILE_EXTENSION)) {
-                return true;
+                return holdsProgram(path);
             }
         }
         return false;

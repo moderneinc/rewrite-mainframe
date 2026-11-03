@@ -8,7 +8,7 @@ plugins {
 group = "org.openrewrite"
 description = "Rewrite support for mainframe languages"
 
-val antlr by configurations.creating
+val antlr = configurations.create("antlr")
 
 tasks.register<JavaExec>("generateAntlrSourcesCobol") {
     mainClass.set("org.antlr.v4.Tool")

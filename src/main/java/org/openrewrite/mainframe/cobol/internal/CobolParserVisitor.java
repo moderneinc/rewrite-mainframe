@@ -1189,12 +1189,12 @@ public class CobolParserVisitor extends CobolParserBaseVisitor<Object> {
 
     @Override
     public Object visitCicsDfhRespLiteral(CobolParser.CicsDfhRespLiteralContext ctx) {
-        return cicsLiteral(ctx.DFHRESP(), ctx.LPARENCHAR(), ctx.cobolWord(), ctx.literal(), ctx.RPARENCHAR());
+        return cicsLiteral(ctx.DFHRESP(), ctx.LPARENCHAR(), ctx.cicsName(), ctx.literal(), ctx.RPARENCHAR());
     }
 
     @Override
     public Object visitCicsDfhValueLiteral(CobolParser.CicsDfhValueLiteralContext ctx) {
-        return cicsLiteral(ctx.DFHVALUE(), ctx.LPARENCHAR(), ctx.cobolWord(), ctx.literal(), ctx.RPARENCHAR());
+        return cicsLiteral(ctx.DFHVALUE(), ctx.LPARENCHAR(), ctx.cicsName(), ctx.literal(), ctx.RPARENCHAR());
     }
 
     /**

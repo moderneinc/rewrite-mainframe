@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.misc.IntervalSet;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolLexer;
 import org.openrewrite.mainframe.cobol.internal.grammar.CobolParser;
@@ -314,6 +315,7 @@ class FullContextPredictionTest {
               MOVE E (I OF T) TO X
               MOVE E (F (1)) TO X
               MOVE DFHVALUE(NOUCTRAN) TO X
+              IF A = DFHRESP(END) OR DFHVALUE(OPEN) MOVE 1 TO Y END-IF
               IF A = 1 AND B = 2 OR C = 3 MOVE 1 TO Y END-IF
               IF A = 1 AND 2 OR NOT 3 MOVE 1 TO Y END-IF
               IF A = 1 OR B (I:1) OR C (I:1) MOVE 1 TO Y END-IF
@@ -360,6 +362,13 @@ class FullContextPredictionTest {
           "evaluateSelect", "evaluateCondition", "moveToSendingArea", "callByContent", "callByValue",
           "callByReference", "divideStatement", "moveStatement", "functionName", "ifThen", "ifElse",
           "enterStatement")).isZero();
+    }
+
+    @Test
+    void aCicsNameNeverStartsALiteral() {
+        IntervalSet name = firstTokens(CobolParser.RULE_cicsName);
+        assertThat(name.contains(CobolParser.OPEN)).isTrue();
+        assertThat(name.and(firstTokens(CobolParser.RULE_literal)).isNil()).isTrue();
     }
 
     @Test
@@ -599,6 +608,10 @@ class FullContextPredictionTest {
               STOP RUN.
           """;
         assertThat(fullContextFallbacks(program, "dataValueClause", "abbreviation", "writeAdvancingPhrase", "sendAdvancingPhrase")).isZero();
+    }
+
+    private static IntervalSet firstTokens(int rule) {
+        return CobolParser._ATN.nextTokens(CobolParser._ATN.ruleToStartState[rule]);
     }
 
     private static long fullContextFallbacks(String program, String... rules) {

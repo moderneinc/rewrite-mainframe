@@ -6153,6 +6153,16 @@ public interface CobolParserListener extends ParseTreeListener {
 	 */
 	void exitCicsDfhValueLiteral(CobolParser.CicsDfhValueLiteralContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link CobolParser#cicsName}.
+	 * @param ctx the parse tree
+	 */
+	void enterCicsName(CobolParser.CicsNameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link CobolParser#cicsName}.
+	 * @param ctx the parse tree
+	 */
+	void exitCicsName(CobolParser.CicsNameContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link CobolParser#figurativeConstant}.
 	 * @param ctx the parse tree
 	 */
