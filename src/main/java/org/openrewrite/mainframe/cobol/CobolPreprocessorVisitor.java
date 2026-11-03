@@ -117,6 +117,7 @@ public class CobolPreprocessorVisitor<P> extends TreeVisitor<CobolPreprocessor, 
         CobolPreprocessor.CompilerOptions c = compilerOptions;
         c = c.withPrefix(visitSpace(c.getPrefix(), Space.Location.COMPILER_OPTIONS_PREFIX, p));
         c = c.withMarkers(visitMarkers(c.getMarkers(), p));
+        c = c.withWord((CobolPreprocessor.Word) visit(c.getWord(), p));
         return c.withCobols(ListUtils.map(c.getCobols(), it -> visit(it, p)));
     }
 

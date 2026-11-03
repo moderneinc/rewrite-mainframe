@@ -58,4 +58,28 @@ class CobolVisitorTest {
         assertThat(visited).isNotEmpty();
         assertThat(visitedAgain).isEmpty();
     }
+
+    @Test
+    void visitsTheWordsOfACompilerOptionsStatement() {
+        SourceFile cu = CobolParser.builder().build().parse(
+          """
+                   PROCESS NODYNAM
+            000000 IDENTIFICATION DIVISION.
+            000000 PROGRAM-ID. ONE.
+            000000 PROCEDURE DIVISION.
+            000000     GOBACK.
+            """
+        ).findFirst().orElseThrow();
+
+        List<String> words = new ArrayList<>();
+        new CobolIsoVisitor<Integer>() {
+            @Override
+            public Cobol.Word visitWord(Cobol.Word word, Integer p) {
+                words.add(word.getWord());
+                return super.visitWord(word, p);
+            }
+        }.visit(cu, 0);
+
+        assertThat(words).startsWith("PROCESS", "NODYNAM", "IDENTIFICATION");
+    }
 }

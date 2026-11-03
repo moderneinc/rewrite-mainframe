@@ -2400,6 +2400,8 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         Cobol.ProgramUnit pp = programUnit;
         pp = pp.withPrefix(visitSpace(pp.getPrefix(), Space.Location.PROGRAM_UNIT_PREFIX, p));
         pp = pp.withMarkers(visitMarkers(pp.getMarkers(), p));
+        pp = pp.withCompilerOptions(ListUtils.map(pp.getCompilerOptions(),
+                t -> (CobolPreprocessor.CompilerOptions) getCobolPreprocessorVisitor().visit(t, p)));
         pp = pp.withIdentificationDivision((Cobol.IdentificationDivision) visit(pp.getIdentificationDivision(), p));
         pp = pp.withEnvironmentDivision((Cobol.EnvironmentDivision) visit(pp.getEnvironmentDivision(), p));
         pp = pp.withDataDivision((Cobol.DataDivision) visit(pp.getDataDivision(), p));
