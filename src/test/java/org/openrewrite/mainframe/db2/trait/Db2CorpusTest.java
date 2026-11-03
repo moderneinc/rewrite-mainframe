@@ -140,7 +140,7 @@ class Db2CorpusTest {
         // A fixture the walk could not see, a symbolic link say, would otherwise pass as an
         // application with no DDL in it.
         assertThat(fixtureFound).as("mainframe-fixtures under %s", corpus).isTrue();
-        assertThat(skipped).as("members held out of the corpus").hasSize(39);
+        assertThat(skipped).as("members held out of the corpus").hasSize(228);
 
         // Counting what the source says against what the traits found is the only thing that tells
         // a table the grammar failed to read from one that was never there.
@@ -316,6 +316,10 @@ class Db2CorpusTest {
         if (path.contains("/database/postgres/")) {
             // GenevaERS keeps a Postgres port of its schema beside the DB2 one, in its own dialect.
             return "Postgres";
+        }
+        if (path.contains("/code/database/")) {
+            // bheckel/code keeps its SQLite, Oracle and PostgreSQL scripts there.
+            return "SQLite, Oracle and PostgreSQL";
         }
         if (source.contains("--#SET TERMINATOR")) {
             // DB2's command line processor lets a file end its statements with something other than
