@@ -421,8 +421,12 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                      01 WS-RESP PIC S9(8) COMP.
                         88 RESP-NORMAL VALUE DFHRESP(NORMAL).
                         88 RESP-BUSY VALUE DFHVALUE(BUSY).
+                        88 RESP-ERROR VALUE DFHRESP(ERROR).
                      PROCEDURE DIVISION.
                      MOVE DFHRESP(NORMAL) TO WS-RESP.
+                     IF WS-RESP = DFHRESP(END) OR DFHVALUE(OPEN)
+                        MOVE DFHRESP(OVERFLOW) TO WS-RESP
+                     END-IF.
                      STOP RUN.
               """,
             spec -> spec.afterRecipe(cu -> {
@@ -439,7 +443,9 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                 }.visit(cu, 0);
                 assertThat(shapes).containsExactly(
                   "DFHRESP QualifiedDataName NORMAL", "DFHVALUE QualifiedDataName BUSY",
-                  "DFHRESP QualifiedDataName NORMAL");
+                  "DFHRESP QualifiedDataName ERROR", "DFHRESP QualifiedDataName NORMAL",
+                  "DFHRESP QualifiedDataName END", "DFHVALUE QualifiedDataName OPEN",
+                  "DFHRESP QualifiedDataName OVERFLOW");
             })
           )
         );

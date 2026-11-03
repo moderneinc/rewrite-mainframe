@@ -3174,11 +3174,19 @@ integerLiteral
    ;
 
 cicsDfhRespLiteral
-   : DFHRESP LPARENCHAR (cobolWord | literal) RPARENCHAR
+   : DFHRESP LPARENCHAR (literal | cicsName) RPARENCHAR
    ;
 
 cicsDfhValueLiteral
-   : DFHVALUE LPARENCHAR (cobolWord | literal) RPARENCHAR
+   : DFHVALUE LPARENCHAR (literal | cicsName) RPARENCHAR
+   ;
+
+// The CICS translator takes any condition or CVDA name here, and some are COBOL keywords, such as ERROR,
+// END, OVERFLOW and OPEN. Every token that can start a literal is excluded, so the choice stays LL(1).
+cicsName
+   : ~(RPARENCHAR | NONNUMERICLITERAL | NUMERICLITERAL | INTEGERLITERAL | LEVEL_NUMBER_66 | LEVEL_NUMBER_77
+      | LEVEL_NUMBER_88 | TRUE | FALSE | DFHRESP | DFHVALUE | ALL | HIGH_VALUE | HIGH_VALUES | LOW_VALUE
+      | LOW_VALUES | NULL | NULLS | QUOTE | QUOTES | SPACE | SPACES | ZERO | ZEROS | ZEROES)
    ;
 
 // keywords ----------------------------------
