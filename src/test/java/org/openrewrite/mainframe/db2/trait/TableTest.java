@@ -212,6 +212,23 @@ class TableTest implements RewriteTest {
     }
 
     @Test
+    void aPrimaryKeyMayBeDeclaredOnItsColumn() {
+        rewriteRun(
+          db2(
+            """
+              CREATE TABLE TREE (
+                NODE INTEGER NOT NULL PRIMARY KEY,
+                NAME VARCHAR(20));
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                Table table = new Table.Matcher().lower(cu).findFirst().orElseThrow();
+                assertThat(table.getPrimaryKey()).containsExactly("NODE");
+            })
+          )
+        );
+    }
+
+    @Test
     void aLobLengthMayNameItsUnit() {
         rewriteRun(
           db2(
