@@ -96,13 +96,12 @@ class ExpansionTest implements RewriteTest {
               //EXTRACT  EXEC CLMBATCH,PGM=CLMB010
               """,
             BATCH,
-            spec -> spec.afterRecipe(cu -> {
+            spec -> spec.afterRecipe(cu ->
                 assertThat(expansions(cu)).singleElement().satisfies(expansion -> {
                     assertThat(expansion.getMemberName()).isEqualTo("CLMBATCH");
                     assertThat(expansion.getKind()).isEqualTo(Jcl.Expansion.Kind.PROCEDURE);
                     assertThat(cards(expansion)).containsExactly("//RUN", "//STEPLIB", "//SYSOUT", "//SYSTSIN");
-                });
-            })
+                }))
           )
         );
     }

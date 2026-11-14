@@ -59,8 +59,6 @@ public final class CardLines {
     public static <T extends Tree> Map<UUID, Integer> of(Cursor cursor, Class<T> deckType,
                                                          TreeVisitor<?, CardLines> words) {
         T deck = cursor.firstEnclosingOrThrow(deckType);
-        return cursor.getRoot().computeMessageIfAbsent("cardLines." + deck.getId(), k -> {
-            return words.reduce(deck, new CardLines()).lines;
-        });
+        return cursor.getRoot().computeMessageIfAbsent("cardLines." + deck.getId(), k -> words.reduce(deck, new CardLines()).lines);
     }
 }
