@@ -105,15 +105,14 @@ class JobControlStatementTest implements RewriteTest {
               //             UNIT=SYSDA,
               //             SPACE=(CYL,(1,1),RLSE)
               """,
-            spec -> spec.afterRecipe(cu -> {
+            spec -> spec.afterRecipe(cu ->
                 assertThat(statementsIn(cu)).singleElement().satisfies(dd -> {
                     assertThat(dd.getParameters()).hasSize(4);
                     assertThat(dd.getParameter("DISP").getValueText()).isEqualTo("SHR");
                     assertThat(dd.getParameter("UNIT").getValueText()).isEqualTo("SYSDA");
                     // The commas inside SPACE belong to its sub-parameters and must not split it.
                     assertThat(dd.getParameter("SPACE").getValueText()).isEqualTo("(CYL,(1,1),RLSE)");
-                });
-            })
+                }))
           )
         );
     }
