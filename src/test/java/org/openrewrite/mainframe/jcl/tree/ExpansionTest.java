@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.jcl.tree;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.ExpandedPrinter;
 import org.openrewrite.mainframe.jcl.JclIsoVisitor;
 import org.openrewrite.mainframe.jcl.marker.ExpandedMember;
@@ -85,8 +84,8 @@ class ExpansionTest implements RewriteTest {
           .map(ResolvedText::getText).orElseGet(parameter::getValueText);
     }
 
-	@DocumentExample @Test
-	void expandsCatalogedProcedure() {
+    @Test
+    void expandsCatalogedProcedure() {
         rewriteRun(
           jclWithProcedures(
             """

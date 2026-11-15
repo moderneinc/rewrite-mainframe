@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.jcl.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.marker.Symbolic;
 import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.test.RewriteTest;
@@ -70,8 +69,8 @@ class ExpandedStepTest implements RewriteTest {
       //RUN.CLMMAST  DD DISP=SHR,DSN=&HLQ..CLMMAST
       """;
 
-	@DocumentExample @Test
-	void aProcedureStepOpensTheDataSetsTheJobNamed() {
+    @Test
+    void aProcedureStepOpensTheDataSetsTheJobNamed() {
         rewriteRun(
           jclWithProcedures(EXTRACT, LIBRARY,
             spec -> spec.afterRecipe(cu -> {

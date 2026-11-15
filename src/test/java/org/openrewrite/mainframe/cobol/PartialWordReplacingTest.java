@@ -31,8 +31,9 @@ class PartialWordReplacingTest extends CobolTest {
 	/// Nothing fails when that happens: the copybook is expanded with the library text intact, and
 	/// `DISPLAY OLD ONE TWO` is as valid as `DISPLAY NEWNAME`. The program parses, and
 	/// every analysis built on it is wrong.
-	@DocumentExample @Test
-	void reductiveReplacementMatchingAsManyTimesAsItHasWords() {
+    @DocumentExample
+    @Test
+    void reductiveReplacementMatchingAsManyTimesAsItHasWords() {
         rewriteRun(
           cobolPostProcess(
             """

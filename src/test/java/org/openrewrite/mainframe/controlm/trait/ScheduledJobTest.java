@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.controlm.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.controlm.ControlMParser;
@@ -71,8 +70,8 @@ class ScheduledJobTest implements RewriteTest {
         </DEFTABLE>
         """;
 
-	@DocumentExample @Test
-	void readsEveryWayThePanelWritesACondition() {
+    @Test
+    void readsEveryWayThePanelWritesACondition() {
         rewriteRun(
           controlM(
             """

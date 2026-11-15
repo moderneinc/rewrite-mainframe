@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.jcl.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.test.RewriteTest;
 
@@ -27,8 +26,8 @@ import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 
 class StepTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void readsStepsAndTheirDataDefinitions() {
+    @Test
+    void readsStepsAndTheirDataDefinitions() {
         rewriteRun(
           jcl(
             """

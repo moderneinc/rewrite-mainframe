@@ -17,7 +17,6 @@ package org.openrewrite.mainframe.cobol.tree.cobol;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Cursor;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
@@ -37,8 +36,8 @@ import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 /// Statements and phrases Enterprise COBOL 6 added to the language.
 class CobolParserEnterpriseCobolTest extends CobolTest {
 
-	@DocumentExample @Test
-	void jsonGenerateAndParseReadTheirDocumentAndDataItem() {
+    @Test
+    void jsonGenerateAndParseReadTheirDocumentAndDataItem() {
         rewriteRun(
           cobol(
             """

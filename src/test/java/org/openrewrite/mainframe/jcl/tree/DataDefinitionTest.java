@@ -18,7 +18,6 @@ package org.openrewrite.mainframe.jcl.tree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,8 +26,8 @@ import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jcl;
 class DataDefinitionTest implements RewriteTest {
 
 	/// A data line is data in every column, so a line past column 72 keeps its text and prints back.
-	@DocumentExample @Test
-	void dataPastColumn72() {
+    @Test
+    void dataPastColumn72() {
         rewriteRun(
           jcl(
             """

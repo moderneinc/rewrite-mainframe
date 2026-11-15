@@ -26,8 +26,9 @@ import static org.openrewrite.mainframe.cobol.Assertions.cobolPostProcess;
 
 class CobolParserCopyTest extends CobolTest {
 
-	@DocumentExample @Test
-	void execSqlIncludeDclgenMember() {
+    @DocumentExample
+    @Test
+    void execSqlIncludeDclgenMember() {
         rewriteRun(
           cobolPostProcess(
             """

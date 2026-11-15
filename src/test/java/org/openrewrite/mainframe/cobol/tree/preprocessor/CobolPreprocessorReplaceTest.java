@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.cobol.tree.preprocessor;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
@@ -39,8 +38,8 @@ class CobolPreprocessorReplaceTest extends CobolTest {
     public static final CobolPreprocessorOutputSourcePrinter<ExecutionContext> printer =
             new CobolPreprocessorOutputSourcePrinter<>(DIALECT, false);
 
-	@DocumentExample @Test
-	void aQualifiedOrSubscriptedOperandIsOneRunOfWords() {
+    @Test
+    void aQualifiedOrSubscriptedOperandIsOneRunOfWords() {
         rewriteRun(
           cobolPreprocessorCopy(
             """

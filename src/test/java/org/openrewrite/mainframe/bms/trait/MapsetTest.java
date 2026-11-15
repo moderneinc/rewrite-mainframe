@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.bms.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
@@ -26,8 +25,8 @@ import static org.openrewrite.mainframe.bms.Assertions.bms;
 
 class MapsetTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void aMapsetHoldsItsMapsAndTheirFields() {
+    @Test
+    void aMapsetHoldsItsMapsAndTheirFields() {
         rewriteRun(
           bms(
             """

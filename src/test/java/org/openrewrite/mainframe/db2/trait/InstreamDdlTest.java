@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.db2.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.test.RewriteTest;
@@ -29,8 +28,8 @@ import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 /// Reading the DDL a job runs, which is where most of an estate's tables are really created.
 class InstreamDdlTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void theTablesAJobCreates() {
+    @Test
+    void theTablesAJobCreates() {
         rewriteRun(
           jcl(
             """

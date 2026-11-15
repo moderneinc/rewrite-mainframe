@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.jcl.tree;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.JclIsoVisitor;
 import org.openrewrite.test.RewriteTest;
 
@@ -32,8 +31,8 @@ import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 /// statements they belong to and that the parts of a statement are what they claim to be.
 class JobControlStatementTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void aStatementIsOneNode() {
+    @Test
+    void aStatementIsOneNode() {
         rewriteRun(
           jcl(
             """

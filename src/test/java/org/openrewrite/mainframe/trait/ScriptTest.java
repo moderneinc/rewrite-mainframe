@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.text.PlainText;
 
@@ -32,8 +31,8 @@ class ScriptTest implements RewriteTest {
 	/// Every name a script writes, which is what a search for a member name finds in it. It
 	/// over-answers on purpose: an English word of eight letters or fewer is spelled exactly like a
 	/// member name, and which of these is a component is a join and not a lexical rule.
-	@DocumentExample @Test
-	void findsEveryNameAScriptWritesDown() {
+    @Test
+    void findsEveryNameAScriptWritesDown() {
         rewriteRun(
           text(
             """

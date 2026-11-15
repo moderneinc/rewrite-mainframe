@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.controlcard.utility.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.controlcard.utility.marker.Dialect;
 import org.openrewrite.test.RewriteTest;
 
@@ -29,8 +28,8 @@ class UnloadCommandTest implements RewriteTest {
 
 	/// One pass over the table space fanning out to three files. Each SELECT carries its own output
 	/// DD and its own layout, which is what the base utility has no answer to.
-	@DocumentExample @Test
-	void severalSelectsFanOutToSeveralFiles() {
+    @Test
+    void severalSelectsFanOutToSeveralFiles() {
         rewriteRun(
           utilityCard(
             """
@@ -267,8 +266,8 @@ class UnloadCommandTest implements RewriteTest {
         rewriteRun(
           utilityCard(
             """
-              RUNSTATS TABLESPACE CLMDB01.CLMTSPOL TABLE(ALL) INDEX(ALL)
-              RUNSTATS TABLESPACE CLMDB01.CLMTSHST TABLE(ALL) INDEX(ALL)
+                RUNSTATS TABLESPACE CLMDB01.CLMTSPOL TABLE(ALL) INDEX(ALL)
+                RUNSTATS TABLESPACE CLMDB01.CLMTSHST TABLE(ALL) INDEX(ALL)
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<UtilityStatement> statements = new UtilityStatement.Matcher().lower(cu)

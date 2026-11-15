@@ -68,8 +68,8 @@ class SortStatementTest implements RewriteTest {
         rewriteRun(
           sortCard(
             """
-              SORT FIELDS=(53,4,CH,A)
-              SUM FIELDS=(66,13,ZD,79,13,ZD,92,13,ZD)
+                SORT FIELDS=(53,4,CH,A)
+                SUM FIELDS=(66,13,ZD,79,13,ZD,92,13,ZD)
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<SortStatement> statements = new SortStatement.Matcher().lower(cu).toList();
@@ -89,7 +89,7 @@ class SortStatementTest implements RewriteTest {
         rewriteRun(
           sortCard(
             """
-              SORT FIELDS=(1,10,A,53,4,D),FORMAT=CH
+                SORT FIELDS=(1,10,A,53,4,D),FORMAT=CH
               """,
             spec -> spec.afterRecipe(cu -> {
                 SortStatement sort = new SortStatement.Matcher().lower(cu).toList().getFirst();
@@ -107,7 +107,7 @@ class SortStatementTest implements RewriteTest {
         rewriteRun(
           sortCard(
             """
-              SORT   FIELDS=COPY
+                SORT   FIELDS=COPY
               """,
             spec -> spec.afterRecipe(cu -> {
                 SortStatement sort = new SortStatement.Matcher().lower(cu).toList().getFirst();

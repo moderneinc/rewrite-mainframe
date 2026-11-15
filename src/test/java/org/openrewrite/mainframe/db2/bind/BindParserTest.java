@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.Parser;
@@ -44,8 +43,8 @@ class BindParserTest implements RewriteTest {
 	/// CardDemo opens each DSN deck with its licence, a block of comment lines. They print back where
 	/// they were written and are no subcommands, so the deck's first subcommand is its `DSN` and
 	/// a line is still counted from the top of the member.
-	@DocumentExample @Test
-	void readsADeckThatOpensWithComments() {
+    @Test
+    void readsADeckThatOpensWithComments() {
         rewriteRun(
           bind(
             """

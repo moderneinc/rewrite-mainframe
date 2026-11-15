@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.linkedit.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,8 +24,8 @@ import static org.openrewrite.mainframe.linkedit.Assertions.linkEdit;
 
 class LinkEditDeckTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void moduleEntryAndTheObjectsItIsBuiltFrom() {
+    @Test
+    void moduleEntryAndTheObjectsItIsBuiltFrom() {
         rewriteRun(
           linkEdit(
             """
@@ -58,9 +57,9 @@ class LinkEditDeckTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-              INCLUDE RESLIB(DFSLI000)
-              ENTRY DLITCBL
-              NAME CLMI010(R)
+                INCLUDE RESLIB(DFSLI000)
+                ENTRY DLITCBL
+                NAME CLMI010(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);
@@ -76,9 +75,9 @@ class LinkEditDeckTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-              ENTRY GVBMR95
-              ALIAS GVBMR95E,GVBMR95R
-              NAME GVBMR95(R)
+                ENTRY GVBMR95
+                ALIAS GVBMR95E,GVBMR95R
+                NAME GVBMR95(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);
@@ -98,9 +97,9 @@ class LinkEditDeckTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-              INCLUDE OBJLIB(CLMU010,CLMU030)
-              ENTRY CLMB020
-              NAME CLMB020(R)
+                INCLUDE OBJLIB(CLMU010,CLMU030)
+                ENTRY CLMB020
+                NAME CLMB020(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);
@@ -118,9 +117,9 @@ class LinkEditDeckTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-              INCLUDE SYSLMOD(EPSMPMT)
-              INCLUDE SYSLIB(EPSMLIST)
-              NAME EPSMLIST(R)
+                INCLUDE SYSLMOD(EPSMPMT)
+                INCLUDE SYSLIB(EPSMLIST)
+                NAME EPSMLIST(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);

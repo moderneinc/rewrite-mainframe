@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.listload.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.Members;
 import org.openrewrite.test.RewriteTest;
 
@@ -91,8 +90,8 @@ class ModuleListingTest implements RewriteTest {
       " IEW2008I 0F03 PROCESSING COMPLETED.  RETURN CODE =  0.",
       "");
 
-	@DocumentExample @Test
-	void theSectionsTheModuleIsMadeOf() {
+    @Test
+    void theSectionsTheModuleIsMadeOf() {
         rewriteRun(
           text(AMBLIST, spec -> spec.afterRecipe(cu -> {
               ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();

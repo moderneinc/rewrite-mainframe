@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.text.PlainText;
 
@@ -29,8 +28,8 @@ import static org.openrewrite.test.SourceSpecs.text;
 
 class RunBookTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void readsTheJobADocjobDocuments() {
+    @Test
+    void readsTheJobADocjobDocuments() {
         rewriteRun(
           text(
             """

@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.controlcard.utility;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.controlcard.utility.trait.Template;
 import org.openrewrite.mainframe.controlcard.utility.trait.UnloadCommand;
 import org.openrewrite.mainframe.controlcard.utility.tree.Utility;
@@ -50,8 +49,8 @@ class InStreamUnloadDeckTest implements RewriteTest {
 
 	/// The deck the job runs is named nowhere in it: the member is the value of a symbolic the EXEC
 	/// passes, and the SYSIN that reads it is written in the procedure.
-	@DocumentExample @Test
-	void deckReachedThroughAProcedure() {
+    @Test
+    void deckReachedThroughAProcedure() {
         rewriteRun(
           jclWithProcedures(
             """

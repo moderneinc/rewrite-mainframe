@@ -15,17 +15,14 @@
  */
 // Generated from src/main/antlr-utility/UtilityCardParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.controlcard.utility.internal.grammar;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNDeserializer;
-import org.antlr.v4.runtime.atn.ParserATNSimulator;
-import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.tree.ParseTreeListener;
-import org.antlr.v4.runtime.tree.ParseTreeVisitor;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*;
+import org.antlr.v4.runtime.tree.*;
 import java.util.List;
+import java.util.Iterator;
+import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class UtilityCardParser extends Parser {
@@ -35,7 +32,7 @@ public class UtilityCardParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, COMMENT_CARD=4, SEMICOLON=5, STRINGLITERAL=6,
+		UTF_8_BOM=1, WS=2, EOL=3, COMMENT_CARD=4, SEMICOLON=5, STRINGLITERAL=6, 
 		TEXT=7;
 	public static final int
 		RULE_compilationUnit = 0, RULE_word = 1;
@@ -54,7 +51,7 @@ public class UtilityCardParser extends Parser {
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "COMMENT_CARD", "SEMICOLON", "STRINGLITERAL",
+			null, "UTF_8_BOM", "WS", "EOL", "COMMENT_CARD", "SEMICOLON", "STRINGLITERAL", 
 			"TEXT"
 		};
 	}
@@ -133,7 +130,7 @@ public class UtilityCardParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof UtilityCardParserVisitor ) return ((UtilityCardParserVisitor<? extends T>)visitor).visitCompilationUnit(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -147,7 +144,7 @@ public class UtilityCardParser extends Parser {
 			setState(7);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((_la & ~0x3f) == 0 && ((1L << _la) & 224L) != 0) {
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 224L) != 0)) {
 				{
 				{
 				setState(4);
@@ -193,7 +190,7 @@ public class UtilityCardParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof UtilityCardParserVisitor ) return ((UtilityCardParserVisitor<? extends T>)visitor).visitWord(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -206,7 +203,7 @@ public class UtilityCardParser extends Parser {
 			{
 			setState(12);
 			_la = _input.LA(1);
-			if ( !((_la & ~0x3f) == 0 && ((1L << _la) & 224L) != 0) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 224L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {

@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.cobol.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
@@ -38,8 +37,8 @@ class SqlStatementTest implements RewriteTest {
 
 	/// The shape genapp's DB2 modules are written in. The host variable in the WHERE clause is a
 	/// predicate rather than a result, and a row claiming a column flows into it would be wrong.
-	@DocumentExample @Test
-	void bindsEachColumnToTheHostVariableItLandsIn() {
+    @Test
+    void bindsEachColumnToTheHostVariableItLandsIn() {
         rewriteRun(
           cobol(
             """

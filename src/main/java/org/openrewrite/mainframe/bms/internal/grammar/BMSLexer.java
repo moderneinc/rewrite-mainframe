@@ -15,12 +15,14 @@
  */
 // Generated from src/main/antlr-bms/BMSLexer.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.bms.internal.grammar;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNDeserializer;
-import org.antlr.v4.runtime.atn.LexerATNSimulator;
-import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
+import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class BMSLexer extends Lexer {
@@ -30,9 +32,9 @@ public class BMSLexer extends Lexer {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, BMS_NAMED=4, BMS_STATEMENT=5, BMS_CONTINUATION=6,
-		COMMENT=7, UNKNOWN=8, STRINGLITERAL=9, TEXT=10, BMS_CA_START=11, BMS_STRINGLITERAL=12,
-		BMS_TEXT=13, COMMENT_CA_START=14, COMMENT_TEXT=15, UNKNOWN_WS=16, UNKNOWN_CA_START=17,
+		UTF_8_BOM=1, WS=2, EOL=3, BMS_NAMED=4, BMS_STATEMENT=5, BMS_CONTINUATION=6, 
+		COMMENT=7, UNKNOWN=8, STRINGLITERAL=9, TEXT=10, BMS_CA_START=11, BMS_STRINGLITERAL=12, 
+		BMS_TEXT=13, COMMENT_CA_START=14, COMMENT_TEXT=15, UNKNOWN_WS=16, UNKNOWN_CA_START=17, 
 		UNKNOWN_STRINGLITERAL=18, UNKNOWN_TEXT=19;
 	public static final int
 		INSIDE_BMS=1, INSIDE_COMMENT=2, INSIDE_UNKNOWN=3;
@@ -46,10 +48,10 @@ public class BMSLexer extends Lexer {
 
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"UTF_8_BOM", "WS", "EOL", "BMS_NAMED", "BMS_STATEMENT", "BMS_CONTINUATION",
-			"COMMENT", "UNKNOWN", "CA_START", "STRINGLITERAL", "TEXT", "LF", "CR",
-			"FORM_FEED", "BMS_WS", "BMS_EOL", "BMS_CA_START", "BMS_STRINGLITERAL",
-			"BMS_TEXT", "COMMENT_EOL", "COMMENT_CA_START", "COMMENT_TEXT", "UNKNOWN_WS",
+			"UTF_8_BOM", "WS", "EOL", "BMS_NAMED", "BMS_STATEMENT", "BMS_CONTINUATION", 
+			"COMMENT", "UNKNOWN", "CA_START", "STRINGLITERAL", "TEXT", "LF", "CR", 
+			"FORM_FEED", "BMS_WS", "BMS_EOL", "BMS_CA_START", "BMS_STRINGLITERAL", 
+			"BMS_TEXT", "COMMENT_EOL", "COMMENT_CA_START", "COMMENT_TEXT", "UNKNOWN_WS", 
 			"UNKNOWN_EOL", "UNKNOWN_CA_START", "UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}
@@ -63,9 +65,9 @@ public class BMSLexer extends Lexer {
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "BMS_NAMED", "BMS_STATEMENT", "BMS_CONTINUATION",
-			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "BMS_CA_START", "BMS_STRINGLITERAL",
-			"BMS_TEXT", "COMMENT_CA_START", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_CA_START",
+			null, "UTF_8_BOM", "WS", "EOL", "BMS_NAMED", "BMS_STATEMENT", "BMS_CONTINUATION", 
+			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "BMS_CA_START", "BMS_STRINGLITERAL", 
+			"BMS_TEXT", "COMMENT_CA_START", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_CA_START", 
 			"UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}

@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.cobol;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Statement;
@@ -52,8 +51,8 @@ class SourcePositionsTest extends CobolTest {
 	/// A literal continued over a column-7 break is one word and two lines of source. The word's
 	/// range spans both; its pieces are what a highlight needs, one per line. The comment line and
 	/// the floating comment are not nodes, so they are found by identity.
-	@DocumentExample @Test
-	void placesEachLineOfAContinuedLiteralAndTheCommentsAroundIt() {
+    @Test
+    void placesEachLineOfAContinuedLiteralAndTheCommentsAroundIt() {
         rewriteRun(
           cobol(
             """

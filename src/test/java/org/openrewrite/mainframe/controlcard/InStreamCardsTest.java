@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.controlcard;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.nio.file.Path;
@@ -45,8 +44,8 @@ class InStreamCardsTest implements RewriteTest {
 	/// a shop uses when several jobs run the same cards. Its cards print nowhere in the job, so what
 	/// they say is put back together from the words the graft left behind — including the columns
 	/// each word was written in, without which a comment card swallows the deck.
-	@DocumentExample @Test
-	void cardsOfTheMemberADdNamed() {
+    @Test
+    void cardsOfTheMemberADdNamed() {
         rewriteRun(
           jcl(
             """

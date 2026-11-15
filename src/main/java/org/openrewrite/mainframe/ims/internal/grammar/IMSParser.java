@@ -15,17 +15,14 @@
  */
 // Generated from src/main/antlr-ims/IMSParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.ims.internal.grammar;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNDeserializer;
-import org.antlr.v4.runtime.atn.ParserATNSimulator;
-import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.tree.ParseTreeListener;
-import org.antlr.v4.runtime.tree.ParseTreeVisitor;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*;
+import org.antlr.v4.runtime.tree.*;
 import java.util.List;
+import java.util.Iterator;
+import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class IMSParser extends Parser {
@@ -35,18 +32,18 @@ public class IMSParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, IMS_NAMED=4, IMS_STATEMENT=5, IMS_CONTINUATION=6,
-		COMMENT=7, UNKNOWN=8, STRINGLITERAL=9, TEXT=10, IMS_SEQUENCE_AREA=11,
-		IMS_STRINGLITERAL=12, IMS_TEXT=13, COMMENT_SEQUENCE_AREA=14, COMMENT_TEXT=15,
+		UTF_8_BOM=1, WS=2, EOL=3, IMS_NAMED=4, IMS_STATEMENT=5, IMS_CONTINUATION=6, 
+		COMMENT=7, UNKNOWN=8, STRINGLITERAL=9, TEXT=10, IMS_SEQUENCE_AREA=11, 
+		IMS_STRINGLITERAL=12, IMS_TEXT=13, COMMENT_SEQUENCE_AREA=14, COMMENT_TEXT=15, 
 		UNKNOWN_WS=16, UNKNOWN_SEQUENCE_AREA=17, UNKNOWN_STRINGLITERAL=18, UNKNOWN_TEXT=19;
 	public static final int
-		RULE_compilationUnit = 0, RULE_statement = 1, RULE_ims = 2, RULE_imsWord = 3,
-		RULE_imsSequenceArea = 4, RULE_comment = 5, RULE_commentWord = 6, RULE_commentSequenceArea = 7,
+		RULE_compilationUnit = 0, RULE_statement = 1, RULE_ims = 2, RULE_imsWord = 3, 
+		RULE_imsSequenceArea = 4, RULE_comment = 5, RULE_commentWord = 6, RULE_commentSequenceArea = 7, 
 		RULE_unknown = 8, RULE_unknownWord = 9, RULE_unknownSequenceArea = 10;
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"compilationUnit", "statement", "ims", "imsWord", "imsSequenceArea",
-			"comment", "commentWord", "commentSequenceArea", "unknown", "unknownWord",
+			"compilationUnit", "statement", "ims", "imsWord", "imsSequenceArea", 
+			"comment", "commentWord", "commentSequenceArea", "unknown", "unknownWord", 
 			"unknownSequenceArea"
 		};
 	}
@@ -60,9 +57,9 @@ public class IMSParser extends Parser {
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "IMS_NAMED", "IMS_STATEMENT", "IMS_CONTINUATION",
-			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "IMS_SEQUENCE_AREA", "IMS_STRINGLITERAL",
-			"IMS_TEXT", "COMMENT_SEQUENCE_AREA", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_SEQUENCE_AREA",
+			null, "UTF_8_BOM", "WS", "EOL", "IMS_NAMED", "IMS_STATEMENT", "IMS_CONTINUATION", 
+			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "IMS_SEQUENCE_AREA", "IMS_STRINGLITERAL", 
+			"IMS_TEXT", "COMMENT_SEQUENCE_AREA", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_SEQUENCE_AREA", 
 			"UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}
@@ -141,7 +138,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitCompilationUnit(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -155,7 +152,7 @@ public class IMSParser extends Parser {
 			setState(25);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((_la & ~0x3f) == 0 && ((1L << _la) & 962560L) != 0) {
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 962560L) != 0)) {
 				{
 				{
 				setState(22);
@@ -207,7 +204,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitStatement(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -277,7 +274,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitIms(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -324,7 +321,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitImsWord(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -386,7 +383,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitImsSequenceArea(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -431,7 +428,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitComment(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -477,7 +474,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitCommentWord(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -531,7 +528,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitCommentSequenceArea(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -576,7 +573,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitUnknown(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -623,7 +620,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitUnknownWord(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -701,7 +698,7 @@ public class IMSParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof IMSParserVisitor ) return ((IMSParserVisitor<? extends T>)visitor).visitUnknownSequenceArea(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 

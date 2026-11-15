@@ -15,17 +15,14 @@
  */
 // Generated from src/main/antlr-sort/SortCardParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.controlcard.sort.internal.grammar;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNDeserializer;
-import org.antlr.v4.runtime.atn.ParserATNSimulator;
-import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.tree.ParseTreeListener;
-import org.antlr.v4.runtime.tree.ParseTreeVisitor;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*;
+import org.antlr.v4.runtime.tree.*;
 import java.util.List;
+import java.util.Iterator;
+import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class SortCardParser extends Parser {
@@ -35,7 +32,7 @@ public class SortCardParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, CARD=4, CARD_CONTINUATION=5, COMMENT_CARD=6,
+		UTF_8_BOM=1, WS=2, EOL=3, CARD=4, CARD_CONTINUATION=5, COMMENT_CARD=6, 
 		STRINGLITERAL=7, TEXT=8;
 	public static final int
 		RULE_compilationUnit = 0, RULE_word = 1;
@@ -54,7 +51,7 @@ public class SortCardParser extends Parser {
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "CARD", "CARD_CONTINUATION", "COMMENT_CARD",
+			null, "UTF_8_BOM", "WS", "EOL", "CARD", "CARD_CONTINUATION", "COMMENT_CARD", 
 			"STRINGLITERAL", "TEXT"
 		};
 	}
@@ -133,7 +130,7 @@ public class SortCardParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof SortCardParserVisitor ) return ((SortCardParserVisitor<? extends T>)visitor).visitCompilationUnit(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 
@@ -192,7 +189,7 @@ public class SortCardParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof SortCardParserVisitor ) return ((SortCardParserVisitor<? extends T>)visitor).visitWord(this);
-			return visitor.visitChildren(this);
+			else return visitor.visitChildren(this);
 		}
 	}
 

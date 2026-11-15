@@ -18,7 +18,6 @@ package org.openrewrite.mainframe.cobol;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,8 +43,8 @@ class InlineExecStatementTest extends CobolTest {
         return Cobol.ExecSqlStatement.class;
     }
 
-	@DocumentExample @Test
-	void commentsSequenceNumbersAndCrLfKeepTheirExactBytes() {
+    @Test
+    void commentsSequenceNumbersAndCrLfKeepTheirExactBytes() {
         String input = source("EVALUATE FLAG-NUM\nWHEN 1 EXEC CICS RETURN END-EXEC\nWHEN OTHER CONTINUE\nEND-EVALUATE.")
           .replace("000000 WHEN 1", "123456 WHEN 1")
           .replace("000000 EVALUATE", "012345* BEFORE SELECTION\n000000 EVALUATE")

@@ -181,8 +181,8 @@ class UtilityParserTest implements RewriteTest {
         rewriteRun(
           utilityCard(
             """
-              RUNSTATS TABLESPACE CLMDB01.CLMTSPOL TABLE(ALL) INDEX(ALL)
-              RUNSTATS TABLESPACE CLMDB01.CLMTSHST TABLE(ALL) INDEX(ALL)
+                RUNSTATS TABLESPACE CLMDB01.CLMTSPOL TABLE(ALL) INDEX(ALL)
+                RUNSTATS TABLESPACE CLMDB01.CLMTSHST TABLE(ALL) INDEX(ALL)
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
@@ -227,11 +227,11 @@ class UtilityParserTest implements RewriteTest {
         rewriteRun(
           utilityCard(
             """
-              UNLOAD TABLESPACE
-              DB2 NO COPYDDN COPYIN
-              SELECT * FROM MY.TAB;
-              OUTDDN (SREC001)
-              FORMAT DSNTIAUL
+                UNLOAD TABLESPACE
+                DB2 NO COPYDDN COPYIN
+                SELECT * FROM MY.TAB;
+                OUTDDN (SREC001)
+                FORMAT DSNTIAUL
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(1);

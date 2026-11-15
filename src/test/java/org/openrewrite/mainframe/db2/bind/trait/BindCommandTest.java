@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.db2.bind.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
@@ -26,8 +25,8 @@ import static org.openrewrite.mainframe.db2.bind.Assertions.bind;
 
 class BindCommandTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void rebind() {
+    @Test
+    void rebind() {
         rewriteRun(
           bind(
             """

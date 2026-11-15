@@ -17,7 +17,6 @@ package org.openrewrite.mainframe.cobol;
 
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.Tree;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
@@ -37,8 +36,8 @@ import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 /// statement attached to them, never from the words themselves.
 class ExecStatementTest extends CobolTest {
 
-	@DocumentExample @Test
-	void execCicsAsTheOnlyStatementInAParagraph() {
+    @Test
+    void execCicsAsTheOnlyStatementInAParagraph() {
         rewriteRun(
           cobol(
             """

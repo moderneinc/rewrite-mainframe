@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.Parser;
@@ -42,8 +41,8 @@ class LinkEditParserTest implements RewriteTest {
 
 	/// `ENTRY` and `ALIAS` write a name with no parentheses at all, so an operand with no
 	/// value has to survive as an operand rather than be swallowed by the operator.
-	@DocumentExample @Test
-	void namesWrittenWithoutParentheses() {
+    @Test
+    void namesWrittenWithoutParentheses() {
         rewriteRun(
           linkEdit(
             """
@@ -97,9 +96,9 @@ class LinkEditParserTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-              INCLUDE OBJLIB(CLMU010,CLMU020),SYSLIB(DFHECI)
-              MODE AMODE(31),RMODE(ANY)
-              NAME CLMC030(R)
+                INCLUDE OBJLIB(CLMU010,CLMU020),SYSLIB(DFHECI)
+                MODE AMODE(31),RMODE(ANY)
+                NAME CLMC030(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 var include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
@@ -155,9 +154,9 @@ class LinkEditParserTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-              INCLUDE OBJLIB(CLMB010)
-              IDENTIFY CLMB010('BUILT 2026-08-25 BY CLMCMPB')
-              NAME CLMB010(R)
+                INCLUDE OBJLIB(CLMB010)
+                IDENTIFY CLMB010('BUILT 2026-08-25 BY CLMCMPB')
+                NAME CLMB010(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 var identify = (LinkEdit.ControlStatement) cu.getStatements().get(1);
@@ -175,11 +174,11 @@ class LinkEditParserTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-              SETOPT  PARM(AMODE=31)
-              SETOPT  PARM(RMODE=ANY)
-              INCLUDE SYSLIB(GVBDAYS)
-              ENTRY   GVBDAYS
-              NAME    GVBDAYS(R)
+               SETOPT  PARM(AMODE=31)
+               SETOPT  PARM(RMODE=ANY)
+               INCLUDE SYSLIB(GVBDAYS)
+               ENTRY   GVBDAYS
+               NAME    GVBDAYS(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(5);

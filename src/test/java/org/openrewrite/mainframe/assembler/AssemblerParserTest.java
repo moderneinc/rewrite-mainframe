@@ -145,8 +145,8 @@ class AssemblerParserTest implements RewriteTest {
         rewriteRun(
           assembler(
             """
-            MVI   12(13),X'FF'            *ML purpose of this? - can we remove it?
-            SR    15,15                   ZERO R15 BEFORE RETURN
+                     MVI   12(13),X'FF'            *ML purpose of this? - can we remove it?
+                     SR    15,15                   ZERO R15 BEFORE RETURN
             """,
             spec -> spec.afterRecipe(cu -> assertThat(instructions(cu)).singleElement()
               .extracting(Assembler.Instruction::getOperandTexts)

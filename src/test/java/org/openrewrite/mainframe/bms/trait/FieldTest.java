@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.bms.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
@@ -28,8 +27,8 @@ class FieldTest implements RewriteTest {
 
 	/// A field that says nothing about protection cannot be typed into, so reporting it as an input
 	/// would be wrong. `UNPROT` has to be written.
-	@DocumentExample @Test
-	void onlyUnprotectedFieldsAreInputs() {
+    @Test
+    void onlyUnprotectedFieldsAreInputs() {
         rewriteRun(
           bms(
             """

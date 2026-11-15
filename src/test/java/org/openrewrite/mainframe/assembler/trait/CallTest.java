@@ -76,12 +76,12 @@ class CallTest implements RewriteTest {
         rewriteRun(
           assembler(
             """
-              LAY   R1,MSG_AREA        Address parm list area
-              L     15,=V(GVBUTMSG)
-              BASSM 14,15
-              XC    MSGS2PTR,MSGS2PTR
-              L     15,=V(GVBUTMSG)
-              LR    R2,R3
+                       LAY   R1,MSG_AREA        Address parm list area
+                       L     15,=V(GVBUTMSG)
+                       BASSM 14,15
+                       XC    MSGS2PTR,MSGS2PTR
+                       L     15,=V(GVBUTMSG)
+                       LR    R2,R3
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
               .toList())

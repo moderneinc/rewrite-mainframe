@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.db2.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
@@ -26,8 +25,8 @@ import static org.openrewrite.mainframe.db2.Assertions.db2;
 
 class TableTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void whatAnIndexCovers() {
+    @Test
+    void whatAnIndexCovers() {
         rewriteRun(
           db2(
             """

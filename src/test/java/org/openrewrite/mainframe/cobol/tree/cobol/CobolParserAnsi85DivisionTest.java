@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.ExpectedToFail;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.PrintOutputCapture;
@@ -254,8 +253,8 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
           .collect(joining(" "));
     }
 
-	@DocumentExample @Test
-	void compilerOptionsBeforeEachProgramOfABatch() {
+    @Test
+    void compilerOptionsBeforeEachProgramOfABatch() {
         rewriteRun(
           cobol(
             """

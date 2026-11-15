@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.jcl.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.test.RewriteTest;
 
@@ -42,8 +41,8 @@ class ExecutionPathTest implements RewriteTest {
 	/// `DB2`, `LOCK` and `QUIESCE` come from the parmlib member on `INFPLIB`,
 	/// which is in no application library. Change the parmlib and the job writes a different file
 	/// without a line of it changing.
-	@DocumentExample @Test
-	void saysWhichKeywordsTheDeckLeavesToTheSite() {
+    @Test
+    void saysWhichKeywordsTheDeckLeavesToTheSite() {
         rewriteRun(
           jcl(
             """

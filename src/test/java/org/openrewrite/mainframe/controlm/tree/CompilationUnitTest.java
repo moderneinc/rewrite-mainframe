@@ -18,7 +18,6 @@ package org.openrewrite.mainframe.controlm.tree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.ArrayList;
@@ -29,8 +28,8 @@ import static org.openrewrite.mainframe.controlm.tree.ParserAssertions.controlM;
 
 class CompilationUnitTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void definitionLinesHoldingValues() {
+    @Test
+    void definitionLinesHoldingValues() {
         rewriteRun(
           controlM(
             """

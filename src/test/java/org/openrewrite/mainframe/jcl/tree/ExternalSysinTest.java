@@ -18,7 +18,6 @@ package org.openrewrite.mainframe.jcl.tree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.JclIsoVisitor;
 import org.openrewrite.mainframe.jcl.JclVisitor;
 import org.openrewrite.mainframe.jcl.marker.GeneratedParmContent;
@@ -91,8 +90,8 @@ class ExternalSysinTest implements RewriteTest {
         return "";
     }
 
-	@DocumentExample @Test
-	void graftsResolvedMemberContentAsStreamNodes() {
+    @Test
+    void graftsResolvedMemberContentAsStreamNodes() {
         rewriteRun(
           jcl(
             "//SYSIN DD DSN=DWL.PARMLIB(MGSLAP8F),DISP=SHR",

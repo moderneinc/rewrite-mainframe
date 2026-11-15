@@ -265,6 +265,7 @@ class SearchableTextTest implements RewriteTest {
                 if (!(program instanceof Cobol.CompilationUnit)) {
                     continue;
                 }
+                var cu = (Cobol.CompilationUnit) program;
                 String name = program.getSourcePath().getFileName().toString();
                 SourcePositions positions = SourcePositions.of(cu);
                 var words = new ArrayList<SearchableText>();

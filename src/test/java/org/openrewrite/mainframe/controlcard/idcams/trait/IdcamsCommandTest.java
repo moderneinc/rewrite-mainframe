@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.controlcard.idcams.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
@@ -26,8 +25,8 @@ import static org.openrewrite.mainframe.controlcard.idcams.Assertions.idcamsCard
 
 class IdcamsCommandTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void defineClusterMakesTheDataSetAndItsComponents() {
+    @Test
+    void defineClusterMakesTheDataSetAndItsComponents() {
         rewriteRun(
           idcamsCard(
             """
@@ -102,12 +101,12 @@ class IdcamsCommandTest implements RewriteTest {
         rewriteRun(
           idcamsCard(
             """
-              DEFINE GENERATIONDATAGROUP -
-              (NAME(AWS.M2.CARDDEMO.TRANSACT.BKUP) -
-               LIMIT(5) -
-               SCRATCH -
-              )
-              IF LASTCC=12 THEN SET MAXCC=0
+                 DEFINE GENERATIONDATAGROUP -
+                 (NAME(AWS.M2.CARDDEMO.TRANSACT.BKUP) -
+                  LIMIT(5) -
+                  SCRATCH -
+                 )
+                 IF LASTCC=12 THEN SET MAXCC=0
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).toList();

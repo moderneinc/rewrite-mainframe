@@ -88,7 +88,7 @@ class SortParserTest implements RewriteTest {
         rewriteRun(
           sortCard(
             """
-              SELECT FROM(IN1) TO(OUT1) USING(ABCD) ON(9,7,CH) NODUPS
+                SELECT FROM(IN1) TO(OUT1) USING(ABCD) ON(9,7,CH) NODUPS
               """,
             spec -> spec.afterRecipe(cu -> {
                 var select = (Sort.ControlStatement) cu.getStatements().getFirst();
@@ -106,7 +106,7 @@ class SortParserTest implements RewriteTest {
         rewriteRun(
           sortCard(
             """
-              SORT   FIELDS=COPY
+                SORT   FIELDS=COPY
               """,
             spec -> spec.afterRecipe(cu ->
               assertThat(((Sort.ControlStatement) cu.getStatements().getFirst()).getParameter("FIELDS").getValueText())
@@ -122,8 +122,8 @@ class SortParserTest implements RewriteTest {
         rewriteRun(
           sortCard(
             """
-              SORT FIELDS=(1,10,A,53,4,D),FORMAT=CH
-              OPTION COPY,VLSHRT
+                SORT FIELDS=(1,10,A,53,4,D),FORMAT=CH
+                OPTION COPY,VLSHRT
               """,
             spec -> spec.afterRecipe(cu -> {
                 var sort = (Sort.ControlStatement) cu.getStatements().getFirst();

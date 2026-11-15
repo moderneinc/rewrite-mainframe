@@ -15,12 +15,14 @@
  */
 // Generated from src/main/antlr-utility/UtilityCardLexer.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.controlcard.utility.internal.grammar;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNDeserializer;
-import org.antlr.v4.runtime.atn.LexerATNSimulator;
-import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
+import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class UtilityCardLexer extends Lexer {
@@ -30,7 +32,7 @@ public class UtilityCardLexer extends Lexer {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, COMMENT_CARD=4, SEMICOLON=5, STRINGLITERAL=6,
+		UTF_8_BOM=1, WS=2, EOL=3, COMMENT_CARD=4, SEMICOLON=5, STRINGLITERAL=6, 
 		TEXT=7;
 	public static String[] channelNames = {
 		"DEFAULT_TOKEN_CHANNEL", "HIDDEN"
@@ -42,7 +44,7 @@ public class UtilityCardLexer extends Lexer {
 
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"UTF_8_BOM", "WS", "EOL", "COMMENT_CARD", "SEMICOLON", "LF", "CR", "FORM_FEED",
+			"UTF_8_BOM", "WS", "EOL", "COMMENT_CARD", "SEMICOLON", "LF", "CR", "FORM_FEED", 
 			"STRINGLITERAL", "TEXT"
 		};
 	}
@@ -56,7 +58,7 @@ public class UtilityCardLexer extends Lexer {
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "COMMENT_CARD", "SEMICOLON", "STRINGLITERAL",
+			null, "UTF_8_BOM", "WS", "EOL", "COMMENT_CARD", "SEMICOLON", "STRINGLITERAL", 
 			"TEXT"
 		};
 	}

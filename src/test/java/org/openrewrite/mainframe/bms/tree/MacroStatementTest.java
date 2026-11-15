@@ -16,7 +16,6 @@
 package org.openrewrite.mainframe.bms.tree;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
@@ -31,8 +30,8 @@ import static org.openrewrite.mainframe.bms.Assertions.bms;
 /// they claim to be.
 class MacroStatementTest implements RewriteTest {
 
-	@DocumentExample @Test
-	void aStatementIsOneNode() {
+    @Test
+    void aStatementIsOneNode() {
         rewriteRun(
           bms(
             """
