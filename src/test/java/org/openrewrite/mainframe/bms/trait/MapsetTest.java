@@ -16,18 +16,18 @@
 package org.openrewrite.mainframe.bms.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.bms.Assertions.bms;
 
 class MapsetTest implements RewriteTest {
 
-    @Test
-    void aMapsetHoldsItsMapsAndTheirFields() {
+	@DocumentExample @Test
+	void aMapsetHoldsItsMapsAndTheirFields() {
         rewriteRun(
           bms(
             """
@@ -42,7 +42,7 @@ class MapsetTest implements RewriteTest {
                       END
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Mapset> mapsets = new Mapset.Matcher().lower(cu).collect(Collectors.toList());
+                List<Mapset> mapsets = new Mapset.Matcher().lower(cu).toList();
                 assertThat(mapsets).hasSize(1);
 
                 Mapset mapset = mapsets.getFirst();
@@ -70,11 +70,9 @@ class MapsetTest implements RewriteTest {
         );
     }
 
-    /**
-     * The other half of the join to COBOL. A program that decides at run time which map it sends
-     * names no map the analysis can read, but the record it sends from is generated from one — so
-     * the map is recovered from the record rather than from the command.
-     */
+    /// The other half of the join to COBOL. A program that decides at run time which map it sends
+    /// names no map the analysis can read, but the record it sends from is generated from one — so
+    /// the map is recovered from the record rather than from the command.
     @Test
     void aMapIsRecoverableFromTheSymbolicMapRecordAProgramSendsFrom() {
         rewriteRun(
@@ -99,10 +97,8 @@ class MapsetTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code DFHMSD TYPE=FINAL} closes a mapset rather than opening one, so it is not a mapset of
-     * its own and the maps before it belong to the mapset that was opened.
-     */
+    /// `DFHMSD TYPE=FINAL` closes a mapset rather than opening one, so it is not a mapset of
+    /// its own and the maps before it belong to the mapset that was opened.
     @Test
     void typeFinalIsNotAMapset() {
         rewriteRun(
@@ -115,7 +111,7 @@ class MapsetTest implements RewriteTest {
                       END
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Mapset> mapsets = new Mapset.Matcher().lower(cu).collect(Collectors.toList());
+                List<Mapset> mapsets = new Mapset.Matcher().lower(cu).toList();
                 assertThat(mapsets).extracting(Mapset::getName).containsExactly("SSMAP");
                 assertThat(mapsets.getFirst().getMaps()).hasSize(1);
             })

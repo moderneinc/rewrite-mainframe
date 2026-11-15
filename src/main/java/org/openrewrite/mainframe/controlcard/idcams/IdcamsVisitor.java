@@ -16,9 +16,9 @@
 package org.openrewrite.mainframe.controlcard.idcams;
 
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.controlcard.idcams.tree.Idcams;
 import org.openrewrite.mainframe.controlcard.idcams.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 public class IdcamsVisitor<P> extends TreeVisitor<Idcams, P> {
 

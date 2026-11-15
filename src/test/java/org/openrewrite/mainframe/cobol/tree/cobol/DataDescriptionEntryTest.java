@@ -29,14 +29,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-/**
- * Data items have to reach the LST individually. Printing round-trips whether or not entries are
- * separated correctly, so these assert the structure rather than the output.
- */
+/// Data items have to reach the LST individually. Printing round-trips whether or not entries are
+/// separated correctly, so these assert the structure rather than the output.
 class DataDescriptionEntryTest extends CobolTest {
 
     private List<String> namesIn(String source) {
-        List<String> names = new ArrayList<>();
+        var names = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -89,9 +87,7 @@ class DataDescriptionEntryTest extends CobolTest {
         )).containsExactly("WS-CUSTOMER", "WS-ID", "WS-NAME", "WS-SSN", "WS-TOTAL");
     }
 
-    /**
-     * The decimal point of an edited picture is part of the picture, not the end of the entry.
-     */
+    /// The decimal point of an edited picture is part of the picture, not the end of the entry.
     @Test
     void editedPicturesKeepTheirDecimalPoint() {
         assertThat(namesIn(
@@ -148,8 +144,8 @@ class DataDescriptionEntryTest extends CobolTest {
 
     @Test
     void theValueSetToFalseIsNotAValueOfTheConditionName() {
-        List<String> values = new ArrayList<>();
-        List<String> falseValues = new ArrayList<>();
+        var values = new ArrayList<String>();
+        var falseValues = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override

@@ -26,20 +26,18 @@ import org.openrewrite.tree.ParseError;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-/**
- * A grammar rule with several alternatives reaches the LST through whichever parse-tree child is
- * present. These pin alternatives the NIST programs never use.
- */
+/// A grammar rule with several alternatives reaches the LST through whichever parse-tree child is
+/// present. These pin alternatives the NIST programs never use.
 class ParseTreeAlternativeTest extends CobolTest {
 
     private List<Class<?>> nodesIn(String source) {
-        List<Class<?>> nodes = new ArrayList<>();
+        var nodes = new ArrayList<Class<?>>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -64,7 +62,7 @@ class ParseTreeAlternativeTest extends CobolTest {
             000000 PROCEDURE DIVISION.                                             \s
             000000     MOVE 1 TO 100 IN S1.                                        \s
             """
-        ).collect(Collectors.toList());
+        ).toList();
         assertThat(parsed).singleElement().isInstanceOf(ParseError.class);
     }
 
@@ -83,7 +81,7 @@ class ParseTreeAlternativeTest extends CobolTest {
 
     @Test
     void onlyASignedIntegerMakesADataNameSubscriptRelative() {
-        List<Long> dimensions = new ArrayList<>();
+        var dimensions = new ArrayList<Long>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -112,7 +110,7 @@ class ParseTreeAlternativeTest extends CobolTest {
 
     @Test
     void aReferenceModifiedNameAfterOrIsAnAbbreviatedOperand() {
-        List<String> operands = new ArrayList<>();
+        var operands = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -136,13 +134,13 @@ class ParseTreeAlternativeTest extends CobolTest {
 
     @Test
     void eachAllLeadingOrFirstOpensAnInspectGroup() {
-        List<String> groups = new ArrayList<>();
+        var groups = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
               public Cobol.InspectAllLeadings visitInspectAllLeadings(Cobol.InspectAllLeadings leadings, ExecutionContext ctx) {
                   groups.add(leadings.getWord().getWord() + " " + leadings.getLeadings().stream()
-                    .map(l -> l.getName().getClass().getSimpleName()).collect(Collectors.joining(" ")));
+                    .map(l -> l.getName().getClass().getSimpleName()).collect(joining(" ")));
                   return super.visitInspectAllLeadings(leadings, ctx);
               }
 

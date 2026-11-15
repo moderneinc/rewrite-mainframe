@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.CobolParser;
 import org.openrewrite.mainframe.cobol.CopybookParser;
@@ -29,24 +28,20 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.marker.Range;
 import org.openrewrite.test.RewriteTest;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-/**
- * The program is written the way real mainframe source is, with sequence numbers and an
- * identification area, because neither is text a search should find.
- */
+/// The program is written the way real mainframe source is, with sequence numbers and an
+/// identification area, because neither is text a search should find.
 class SearchableTextTest implements RewriteTest {
 
     private static final String PROGRAM =
@@ -82,7 +77,7 @@ class SearchableTextTest implements RewriteTest {
         }
 
         List<SearchableText.Comment> comments() {
-            return words.stream().flatMap(w -> w.getComments().stream()).collect(Collectors.toList());
+            return words.stream().flatMap(w -> w.getComments().stream()).toList();
         }
 
         String at(Range range) {
@@ -93,8 +88,8 @@ class SearchableTextTest implements RewriteTest {
     }
 
     private Found parse(String source) {
-        Found found = new Found();
-        AtomicReference<Cobol.CompilationUnit> cu = new AtomicReference<>();
+        var found = new Found();
+        var cu = new AtomicReference<Cobol.CompilationUnit>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() ->
             new SearchableText.Matcher().<ExecutionContext>asVisitor((text, ctx) -> {
@@ -137,10 +132,8 @@ class SearchableTextTest implements RewriteTest {
           .containsExactly(0, 3, 8);
     }
 
-    /**
-     * The literal is one thing saying INPUT, which a phrase has to match, and two lines of source,
-     * which a highlight has to respect.
-     */
+    /// The literal is one thing saying INPUT, which a phrase has to match, and two lines of source,
+    /// which a highlight has to respect.
     @Test
     void joinsALiteralContinuedAcrossLinesAndPlacesEachPiece() {
         Found found = parse(PROGRAM);
@@ -160,10 +153,8 @@ class SearchableTextTest implements RewriteTest {
         assertThat(found.at(found.positions.get(literal.getTree()))).startsWith("17:20-18:17 ");
     }
 
-    /**
-     * The banner is what every CardDemo program opens with, and the asterisks down each side of it
-     * are drawing, not words. The all-asterisk rules say nothing and are not reported at all.
-     */
+    /// The banner is what every CardDemo program opens with, and the asterisks down each side of it
+    /// are drawing, not words. The all-asterisk rules say nothing and are not reported at all.
     @Test
     void stripsTheBordersOffABoxedComment() {
         Found found = parse(PROGRAM);
@@ -177,10 +168,8 @@ class SearchableTextTest implements RewriteTest {
           .contains("11:12-11:49 Rates are stored as a fraction of one");
     }
 
-    /**
-     * A comment entry is a word to the grammar, and reads the same way a comment line does: what
-     * {@code DATE-WRITTEN} says, without the whitespace the card padded it with.
-     */
+    /// A comment entry is a word to the grammar, and reads the same way a comment line does: what
+    /// `DATE-WRITTEN` says, without the whitespace the card padded it with.
     @Test
     void readsACommentEntryAsAComment() {
         Found found = parse(PROGRAM);
@@ -203,10 +192,8 @@ class SearchableTextTest implements RewriteTest {
             "16:53-16:71 and one after code");
     }
 
-    /**
-     * Sequence numbers and the identification area are on every line and are not what anybody is
-     * looking for.
-     */
+    /// Sequence numbers and the identification area are on every line and are not what anybody is
+    /// looking for.
     @Test
     void leavesTheSequenceAndIdentificationAreasOut() {
         Found found = parse(PROGRAM);
@@ -216,10 +203,8 @@ class SearchableTextTest implements RewriteTest {
         assertThat(found.words).extracting(SearchableText::getText).noneMatch(text -> text.matches("00\\d{4}"));
     }
 
-    /**
-     * Preprocessing takes an EXEC block out of the text the grammar sees, and it is where the
-     * literals a search most wants — file names, table names — are written.
-     */
+    /// Preprocessing takes an EXEC block out of the text the grammar sees, and it is where the
+    /// literals a search most wants — file names, table names — are written.
     @Test
     void placesTheWordsOfAnExecBlock() {
         Found found = parse(PROGRAM);
@@ -229,11 +214,9 @@ class SearchableTextTest implements RewriteTest {
           assertThat(found.at(piece.range(found.positions))).isEqualTo("19:32-19:42 'ACCTFILE'"));
     }
 
-    /**
-     * The copybook's fields are the copybook's text and the copybook is searched as itself; what the
-     * program wrote is the COPY statement. INCEPTION copies INCEPTION_2, which copies INCEPTION_3,
-     * and those two statements are written in the copybooks, not here.
-     */
+    /// The copybook's fields are the copybook's text and the copybook is searched as itself; what the
+    /// program wrote is the COPY statement. INCEPTION copies INCEPTION_2, which copies INCEPTION_3,
+    /// and those two statements are written in the copybooks, not here.
     @Test
     void leavesACopybooksTextToTheCopybook() {
         Found found = parse(
@@ -252,42 +235,39 @@ class SearchableTextTest implements RewriteTest {
           .doesNotContain("INCEPTION_2", "INCEPTION_3", "SUB-CALLED", "DN1", "PICTURE");
     }
 
-    /**
-     * Run with {@code COBOL_CORPUS=/path/to/corpus}. Every piece and comment of every program is
-     * checked against the source it claims to sit at, because each of these produced plausible
-     * output before it was right.
-     */
+    /// Run with `COBOL_CORPUS=/path/to/corpus`. Every piece and comment of every program is
+    /// checked against the source it claims to sit at, because each of these produced plausible
+    /// output before it was right.
     @EnabledIfEnvironmentVariable(named = "COBOL_CORPUS", matches = ".+")
     @Test
-    void readsRealPrograms() throws IOException {
+    void readsRealPrograms() throws Exception {
         Path root = Path.of(System.getenv("COBOL_CORPUS"));
-        Map<SearchableText.Layer, Integer> byLayer = new EnumMap<>(SearchableText.Layer.class);
-        int comments = 0;
-        int continued = 0;
-        Map<String, Integer> unplaced = new HashMap<>();
-        List<String> misplaced = new ArrayList<>();
-        Map<String, List<SearchableText>> programs = new HashMap<>();
-        Map<String, SourcePositions> positionsOf = new HashMap<>();
+        var byLayer = new EnumMap<SearchableText.Layer, Integer>(SearchableText.Layer.class);
+        var comments = 0;
+        var continued = 0;
+        var unplaced = new HashMap<String, Integer>();
+        var misplaced = new ArrayList<String>();
+        var programs = new HashMap<String, List<SearchableText>>();
+        var positionsOf = new HashMap<String, SourcePositions>();
 
         for (Path repository : Corpus.repositories(root)) {
-            List<Parser.Input> programInputs = Corpus.inputs(Corpus.programs(repository));
+            var programInputs = Corpus.inputs(Corpus.programs(repository));
             if (programInputs.isEmpty()) {
                 continue;
             }
             List<SourceFile> copybooks = CopybookParser.builder().build()
               .parseInputs(Corpus.inputs(Corpus.copybooks(repository)), root, new InMemoryExecutionContext())
-              .collect(Collectors.toList());
+              .toList();
             List<SourceFile> parsed = CobolParser.builder().copybooks(copybooks).build()
               .parseInputs(programInputs, root, new InMemoryExecutionContext())
-              .collect(Collectors.toList());
+              .toList();
             for (SourceFile program : parsed) {
                 if (!(program instanceof Cobol.CompilationUnit)) {
                     continue;
                 }
-                Cobol.CompilationUnit cu = (Cobol.CompilationUnit) program;
                 String name = program.getSourcePath().getFileName().toString();
                 SourcePositions positions = SourcePositions.of(cu);
-                List<SearchableText> words = new ArrayList<>();
+                var words = new ArrayList<SearchableText>();
                 new SearchableText.Matcher().<Integer>asVisitor((text, p) -> {
                     words.add(text);
                     return text.getTree();
@@ -330,7 +310,7 @@ class SearchableTextTest implements RewriteTest {
             .sorted((a, b) -> b.getValue() - a.getValue())
             .limit(5)
             .map(e -> e.getKey() + " x" + e.getValue())
-            .collect(Collectors.joining(", ")));
+            .collect(joining(", ")));
         assertThat(misplaced).isEmpty();
 
         // CardDemo's statement writer keeps its HTML in 88-level literals wider than a card.
@@ -347,7 +327,7 @@ class SearchableTextTest implements RewriteTest {
         List<SearchableText.Comment> banner = programs.get("COACTVWC.cbl").stream()
           .flatMap(w -> w.getComments().stream())
           .limit(3)
-          .collect(Collectors.toList());
+          .toList();
         assertThat(banner).extracting(SearchableText.Comment::getText)
           .containsExactly(
             "Program:     COACTVWC.CBL",

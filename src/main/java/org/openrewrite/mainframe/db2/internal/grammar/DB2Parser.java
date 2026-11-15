@@ -15,14 +15,16 @@
  */
 // Generated from src/main/antlr-db2/DB2Parser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.db2.internal.grammar;
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.*;
-import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.misc.Utils;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.ParseTreeListener;
+import org.antlr.v4.runtime.tree.ParseTreeVisitor;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.util.List;
-import java.util.Iterator;
-import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class DB2Parser extends Parser {
@@ -32,158 +34,158 @@ public class DB2Parser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		WS=1, LINE_COMMENT=2, BLOCK_COMMENT=3, STAR_COMMENT=4, ADD=5, AFTER=6, 
-		ALL=7, ALLOCATE=8, ALLOW=9, ALTER=10, AND=11, ANY=12, AS=13, ASENSITIVE=14, 
-		ASSOCIATE=15, AUXILIARY=16, BEFORE=17, BEGIN=18, BETWEEN=19, BUFFERPOOL=20, 
-		BY=21, CALL=22, CAPTURE=23, CASCADED=24, CASE=25, CAST=26, CCSID=27, CHAR=28, 
-		CHARACTER=29, CHECK=30, CLONE=31, CLOSE=32, CLUSTER=33, COLLECTION=34, 
-		COLLID=35, COLUMN=36, COMMENT=37, COMMIT=38, CONCAT=39, CONDITION=40, 
-		CONNECT=41, CONNECTION=42, CONSTRAINT=43, CONTAINS=44, CONTINUE=45, CREATE=46, 
-		CUBE=47, CURRENT=48, CURSOR=49, DATA=50, DATABASE=51, DAY=52, DAYS=53, 
-		DBINFO=54, DECLARE=55, DEFAULT=56, DELETE=57, DESCRIPTOR=58, DETERMINISTIC=59, 
-		DISABLE=60, DISALLOW=61, DISTINCT=62, DO=63, DOUBLE=64, DROP=65, DSSIZE=66, 
-		DYNAMIC=67, EDITPROC=68, ELSE=69, ELSEIF=70, ENCODING=71, END=72, ENDING=73, 
-		ERASE=74, ESCAPE=75, EXCEPT=76, EXCEPTION=77, EXEC=78, EXECUTE=79, EXISTS=80, 
-		EXIT=81, EXPLAIN=82, EXTERNAL=83, FENCED=84, FETCH=85, FIELDPROC=86, FINAL=87, 
-		FIRST=88, FOR=89, FREE=90, FROM=91, FULL=92, FUNCTION=93, GENERATED=94, 
-		GET=95, GLOBAL=96, GO=97, GOTO=98, GRANT=99, GROUP=100, HANDLER=101, HAVING=102, 
-		HOLD=103, HOUR=104, HOURS=105, IF=106, IMMEDIATE=107, IN=108, INCLUSIVE=109, 
-		INDEX=110, INHERIT=111, INNER=112, INOUT=113, INSENSITIVE=114, INSERT=115, 
-		INTERSECT=116, INTO=117, IS=118, ISOBID=119, ITERATE=120, JAR=121, JOIN=122, 
-		KEY=123, LABEL=124, LANGUAGE=125, LAST=126, LC_CTYPE=127, LEAVE=128, LEFT=129, 
-		LIKE=130, LOCAL=131, LOCALE=132, LOCATOR=133, LOCATORS=134, LOCK=135, 
-		LOCKMAX=136, LOCKSIZE=137, LONG=138, LOOP=139, MAINTAINED=140, MATERIALIZED=141, 
-		MICROSECOND=142, MICROSECONDS=143, MINUTE=144, MINUTES=145, MODIFIES=146, 
-		MONTH=147, MONTHS=148, NEXT=149, NO=150, NONE=151, NOT=152, NULL=153, 
-		NULLS=154, NUMPARTS=155, OBID=156, OF=157, OLD=158, ON=159, OPEN=160, 
-		OPTIMIZATION=161, OPTIMIZE=162, OR=163, ORDER=164, ORGANIZATION=165, OUT=166, 
-		OUTER=167, PACKAGE=168, PARAMETER=169, PART=170, PADDED=171, PARTITION=172, 
-		PARTITIONED=173, PARTITIONING=174, PATH=175, PIECESIZE=176, PERIOD=177, 
-		PLAN=178, PRECISION=179, PREPARE=180, PREVVAL=181, PRIQTY=182, PRIVILEGES=183, 
-		PROCEDURE=184, PROGRAM=185, PSID=186, PUBLIC=187, QUERY=188, QUERYNO=189, 
-		READS=190, REFERENCES=191, REFRESH=192, RESIGNAL=193, RELEASE=194, RENAME=195, 
-		REPEAT=196, RESTRICT=197, RESULT=198, RETURN=199, RETURNS=200, REVOKE=201, 
-		RIGHT=202, ROLE=203, ROLLBACK=204, ROLLUP=205, ROUND_CEILING=206, ROUND_DOWN=207, 
-		ROUND_FLOOR=208, ROUND_HALF_DOWN=209, ROUND_HALF_EVEN=210, ROUND_HALF_UP=211, 
-		ROUND_UP=212, ROW=213, ROWSET=214, RUN=215, SAVEPOINT=216, SCHEMA=217, 
-		SCRATCHPAD=218, SECOND=219, SECONDS=220, SECQTY=221, SECURITY=222, SEQUENCE=223, 
-		SELECT=224, SENSITIVE=225, SET=226, SIGNAL=227, SIMPLE=228, SOME=229, 
-		SOURCE=230, SPECIFIC=231, STANDARD=232, STATIC=233, STAY=234, STOGROUP=235, 
-		STORES=236, STYLE=237, SUMMARY=238, SYNONYM=239, SYSFUN=240, SYSIBM=241, 
-		SYSPROC=242, SYSTEM=243, TABLE=244, TABLESPACE=245, THEN=246, TO=247, 
-		TRIGGER=248, TRUNCATE=249, TYPE=250, UNDO=251, UNION=252, UNIQUE=253, 
-		UNTIL=254, UPDATE=255, USER=256, USING=257, VALIDPROC=258, VALUE=259, 
-		VALUES=260, VARIABLE=261, VARIANT=262, VCAT=263, VIEW=264, VOLATILE=265, 
-		VOLUMES=266, WHEN=267, WHENEVER=268, WHERE=269, WHILE=270, WITH=271, WLM=272, 
-		XMLCAST=273, XMLEXISTS=274, XMLNAMESPACES=275, YEAR=276, YEARS=277, ZONE=278, 
-		AUTHENTICATION=279, AUTHID=280, BASED=281, CONTROL=282, UPON=283, ABSOLUTE=284, 
-		ACCESS=285, ACTION=286, ADMIN=287, ALIAS=288, ALWAYS=289, APPLICATION=290, 
-		APPEND=291, ASC=292, ASUTIME=293, AT=294, ATOMIC=295, ATTRIBUTES=296, 
-		AUDIT=297, AUX=298, BIT=299, CACHE=300, CALLED=301, CARDINALITY=302, CASCADE=303, 
-		CHANGE=304, CHANGED=305, CHANGES=306, COMPARISONS=307, COMPATIBILITY=308, 
-		COMPRESS=309, CONTEXT=310, COPY=311, CURSORS=312, CYCLE=313, DATACLAS=314, 
-		DB2=315, DB2SQL=316, DEBUG=317, DEFER=318, DEFINE=319, DEFINER=320, DESC=321, 
-		EACH=322, ENABLE=323, ENFORCED=324, ENVIRONMENT=325, EVERY=326, EXCLUDE=327, 
-		EXCLUDING=328, EXCLUSIVE=329, FOREIGN=330, FREEPAGE=331, GBPCACHE=332, 
-		GENERATE=333, HASH=334, HIDDEN_KW=335, HISTORY=336, ID=337, IDENTITY=338, 
-		IMPLICITLY=339, INCLUDE=340, INCLUDING=341, INCREMENT=342, INDEXBP=343, 
-		INLINE=344, INPUT=345, INSTEAD=346, KEYS=347, LARGE=348, LENGTH=349, LIMIT=350, 
-		LOAD=351, LOB=352, LOG=353, LOGGED=354, MAIN=355, MASK=356, MAXPARTITIONS=357, 
-		MAXROWS=358, MAXVALUE=359, MEMBER=360, MGMTCLAS=361, MINVALUE=362, MIXED=363, 
-		MODE=364, NAME=365, NEW=366, NEW_TABLE=367, OLD_TABLE=368, ONLY=369, OPTION=370, 
-		OPTIONS=371, ORGANIZE=372, PAGE=373, PAGENUM=374, PCTFREE=375, PERMISSION=376, 
-		PRIMARY=377, QUALIFIER=378, RANDOM=379, RANGE=380, REFERENCING=381, REGENERATE=382, 
-		REGISTERS=383, RELATIVE=384, REMOVE=385, REPLACE=386, RESET=387, RESIDENT=388, 
-		RESTART=389, RETAIN=390, ROTATE=391, ROWS=392, SBCS=393, SECURED=394, 
-		SEGSIZE=395, SETS=396, SHARE=397, SIZE=398, SPACE=399, SPECIAL=400, SQL=401, 
-		SQLID=402, START=403, STARTING=404, STATEMENT=405, STORCLAS=406, SUB=407, 
-		TEMPORARY=408, TIME=409, TIMESTAMP=410, TRACKMOD=411, TRANSACTION=412, 
-		TRUSTED=413, UNLOAD=414, USAGE=415, USE=416, VARCHAR=417, VARGRAPHIC=418, 
-		VARYING=419, VERSIONING=420, WITHOUT=421, WORK=422, WORKFILE=423, XMLPATTERN=424, 
-		YES=425, LPAREN=426, RPAREN=427, COMMA=428, SEMI=429, DOT=430, COLON=431, 
-		STAR=432, PLUS=433, MINUS=434, SLASH=435, CONCAT_OP=436, EQ=437, NEQ=438, 
-		LTE=439, GTE=440, LT=441, GT=442, QUESTION=443, STRING=444, HEX_STRING=445, 
-		DELIMITED_IDENTIFIER=446, PLACEHOLDER=447, NUMBER=448, AT_SIGN=449, IDENTIFIER=450, 
+		WS=1, LINE_COMMENT=2, BLOCK_COMMENT=3, STAR_COMMENT=4, ADD=5, AFTER=6,
+		ALL=7, ALLOCATE=8, ALLOW=9, ALTER=10, AND=11, ANY=12, AS=13, ASENSITIVE=14,
+		ASSOCIATE=15, AUXILIARY=16, BEFORE=17, BEGIN=18, BETWEEN=19, BUFFERPOOL=20,
+		BY=21, CALL=22, CAPTURE=23, CASCADED=24, CASE=25, CAST=26, CCSID=27, CHAR=28,
+		CHARACTER=29, CHECK=30, CLONE=31, CLOSE=32, CLUSTER=33, COLLECTION=34,
+		COLLID=35, COLUMN=36, COMMENT=37, COMMIT=38, CONCAT=39, CONDITION=40,
+		CONNECT=41, CONNECTION=42, CONSTRAINT=43, CONTAINS=44, CONTINUE=45, CREATE=46,
+		CUBE=47, CURRENT=48, CURSOR=49, DATA=50, DATABASE=51, DAY=52, DAYS=53,
+		DBINFO=54, DECLARE=55, DEFAULT=56, DELETE=57, DESCRIPTOR=58, DETERMINISTIC=59,
+		DISABLE=60, DISALLOW=61, DISTINCT=62, DO=63, DOUBLE=64, DROP=65, DSSIZE=66,
+		DYNAMIC=67, EDITPROC=68, ELSE=69, ELSEIF=70, ENCODING=71, END=72, ENDING=73,
+		ERASE=74, ESCAPE=75, EXCEPT=76, EXCEPTION=77, EXEC=78, EXECUTE=79, EXISTS=80,
+		EXIT=81, EXPLAIN=82, EXTERNAL=83, FENCED=84, FETCH=85, FIELDPROC=86, FINAL=87,
+		FIRST=88, FOR=89, FREE=90, FROM=91, FULL=92, FUNCTION=93, GENERATED=94,
+		GET=95, GLOBAL=96, GO=97, GOTO=98, GRANT=99, GROUP=100, HANDLER=101, HAVING=102,
+		HOLD=103, HOUR=104, HOURS=105, IF=106, IMMEDIATE=107, IN=108, INCLUSIVE=109,
+		INDEX=110, INHERIT=111, INNER=112, INOUT=113, INSENSITIVE=114, INSERT=115,
+		INTERSECT=116, INTO=117, IS=118, ISOBID=119, ITERATE=120, JAR=121, JOIN=122,
+		KEY=123, LABEL=124, LANGUAGE=125, LAST=126, LC_CTYPE=127, LEAVE=128, LEFT=129,
+		LIKE=130, LOCAL=131, LOCALE=132, LOCATOR=133, LOCATORS=134, LOCK=135,
+		LOCKMAX=136, LOCKSIZE=137, LONG=138, LOOP=139, MAINTAINED=140, MATERIALIZED=141,
+		MICROSECOND=142, MICROSECONDS=143, MINUTE=144, MINUTES=145, MODIFIES=146,
+		MONTH=147, MONTHS=148, NEXT=149, NO=150, NONE=151, NOT=152, NULL=153,
+		NULLS=154, NUMPARTS=155, OBID=156, OF=157, OLD=158, ON=159, OPEN=160,
+		OPTIMIZATION=161, OPTIMIZE=162, OR=163, ORDER=164, ORGANIZATION=165, OUT=166,
+		OUTER=167, PACKAGE=168, PARAMETER=169, PART=170, PADDED=171, PARTITION=172,
+		PARTITIONED=173, PARTITIONING=174, PATH=175, PIECESIZE=176, PERIOD=177,
+		PLAN=178, PRECISION=179, PREPARE=180, PREVVAL=181, PRIQTY=182, PRIVILEGES=183,
+		PROCEDURE=184, PROGRAM=185, PSID=186, PUBLIC=187, QUERY=188, QUERYNO=189,
+		READS=190, REFERENCES=191, REFRESH=192, RESIGNAL=193, RELEASE=194, RENAME=195,
+		REPEAT=196, RESTRICT=197, RESULT=198, RETURN=199, RETURNS=200, REVOKE=201,
+		RIGHT=202, ROLE=203, ROLLBACK=204, ROLLUP=205, ROUND_CEILING=206, ROUND_DOWN=207,
+		ROUND_FLOOR=208, ROUND_HALF_DOWN=209, ROUND_HALF_EVEN=210, ROUND_HALF_UP=211,
+		ROUND_UP=212, ROW=213, ROWSET=214, RUN=215, SAVEPOINT=216, SCHEMA=217,
+		SCRATCHPAD=218, SECOND=219, SECONDS=220, SECQTY=221, SECURITY=222, SEQUENCE=223,
+		SELECT=224, SENSITIVE=225, SET=226, SIGNAL=227, SIMPLE=228, SOME=229,
+		SOURCE=230, SPECIFIC=231, STANDARD=232, STATIC=233, STAY=234, STOGROUP=235,
+		STORES=236, STYLE=237, SUMMARY=238, SYNONYM=239, SYSFUN=240, SYSIBM=241,
+		SYSPROC=242, SYSTEM=243, TABLE=244, TABLESPACE=245, THEN=246, TO=247,
+		TRIGGER=248, TRUNCATE=249, TYPE=250, UNDO=251, UNION=252, UNIQUE=253,
+		UNTIL=254, UPDATE=255, USER=256, USING=257, VALIDPROC=258, VALUE=259,
+		VALUES=260, VARIABLE=261, VARIANT=262, VCAT=263, VIEW=264, VOLATILE=265,
+		VOLUMES=266, WHEN=267, WHENEVER=268, WHERE=269, WHILE=270, WITH=271, WLM=272,
+		XMLCAST=273, XMLEXISTS=274, XMLNAMESPACES=275, YEAR=276, YEARS=277, ZONE=278,
+		AUTHENTICATION=279, AUTHID=280, BASED=281, CONTROL=282, UPON=283, ABSOLUTE=284,
+		ACCESS=285, ACTION=286, ADMIN=287, ALIAS=288, ALWAYS=289, APPLICATION=290,
+		APPEND=291, ASC=292, ASUTIME=293, AT=294, ATOMIC=295, ATTRIBUTES=296,
+		AUDIT=297, AUX=298, BIT=299, CACHE=300, CALLED=301, CARDINALITY=302, CASCADE=303,
+		CHANGE=304, CHANGED=305, CHANGES=306, COMPARISONS=307, COMPATIBILITY=308,
+		COMPRESS=309, CONTEXT=310, COPY=311, CURSORS=312, CYCLE=313, DATACLAS=314,
+		DB2=315, DB2SQL=316, DEBUG=317, DEFER=318, DEFINE=319, DEFINER=320, DESC=321,
+		EACH=322, ENABLE=323, ENFORCED=324, ENVIRONMENT=325, EVERY=326, EXCLUDE=327,
+		EXCLUDING=328, EXCLUSIVE=329, FOREIGN=330, FREEPAGE=331, GBPCACHE=332,
+		GENERATE=333, HASH=334, HIDDEN_KW=335, HISTORY=336, ID=337, IDENTITY=338,
+		IMPLICITLY=339, INCLUDE=340, INCLUDING=341, INCREMENT=342, INDEXBP=343,
+		INLINE=344, INPUT=345, INSTEAD=346, KEYS=347, LARGE=348, LENGTH=349, LIMIT=350,
+		LOAD=351, LOB=352, LOG=353, LOGGED=354, MAIN=355, MASK=356, MAXPARTITIONS=357,
+		MAXROWS=358, MAXVALUE=359, MEMBER=360, MGMTCLAS=361, MINVALUE=362, MIXED=363,
+		MODE=364, NAME=365, NEW=366, NEW_TABLE=367, OLD_TABLE=368, ONLY=369, OPTION=370,
+		OPTIONS=371, ORGANIZE=372, PAGE=373, PAGENUM=374, PCTFREE=375, PERMISSION=376,
+		PRIMARY=377, QUALIFIER=378, RANDOM=379, RANGE=380, REFERENCING=381, REGENERATE=382,
+		REGISTERS=383, RELATIVE=384, REMOVE=385, REPLACE=386, RESET=387, RESIDENT=388,
+		RESTART=389, RETAIN=390, ROTATE=391, ROWS=392, SBCS=393, SECURED=394,
+		SEGSIZE=395, SETS=396, SHARE=397, SIZE=398, SPACE=399, SPECIAL=400, SQL=401,
+		SQLID=402, START=403, STARTING=404, STATEMENT=405, STORCLAS=406, SUB=407,
+		TEMPORARY=408, TIME=409, TIMESTAMP=410, TRACKMOD=411, TRANSACTION=412,
+		TRUSTED=413, UNLOAD=414, USAGE=415, USE=416, VARCHAR=417, VARGRAPHIC=418,
+		VARYING=419, VERSIONING=420, WITHOUT=421, WORK=422, WORKFILE=423, XMLPATTERN=424,
+		YES=425, LPAREN=426, RPAREN=427, COMMA=428, SEMI=429, DOT=430, COLON=431,
+		STAR=432, PLUS=433, MINUS=434, SLASH=435, CONCAT_OP=436, EQ=437, NEQ=438,
+		LTE=439, GTE=440, LT=441, GT=442, QUESTION=443, STRING=444, HEX_STRING=445,
+		DELIMITED_IDENTIFIER=446, PLACEHOLDER=447, NUMBER=448, AT_SIGN=449, IDENTIFIER=450,
 		HOST_VARIABLE=451;
 	public static final int
-		RULE_compilationUnit = 0, RULE_statement = 1, RULE_queryStatement = 2, 
-		RULE_terminator = 3, RULE_createTable = 4, RULE_tableContents = 5, RULE_copyOption = 6, 
-		RULE_tableElement = 7, RULE_columnDefinition = 8, RULE_columnAttribute = 9, 
-		RULE_generatedAs = 10, RULE_defaultValue = 11, RULE_periodDefinition = 12, 
-		RULE_tableConstraint = 13, RULE_constraintBody = 14, RULE_referentialAction = 15, 
-		RULE_constraintOption = 16, RULE_columnList = 17, RULE_tableOption = 18, 
-		RULE_hashSpace = 19, RULE_partitionKey = 20, RULE_partitionClause = 21, 
-		RULE_partitionSpec = 22, RULE_partitionBound = 23, RULE_partitionLimit = 24, 
-		RULE_partitionValue = 25, RULE_createIndex = 26, RULE_indexModifier = 27, 
-		RULE_indexKey = 28, RULE_indexOption = 29, RULE_namedIndexOption = 30, 
-		RULE_createTablespace = 31, RULE_tablespaceOption = 32, RULE_namedTablespaceOption = 33, 
-		RULE_createDatabase = 34, RULE_databaseOption = 35, RULE_createStogroup = 36, 
-		RULE_stogroupOption = 37, RULE_createView = 38, RULE_viewOption = 39, 
-		RULE_createAlias = 40, RULE_createSynonym = 41, RULE_createSequence = 42, 
-		RULE_sequenceOption = 43, RULE_createRole = 44, RULE_createAuxiliaryTable = 45, 
-		RULE_createType = 46, RULE_createVariable = 47, RULE_createMask = 48, 
-		RULE_createPermission = 49, RULE_createTrustedContext = 50, RULE_trustedContextOption = 51, 
-		RULE_namedTrustedContextOption = 52, RULE_trustedAttribute = 53, RULE_trustedUser = 54, 
-		RULE_caseExpression = 55, RULE_declareGlobalTemporaryTable = 56, RULE_createTrigger = 57, 
-		RULE_triggerEvent = 58, RULE_triggerCorrelation = 59, RULE_triggerGranularity = 60, 
-		RULE_createProcedure = 61, RULE_createFunction = 62, RULE_routineParameter = 63, 
-		RULE_parameterName = 64, RULE_routineClause = 65, RULE_compoundStatement = 66, 
-		RULE_bodyItem = 67, RULE_triggeredStatement = 68, RULE_alterTable = 69, 
-		RULE_alterTableAction = 70, RULE_alterColumnAction = 71, RULE_alterTablespace = 72, 
-		RULE_alterIndex = 73, RULE_alterDatabase = 74, RULE_alterStogroup = 75, 
-		RULE_alterSequence = 76, RULE_alterView = 77, RULE_alterProcedure = 78, 
-		RULE_alterFunction = 79, RULE_alterTrigger = 80, RULE_alterMask = 81, 
-		RULE_alterPermission = 82, RULE_alterTrustedContext = 83, RULE_alterStogroupAction = 84, 
-		RULE_dropStatement = 85, RULE_droppedObject = 86, RULE_grantStatement = 87, 
-		RULE_revokeStatement = 88, RULE_privilege = 89, RULE_privilegeObject = 90, 
-		RULE_qualifiedNameList = 91, RULE_grantee = 92, RULE_commentStatement = 93, 
-		RULE_commentTarget = 94, RULE_labelStatement = 95, RULE_labelTarget = 96, 
-		RULE_renameStatement = 97, RULE_setStatement = 98, RULE_specialRegister = 99, 
-		RULE_commitStatement = 100, RULE_rollbackStatement = 101, RULE_savepointStatement = 102, 
-		RULE_releaseSavepointStatement = 103, RULE_lockStatement = 104, RULE_insertStatement = 105, 
-		RULE_valuesRow = 106, RULE_updateStatement = 107, RULE_updateClauses = 108, 
-		RULE_assignment = 109, RULE_deleteStatement = 110, RULE_deleteClauses = 111, 
-		RULE_selectStatement = 112, RULE_queryExpression = 113, RULE_commonTableExpression = 114, 
-		RULE_setOperator = 115, RULE_querySpecification = 116, RULE_selectList = 117, 
-		RULE_selectItem = 118, RULE_tableReference = 119, RULE_joinType = 120, 
-		RULE_sortKey = 121, RULE_searchCondition = 122, RULE_predicate = 123, 
-		RULE_comparisonOperator = 124, RULE_expression = 125, RULE_caseWhen = 126, 
-		RULE_specialValue = 127, RULE_constant = 128, RULE_signedNumber = 129, 
-		RULE_qualifiedName = 130, RULE_identifier = 131, RULE_dataType = 132, 
-		RULE_typeName = 133, RULE_typeAttribute = 134, RULE_storageOption = 135, 
+		RULE_compilationUnit = 0, RULE_statement = 1, RULE_queryStatement = 2,
+		RULE_terminator = 3, RULE_createTable = 4, RULE_tableContents = 5, RULE_copyOption = 6,
+		RULE_tableElement = 7, RULE_columnDefinition = 8, RULE_columnAttribute = 9,
+		RULE_generatedAs = 10, RULE_defaultValue = 11, RULE_periodDefinition = 12,
+		RULE_tableConstraint = 13, RULE_constraintBody = 14, RULE_referentialAction = 15,
+		RULE_constraintOption = 16, RULE_columnList = 17, RULE_tableOption = 18,
+		RULE_hashSpace = 19, RULE_partitionKey = 20, RULE_partitionClause = 21,
+		RULE_partitionSpec = 22, RULE_partitionBound = 23, RULE_partitionLimit = 24,
+		RULE_partitionValue = 25, RULE_createIndex = 26, RULE_indexModifier = 27,
+		RULE_indexKey = 28, RULE_indexOption = 29, RULE_namedIndexOption = 30,
+		RULE_createTablespace = 31, RULE_tablespaceOption = 32, RULE_namedTablespaceOption = 33,
+		RULE_createDatabase = 34, RULE_databaseOption = 35, RULE_createStogroup = 36,
+		RULE_stogroupOption = 37, RULE_createView = 38, RULE_viewOption = 39,
+		RULE_createAlias = 40, RULE_createSynonym = 41, RULE_createSequence = 42,
+		RULE_sequenceOption = 43, RULE_createRole = 44, RULE_createAuxiliaryTable = 45,
+		RULE_createType = 46, RULE_createVariable = 47, RULE_createMask = 48,
+		RULE_createPermission = 49, RULE_createTrustedContext = 50, RULE_trustedContextOption = 51,
+		RULE_namedTrustedContextOption = 52, RULE_trustedAttribute = 53, RULE_trustedUser = 54,
+		RULE_caseExpression = 55, RULE_declareGlobalTemporaryTable = 56, RULE_createTrigger = 57,
+		RULE_triggerEvent = 58, RULE_triggerCorrelation = 59, RULE_triggerGranularity = 60,
+		RULE_createProcedure = 61, RULE_createFunction = 62, RULE_routineParameter = 63,
+		RULE_parameterName = 64, RULE_routineClause = 65, RULE_compoundStatement = 66,
+		RULE_bodyItem = 67, RULE_triggeredStatement = 68, RULE_alterTable = 69,
+		RULE_alterTableAction = 70, RULE_alterColumnAction = 71, RULE_alterTablespace = 72,
+		RULE_alterIndex = 73, RULE_alterDatabase = 74, RULE_alterStogroup = 75,
+		RULE_alterSequence = 76, RULE_alterView = 77, RULE_alterProcedure = 78,
+		RULE_alterFunction = 79, RULE_alterTrigger = 80, RULE_alterMask = 81,
+		RULE_alterPermission = 82, RULE_alterTrustedContext = 83, RULE_alterStogroupAction = 84,
+		RULE_dropStatement = 85, RULE_droppedObject = 86, RULE_grantStatement = 87,
+		RULE_revokeStatement = 88, RULE_privilege = 89, RULE_privilegeObject = 90,
+		RULE_qualifiedNameList = 91, RULE_grantee = 92, RULE_commentStatement = 93,
+		RULE_commentTarget = 94, RULE_labelStatement = 95, RULE_labelTarget = 96,
+		RULE_renameStatement = 97, RULE_setStatement = 98, RULE_specialRegister = 99,
+		RULE_commitStatement = 100, RULE_rollbackStatement = 101, RULE_savepointStatement = 102,
+		RULE_releaseSavepointStatement = 103, RULE_lockStatement = 104, RULE_insertStatement = 105,
+		RULE_valuesRow = 106, RULE_updateStatement = 107, RULE_updateClauses = 108,
+		RULE_assignment = 109, RULE_deleteStatement = 110, RULE_deleteClauses = 111,
+		RULE_selectStatement = 112, RULE_queryExpression = 113, RULE_commonTableExpression = 114,
+		RULE_setOperator = 115, RULE_querySpecification = 116, RULE_selectList = 117,
+		RULE_selectItem = 118, RULE_tableReference = 119, RULE_joinType = 120,
+		RULE_sortKey = 121, RULE_searchCondition = 122, RULE_predicate = 123,
+		RULE_comparisonOperator = 124, RULE_expression = 125, RULE_caseWhen = 126,
+		RULE_specialValue = 127, RULE_constant = 128, RULE_signedNumber = 129,
+		RULE_qualifiedName = 130, RULE_identifier = 131, RULE_dataType = 132,
+		RULE_typeName = 133, RULE_typeAttribute = 134, RULE_storageOption = 135,
 		RULE_end = 136, RULE_nonReserved = 137;
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"compilationUnit", "statement", "queryStatement", "terminator", "createTable", 
-			"tableContents", "copyOption", "tableElement", "columnDefinition", "columnAttribute", 
-			"generatedAs", "defaultValue", "periodDefinition", "tableConstraint", 
-			"constraintBody", "referentialAction", "constraintOption", "columnList", 
-			"tableOption", "hashSpace", "partitionKey", "partitionClause", "partitionSpec", 
-			"partitionBound", "partitionLimit", "partitionValue", "createIndex", 
-			"indexModifier", "indexKey", "indexOption", "namedIndexOption", "createTablespace", 
-			"tablespaceOption", "namedTablespaceOption", "createDatabase", "databaseOption", 
-			"createStogroup", "stogroupOption", "createView", "viewOption", "createAlias", 
-			"createSynonym", "createSequence", "sequenceOption", "createRole", "createAuxiliaryTable", 
-			"createType", "createVariable", "createMask", "createPermission", "createTrustedContext", 
-			"trustedContextOption", "namedTrustedContextOption", "trustedAttribute", 
-			"trustedUser", "caseExpression", "declareGlobalTemporaryTable", "createTrigger", 
-			"triggerEvent", "triggerCorrelation", "triggerGranularity", "createProcedure", 
-			"createFunction", "routineParameter", "parameterName", "routineClause", 
-			"compoundStatement", "bodyItem", "triggeredStatement", "alterTable", 
-			"alterTableAction", "alterColumnAction", "alterTablespace", "alterIndex", 
-			"alterDatabase", "alterStogroup", "alterSequence", "alterView", "alterProcedure", 
-			"alterFunction", "alterTrigger", "alterMask", "alterPermission", "alterTrustedContext", 
-			"alterStogroupAction", "dropStatement", "droppedObject", "grantStatement", 
-			"revokeStatement", "privilege", "privilegeObject", "qualifiedNameList", 
-			"grantee", "commentStatement", "commentTarget", "labelStatement", "labelTarget", 
-			"renameStatement", "setStatement", "specialRegister", "commitStatement", 
-			"rollbackStatement", "savepointStatement", "releaseSavepointStatement", 
-			"lockStatement", "insertStatement", "valuesRow", "updateStatement", "updateClauses", 
-			"assignment", "deleteStatement", "deleteClauses", "selectStatement", 
-			"queryExpression", "commonTableExpression", "setOperator", "querySpecification", 
-			"selectList", "selectItem", "tableReference", "joinType", "sortKey", 
-			"searchCondition", "predicate", "comparisonOperator", "expression", "caseWhen", 
-			"specialValue", "constant", "signedNumber", "qualifiedName", "identifier", 
+			"compilationUnit", "statement", "queryStatement", "terminator", "createTable",
+			"tableContents", "copyOption", "tableElement", "columnDefinition", "columnAttribute",
+			"generatedAs", "defaultValue", "periodDefinition", "tableConstraint",
+			"constraintBody", "referentialAction", "constraintOption", "columnList",
+			"tableOption", "hashSpace", "partitionKey", "partitionClause", "partitionSpec",
+			"partitionBound", "partitionLimit", "partitionValue", "createIndex",
+			"indexModifier", "indexKey", "indexOption", "namedIndexOption", "createTablespace",
+			"tablespaceOption", "namedTablespaceOption", "createDatabase", "databaseOption",
+			"createStogroup", "stogroupOption", "createView", "viewOption", "createAlias",
+			"createSynonym", "createSequence", "sequenceOption", "createRole", "createAuxiliaryTable",
+			"createType", "createVariable", "createMask", "createPermission", "createTrustedContext",
+			"trustedContextOption", "namedTrustedContextOption", "trustedAttribute",
+			"trustedUser", "caseExpression", "declareGlobalTemporaryTable", "createTrigger",
+			"triggerEvent", "triggerCorrelation", "triggerGranularity", "createProcedure",
+			"createFunction", "routineParameter", "parameterName", "routineClause",
+			"compoundStatement", "bodyItem", "triggeredStatement", "alterTable",
+			"alterTableAction", "alterColumnAction", "alterTablespace", "alterIndex",
+			"alterDatabase", "alterStogroup", "alterSequence", "alterView", "alterProcedure",
+			"alterFunction", "alterTrigger", "alterMask", "alterPermission", "alterTrustedContext",
+			"alterStogroupAction", "dropStatement", "droppedObject", "grantStatement",
+			"revokeStatement", "privilege", "privilegeObject", "qualifiedNameList",
+			"grantee", "commentStatement", "commentTarget", "labelStatement", "labelTarget",
+			"renameStatement", "setStatement", "specialRegister", "commitStatement",
+			"rollbackStatement", "savepointStatement", "releaseSavepointStatement",
+			"lockStatement", "insertStatement", "valuesRow", "updateStatement", "updateClauses",
+			"assignment", "deleteStatement", "deleteClauses", "selectStatement",
+			"queryExpression", "commonTableExpression", "setOperator", "querySpecification",
+			"selectList", "selectItem", "tableReference", "joinType", "sortKey",
+			"searchCondition", "predicate", "comparisonOperator", "expression", "caseWhen",
+			"specialValue", "constant", "signedNumber", "qualifiedName", "identifier",
 			"dataType", "typeName", "typeAttribute", "storageOption", "end", "nonReserved"
 		};
 	}
@@ -191,148 +193,148 @@ public class DB2Parser extends Parser {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, null, null, null, null, "'ADD'", "'AFTER'", "'ALL'", "'ALLOCATE'", 
-			"'ALLOW'", "'ALTER'", "'AND'", "'ANY'", "'AS'", "'ASENSITIVE'", "'ASSOCIATE'", 
-			"'AUXILIARY'", "'BEFORE'", "'BEGIN'", "'BETWEEN'", "'BUFFERPOOL'", "'BY'", 
-			"'CALL'", "'CAPTURE'", "'CASCADED'", "'CASE'", "'CAST'", "'CCSID'", "'CHAR'", 
-			"'CHARACTER'", "'CHECK'", "'CLONE'", "'CLOSE'", "'CLUSTER'", "'COLLECTION'", 
-			"'COLLID'", "'COLUMN'", "'COMMENT'", "'COMMIT'", "'CONCAT'", "'CONDITION'", 
-			"'CONNECT'", "'CONNECTION'", "'CONSTRAINT'", "'CONTAINS'", "'CONTINUE'", 
-			"'CREATE'", "'CUBE'", "'CURRENT'", "'CURSOR'", "'DATA'", "'DATABASE'", 
-			"'DAY'", "'DAYS'", "'DBINFO'", "'DECLARE'", "'DEFAULT'", "'DELETE'", 
-			"'DESCRIPTOR'", "'DETERMINISTIC'", "'DISABLE'", "'DISALLOW'", "'DISTINCT'", 
-			"'DO'", "'DOUBLE'", "'DROP'", "'DSSIZE'", "'DYNAMIC'", "'EDITPROC'", 
-			"'ELSE'", "'ELSEIF'", "'ENCODING'", "'END'", "'ENDING'", "'ERASE'", "'ESCAPE'", 
-			"'EXCEPT'", "'EXCEPTION'", "'EXEC'", "'EXECUTE'", "'EXISTS'", "'EXIT'", 
-			"'EXPLAIN'", "'EXTERNAL'", "'FENCED'", "'FETCH'", "'FIELDPROC'", "'FINAL'", 
-			"'FIRST'", "'FOR'", "'FREE'", "'FROM'", "'FULL'", "'FUNCTION'", "'GENERATED'", 
-			"'GET'", "'GLOBAL'", "'GO'", "'GOTO'", "'GRANT'", "'GROUP'", "'HANDLER'", 
-			"'HAVING'", "'HOLD'", "'HOUR'", "'HOURS'", "'IF'", "'IMMEDIATE'", "'IN'", 
-			"'INCLUSIVE'", "'INDEX'", "'INHERIT'", "'INNER'", "'INOUT'", "'INSENSITIVE'", 
-			"'INSERT'", "'INTERSECT'", "'INTO'", "'IS'", "'ISOBID'", "'ITERATE'", 
-			"'JAR'", "'JOIN'", "'KEY'", "'LABEL'", "'LANGUAGE'", "'LAST'", "'LC_CTYPE'", 
-			"'LEAVE'", "'LEFT'", "'LIKE'", "'LOCAL'", "'LOCALE'", "'LOCATOR'", "'LOCATORS'", 
-			"'LOCK'", "'LOCKMAX'", "'LOCKSIZE'", "'LONG'", "'LOOP'", "'MAINTAINED'", 
-			"'MATERIALIZED'", "'MICROSECOND'", "'MICROSECONDS'", "'MINUTE'", "'MINUTES'", 
-			"'MODIFIES'", "'MONTH'", "'MONTHS'", "'NEXT'", "'NO'", "'NONE'", "'NOT'", 
-			"'NULL'", "'NULLS'", "'NUMPARTS'", "'OBID'", "'OF'", "'OLD'", "'ON'", 
-			"'OPEN'", "'OPTIMIZATION'", "'OPTIMIZE'", "'OR'", "'ORDER'", "'ORGANIZATION'", 
-			"'OUT'", "'OUTER'", "'PACKAGE'", "'PARAMETER'", "'PART'", "'PADDED'", 
-			"'PARTITION'", "'PARTITIONED'", "'PARTITIONING'", "'PATH'", "'PIECESIZE'", 
-			"'PERIOD'", "'PLAN'", "'PRECISION'", "'PREPARE'", "'PREVVAL'", "'PRIQTY'", 
-			"'PRIVILEGES'", "'PROCEDURE'", "'PROGRAM'", "'PSID'", "'PUBLIC'", "'QUERY'", 
-			"'QUERYNO'", "'READS'", "'REFERENCES'", "'REFRESH'", "'RESIGNAL'", "'RELEASE'", 
-			"'RENAME'", "'REPEAT'", "'RESTRICT'", "'RESULT'", "'RETURN'", "'RETURNS'", 
-			"'REVOKE'", "'RIGHT'", "'ROLE'", "'ROLLBACK'", "'ROLLUP'", "'ROUND_CEILING'", 
-			"'ROUND_DOWN'", "'ROUND_FLOOR'", "'ROUND_HALF_DOWN'", "'ROUND_HALF_EVEN'", 
-			"'ROUND_HALF_UP'", "'ROUND_UP'", "'ROW'", "'ROWSET'", "'RUN'", "'SAVEPOINT'", 
-			"'SCHEMA'", "'SCRATCHPAD'", "'SECOND'", "'SECONDS'", "'SECQTY'", "'SECURITY'", 
-			"'SEQUENCE'", "'SELECT'", "'SENSITIVE'", "'SET'", "'SIGNAL'", "'SIMPLE'", 
-			"'SOME'", "'SOURCE'", "'SPECIFIC'", "'STANDARD'", "'STATIC'", "'STAY'", 
-			"'STOGROUP'", "'STORES'", "'STYLE'", "'SUMMARY'", "'SYNONYM'", "'SYSFUN'", 
-			"'SYSIBM'", "'SYSPROC'", "'SYSTEM'", "'TABLE'", "'TABLESPACE'", "'THEN'", 
-			"'TO'", "'TRIGGER'", "'TRUNCATE'", "'TYPE'", "'UNDO'", "'UNION'", "'UNIQUE'", 
-			"'UNTIL'", "'UPDATE'", "'USER'", "'USING'", "'VALIDPROC'", "'VALUE'", 
-			"'VALUES'", "'VARIABLE'", "'VARIANT'", "'VCAT'", "'VIEW'", "'VOLATILE'", 
-			"'VOLUMES'", "'WHEN'", "'WHENEVER'", "'WHERE'", "'WHILE'", "'WITH'", 
-			"'WLM'", "'XMLCAST'", "'XMLEXISTS'", "'XMLNAMESPACES'", "'YEAR'", "'YEARS'", 
-			"'ZONE'", "'AUTHENTICATION'", "'AUTHID'", "'BASED'", "'CONTROL'", "'UPON'", 
-			"'ABSOLUTE'", "'ACCESS'", "'ACTION'", "'ADMIN'", "'ALIAS'", "'ALWAYS'", 
-			"'APPLICATION'", "'APPEND'", "'ASC'", "'ASUTIME'", "'AT'", "'ATOMIC'", 
-			"'ATTRIBUTES'", "'AUDIT'", "'AUX'", "'BIT'", "'CACHE'", "'CALLED'", "'CARDINALITY'", 
-			"'CASCADE'", "'CHANGE'", "'CHANGED'", "'CHANGES'", "'COMPARISONS'", "'COMPATIBILITY'", 
-			"'COMPRESS'", "'CONTEXT'", "'COPY'", "'CURSORS'", "'CYCLE'", "'DATACLAS'", 
-			"'DB2'", "'DB2SQL'", "'DEBUG'", "'DEFER'", "'DEFINE'", "'DEFINER'", "'DESC'", 
-			"'EACH'", "'ENABLE'", "'ENFORCED'", "'ENVIRONMENT'", "'EVERY'", "'EXCLUDE'", 
-			"'EXCLUDING'", "'EXCLUSIVE'", "'FOREIGN'", "'FREEPAGE'", "'GBPCACHE'", 
-			"'GENERATE'", "'HASH'", "'HIDDEN'", "'HISTORY'", "'ID'", "'IDENTITY'", 
-			"'IMPLICITLY'", "'INCLUDE'", "'INCLUDING'", "'INCREMENT'", "'INDEXBP'", 
-			"'INLINE'", "'INPUT'", "'INSTEAD'", "'KEYS'", "'LARGE'", "'LENGTH'", 
-			"'LIMIT'", "'LOAD'", "'LOB'", "'LOG'", "'LOGGED'", "'MAIN'", "'MASK'", 
-			"'MAXPARTITIONS'", "'MAXROWS'", "'MAXVALUE'", "'MEMBER'", "'MGMTCLAS'", 
-			"'MINVALUE'", "'MIXED'", "'MODE'", "'NAME'", "'NEW'", "'NEW_TABLE'", 
-			"'OLD_TABLE'", "'ONLY'", "'OPTION'", "'OPTIONS'", "'ORGANIZE'", "'PAGE'", 
-			"'PAGENUM'", "'PCTFREE'", "'PERMISSION'", "'PRIMARY'", "'QUALIFIER'", 
-			"'RANDOM'", "'RANGE'", "'REFERENCING'", "'REGENERATE'", "'REGISTERS'", 
-			"'RELATIVE'", "'REMOVE'", "'REPLACE'", "'RESET'", "'RESIDENT'", "'RESTART'", 
-			"'RETAIN'", "'ROTATE'", "'ROWS'", "'SBCS'", "'SECURED'", "'SEGSIZE'", 
-			"'SETS'", "'SHARE'", "'SIZE'", "'SPACE'", "'SPECIAL'", "'SQL'", "'SQLID'", 
-			"'START'", "'STARTING'", "'STATEMENT'", "'STORCLAS'", "'SUB'", "'TEMPORARY'", 
-			"'TIME'", "'TIMESTAMP'", "'TRACKMOD'", "'TRANSACTION'", "'TRUSTED'", 
-			"'UNLOAD'", "'USAGE'", "'USE'", "'VARCHAR'", "'VARGRAPHIC'", "'VARYING'", 
-			"'VERSIONING'", "'WITHOUT'", "'WORK'", "'WORKFILE'", "'XMLPATTERN'", 
-			"'YES'", "'('", "')'", "','", "';'", "'.'", "':'", "'*'", "'+'", "'-'", 
-			"'/'", "'||'", "'='", null, "'<='", "'>='", "'<'", "'>'", "'?'", null, 
+			null, null, null, null, null, "'ADD'", "'AFTER'", "'ALL'", "'ALLOCATE'",
+			"'ALLOW'", "'ALTER'", "'AND'", "'ANY'", "'AS'", "'ASENSITIVE'", "'ASSOCIATE'",
+			"'AUXILIARY'", "'BEFORE'", "'BEGIN'", "'BETWEEN'", "'BUFFERPOOL'", "'BY'",
+			"'CALL'", "'CAPTURE'", "'CASCADED'", "'CASE'", "'CAST'", "'CCSID'", "'CHAR'",
+			"'CHARACTER'", "'CHECK'", "'CLONE'", "'CLOSE'", "'CLUSTER'", "'COLLECTION'",
+			"'COLLID'", "'COLUMN'", "'COMMENT'", "'COMMIT'", "'CONCAT'", "'CONDITION'",
+			"'CONNECT'", "'CONNECTION'", "'CONSTRAINT'", "'CONTAINS'", "'CONTINUE'",
+			"'CREATE'", "'CUBE'", "'CURRENT'", "'CURSOR'", "'DATA'", "'DATABASE'",
+			"'DAY'", "'DAYS'", "'DBINFO'", "'DECLARE'", "'DEFAULT'", "'DELETE'",
+			"'DESCRIPTOR'", "'DETERMINISTIC'", "'DISABLE'", "'DISALLOW'", "'DISTINCT'",
+			"'DO'", "'DOUBLE'", "'DROP'", "'DSSIZE'", "'DYNAMIC'", "'EDITPROC'",
+			"'ELSE'", "'ELSEIF'", "'ENCODING'", "'END'", "'ENDING'", "'ERASE'", "'ESCAPE'",
+			"'EXCEPT'", "'EXCEPTION'", "'EXEC'", "'EXECUTE'", "'EXISTS'", "'EXIT'",
+			"'EXPLAIN'", "'EXTERNAL'", "'FENCED'", "'FETCH'", "'FIELDPROC'", "'FINAL'",
+			"'FIRST'", "'FOR'", "'FREE'", "'FROM'", "'FULL'", "'FUNCTION'", "'GENERATED'",
+			"'GET'", "'GLOBAL'", "'GO'", "'GOTO'", "'GRANT'", "'GROUP'", "'HANDLER'",
+			"'HAVING'", "'HOLD'", "'HOUR'", "'HOURS'", "'IF'", "'IMMEDIATE'", "'IN'",
+			"'INCLUSIVE'", "'INDEX'", "'INHERIT'", "'INNER'", "'INOUT'", "'INSENSITIVE'",
+			"'INSERT'", "'INTERSECT'", "'INTO'", "'IS'", "'ISOBID'", "'ITERATE'",
+			"'JAR'", "'JOIN'", "'KEY'", "'LABEL'", "'LANGUAGE'", "'LAST'", "'LC_CTYPE'",
+			"'LEAVE'", "'LEFT'", "'LIKE'", "'LOCAL'", "'LOCALE'", "'LOCATOR'", "'LOCATORS'",
+			"'LOCK'", "'LOCKMAX'", "'LOCKSIZE'", "'LONG'", "'LOOP'", "'MAINTAINED'",
+			"'MATERIALIZED'", "'MICROSECOND'", "'MICROSECONDS'", "'MINUTE'", "'MINUTES'",
+			"'MODIFIES'", "'MONTH'", "'MONTHS'", "'NEXT'", "'NO'", "'NONE'", "'NOT'",
+			"'NULL'", "'NULLS'", "'NUMPARTS'", "'OBID'", "'OF'", "'OLD'", "'ON'",
+			"'OPEN'", "'OPTIMIZATION'", "'OPTIMIZE'", "'OR'", "'ORDER'", "'ORGANIZATION'",
+			"'OUT'", "'OUTER'", "'PACKAGE'", "'PARAMETER'", "'PART'", "'PADDED'",
+			"'PARTITION'", "'PARTITIONED'", "'PARTITIONING'", "'PATH'", "'PIECESIZE'",
+			"'PERIOD'", "'PLAN'", "'PRECISION'", "'PREPARE'", "'PREVVAL'", "'PRIQTY'",
+			"'PRIVILEGES'", "'PROCEDURE'", "'PROGRAM'", "'PSID'", "'PUBLIC'", "'QUERY'",
+			"'QUERYNO'", "'READS'", "'REFERENCES'", "'REFRESH'", "'RESIGNAL'", "'RELEASE'",
+			"'RENAME'", "'REPEAT'", "'RESTRICT'", "'RESULT'", "'RETURN'", "'RETURNS'",
+			"'REVOKE'", "'RIGHT'", "'ROLE'", "'ROLLBACK'", "'ROLLUP'", "'ROUND_CEILING'",
+			"'ROUND_DOWN'", "'ROUND_FLOOR'", "'ROUND_HALF_DOWN'", "'ROUND_HALF_EVEN'",
+			"'ROUND_HALF_UP'", "'ROUND_UP'", "'ROW'", "'ROWSET'", "'RUN'", "'SAVEPOINT'",
+			"'SCHEMA'", "'SCRATCHPAD'", "'SECOND'", "'SECONDS'", "'SECQTY'", "'SECURITY'",
+			"'SEQUENCE'", "'SELECT'", "'SENSITIVE'", "'SET'", "'SIGNAL'", "'SIMPLE'",
+			"'SOME'", "'SOURCE'", "'SPECIFIC'", "'STANDARD'", "'STATIC'", "'STAY'",
+			"'STOGROUP'", "'STORES'", "'STYLE'", "'SUMMARY'", "'SYNONYM'", "'SYSFUN'",
+			"'SYSIBM'", "'SYSPROC'", "'SYSTEM'", "'TABLE'", "'TABLESPACE'", "'THEN'",
+			"'TO'", "'TRIGGER'", "'TRUNCATE'", "'TYPE'", "'UNDO'", "'UNION'", "'UNIQUE'",
+			"'UNTIL'", "'UPDATE'", "'USER'", "'USING'", "'VALIDPROC'", "'VALUE'",
+			"'VALUES'", "'VARIABLE'", "'VARIANT'", "'VCAT'", "'VIEW'", "'VOLATILE'",
+			"'VOLUMES'", "'WHEN'", "'WHENEVER'", "'WHERE'", "'WHILE'", "'WITH'",
+			"'WLM'", "'XMLCAST'", "'XMLEXISTS'", "'XMLNAMESPACES'", "'YEAR'", "'YEARS'",
+			"'ZONE'", "'AUTHENTICATION'", "'AUTHID'", "'BASED'", "'CONTROL'", "'UPON'",
+			"'ABSOLUTE'", "'ACCESS'", "'ACTION'", "'ADMIN'", "'ALIAS'", "'ALWAYS'",
+			"'APPLICATION'", "'APPEND'", "'ASC'", "'ASUTIME'", "'AT'", "'ATOMIC'",
+			"'ATTRIBUTES'", "'AUDIT'", "'AUX'", "'BIT'", "'CACHE'", "'CALLED'", "'CARDINALITY'",
+			"'CASCADE'", "'CHANGE'", "'CHANGED'", "'CHANGES'", "'COMPARISONS'", "'COMPATIBILITY'",
+			"'COMPRESS'", "'CONTEXT'", "'COPY'", "'CURSORS'", "'CYCLE'", "'DATACLAS'",
+			"'DB2'", "'DB2SQL'", "'DEBUG'", "'DEFER'", "'DEFINE'", "'DEFINER'", "'DESC'",
+			"'EACH'", "'ENABLE'", "'ENFORCED'", "'ENVIRONMENT'", "'EVERY'", "'EXCLUDE'",
+			"'EXCLUDING'", "'EXCLUSIVE'", "'FOREIGN'", "'FREEPAGE'", "'GBPCACHE'",
+			"'GENERATE'", "'HASH'", "'HIDDEN'", "'HISTORY'", "'ID'", "'IDENTITY'",
+			"'IMPLICITLY'", "'INCLUDE'", "'INCLUDING'", "'INCREMENT'", "'INDEXBP'",
+			"'INLINE'", "'INPUT'", "'INSTEAD'", "'KEYS'", "'LARGE'", "'LENGTH'",
+			"'LIMIT'", "'LOAD'", "'LOB'", "'LOG'", "'LOGGED'", "'MAIN'", "'MASK'",
+			"'MAXPARTITIONS'", "'MAXROWS'", "'MAXVALUE'", "'MEMBER'", "'MGMTCLAS'",
+			"'MINVALUE'", "'MIXED'", "'MODE'", "'NAME'", "'NEW'", "'NEW_TABLE'",
+			"'OLD_TABLE'", "'ONLY'", "'OPTION'", "'OPTIONS'", "'ORGANIZE'", "'PAGE'",
+			"'PAGENUM'", "'PCTFREE'", "'PERMISSION'", "'PRIMARY'", "'QUALIFIER'",
+			"'RANDOM'", "'RANGE'", "'REFERENCING'", "'REGENERATE'", "'REGISTERS'",
+			"'RELATIVE'", "'REMOVE'", "'REPLACE'", "'RESET'", "'RESIDENT'", "'RESTART'",
+			"'RETAIN'", "'ROTATE'", "'ROWS'", "'SBCS'", "'SECURED'", "'SEGSIZE'",
+			"'SETS'", "'SHARE'", "'SIZE'", "'SPACE'", "'SPECIAL'", "'SQL'", "'SQLID'",
+			"'START'", "'STARTING'", "'STATEMENT'", "'STORCLAS'", "'SUB'", "'TEMPORARY'",
+			"'TIME'", "'TIMESTAMP'", "'TRACKMOD'", "'TRANSACTION'", "'TRUSTED'",
+			"'UNLOAD'", "'USAGE'", "'USE'", "'VARCHAR'", "'VARGRAPHIC'", "'VARYING'",
+			"'VERSIONING'", "'WITHOUT'", "'WORK'", "'WORKFILE'", "'XMLPATTERN'",
+			"'YES'", "'('", "')'", "','", "';'", "'.'", "':'", "'*'", "'+'", "'-'",
+			"'/'", "'||'", "'='", null, "'<='", "'>='", "'<'", "'>'", "'?'", null,
 			null, null, null, null, "'@'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "WS", "LINE_COMMENT", "BLOCK_COMMENT", "STAR_COMMENT", "ADD", "AFTER", 
-			"ALL", "ALLOCATE", "ALLOW", "ALTER", "AND", "ANY", "AS", "ASENSITIVE", 
-			"ASSOCIATE", "AUXILIARY", "BEFORE", "BEGIN", "BETWEEN", "BUFFERPOOL", 
-			"BY", "CALL", "CAPTURE", "CASCADED", "CASE", "CAST", "CCSID", "CHAR", 
-			"CHARACTER", "CHECK", "CLONE", "CLOSE", "CLUSTER", "COLLECTION", "COLLID", 
-			"COLUMN", "COMMENT", "COMMIT", "CONCAT", "CONDITION", "CONNECT", "CONNECTION", 
-			"CONSTRAINT", "CONTAINS", "CONTINUE", "CREATE", "CUBE", "CURRENT", "CURSOR", 
-			"DATA", "DATABASE", "DAY", "DAYS", "DBINFO", "DECLARE", "DEFAULT", "DELETE", 
-			"DESCRIPTOR", "DETERMINISTIC", "DISABLE", "DISALLOW", "DISTINCT", "DO", 
-			"DOUBLE", "DROP", "DSSIZE", "DYNAMIC", "EDITPROC", "ELSE", "ELSEIF", 
-			"ENCODING", "END", "ENDING", "ERASE", "ESCAPE", "EXCEPT", "EXCEPTION", 
-			"EXEC", "EXECUTE", "EXISTS", "EXIT", "EXPLAIN", "EXTERNAL", "FENCED", 
-			"FETCH", "FIELDPROC", "FINAL", "FIRST", "FOR", "FREE", "FROM", "FULL", 
-			"FUNCTION", "GENERATED", "GET", "GLOBAL", "GO", "GOTO", "GRANT", "GROUP", 
-			"HANDLER", "HAVING", "HOLD", "HOUR", "HOURS", "IF", "IMMEDIATE", "IN", 
-			"INCLUSIVE", "INDEX", "INHERIT", "INNER", "INOUT", "INSENSITIVE", "INSERT", 
-			"INTERSECT", "INTO", "IS", "ISOBID", "ITERATE", "JAR", "JOIN", "KEY", 
-			"LABEL", "LANGUAGE", "LAST", "LC_CTYPE", "LEAVE", "LEFT", "LIKE", "LOCAL", 
-			"LOCALE", "LOCATOR", "LOCATORS", "LOCK", "LOCKMAX", "LOCKSIZE", "LONG", 
-			"LOOP", "MAINTAINED", "MATERIALIZED", "MICROSECOND", "MICROSECONDS", 
-			"MINUTE", "MINUTES", "MODIFIES", "MONTH", "MONTHS", "NEXT", "NO", "NONE", 
-			"NOT", "NULL", "NULLS", "NUMPARTS", "OBID", "OF", "OLD", "ON", "OPEN", 
-			"OPTIMIZATION", "OPTIMIZE", "OR", "ORDER", "ORGANIZATION", "OUT", "OUTER", 
-			"PACKAGE", "PARAMETER", "PART", "PADDED", "PARTITION", "PARTITIONED", 
-			"PARTITIONING", "PATH", "PIECESIZE", "PERIOD", "PLAN", "PRECISION", "PREPARE", 
-			"PREVVAL", "PRIQTY", "PRIVILEGES", "PROCEDURE", "PROGRAM", "PSID", "PUBLIC", 
-			"QUERY", "QUERYNO", "READS", "REFERENCES", "REFRESH", "RESIGNAL", "RELEASE", 
-			"RENAME", "REPEAT", "RESTRICT", "RESULT", "RETURN", "RETURNS", "REVOKE", 
-			"RIGHT", "ROLE", "ROLLBACK", "ROLLUP", "ROUND_CEILING", "ROUND_DOWN", 
-			"ROUND_FLOOR", "ROUND_HALF_DOWN", "ROUND_HALF_EVEN", "ROUND_HALF_UP", 
-			"ROUND_UP", "ROW", "ROWSET", "RUN", "SAVEPOINT", "SCHEMA", "SCRATCHPAD", 
-			"SECOND", "SECONDS", "SECQTY", "SECURITY", "SEQUENCE", "SELECT", "SENSITIVE", 
-			"SET", "SIGNAL", "SIMPLE", "SOME", "SOURCE", "SPECIFIC", "STANDARD", 
-			"STATIC", "STAY", "STOGROUP", "STORES", "STYLE", "SUMMARY", "SYNONYM", 
-			"SYSFUN", "SYSIBM", "SYSPROC", "SYSTEM", "TABLE", "TABLESPACE", "THEN", 
-			"TO", "TRIGGER", "TRUNCATE", "TYPE", "UNDO", "UNION", "UNIQUE", "UNTIL", 
-			"UPDATE", "USER", "USING", "VALIDPROC", "VALUE", "VALUES", "VARIABLE", 
-			"VARIANT", "VCAT", "VIEW", "VOLATILE", "VOLUMES", "WHEN", "WHENEVER", 
-			"WHERE", "WHILE", "WITH", "WLM", "XMLCAST", "XMLEXISTS", "XMLNAMESPACES", 
-			"YEAR", "YEARS", "ZONE", "AUTHENTICATION", "AUTHID", "BASED", "CONTROL", 
-			"UPON", "ABSOLUTE", "ACCESS", "ACTION", "ADMIN", "ALIAS", "ALWAYS", "APPLICATION", 
-			"APPEND", "ASC", "ASUTIME", "AT", "ATOMIC", "ATTRIBUTES", "AUDIT", "AUX", 
-			"BIT", "CACHE", "CALLED", "CARDINALITY", "CASCADE", "CHANGE", "CHANGED", 
-			"CHANGES", "COMPARISONS", "COMPATIBILITY", "COMPRESS", "CONTEXT", "COPY", 
-			"CURSORS", "CYCLE", "DATACLAS", "DB2", "DB2SQL", "DEBUG", "DEFER", "DEFINE", 
-			"DEFINER", "DESC", "EACH", "ENABLE", "ENFORCED", "ENVIRONMENT", "EVERY", 
-			"EXCLUDE", "EXCLUDING", "EXCLUSIVE", "FOREIGN", "FREEPAGE", "GBPCACHE", 
-			"GENERATE", "HASH", "HIDDEN_KW", "HISTORY", "ID", "IDENTITY", "IMPLICITLY", 
-			"INCLUDE", "INCLUDING", "INCREMENT", "INDEXBP", "INLINE", "INPUT", "INSTEAD", 
-			"KEYS", "LARGE", "LENGTH", "LIMIT", "LOAD", "LOB", "LOG", "LOGGED", "MAIN", 
-			"MASK", "MAXPARTITIONS", "MAXROWS", "MAXVALUE", "MEMBER", "MGMTCLAS", 
-			"MINVALUE", "MIXED", "MODE", "NAME", "NEW", "NEW_TABLE", "OLD_TABLE", 
-			"ONLY", "OPTION", "OPTIONS", "ORGANIZE", "PAGE", "PAGENUM", "PCTFREE", 
-			"PERMISSION", "PRIMARY", "QUALIFIER", "RANDOM", "RANGE", "REFERENCING", 
-			"REGENERATE", "REGISTERS", "RELATIVE", "REMOVE", "REPLACE", "RESET", 
-			"RESIDENT", "RESTART", "RETAIN", "ROTATE", "ROWS", "SBCS", "SECURED", 
-			"SEGSIZE", "SETS", "SHARE", "SIZE", "SPACE", "SPECIAL", "SQL", "SQLID", 
-			"START", "STARTING", "STATEMENT", "STORCLAS", "SUB", "TEMPORARY", "TIME", 
-			"TIMESTAMP", "TRACKMOD", "TRANSACTION", "TRUSTED", "UNLOAD", "USAGE", 
-			"USE", "VARCHAR", "VARGRAPHIC", "VARYING", "VERSIONING", "WITHOUT", "WORK", 
-			"WORKFILE", "XMLPATTERN", "YES", "LPAREN", "RPAREN", "COMMA", "SEMI", 
-			"DOT", "COLON", "STAR", "PLUS", "MINUS", "SLASH", "CONCAT_OP", "EQ", 
-			"NEQ", "LTE", "GTE", "LT", "GT", "QUESTION", "STRING", "HEX_STRING", 
-			"DELIMITED_IDENTIFIER", "PLACEHOLDER", "NUMBER", "AT_SIGN", "IDENTIFIER", 
+			null, "WS", "LINE_COMMENT", "BLOCK_COMMENT", "STAR_COMMENT", "ADD", "AFTER",
+			"ALL", "ALLOCATE", "ALLOW", "ALTER", "AND", "ANY", "AS", "ASENSITIVE",
+			"ASSOCIATE", "AUXILIARY", "BEFORE", "BEGIN", "BETWEEN", "BUFFERPOOL",
+			"BY", "CALL", "CAPTURE", "CASCADED", "CASE", "CAST", "CCSID", "CHAR",
+			"CHARACTER", "CHECK", "CLONE", "CLOSE", "CLUSTER", "COLLECTION", "COLLID",
+			"COLUMN", "COMMENT", "COMMIT", "CONCAT", "CONDITION", "CONNECT", "CONNECTION",
+			"CONSTRAINT", "CONTAINS", "CONTINUE", "CREATE", "CUBE", "CURRENT", "CURSOR",
+			"DATA", "DATABASE", "DAY", "DAYS", "DBINFO", "DECLARE", "DEFAULT", "DELETE",
+			"DESCRIPTOR", "DETERMINISTIC", "DISABLE", "DISALLOW", "DISTINCT", "DO",
+			"DOUBLE", "DROP", "DSSIZE", "DYNAMIC", "EDITPROC", "ELSE", "ELSEIF",
+			"ENCODING", "END", "ENDING", "ERASE", "ESCAPE", "EXCEPT", "EXCEPTION",
+			"EXEC", "EXECUTE", "EXISTS", "EXIT", "EXPLAIN", "EXTERNAL", "FENCED",
+			"FETCH", "FIELDPROC", "FINAL", "FIRST", "FOR", "FREE", "FROM", "FULL",
+			"FUNCTION", "GENERATED", "GET", "GLOBAL", "GO", "GOTO", "GRANT", "GROUP",
+			"HANDLER", "HAVING", "HOLD", "HOUR", "HOURS", "IF", "IMMEDIATE", "IN",
+			"INCLUSIVE", "INDEX", "INHERIT", "INNER", "INOUT", "INSENSITIVE", "INSERT",
+			"INTERSECT", "INTO", "IS", "ISOBID", "ITERATE", "JAR", "JOIN", "KEY",
+			"LABEL", "LANGUAGE", "LAST", "LC_CTYPE", "LEAVE", "LEFT", "LIKE", "LOCAL",
+			"LOCALE", "LOCATOR", "LOCATORS", "LOCK", "LOCKMAX", "LOCKSIZE", "LONG",
+			"LOOP", "MAINTAINED", "MATERIALIZED", "MICROSECOND", "MICROSECONDS",
+			"MINUTE", "MINUTES", "MODIFIES", "MONTH", "MONTHS", "NEXT", "NO", "NONE",
+			"NOT", "NULL", "NULLS", "NUMPARTS", "OBID", "OF", "OLD", "ON", "OPEN",
+			"OPTIMIZATION", "OPTIMIZE", "OR", "ORDER", "ORGANIZATION", "OUT", "OUTER",
+			"PACKAGE", "PARAMETER", "PART", "PADDED", "PARTITION", "PARTITIONED",
+			"PARTITIONING", "PATH", "PIECESIZE", "PERIOD", "PLAN", "PRECISION", "PREPARE",
+			"PREVVAL", "PRIQTY", "PRIVILEGES", "PROCEDURE", "PROGRAM", "PSID", "PUBLIC",
+			"QUERY", "QUERYNO", "READS", "REFERENCES", "REFRESH", "RESIGNAL", "RELEASE",
+			"RENAME", "REPEAT", "RESTRICT", "RESULT", "RETURN", "RETURNS", "REVOKE",
+			"RIGHT", "ROLE", "ROLLBACK", "ROLLUP", "ROUND_CEILING", "ROUND_DOWN",
+			"ROUND_FLOOR", "ROUND_HALF_DOWN", "ROUND_HALF_EVEN", "ROUND_HALF_UP",
+			"ROUND_UP", "ROW", "ROWSET", "RUN", "SAVEPOINT", "SCHEMA", "SCRATCHPAD",
+			"SECOND", "SECONDS", "SECQTY", "SECURITY", "SEQUENCE", "SELECT", "SENSITIVE",
+			"SET", "SIGNAL", "SIMPLE", "SOME", "SOURCE", "SPECIFIC", "STANDARD",
+			"STATIC", "STAY", "STOGROUP", "STORES", "STYLE", "SUMMARY", "SYNONYM",
+			"SYSFUN", "SYSIBM", "SYSPROC", "SYSTEM", "TABLE", "TABLESPACE", "THEN",
+			"TO", "TRIGGER", "TRUNCATE", "TYPE", "UNDO", "UNION", "UNIQUE", "UNTIL",
+			"UPDATE", "USER", "USING", "VALIDPROC", "VALUE", "VALUES", "VARIABLE",
+			"VARIANT", "VCAT", "VIEW", "VOLATILE", "VOLUMES", "WHEN", "WHENEVER",
+			"WHERE", "WHILE", "WITH", "WLM", "XMLCAST", "XMLEXISTS", "XMLNAMESPACES",
+			"YEAR", "YEARS", "ZONE", "AUTHENTICATION", "AUTHID", "BASED", "CONTROL",
+			"UPON", "ABSOLUTE", "ACCESS", "ACTION", "ADMIN", "ALIAS", "ALWAYS", "APPLICATION",
+			"APPEND", "ASC", "ASUTIME", "AT", "ATOMIC", "ATTRIBUTES", "AUDIT", "AUX",
+			"BIT", "CACHE", "CALLED", "CARDINALITY", "CASCADE", "CHANGE", "CHANGED",
+			"CHANGES", "COMPARISONS", "COMPATIBILITY", "COMPRESS", "CONTEXT", "COPY",
+			"CURSORS", "CYCLE", "DATACLAS", "DB2", "DB2SQL", "DEBUG", "DEFER", "DEFINE",
+			"DEFINER", "DESC", "EACH", "ENABLE", "ENFORCED", "ENVIRONMENT", "EVERY",
+			"EXCLUDE", "EXCLUDING", "EXCLUSIVE", "FOREIGN", "FREEPAGE", "GBPCACHE",
+			"GENERATE", "HASH", "HIDDEN_KW", "HISTORY", "ID", "IDENTITY", "IMPLICITLY",
+			"INCLUDE", "INCLUDING", "INCREMENT", "INDEXBP", "INLINE", "INPUT", "INSTEAD",
+			"KEYS", "LARGE", "LENGTH", "LIMIT", "LOAD", "LOB", "LOG", "LOGGED", "MAIN",
+			"MASK", "MAXPARTITIONS", "MAXROWS", "MAXVALUE", "MEMBER", "MGMTCLAS",
+			"MINVALUE", "MIXED", "MODE", "NAME", "NEW", "NEW_TABLE", "OLD_TABLE",
+			"ONLY", "OPTION", "OPTIONS", "ORGANIZE", "PAGE", "PAGENUM", "PCTFREE",
+			"PERMISSION", "PRIMARY", "QUALIFIER", "RANDOM", "RANGE", "REFERENCING",
+			"REGENERATE", "REGISTERS", "RELATIVE", "REMOVE", "REPLACE", "RESET",
+			"RESIDENT", "RESTART", "RETAIN", "ROTATE", "ROWS", "SBCS", "SECURED",
+			"SEGSIZE", "SETS", "SHARE", "SIZE", "SPACE", "SPECIAL", "SQL", "SQLID",
+			"START", "STARTING", "STATEMENT", "STORCLAS", "SUB", "TEMPORARY", "TIME",
+			"TIMESTAMP", "TRACKMOD", "TRANSACTION", "TRUSTED", "UNLOAD", "USAGE",
+			"USE", "VARCHAR", "VARGRAPHIC", "VARYING", "VERSIONING", "WITHOUT", "WORK",
+			"WORKFILE", "XMLPATTERN", "YES", "LPAREN", "RPAREN", "COMMA", "SEMI",
+			"DOT", "COLON", "STAR", "PLUS", "MINUS", "SLASH", "CONCAT_OP", "EQ",
+			"NEQ", "LTE", "GTE", "LT", "GT", "QUESTION", "STRING", "HEX_STRING",
+			"DELIMITED_IDENTIFIER", "PLACEHOLDER", "NUMBER", "AT_SIGN", "IDENTIFIER",
 			"HOST_VARIABLE"
 		};
 	}
@@ -539,7 +541,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCompilationUnit(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -567,7 +569,7 @@ public class DB2Parser extends Parser {
 			setState(285);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while (((((_la - 10)) & ~0x3f) == 0 && ((1L << (_la - 10)) & 36204788001538049L) != 0) || ((((_la - 99)) & ~0x3f) == 0 && ((1L << (_la - 99)) & 68753096705L) != 0) || ((((_la - 194)) & ~0x3f) == 0 && ((1L << (_la - 194)) & 2305843014586598531L) != 0) || _la==WITH || _la==LPAREN) {
+			while ((((_la - 10) & ~0x3f) == 0 && ((1L << (_la - 10)) & 36204788001538049L) != 0) || (((_la - 99) & ~0x3f) == 0 && ((1L << (_la - 99)) & 68753096705L) != 0) || (((_la - 194) & ~0x3f) == 0 && ((1L << (_la - 194)) & 2305843014586598531L) != 0) || _la==WITH || _la==LPAREN) {
 				{
 				{
 				setState(282);
@@ -757,7 +759,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1147,7 +1149,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitQueryStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1193,7 +1195,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTerminator(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1261,7 +1263,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateTable(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1290,7 +1292,7 @@ public class DB2Parser extends Parser {
 					setState(350);
 					tableOption();
 					}
-					} 
+					}
 				}
 				setState(355);
 				_errHandler.sync(this);
@@ -1354,7 +1356,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTableContents(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1411,7 +1413,7 @@ public class DB2Parser extends Parser {
 						setState(371);
 						copyOption();
 						}
-						} 
+						}
 					}
 					setState(376);
 					_errHandler.sync(this);
@@ -1440,7 +1442,7 @@ public class DB2Parser extends Parser {
 						setState(381);
 						copyOption();
 						}
-						} 
+						}
 					}
 					setState(386);
 					_errHandler.sync(this);
@@ -1491,7 +1493,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCopyOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1517,7 +1519,7 @@ public class DB2Parser extends Parser {
 					_errHandler.reportMatch(this);
 					consume();
 				}
-				setState(391); 
+				setState(391);
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -1533,7 +1535,7 @@ public class DB2Parser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(393); 
+					setState(393);
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,8,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -1561,7 +1563,7 @@ public class DB2Parser extends Parser {
 			case 3:
 				enterOuterAlt(_localctx, 3);
 				{
-				setState(401); 
+				setState(401);
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -1577,7 +1579,7 @@ public class DB2Parser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(403); 
+					setState(403);
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,10,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -1622,7 +1624,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTableElement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1696,7 +1698,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitColumnDefinition(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1721,7 +1723,7 @@ public class DB2Parser extends Parser {
 					setState(414);
 					columnAttribute();
 					}
-					} 
+					}
 				}
 				setState(419);
 				_errHandler.sync(this);
@@ -1827,7 +1829,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitColumnAttribute(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1873,7 +1875,7 @@ public class DB2Parser extends Parser {
 				case 2:
 					{
 					setState(425);
-					if (!(!startsDefaultValue(_localctx))) throw new FailedPredicateException(this, "!startsDefaultValue($ctx)");
+					if (!!startsDefaultValue(_localctx)) throw new FailedPredicateException(this, "!startsDefaultValue($ctx)");
 					}
 					break;
 				}
@@ -1898,7 +1900,7 @@ public class DB2Parser extends Parser {
 				case 2:
 					{
 					setState(431);
-					if (!(!startsDefaultValue(_localctx))) throw new FailedPredicateException(this, "!startsDefaultValue($ctx)");
+					if (!!startsDefaultValue(_localctx)) throw new FailedPredicateException(this, "!startsDefaultValue($ctx)");
 					}
 					break;
 				}
@@ -2067,7 +2069,7 @@ public class DB2Parser extends Parser {
 						setState(481);
 						referentialAction();
 						}
-						} 
+						}
 					}
 					setState(486);
 					_errHandler.sync(this);
@@ -2120,7 +2122,7 @@ public class DB2Parser extends Parser {
 						setState(494);
 						constant();
 						}
-						} 
+						}
 					}
 					setState(499);
 					_errHandler.sync(this);
@@ -2238,7 +2240,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitGeneratedAs(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -2269,7 +2271,7 @@ public class DB2Parser extends Parser {
 					setState(525);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
-					while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979175040515L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 2555871L) != 0)) {
+					while (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979175040515L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 2555871L) != 0)) {
 						{
 						{
 						setState(520);
@@ -2410,7 +2412,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDefaultValue(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -2462,7 +2464,7 @@ public class DB2Parser extends Parser {
 				setState(566);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18295910102466560L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158270467L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 321126614253585L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 30717808410591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 18295910102466560L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158270467L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 321126614253585L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 30717808410591L) != 0)) {
 					{
 					setState(558);
 					expression(0);
@@ -2530,7 +2532,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPeriodDefinition(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -2618,7 +2620,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTableConstraint(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -2711,7 +2713,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitConstraintBody(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -2743,7 +2745,7 @@ public class DB2Parser extends Parser {
 						setState(600);
 						constraintOption();
 						}
-						} 
+						}
 					}
 					setState(605);
 					_errHandler.sync(this);
@@ -2761,7 +2763,7 @@ public class DB2Parser extends Parser {
 				setState(609);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 					{
 					setState(608);
 					identifier();
@@ -2794,7 +2796,7 @@ public class DB2Parser extends Parser {
 						setState(617);
 						referentialAction();
 						}
-						} 
+						}
 					}
 					setState(622);
 					_errHandler.sync(this);
@@ -2810,7 +2812,7 @@ public class DB2Parser extends Parser {
 						setState(623);
 						constraintOption();
 						}
-						} 
+						}
 					}
 					setState(628);
 					_errHandler.sync(this);
@@ -2849,7 +2851,7 @@ public class DB2Parser extends Parser {
 						setState(636);
 						constraintOption();
 						}
-						} 
+						}
 					}
 					setState(641);
 					_errHandler.sync(this);
@@ -2878,7 +2880,7 @@ public class DB2Parser extends Parser {
 						setState(646);
 						constraintOption();
 						}
-						} 
+						}
 					}
 					setState(651);
 					_errHandler.sync(this);
@@ -2932,7 +2934,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitReferentialAction(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3079,7 +3081,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitConstraintOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3164,7 +3166,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitColumnList(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3297,7 +3299,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTableOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3395,7 +3397,7 @@ public class DB2Parser extends Parser {
 						setState(723);
 						partitionClause();
 						}
-						} 
+						}
 					}
 					setState(728);
 					_errHandler.sync(this);
@@ -3690,7 +3692,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitHashSpace(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3751,7 +3753,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPartitionKey(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3826,7 +3828,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPartitionClause(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3920,7 +3922,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPartitionSpec(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3949,7 +3951,7 @@ public class DB2Parser extends Parser {
 						setState(818);
 						partitionBound();
 						}
-						} 
+						}
 					}
 					setState(823);
 					_errHandler.sync(this);
@@ -3965,7 +3967,7 @@ public class DB2Parser extends Parser {
 						setState(824);
 						storageOption();
 						}
-						} 
+						}
 					}
 					setState(829);
 					_errHandler.sync(this);
@@ -3978,7 +3980,7 @@ public class DB2Parser extends Parser {
 			case STARTING:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(831); 
+				setState(831);
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -3994,7 +3996,7 @@ public class DB2Parser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(833); 
+					setState(833);
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,72,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -4008,7 +4010,7 @@ public class DB2Parser extends Parser {
 						setState(835);
 						storageOption();
 						}
-						} 
+						}
 					}
 					setState(840);
 					_errHandler.sync(this);
@@ -4066,7 +4068,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPartitionBound(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4164,7 +4166,7 @@ public class DB2Parser extends Parser {
 				setState(863);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 					{
 					setState(862);
 					identifier();
@@ -4219,7 +4221,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPartitionLimit(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4287,7 +4289,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPartitionValue(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4394,7 +4396,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateIndex(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4478,7 +4480,7 @@ public class DB2Parser extends Parser {
 					setState(911);
 					indexOption();
 					}
-					} 
+					}
 				}
 				setState(916);
 				_errHandler.sync(this);
@@ -4522,7 +4524,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitIndexModifier(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4605,7 +4607,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitIndexKey(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4622,7 +4624,7 @@ public class DB2Parser extends Parser {
 			case 1:
 				{
 				setState(929);
-				if (!(columnKeyAhead(_localctx))) throw new FailedPredicateException(this, "columnKeyAhead($ctx)");
+				if (!columnKeyAhead(_localctx)) throw new FailedPredicateException(this, "columnKeyAhead($ctx)");
 				setState(930);
 				identifier();
 				}
@@ -4630,7 +4632,7 @@ public class DB2Parser extends Parser {
 			case 2:
 				{
 				setState(931);
-				if (!(!columnKeyAhead(_localctx))) throw new FailedPredicateException(this, "!columnKeyAhead($ctx)");
+				if (!!columnKeyAhead(_localctx)) throw new FailedPredicateException(this, "!columnKeyAhead($ctx)");
 				setState(932);
 				expression(0);
 				}
@@ -4690,7 +4692,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitIndexOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4712,7 +4714,7 @@ public class DB2Parser extends Parser {
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(939);
-				if (!(!starts(_localctx, RULE_namedIndexOption))) throw new FailedPredicateException(this, "!starts($ctx, RULE_namedIndexOption)");
+				if (!!starts(_localctx, RULE_namedIndexOption)) throw new FailedPredicateException(this, "!starts($ctx, RULE_namedIndexOption)");
 				setState(940);
 				nonReserved();
 				}
@@ -4792,7 +4794,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitNamedIndexOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4909,7 +4911,7 @@ public class DB2Parser extends Parser {
 						setState(962);
 						partitionClause();
 						}
-						} 
+						}
 					}
 					setState(967);
 					_errHandler.sync(this);
@@ -5132,7 +5134,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateTablespace(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5190,7 +5192,7 @@ public class DB2Parser extends Parser {
 					setState(1010);
 					tablespaceOption();
 					}
-					} 
+					}
 				}
 				setState(1015);
 				_errHandler.sync(this);
@@ -5234,7 +5236,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTablespaceOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5256,7 +5258,7 @@ public class DB2Parser extends Parser {
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(1019);
-				if (!(!starts(_localctx, RULE_namedTablespaceOption))) throw new FailedPredicateException(this, "!starts($ctx, RULE_namedTablespaceOption)");
+				if (!!starts(_localctx, RULE_namedTablespaceOption)) throw new FailedPredicateException(this, "!starts($ctx, RULE_namedTablespaceOption)");
 				setState(1020);
 				nonReserved();
 				}
@@ -5337,7 +5339,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitNamedTablespaceOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5405,7 +5407,7 @@ public class DB2Parser extends Parser {
 						setState(1034);
 						partitionClause();
 						}
-						} 
+						}
 					}
 					setState(1039);
 					_errHandler.sync(this);
@@ -5448,7 +5450,7 @@ public class DB2Parser extends Parser {
 				match(LOCKSIZE);
 				setState(1048);
 				_la = _input.LA(1);
-				if ( !(_la==ANY || ((((_la - 213)) & ~0x3f) == 0 && ((1L << (_la - 213)) & 6442450945L) != 0) || _la==LOB || _la==PAGE) ) {
+				if ( !(_la==ANY || (((_la - 213) & ~0x3f) == 0 && ((1L << (_la - 213)) & 6442450945L) != 0) || _la==LOB || _la==PAGE) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -5633,7 +5635,7 @@ public class DB2Parser extends Parser {
 				enterOuterAlt(_localctx, 20);
 				{
 				setState(1074);
-				if (!(!ahead(_localctx, USING))) throw new FailedPredicateException(this, "!ahead($ctx, USING)");
+				if (!!ahead(_localctx, USING)) throw new FailedPredicateException(this, "!ahead($ctx, USING)");
 				setState(1075);
 				storageOption();
 				}
@@ -5682,7 +5684,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateDatabase(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5702,7 +5704,7 @@ public class DB2Parser extends Parser {
 			setState(1084);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435160367104L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728569839633L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435160367104L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728569839633L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
 				{
 				{
 				setState(1081);
@@ -5758,7 +5760,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDatabaseOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5880,7 +5882,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateStogroup(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5900,7 +5902,7 @@ public class DB2Parser extends Parser {
 			setState(1112);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 5383278148534289L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 5383278148534289L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
 				{
 				{
 				setState(1109);
@@ -5967,7 +5969,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitStogroupOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6498,7 +6500,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateView(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6540,7 +6542,7 @@ public class DB2Parser extends Parser {
 					setState(1153);
 					viewOption();
 					}
-					} 
+					}
 				}
 				setState(1158);
 				_errHandler.sync(this);
@@ -6583,7 +6585,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitViewOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6663,7 +6665,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateAlias(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6756,7 +6758,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateSynonym(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6826,7 +6828,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateSequence(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6858,7 +6860,7 @@ public class DB2Parser extends Parser {
 			setState(1198);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979175040515L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979175040515L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
 				{
 				{
 				setState(1195);
@@ -6918,7 +6920,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSequenceOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7127,7 +7129,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateRole(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7199,7 +7201,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateAuxiliaryTable(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7333,7 +7335,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateType(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7423,7 +7425,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateVariable(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7513,7 +7515,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateMask(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7643,7 +7645,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreatePermission(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7800,7 +7802,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateTrustedContext(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7843,7 +7845,7 @@ public class DB2Parser extends Parser {
 					setState(1356);
 					trustedContextOption();
 					}
-					} 
+					}
 				}
 				setState(1361);
 				_errHandler.sync(this);
@@ -7887,7 +7889,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTrustedContextOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7909,7 +7911,7 @@ public class DB2Parser extends Parser {
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(1365);
-				if (!(!starts(_localctx, RULE_namedTrustedContextOption))) throw new FailedPredicateException(this, "!starts($ctx, RULE_namedTrustedContextOption)");
+				if (!!starts(_localctx, RULE_namedTrustedContextOption)) throw new FailedPredicateException(this, "!starts($ctx, RULE_namedTrustedContextOption)");
 				setState(1366);
 				nonReserved();
 				}
@@ -7989,7 +7991,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitNamedTrustedContextOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8008,11 +8010,11 @@ public class DB2Parser extends Parser {
 				setState(1370);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if (((((_la - 5)) & ~0x3f) == 0 && ((1L << (_la - 5)) & 1152921504606847009L) != 0)) {
+				if (((_la - 5) & ~0x3f) == 0 && ((1L << (_la - 5)) & 1152921504606847009L) != 0) {
 					{
 					setState(1369);
 					_la = _input.LA(1);
-					if ( !(((((_la - 5)) & ~0x3f) == 0 && ((1L << (_la - 5)) & 1152921504606847009L) != 0)) ) {
+					if ( !(((_la - 5) & ~0x3f) == 0 && ((1L << (_la - 5)) & 1152921504606847009L) != 0) ) {
 					_errHandler.recoverInline(this);
 					}
 					else {
@@ -8247,7 +8249,7 @@ public class DB2Parser extends Parser {
 						setState(1433);
 						trustedUser();
 						}
-						} 
+						}
 					}
 					setState(1438);
 					_errHandler.sync(this);
@@ -8290,7 +8292,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTrustedAttribute(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8367,7 +8369,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTrustedUser(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8678,7 +8680,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCaseExpression(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8695,7 +8697,7 @@ public class DB2Parser extends Parser {
 				{
 				setState(1470);
 				match(CASE);
-				setState(1472); 
+				setState(1472);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 				do {
@@ -8705,7 +8707,7 @@ public class DB2Parser extends Parser {
 					caseWhen();
 					}
 					}
-					setState(1474); 
+					setState(1474);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
 				} while ( _la==WHEN );
@@ -8781,7 +8783,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDeclareGlobalTemporaryTable(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8814,7 +8816,7 @@ public class DB2Parser extends Parser {
 					setState(1491);
 					tableOption();
 					}
-					} 
+					}
 				}
 				setState(1496);
 				_errHandler.sync(this);
@@ -8895,7 +8897,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateTrigger(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8983,7 +8985,7 @@ public class DB2Parser extends Parser {
 					setState(1522);
 					triggerCorrelation();
 					}
-					} 
+					}
 				}
 				setState(1527);
 				_errHandler.sync(this);
@@ -9510,7 +9512,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTriggerEvent(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -9613,7 +9615,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTriggerCorrelation(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -9628,7 +9630,7 @@ public class DB2Parser extends Parser {
 			match(REFERENCING);
 			setState(1554);
 			_la = _input.LA(1);
-			if ( !(_la==OLD || ((((_la - 366)) & ~0x3f) == 0 && ((1L << (_la - 366)) & 7L) != 0)) ) {
+			if ( !(_la==OLD || (((_la - 366) & ~0x3f) == 0 && ((1L << (_la - 366)) & 7L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -9694,7 +9696,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTriggerGranularity(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -9792,7 +9794,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateProcedure(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -9832,7 +9834,7 @@ public class DB2Parser extends Parser {
 				setState(1586);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || ((((_la - 132)) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || (((_la - 132) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 					{
 					setState(1578);
 					routineParameter();
@@ -9870,7 +9872,7 @@ public class DB2Parser extends Parser {
 					setState(1591);
 					routineClause();
 					}
-					} 
+					}
 				}
 				setState(1596);
 				_errHandler.sync(this);
@@ -9949,7 +9951,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCreateFunction(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -9984,7 +9986,7 @@ public class DB2Parser extends Parser {
 			setState(1618);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || ((((_la - 132)) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+			if (((_la & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || (((_la - 132) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 				{
 				setState(1610);
 				routineParameter();
@@ -10019,7 +10021,7 @@ public class DB2Parser extends Parser {
 					setState(1621);
 					routineClause();
 					}
-					} 
+					}
 				}
 				setState(1626);
 				_errHandler.sync(this);
@@ -10076,7 +10078,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitRoutineParameter(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -10090,11 +10092,11 @@ public class DB2Parser extends Parser {
 			setState(1633);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (((((_la - 108)) & ~0x3f) == 0 && ((1L << (_la - 108)) & 288230376151711777L) != 0)) {
+			if (((_la - 108) & ~0x3f) == 0 && ((1L << (_la - 108)) & 288230376151711777L) != 0) {
 				{
 				setState(1632);
 				_la = _input.LA(1);
-				if ( !(((((_la - 108)) & ~0x3f) == 0 && ((1L << (_la - 108)) & 288230376151711777L) != 0)) ) {
+				if ( !(((_la - 108) & ~0x3f) == 0 && ((1L << (_la - 108)) & 288230376151711777L) != 0) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -10151,7 +10153,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitParameterName(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -10476,7 +10478,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitRoutineClause(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -11163,7 +11165,7 @@ public class DB2Parser extends Parser {
 				{
 				setState(1721);
 				_la = _input.LA(1);
-				if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 3458764513820541440L) != 0) || _la==ENABLE) ) {
+				if ( !(((_la & ~0x3f) == 0 && ((1L << _la) & 3458764513820541440L) != 0) || _la==ENABLE) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -11355,7 +11357,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCompoundStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -11386,18 +11388,18 @@ public class DB2Parser extends Parser {
 					{
 					{
 					setState(1755);
-					if (!(!closesBlock(_localctx))) throw new FailedPredicateException(this, "!closesBlock($ctx)");
+					if (!!closesBlock(_localctx)) throw new FailedPredicateException(this, "!closesBlock($ctx)");
 					setState(1756);
 					bodyItem();
 					}
-					} 
+					}
 				}
 				setState(1761);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,205,_ctx);
 			}
 			setState(1762);
-			if (!(closesBlock(_localctx))) throw new FailedPredicateException(this, "closesBlock($ctx)");
+			if (!closesBlock(_localctx)) throw new FailedPredicateException(this, "closesBlock($ctx)");
 			setState(1763);
 			match(END);
 			setState(1765);
@@ -11444,7 +11446,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitBodyItem(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -11971,7 +11973,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTriggeredStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -11983,7 +11985,7 @@ public class DB2Parser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(1772); 
+			setState(1772);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -12007,7 +12009,7 @@ public class DB2Parser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(1774); 
+				setState(1774);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,208,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -12055,7 +12057,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterTable(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -12072,7 +12074,7 @@ public class DB2Parser extends Parser {
 			match(TABLE);
 			setState(1778);
 			qualifiedName();
-			setState(1780); 
+			setState(1780);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -12088,7 +12090,7 @@ public class DB2Parser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(1782); 
+				setState(1782);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,209,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -12182,7 +12184,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterTableAction(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -12552,7 +12554,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterColumnAction(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -12700,7 +12702,7 @@ public class DB2Parser extends Parser {
 			case 9:
 				enterOuterAlt(_localctx, 9);
 				{
-				setState(1905); 
+				setState(1905);
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -12716,7 +12718,7 @@ public class DB2Parser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(1907); 
+					setState(1907);
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,225,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -12770,7 +12772,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterTablespace(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -12828,7 +12830,7 @@ public class DB2Parser extends Parser {
 					setState(1921);
 					tablespaceOption();
 					}
-					} 
+					}
 				}
 				setState(1926);
 				_errHandler.sync(this);
@@ -12881,7 +12883,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterIndex(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -12919,7 +12921,7 @@ public class DB2Parser extends Parser {
 						setState(1933);
 						indexOption();
 						}
-						} 
+						}
 					}
 					setState(1938);
 					_errHandler.sync(this);
@@ -12974,7 +12976,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterDatabase(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -12994,7 +12996,7 @@ public class DB2Parser extends Parser {
 			setState(1949);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435160367104L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728569839633L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435160367104L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728569839633L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
 				{
 				{
 				setState(1946);
@@ -13051,7 +13053,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterStogroup(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13071,7 +13073,7 @@ public class DB2Parser extends Parser {
 			setState(1960);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092640L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 5383278148534289L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092640L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 5383278148534289L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
 				{
 				{
 				setState(1957);
@@ -13142,7 +13144,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterSequence(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13162,7 +13164,7 @@ public class DB2Parser extends Parser {
 			setState(1976);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979175040515L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979175040515L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) {
 				{
 				setState(1974);
 				_errHandler.sync(this);
@@ -13238,7 +13240,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterView(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13317,7 +13319,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterProcedure(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13345,7 +13347,7 @@ public class DB2Parser extends Parser {
 				setState(1999);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || ((((_la - 132)) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || (((_la - 132) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 					{
 					setState(1991);
 					routineParameter();
@@ -13383,7 +13385,7 @@ public class DB2Parser extends Parser {
 					setState(2004);
 					routineClause();
 					}
-					} 
+					}
 				}
 				setState(2009);
 				_errHandler.sync(this);
@@ -13460,7 +13462,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterFunction(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13488,7 +13490,7 @@ public class DB2Parser extends Parser {
 				setState(2027);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || ((((_la - 132)) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 20266235644084224L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4430961491167936383L) != 0) || (((_la - 132) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770681695011649L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 					{
 					setState(2019);
 					routineParameter();
@@ -13526,7 +13528,7 @@ public class DB2Parser extends Parser {
 					setState(2032);
 					routineClause();
 					}
-					} 
+					}
 				}
 				setState(2037);
 				_errHandler.sync(this);
@@ -13584,7 +13586,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterTrigger(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13655,7 +13657,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterMask(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13724,7 +13726,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterPermission(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13798,7 +13800,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterTrustedContext(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -13827,7 +13829,7 @@ public class DB2Parser extends Parser {
 					setState(2068);
 					trustedContextOption();
 					}
-					} 
+					}
 				}
 				setState(2073);
 				_errHandler.sync(this);
@@ -13887,7 +13889,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAlterStogroupAction(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -14380,7 +14382,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDropStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -14490,7 +14492,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDroppedObject(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -14658,7 +14660,7 @@ public class DB2Parser extends Parser {
 					setState(2143);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
-					if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435830398976L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4431542033307402111L) != 0) || ((((_la - 132)) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770664515142465L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+					if (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435830398976L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -4431542033307402111L) != 0) || (((_la - 132) & ~0x3f) == 0 && ((1L << (_la - 132)) & 171770664515142465L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 						{
 						setState(2135);
 						dataType();
@@ -14863,7 +14865,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitGrantStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -15121,7 +15123,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitRevokeStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -15382,7 +15384,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPrivilege(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -15594,7 +15596,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPrivilegeObject(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -15793,7 +15795,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitQualifiedNameList(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -15860,7 +15862,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitGrantee(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16140,7 +16142,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCommentStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16213,7 +16215,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCommentTarget(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16231,11 +16233,11 @@ public class DB2Parser extends Parser {
 				setState(2397);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if (_la==INDEX || _la==PACKAGE || ((((_la - 203)) & ~0x3f) == 0 && ((1L << (_la - 203)) & 2594110768761798657L) != 0) || _la==ALIAS) {
+				if (_la==INDEX || _la==PACKAGE || (((_la - 203) & ~0x3f) == 0 && ((1L << (_la - 203)) & 2594110768761798657L) != 0) || _la==ALIAS) {
 					{
 					setState(2396);
 					_la = _input.LA(1);
-					if ( !(_la==INDEX || _la==PACKAGE || ((((_la - 203)) & ~0x3f) == 0 && ((1L << (_la - 203)) & 2594110768761798657L) != 0) || _la==ALIAS) ) {
+					if ( !(_la==INDEX || _la==PACKAGE || (((_la - 203) & ~0x3f) == 0 && ((1L << (_la - 203)) & 2594110768761798657L) != 0) || _la==ALIAS) ) {
 					_errHandler.recoverInline(this);
 					}
 					else {
@@ -16339,7 +16341,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitLabelStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16401,7 +16403,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitLabelTarget(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16680,7 +16682,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitRenameStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16775,7 +16777,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSetStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16843,7 +16845,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSpecialRegister(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -16869,7 +16871,7 @@ public class DB2Parser extends Parser {
 					}
 				}
 
-				setState(2462); 
+				setState(2462);
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -16885,7 +16887,7 @@ public class DB2Parser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(2464); 
+					setState(2464);
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,299,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -16958,7 +16960,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCommitStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17023,7 +17025,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitRollbackStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17058,7 +17060,7 @@ public class DB2Parser extends Parser {
 				setState(2487);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 					{
 					setState(2486);
 					identifier();
@@ -17111,7 +17113,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSavepointStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17183,7 +17185,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitReleaseSavepointStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17256,7 +17258,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitLockStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17356,7 +17358,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitInsertStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17465,7 +17467,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitValuesRow(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17551,7 +17553,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitUpdateStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17618,7 +17620,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitUpdateClauses(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -17632,7 +17634,7 @@ public class DB2Parser extends Parser {
 			setState(2566);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025100800L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+			if (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025100800L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 				{
 				setState(2563);
 				_errHandler.sync(this);
@@ -17739,7 +17741,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitAssignment(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18052,7 +18054,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDeleteStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18080,7 +18082,7 @@ public class DB2Parser extends Parser {
 			setState(2618);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025100800L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 36345525586706449L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+			if (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025100800L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 36345525586706449L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 				{
 				setState(2617);
 				deleteClauses();
@@ -18127,7 +18129,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDeleteClauses(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18406,7 +18408,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSelectStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18489,7 +18491,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitQueryExpression(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18560,7 +18562,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCommonTableExpression(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18625,7 +18627,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSetOperator(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18740,7 +18742,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitQuerySpecification(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -18971,7 +18973,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSelectList(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -19252,7 +19254,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSelectItem(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -19272,7 +19274,7 @@ public class DB2Parser extends Parser {
 				setState(2746);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025100800L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
+				if (((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025100800L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 10445360922591L) != 0)) {
 					{
 					setState(2743);
 					_errHandler.sync(this);
@@ -19358,7 +19360,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTableReference(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -19370,7 +19372,6 @@ public class DB2Parser extends Parser {
 		ParserRuleContext _parentctx = _ctx;
 		int _parentState = getState();
 		TableReferenceContext _localctx = new TableReferenceContext(_ctx, _parentState);
-		TableReferenceContext _prevctx = _localctx;
 		int _startState = 238;
 		enterRecursionRule(_localctx, 238, RULE_tableReference, _p);
 		int _la;
@@ -19629,17 +19630,16 @@ public class DB2Parser extends Parser {
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					if ( _parseListeners!=null ) triggerExitRuleEvent();
-					_prevctx = _localctx;
 					{
 					{
 					_localctx = new TableReferenceContext(_parentctx, _parentState);
 					pushNewRecursionContext(_localctx, _startState, RULE_tableReference);
 					setState(2773);
-					if (!(precpred(_ctx, 1))) throw new FailedPredicateException(this, "precpred(_ctx, 1)");
+					if (!precpred(_ctx, 1)) throw new FailedPredicateException(this, "precpred(_ctx, 1)");
 					setState(2775);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
-					if (((((_la - 92)) & ~0x3f) == 0 && ((1L << (_la - 92)) & 137440002049L) != 0) || _la==RIGHT) {
+					if ((((_la - 92) & ~0x3f) == 0 && ((1L << (_la - 92)) & 137440002049L) != 0) || _la==RIGHT) {
 						{
 						setState(2774);
 						joinType();
@@ -19655,7 +19655,7 @@ public class DB2Parser extends Parser {
 					setState(2780);
 					searchCondition(0);
 					}
-					} 
+					}
 				}
 				setState(2786);
 				_errHandler.sync(this);
@@ -19696,7 +19696,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitJoinType(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -19779,7 +19779,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSortKey(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -19854,7 +19854,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSearchCondition(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -19866,7 +19866,6 @@ public class DB2Parser extends Parser {
 		ParserRuleContext _parentctx = _ctx;
 		int _parentState = getState();
 		SearchConditionContext _localctx = new SearchConditionContext(_ctx, _parentState);
-		SearchConditionContext _prevctx = _localctx;
 		int _startState = 244;
 		enterRecursionRule(_localctx, 244, RULE_searchCondition, _p);
 		int _la;
@@ -19909,13 +19908,12 @@ public class DB2Parser extends Parser {
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					if ( _parseListeners!=null ) triggerExitRuleEvent();
-					_prevctx = _localctx;
 					{
 					{
 					_localctx = new SearchConditionContext(_parentctx, _parentState);
 					pushNewRecursionContext(_localctx, _startState, RULE_searchCondition);
 					setState(2808);
-					if (!(precpred(_ctx, 4))) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
+					if (!precpred(_ctx, 4)) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
 					setState(2809);
 					_la = _input.LA(1);
 					if ( !(_la==AND || _la==OR) ) {
@@ -19929,7 +19927,7 @@ public class DB2Parser extends Parser {
 					setState(2810);
 					searchCondition(5);
 					}
-					} 
+					}
 				}
 				setState(2815);
 				_errHandler.sync(this);
@@ -19992,7 +19990,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitPredicate(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -20205,7 +20203,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitComparisonOperator(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -20218,7 +20216,7 @@ public class DB2Parser extends Parser {
 			{
 			setState(2873);
 			_la = _input.LA(1);
-			if ( !(((((_la - 437)) & ~0x3f) == 0 && ((1L << (_la - 437)) & 63L) != 0)) ) {
+			if ( !(((_la - 437) & ~0x3f) == 0 && ((1L << (_la - 437)) & 63L) != 0) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -20302,7 +20300,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitExpression(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -20314,7 +20312,6 @@ public class DB2Parser extends Parser {
 		ParserRuleContext _parentctx = _ctx;
 		int _parentState = getState();
 		ExpressionContext _localctx = new ExpressionContext(_ctx, _parentState);
-		ExpressionContext _prevctx = _localctx;
 		int _startState = 250;
 		enterRecursionRule(_localctx, 250, RULE_expression, _p);
 		int _la;
@@ -20355,7 +20352,7 @@ public class DB2Parser extends Parser {
 				{
 				setState(2882);
 				match(CASE);
-				setState(2884); 
+				setState(2884);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 				do {
@@ -20365,7 +20362,7 @@ public class DB2Parser extends Parser {
 					caseWhen();
 					}
 					}
-					setState(2886); 
+					setState(2886);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
 				} while ( _la==WHEN );
@@ -20692,7 +20689,6 @@ public class DB2Parser extends Parser {
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					if ( _parseListeners!=null ) triggerExitRuleEvent();
-					_prevctx = _localctx;
 					{
 					setState(2939);
 					_errHandler.sync(this);
@@ -20702,7 +20698,7 @@ public class DB2Parser extends Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(2927);
-						if (!(precpred(_ctx, 15))) throw new FailedPredicateException(this, "precpred(_ctx, 15)");
+						if (!precpred(_ctx, 15)) throw new FailedPredicateException(this, "precpred(_ctx, 15)");
 						setState(2928);
 						_la = _input.LA(1);
 						if ( !(_la==STAR || _la==SLASH) ) {
@@ -20722,7 +20718,7 @@ public class DB2Parser extends Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(2930);
-						if (!(precpred(_ctx, 14))) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
+						if (!precpred(_ctx, 14)) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
 						setState(2931);
 						_la = _input.LA(1);
 						if ( !(_la==PLUS || _la==MINUS) ) {
@@ -20742,7 +20738,7 @@ public class DB2Parser extends Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(2933);
-						if (!(precpred(_ctx, 13))) throw new FailedPredicateException(this, "precpred(_ctx, 13)");
+						if (!precpred(_ctx, 13)) throw new FailedPredicateException(this, "precpred(_ctx, 13)");
 						setState(2934);
 						match(CONCAT_OP);
 						setState(2935);
@@ -20754,7 +20750,7 @@ public class DB2Parser extends Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(2936);
-						if (!(precpred(_ctx, 12))) throw new FailedPredicateException(this, "precpred(_ctx, 12)");
+						if (!precpred(_ctx, 12)) throw new FailedPredicateException(this, "precpred(_ctx, 12)");
 						setState(2937);
 						match(CONCAT);
 						setState(2938);
@@ -20762,7 +20758,7 @@ public class DB2Parser extends Parser {
 						}
 						break;
 					}
-					} 
+					}
 				}
 				setState(2943);
 				_errHandler.sync(this);
@@ -20809,7 +20805,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitCaseWhen(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -20885,7 +20881,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSpecialValue(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -20902,7 +20898,7 @@ public class DB2Parser extends Parser {
 				{
 				setState(2956);
 				match(CURRENT);
-				setState(2958); 
+				setState(2958);
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -20918,7 +20914,7 @@ public class DB2Parser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(2960); 
+					setState(2960);
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,375,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -20976,7 +20972,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitConstant(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -21052,7 +21048,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitSignedNumber(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -21123,7 +21119,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitQualifiedName(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -21144,20 +21140,20 @@ public class DB2Parser extends Parser {
 					{
 					{
 					setState(2978);
-					if (!(continuesName(_localctx))) throw new FailedPredicateException(this, "continuesName($ctx)");
+					if (!continuesName(_localctx)) throw new FailedPredicateException(this, "continuesName($ctx)");
 					setState(2979);
 					match(DOT);
 					setState(2980);
 					identifier();
 					}
-					} 
+					}
 				}
 				setState(2985);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,379,_ctx);
 			}
 			setState(2986);
-			if (!(!continuesName(_localctx))) throw new FailedPredicateException(this, "!continuesName($ctx)");
+			if (!!continuesName(_localctx)) throw new FailedPredicateException(this, "!continuesName($ctx)");
 			}
 		}
 		catch (RecognitionException re) {
@@ -21194,7 +21190,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitIdentifier(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -21461,7 +21457,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitDataType(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -21521,7 +21517,7 @@ public class DB2Parser extends Parser {
 					setState(3007);
 					typeAttribute();
 					}
-					} 
+					}
 				}
 				setState(3012);
 				_errHandler.sync(this);
@@ -21568,7 +21564,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTypeName(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -21882,7 +21878,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitTypeAttribute(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -22003,7 +21999,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitStorageOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -22168,7 +22164,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitEnd(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -22411,7 +22407,7 @@ public class DB2Parser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof DB2ParserVisitor ) return ((DB2ParserVisitor<? extends T>)visitor).visitNonReserved(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -22424,7 +22420,7 @@ public class DB2Parser extends Parser {
 			{
 			setState(3075);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || ((((_la - 71)) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || ((((_la - 140)) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || ((((_la - 214)) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || ((((_la - 279)) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || ((((_la - 343)) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || ((((_la - 407)) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) ) {
+			if ( !(((_la & ~0x3f) == 0 && ((1L << _la) & 18014435025092608L) != 0) || (((_la - 71) & ~0x3f) == 0 && ((1L << (_la - 71)) & 2415336775154335745L) != 0) || (((_la - 140) & ~0x3f) == 0 && ((1L << (_la - 140)) & 670979158262275L) != 0) || (((_la - 214) & ~0x3f) == 0 && ((1L << (_la - 214)) & 316728567742481L) != 0) || (((_la - 279) & ~0x3f) == 0 && ((1L << (_la - 279)) & -2251799813952001L) != 0) || (((_la - 343) & ~0x3f) == 0 && ((1L << (_la - 343)) & -274877906945L) != 0) || (((_la - 407) & ~0x3f) == 0 && ((1L << (_la - 407)) & 458719L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -22445,7 +22441,7 @@ public class DB2Parser extends Parser {
 		return _localctx;
 	}
 
-	public boolean sempred(RuleContext _localctx, int ruleIndex, int predIndex) {
+	@Override public boolean sempred(RuleContext _localctx, int ruleIndex, int predIndex) {
 		switch (ruleIndex) {
 		case 9:
 			return columnAttribute_sempred((ColumnAttributeContext)_localctx, predIndex);

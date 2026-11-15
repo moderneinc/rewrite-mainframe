@@ -34,22 +34,10 @@ import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 import org.openrewrite.trait.VisitFunction2;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.*;
 
 /**
  * An {@code EXEC SQL} block, read only as far as a resource matrix and column lineage need.
@@ -511,7 +499,7 @@ public class SqlStatement implements Trait<CobolPreprocessor.ExecStatement> {
             named.putIfAbsent(String.join(".", parts), parts);
         }
         String written = target == null ? null : String.join(".", partsOf(target));
-        Set<Cobol.Word> used = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<Cobol.Word> used = newSetFromMap(new IdentityHashMap<>());
         List<SqlTableAccess> accesses = new ArrayList<>(named.size());
         List<Spelling> spellings = new ArrayList<>(named.size());
         for (Map.Entry<String, List<String>> table : named.entrySet()) {

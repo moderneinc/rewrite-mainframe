@@ -20,7 +20,6 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -44,7 +43,7 @@ class ControlSectionTest implements RewriteTest {
               CLMROPEN EQU   C'O'
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new ControlSection.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(section -> {
+              .toList()).singleElement().satisfies(section -> {
                 assertThat(section.getName()).isEqualTo("CLMRECD");
                 assertThat(section.getKind()).isEqualTo(ControlSection.Kind.DSECT);
                 assertThat(section.isDummy()).isTrue();
@@ -67,10 +66,8 @@ class ControlSectionTest implements RewriteTest {
         );
     }
 
-    /**
-     * A fullword is placed on a fullword boundary unless a length modifier says otherwise, so an
-     * offset is not simply the sum of the lengths before it.
-     */
+    /// A fullword is placed on a fullword boundary unless a length modifier says otherwise, so an
+    /// offset is not simply the sum of the lengths before it.
     @Test
     void movesToTheBoundaryATypeIsAlignedOn() {
         rewriteRun(
@@ -84,7 +81,7 @@ class ControlSectionTest implements RewriteTest {
               PCBLEN   EQU   *-PCBD
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new ControlSection.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(section -> {
+              .toList()).singleElement().satisfies(section -> {
                 assertThat(section.getFields()).extracting(ControlSection.Field::getName,
                     ControlSection.Field::getOffset, ControlSection.Field::getBytes)
                   .containsExactly(
@@ -109,10 +106,10 @@ class ControlSectionTest implements RewriteTest {
               BLANK    DC    C' '
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new ControlSection.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement()
+              .toList()).singleElement()
               .extracting(section -> section.getFields().stream()
                 .map(field -> field.getName() + ":" + field.getOffset() + ":" + field.getBytes())
-                .collect(Collectors.toList()))
+                .toList())
               .isEqualTo(List.of("U30WGT:0:12", "PATTERN:12:8", "BLANK:20:1")))
           )
         );
@@ -129,7 +126,7 @@ class ControlSectionTest implements RewriteTest {
               THIRD    DS    CL4
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new ControlSection.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(section -> {
+              .toList()).singleElement().satisfies(section -> {
                 assertThat(section.getFields()).extracting(ControlSection.Field::getName,
                     ControlSection.Field::getOffset)
                   .containsExactly(tuple("FIRST", 0), tuple("SECOND", 8), tuple("THIRD", null));

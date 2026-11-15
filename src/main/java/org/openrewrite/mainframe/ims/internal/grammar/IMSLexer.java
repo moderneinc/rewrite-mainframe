@@ -15,14 +15,12 @@
  */
 // Generated from src/main/antlr-ims/IMSLexer.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.ims.internal.grammar;
-import org.antlr.v4.runtime.Lexer;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.*;
+import org.antlr.v4.runtime.atn.ATN;
+import org.antlr.v4.runtime.atn.ATNDeserializer;
+import org.antlr.v4.runtime.atn.LexerATNSimulator;
+import org.antlr.v4.runtime.atn.PredictionContextCache;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class IMSLexer extends Lexer {
@@ -32,9 +30,9 @@ public class IMSLexer extends Lexer {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, IMS_NAMED=4, IMS_STATEMENT=5, IMS_CONTINUATION=6, 
-		COMMENT=7, UNKNOWN=8, STRINGLITERAL=9, TEXT=10, IMS_SEQUENCE_AREA=11, 
-		IMS_STRINGLITERAL=12, IMS_TEXT=13, COMMENT_SEQUENCE_AREA=14, COMMENT_TEXT=15, 
+		UTF_8_BOM=1, WS=2, EOL=3, IMS_NAMED=4, IMS_STATEMENT=5, IMS_CONTINUATION=6,
+		COMMENT=7, UNKNOWN=8, STRINGLITERAL=9, TEXT=10, IMS_SEQUENCE_AREA=11,
+		IMS_STRINGLITERAL=12, IMS_TEXT=13, COMMENT_SEQUENCE_AREA=14, COMMENT_TEXT=15,
 		UNKNOWN_WS=16, UNKNOWN_SEQUENCE_AREA=17, UNKNOWN_STRINGLITERAL=18, UNKNOWN_TEXT=19;
 	public static final int
 		INSIDE_IMS=1, INSIDE_COMMENT=2, INSIDE_UNKNOWN=3;
@@ -48,10 +46,10 @@ public class IMSLexer extends Lexer {
 
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"UTF_8_BOM", "WS", "EOL", "IMS_NAMED", "IMS_STATEMENT", "IMS_CONTINUATION", 
-			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "SEQUENCE_AREA", "LF", 
-			"CR", "FORM_FEED", "IMS_WS", "IMS_EOL", "IMS_SEQUENCE_AREA", "IMS_STRINGLITERAL", 
-			"IMS_TEXT", "COMMENT_EOL", "COMMENT_SEQUENCE_AREA", "COMMENT_TEXT", "UNKNOWN_WS", 
+			"UTF_8_BOM", "WS", "EOL", "IMS_NAMED", "IMS_STATEMENT", "IMS_CONTINUATION",
+			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "SEQUENCE_AREA", "LF",
+			"CR", "FORM_FEED", "IMS_WS", "IMS_EOL", "IMS_SEQUENCE_AREA", "IMS_STRINGLITERAL",
+			"IMS_TEXT", "COMMENT_EOL", "COMMENT_SEQUENCE_AREA", "COMMENT_TEXT", "UNKNOWN_WS",
 			"UNKNOWN_EOL", "UNKNOWN_SEQUENCE_AREA", "UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}
@@ -65,9 +63,9 @@ public class IMSLexer extends Lexer {
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "IMS_NAMED", "IMS_STATEMENT", "IMS_CONTINUATION", 
-			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "IMS_SEQUENCE_AREA", "IMS_STRINGLITERAL", 
-			"IMS_TEXT", "COMMENT_SEQUENCE_AREA", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_SEQUENCE_AREA", 
+			null, "UTF_8_BOM", "WS", "EOL", "IMS_NAMED", "IMS_STATEMENT", "IMS_CONTINUATION",
+			"COMMENT", "UNKNOWN", "STRINGLITERAL", "TEXT", "IMS_SEQUENCE_AREA", "IMS_STRINGLITERAL",
+			"IMS_TEXT", "COMMENT_SEQUENCE_AREA", "COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_SEQUENCE_AREA",
 			"UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}

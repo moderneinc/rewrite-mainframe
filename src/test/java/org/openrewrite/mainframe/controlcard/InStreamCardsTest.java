@@ -16,16 +16,14 @@
 package org.openrewrite.mainframe.controlcard;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jcl;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jclWithProcedures;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.parmMember;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.procedureMember;
+import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.*;
 
 class InStreamCardsTest implements RewriteTest {
 
@@ -43,65 +41,12 @@ class InStreamCardsTest implements RewriteTest {
           //         PEND
           """));
 
-    @Test
-    void cardsWrittenInTheJob() {
-        rewriteRun(
-          jcl(
-            """
-              //CLMJ010  JOB (CLM),'SORT CLAIMS',CLASS=P
-              //SORT     EXEC PGM=SORT
-              //SORTIN   DD DISP=SHR,DSN=CLM.PROD.CLMMAST
-              //SYSIN    DD *
-                SORT FIELDS=(1,8,CH,A)
-              /*
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                List<InStreamCards> decks = InStreamCards.of(cu);
-                assertThat(decks).singleElement().satisfies(deck -> {
-                    assertThat(deck.getDdName()).isEqualTo("SYSIN");
-                    assertThat(deck.getLine()).isEqualTo(5);
-                    assertThat(deck.getText()).isEqualTo("  SORT FIELDS=(1,8,CH,A)");
-                });
-            })
-          )
-        );
-    }
-
-    /**
-     * A SYSIN written in a cataloged procedure is a deck this job runs, so a reader of decks has to
-     * see it. z/OS has allowed in-stream data in a procedure since V2R1 and shops write them there.
-     */
-    @Test
-    void cardsWrittenInACatalogedProcedure() {
-        rewriteRun(
-          jclWithProcedures(
-            """
-              //CLMJ020  JOB (CLM),'SORT CLAIMS',CLASS=P
-              //STEP1    EXEC CLMSORT,HLQ=CLM.TEST
-              """, LIBRARY,
-            spec -> spec.afterRecipe(cu -> {
-                List<InStreamCards> decks = InStreamCards.of(cu);
-                assertThat(decks).singleElement().satisfies(deck -> {
-                    assertThat(deck.getDdName()).isEqualTo("SYSIN");
-                    // Nothing of the procedure is written in the job, so the deck is reached at the
-                    // EXEC that called it.
-                    assertThat(deck.getLine()).isEqualTo(2);
-                    assertThat(deck.getText()).isEqualTo(
-                      "  SORT FIELDS=(1,8,CH,A)\n  INCLUDE COND=(9,2,CH,EQ,C'CA')");
-                });
-            })
-          )
-        );
-    }
-
-    /**
-     * A deck the DD named as a member of a library is a deck this job runs too, and it is the shape
-     * a shop uses when several jobs run the same cards. Its cards print nowhere in the job, so what
-     * they say is put back together from the words the graft left behind — including the columns
-     * each word was written in, without which a comment card swallows the deck.
-     */
-    @Test
-    void cardsOfTheMemberADdNamed() {
+	/// A deck the DD named as a member of a library is a deck this job runs too, and it is the shape
+	/// a shop uses when several jobs run the same cards. Its cards print nowhere in the job, so what
+	/// they say is put back together from the words the graft left behind — including the columns
+	/// each word was written in, without which a comment card swallows the deck.
+	@DocumentExample @Test
+	void cardsOfTheMemberADdNamed() {
         rewriteRun(
           jcl(
             """
@@ -116,7 +61,7 @@ class InStreamCardsTest implements RewriteTest {
                   INCLUDE COND=(9,2,CH,EQ,C'CA')
                 """)),
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamCards> decks = InStreamCards.of(cu);
+                var decks = InStreamCards.of(cu);
                 assertThat(decks).singleElement().satisfies(deck -> {
                     assertThat(deck.getDdName()).isEqualTo("SYSIN");
                     // The deck is reached at the DD that named the member.
@@ -133,10 +78,58 @@ class InStreamCardsTest implements RewriteTest {
         );
     }
 
-    /**
-     * A deck the job writes over a procedure step's SYSIN is one deck: the job's card is where it
-     * was written, and the copy resolved into the step is the same cards.
-     */
+    @Test
+    void cardsWrittenInTheJob() {
+        rewriteRun(
+          jcl(
+            """
+              //CLMJ010  JOB (CLM),'SORT CLAIMS',CLASS=P
+              //SORT     EXEC PGM=SORT
+              //SORTIN   DD DISP=SHR,DSN=CLM.PROD.CLMMAST
+              //SYSIN    DD *
+                SORT FIELDS=(1,8,CH,A)
+              /*
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                var decks = InStreamCards.of(cu);
+                assertThat(decks).singleElement().satisfies(deck -> {
+                    assertThat(deck.getDdName()).isEqualTo("SYSIN");
+                    assertThat(deck.getLine()).isEqualTo(5);
+                    assertThat(deck.getText()).isEqualTo("  SORT FIELDS=(1,8,CH,A)");
+                });
+            })
+          )
+        );
+    }
+
+    /// A SYSIN written in a cataloged procedure is a deck this job runs, so a reader of decks has to
+    /// see it. z/OS has allowed in-stream data in a procedure since V2R1 and shops write them there.
+    @Test
+    void cardsWrittenInACatalogedProcedure() {
+        rewriteRun(
+          jclWithProcedures(
+            """
+              //CLMJ020  JOB (CLM),'SORT CLAIMS',CLASS=P
+              //STEP1    EXEC CLMSORT,HLQ=CLM.TEST
+              """,
+			  LIBRARY,
+            spec -> spec.afterRecipe(cu -> {
+                var decks = InStreamCards.of(cu);
+                assertThat(decks).singleElement().satisfies(deck -> {
+                    assertThat(deck.getDdName()).isEqualTo("SYSIN");
+                    // Nothing of the procedure is written in the job, so the deck is reached at the
+                    // EXEC that called it.
+                    assertThat(deck.getLine()).isEqualTo(2);
+                    assertThat(deck.getText()).isEqualTo(
+                      "  SORT FIELDS=(1,8,CH,A)\n  INCLUDE COND=(9,2,CH,EQ,C'CA')");
+                });
+            })
+          )
+        );
+    }
+
+    /// A deck the job writes over a procedure step's SYSIN is one deck: the job's card is where it
+    /// was written, and the copy resolved into the step is the same cards.
     @Test
     void countsAnOverriddenDeckOnce() {
         rewriteRun(
@@ -147,9 +140,10 @@ class InStreamCardsTest implements RewriteTest {
               //SORT.SYSIN  DD *
                 SORT FIELDS=(1,4,CH,D)
               /*
-              """, LIBRARY,
+              """,
+			  LIBRARY,
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamCards> decks = InStreamCards.of(cu);
+                var decks = InStreamCards.of(cu);
                 assertThat(decks).singleElement().satisfies(deck -> {
                     assertThat(deck.getDdName()).isEqualTo("SYSIN");
                     assertThat(deck.getLine()).isEqualTo(4);
@@ -160,10 +154,8 @@ class InStreamCardsTest implements RewriteTest {
         );
     }
 
-    /**
-     * An override names the procedure step whose DD it replaces, so a job that writes over one
-     * step's SYSIN leaves the cards of the other step where they were.
-     */
+    /// An override names the procedure step whose DD it replaces, so a job that writes over one
+    /// step's SYSIN leaves the cards of the other step where they were.
     @Test
     void overridingOneStepsDeckLeavesTheOthers() {
         rewriteRun(

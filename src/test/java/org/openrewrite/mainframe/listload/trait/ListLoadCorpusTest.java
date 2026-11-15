@@ -30,12 +30,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
@@ -85,7 +86,7 @@ class ListLoadCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("load module listings read, by application:");
+		IO.println("load module listings read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> members = Corpus.moduleListings(repository);
             if (members.isEmpty()) {
@@ -139,8 +140,8 @@ class ListLoadCorpusTest {
                           "(%d entry points, %d aliases, %d translators)%n",
           listings, modules, csects, entries, aliases, translators);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(f -> System.out.println("  " + f));
+			IO.println("failures:");
+            failures.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(failures).isEmpty();
@@ -158,7 +159,7 @@ class ListLoadCorpusTest {
         Path listload = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "listload");
         assertThat(Files.isDirectory(listload)).as("%s", listload).isTrue();
 
-        TreeMap<String, List<ModuleListing.Module>> byMember = new TreeMap<>();
+        Map<String, List<ModuleListing.Module>> byMember = new TreeMap<>();
         for (Path member : Corpus.moduleListings(listload)) {
             PlainText cu = parse(member, new String(Files.readAllBytes(member)));
             assertThat(cu).as("%s", member).isNotNull();
@@ -201,7 +202,7 @@ class ListLoadCorpusTest {
         assertThat(listed).filteredOn(module -> module.getCsects().size() == 1)
           .extracting(ModuleListing.Module::getName).containsExactly("CLMS01", "CLMS02", "CLMS03");
 
-        TreeMap<String, List<String>> statics = new TreeMap<>();
+        Map<String, List<String>> statics = new TreeMap<>();
         for (ModuleListing.Module module : listed) {
             for (ModuleListing.Csect csect : module.getCsects()) {
                 if (csect.getName().startsWith("CLMU") && !csect.getName().equals(module.getName())) {
@@ -232,8 +233,8 @@ class ListLoadCorpusTest {
     @Test
     void whatTheBinderPrintedAgreesWithWhatAmblistFound() throws IOException {
         Path listload = Path.of(System.getenv("JCL_CORPUS"), "mainframe-fixtures", "claims", "listload");
-        TreeMap<String, ModuleListing.Module> listed = new TreeMap<>();
-        TreeMap<String, ModuleListing.Module> printed = new TreeMap<>();
+        Map<String, ModuleListing.Module> listed = new TreeMap<>();
+        Map<String, ModuleListing.Module> printed = new TreeMap<>();
 
         for (Path member : Corpus.moduleListings(listload)) {
             PlainText cu = parse(member, new String(Files.readAllBytes(member)));
@@ -309,11 +310,11 @@ class ListLoadCorpusTest {
     }
 
     private static List<String> names(List<ModuleListing.Module> modules) {
-        return modules.stream().map(ModuleListing.Module::getName).collect(Collectors.toList());
+        return modules.stream().map(ModuleListing.Module::getName).collect(toList());
     }
 
     private static List<String> csectNames(ModuleListing.Module module) {
-        return module.getCsects().stream().map(ModuleListing.Csect::getName).collect(Collectors.toList());
+        return module.getCsects().stream().map(ModuleListing.Csect::getName).collect(toList());
     }
 
     private static int count(Pattern pattern, String source) {
@@ -329,7 +330,7 @@ class ListLoadCorpusTest {
         List<SourceFile> parsed = Corpus.plainTextReader()
           .parseInputs(singletonList(new Parser.Input(member, () -> new ByteArrayInputStream(source.getBytes()))),
             null, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         return parsed.size() == 1 && parsed.getFirst() instanceof PlainText ? (PlainText) parsed.getFirst() : null;
     }
 }

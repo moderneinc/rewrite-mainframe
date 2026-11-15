@@ -24,19 +24,18 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.*;
 
+import static java.util.Collections.newSetFromMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-/**
- * Which copybook wrote each word. The marker names the copybook rather than pointing at the
- * statement that copied it, because a pointer to a node does not survive being stored: the Moderne
- * CLI omits node ids from a build LST and regenerates them on read.
- */
+/// Which copybook wrote each word. The marker names the copybook rather than pointing at the
+/// statement that copied it, because a pointer to a node does not survive being stored: the Moderne
+/// CLI omits node ids from a build LST and regenerates them on read.
 class CopiedWordTest implements RewriteTest {
 
     private List<Cobol.Word> reachedWords(String source) {
-        List<Cobol.Word> reached = new ArrayList<>();
+        var reached = new ArrayList<Cobol.Word>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -51,7 +50,7 @@ class CopiedWordTest implements RewriteTest {
     }
 
     private List<Cobol.Word> copiedWords(String source) {
-        List<Cobol.Word> copied = new ArrayList<>();
+        var copied = new ArrayList<Cobol.Word>();
         for (Cobol.Word word : reachedWords(source)) {
             if (!word.getWord().isEmpty() && word.getMarkers().findFirst(CopiedWord.class).isPresent()) {
                 copied.add(word);
@@ -65,7 +64,7 @@ class CopiedWordTest implements RewriteTest {
     }
 
     private Map<String, String> copybookByWord(String source) {
-        Map<String, String> byWord = new LinkedHashMap<>();
+        var byWord = new LinkedHashMap<String, String>();
         copiedWords(source).forEach(word -> byWord.put(word.getWord(), copybook(word)));
         return byWord;
     }
@@ -85,11 +84,9 @@ class CopiedWordTest implements RewriteTest {
           .containsEntry("DN1", "INCEPTION_3");
     }
 
-    /**
-     * The innermost copybook, not the one the program named. INCEPTION copies INCEPTION_2, which
-     * copies INCEPTION_3, and the fields are declared in the last of those — which is the file
-     * somebody changing them would open.
-     */
+    /// The innermost copybook, not the one the program named. INCEPTION copies INCEPTION_2, which
+    /// copies INCEPTION_3, and the fields are declared in the last of those — which is the file
+    /// somebody changing them would open.
     @Test
     void namesTheCopybookThatDeclaredIt() {
         assertThat(copybookByWord(
@@ -107,7 +104,7 @@ class CopiedWordTest implements RewriteTest {
 
     @Test
     void visitReachesCopybookTextOnlyAsCopiedWords() {
-        List<Cobol.Word> reached = reachedWords(
+        var reached = reachedWords(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -122,7 +119,7 @@ class CopiedWordTest implements RewriteTest {
             """
         );
         // GRP-01 copies INCEPTION_3 directly and GRP-02 through INCEPTION and INCEPTION_2.
-        assertThat(reached).filteredOn(word -> word.getWord().equals("DN1")).hasSize(2)
+        assertThat(reached).filteredOn(word -> "DN1".equals(word.getWord())).hasSize(2)
           .allSatisfy(word -> assertThat(copybook(word)).isEqualTo("INCEPTION_3"));
         // Only statements written inside a copybook name these two.
         assertThat(reached).extracting(Cobol.Word::getWord).doesNotContain("INCEPTION_2", "EMPTY_INCLUDE");
@@ -130,7 +127,7 @@ class CopiedWordTest implements RewriteTest {
 
     @Test
     void wordsCopiedTogetherShareTheirMarkers() {
-        Map<String, Set<Markers>> markersByCopybook = new LinkedHashMap<>();
+        var markersByCopybook = new LinkedHashMap<String, Set<Markers>>();
         for (Cobol.Word word : copiedWords(
           """
             000000 IDENTIFICATION DIVISION.                                         *
@@ -145,7 +142,7 @@ class CopiedWordTest implements RewriteTest {
             """
         )) {
             markersByCopybook.computeIfAbsent(copybook(word),
-              k -> Collections.newSetFromMap(new IdentityHashMap<>())).add(word.getMarkers());
+              k -> newSetFromMap(new IdentityHashMap<>())).add(word.getMarkers());
         }
         assertThat(markersByCopybook).containsOnlyKeys("INCEPTION_3", "KSM31")
           .allSatisfy((copybook, markers) -> assertThat(markers).as(copybook).hasSize(1));

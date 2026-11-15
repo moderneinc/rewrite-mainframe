@@ -23,7 +23,6 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
@@ -33,7 +32,7 @@ class LiteralsTest implements RewriteTest {
 
     @Test
     void readsTheKeywordAndNameOfACicsLiteral() {
-        List<String> read = new ArrayList<>();
+        var read = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override

@@ -16,15 +16,44 @@
 package org.openrewrite.mainframe.db2.bind.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.db2.bind.Assertions.bind;
 
 class BindCommandTest implements RewriteTest {
+
+	@DocumentExample @Test
+	void rebind() {
+        rewriteRun(
+          bind(
+            """
+              DSN SYSTEM(DB2P)
+              REBIND PACKAGE(CLMPKG.*) -
+                   VALIDATE(BIND) EXPLAIN(NO)
+              REBIND PLAN(CLMPLAN,CLMCICS) -
+                   VALIDATE(BIND)
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).toList();
+                assertThat(commands).hasSize(2);
+
+                BindCommand packages = commands.getFirst();
+                assertThat(packages.getKind()).isEqualTo(BindCommand.Kind.REBIND);
+                // A REBIND names collection.package outright, where a BIND leaves the package to DB2.
+                assertThat(packages.getCollection()).isEqualTo("CLMPKG");
+                assertThat(packages.getPackages()).containsExactly("*");
+                assertThat(packages.getMembers()).isEmpty();
+
+                assertThat(commands.get(1).getPlans()).containsExactly("CLMPLAN", "CLMCICS");
+            })
+          )
+        );
+    }
 
     @Test
     void packageBind() {
@@ -40,7 +69,7 @@ class BindCommandTest implements RewriteTest {
               END
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).toList();
                 // DSN and END name no object, so neither is a bind.
                 assertThat(commands).hasSize(1);
 
@@ -79,7 +108,7 @@ class BindCommandTest implements RewriteTest {
               END
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).toList();
                 assertThat(commands).hasSize(2);
 
                 assertThat(commands.getFirst().bindsPlan()).isTrue();
@@ -90,35 +119,6 @@ class BindCommandTest implements RewriteTest {
                 assertThat(commands.getFirst().hasOperand("RETAIN")).isTrue();
                 assertThat(commands.get(1).getPackageList()).containsExactly("CLMPKG.CLMC040");
                 assertThat(commands.get(1).getLine()).isEqualTo(5);
-            })
-          )
-        );
-    }
-
-    @Test
-    void rebind() {
-        rewriteRun(
-          bind(
-            """
-              DSN SYSTEM(DB2P)
-              REBIND PACKAGE(CLMPKG.*) -
-                   VALIDATE(BIND) EXPLAIN(NO)
-              REBIND PLAN(CLMPLAN,CLMCICS) -
-                   VALIDATE(BIND)
-              END
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
-                assertThat(commands).hasSize(2);
-
-                BindCommand packages = commands.getFirst();
-                assertThat(packages.getKind()).isEqualTo(BindCommand.Kind.REBIND);
-                // A REBIND names collection.package outright, where a BIND leaves the package to DB2.
-                assertThat(packages.getCollection()).isEqualTo("CLMPKG");
-                assertThat(packages.getPackages()).containsExactly("*");
-                assertThat(packages.getMembers()).isEmpty();
-
-                assertThat(commands.get(1).getPlans()).containsExactly("CLMPLAN", "CLMCICS");
             })
           )
         );
@@ -175,7 +175,7 @@ class BindCommandTest implements RewriteTest {
               REBIND PACKAGE(SITE1.CLMPKG.CLMD010)
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<BindCommand> commands = new BindCommand.Matcher().lower(cu).toList();
                 assertThat(commands.getFirst().getCollection()).isEqualTo("CLMPKG");
                 assertThat(commands.get(1).getCollection()).isEqualTo("CLMPKG");
                 assertThat(commands.get(1).getPackages()).containsExactly("CLMD010");

@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.listload.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.Members;
 import org.openrewrite.test.RewriteTest;
 
@@ -90,42 +91,8 @@ class ModuleListingTest implements RewriteTest {
       " IEW2008I 0F03 PROCESSING COMPLETED.  RETURN CODE =  0.",
       "");
 
-    @Test
-    void whatAModuleSummarySaysAboutTheModule() {
-        rewriteRun(
-          text(AMBLIST, spec -> spec.afterRecipe(cu -> {
-              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();
-              assertThat(module.getName()).isEqualTo("CLMI010");
-              assertThat(module.getLibrary()).isEqualTo("LOADLIB");
-              assertThat(module.getDataSetName()).isEqualTo("CLM.PROD.LOADLIB");
-              assertThat(module.getSize()).isEqualTo("2970");
-              assertThat(module.getAliases()).extracting(ModuleListing.Name::getText).containsExactly("CLMLOAD");
-              assertThat(module.getLine()).isEqualTo(5);
-          }))
-        );
-    }
-
-    /**
-     * The summary gives the entry point as an offset and nothing else, so which name stands there is
-     * a question only the control section summary answers. A DL/I program is entered at the
-     * {@code DLITCBL} label it declares rather than at its own CSECT, which is the case worth being
-     * sure of.
-     */
-    @Test
-    void theEntryPointIsAnOffsetUntilTheSectionsResolveIt() {
-        rewriteRun(
-          text(AMBLIST, spec -> spec.afterRecipe(cu -> {
-              ModuleListing.Entry entry = new ModuleListing.Matcher().require(cu, null)
-                .getModules().getFirst().getEntry();
-              assertThat(entry.getName()).isEqualTo("DLITCBL");
-              assertThat(entry.getOffset()).isEqualTo("F8");
-              assertThat(entry.getLine()).isEqualTo(19);
-          }))
-        );
-    }
-
-    @Test
-    void theSectionsTheModuleIsMadeOf() {
+	@DocumentExample @Test
+	void theSectionsTheModuleIsMadeOf() {
         rewriteRun(
           text(AMBLIST, spec -> spec.afterRecipe(cu -> {
               ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();
@@ -142,11 +109,41 @@ class ModuleListingTest implements RewriteTest {
         );
     }
 
-    /**
-     * Column 1 of a report is what the printer acted on rather than something it printed, so a row
-     * whose carriage control stands against the name would otherwise take the character for part of
-     * it.
-     */
+    @Test
+    void whatAModuleSummarySaysAboutTheModule() {
+        rewriteRun(
+          text(AMBLIST, spec -> spec.afterRecipe(cu -> {
+              ModuleListing.Module module = new ModuleListing.Matcher().require(cu, null).getModules().getFirst();
+              assertThat(module.getName()).isEqualTo("CLMI010");
+              assertThat(module.getLibrary()).isEqualTo("LOADLIB");
+              assertThat(module.getDataSetName()).isEqualTo("CLM.PROD.LOADLIB");
+              assertThat(module.getSize()).isEqualTo("2970");
+              assertThat(module.getAliases()).extracting(ModuleListing.Name::getText).containsExactly("CLMLOAD");
+              assertThat(module.getLine()).isEqualTo(5);
+          }))
+        );
+    }
+
+    /// The summary gives the entry point as an offset and nothing else, so which name stands there is
+    /// a question only the control section summary answers. A DL/I program is entered at the
+    /// `DLITCBL` label it declares rather than at its own CSECT, which is the case worth being
+    /// sure of.
+    @Test
+    void theEntryPointIsAnOffsetUntilTheSectionsResolveIt() {
+        rewriteRun(
+          text(AMBLIST, spec -> spec.afterRecipe(cu -> {
+              ModuleListing.Entry entry = new ModuleListing.Matcher().require(cu, null)
+                .getModules().getFirst().getEntry();
+              assertThat(entry.getName()).isEqualTo("DLITCBL");
+              assertThat(entry.getOffset()).isEqualTo("F8");
+              assertThat(entry.getLine()).isEqualTo(19);
+          }))
+        );
+    }
+
+    /// Column 1 of a report is what the printer acted on rather than something it printed, so a row
+    /// whose carriage control stands against the name would otherwise take the character for part of
+    /// it.
     @Test
     void columnOneOfAReportIsCarriageControlAndNotText() {
         String report = String.join("\n",
@@ -193,10 +190,8 @@ class ModuleListingTest implements RewriteTest {
         );
     }
 
-    /**
-     * The binder echoes the deck it was given, so the deck is read by the deck reader and the lines
-     * reported are the listing's own.
-     */
+    /// The binder echoes the deck it was given, so the deck is read by the deck reader and the lines
+    /// reported are the listing's own.
     @Test
     void theDeckABinderListingEchoes() {
         rewriteRun(
@@ -213,10 +208,8 @@ class ModuleListingTest implements RewriteTest {
         );
     }
 
-    /**
-     * A binder map prints a label's offset within its own section and AMBLIST prints it within the
-     * module, so the two only reconcile if one of them is put on the other's footing.
-     */
+    /// A binder map prints a label's offset within its own section and AMBLIST prints it within the
+    /// module, so the two only reconcile if one of them is put on the other's footing.
     @Test
     void theSectionsABinderMapPlaces() {
         rewriteRun(
@@ -236,10 +229,8 @@ class ModuleListingTest implements RewriteTest {
         );
     }
 
-    /**
-     * The cross-reference table under the map has rows of the same shape, and they are references out
-     * of the module rather than sections in it.
-     */
+    /// The cross-reference table under the map has rows of the same shape, and they are references out
+    /// of the module rather than sections in it.
     @Test
     void readsNothingPastTheEndOfTheMap() {
         String listing = BINDER +
@@ -267,14 +258,12 @@ class ModuleListingTest implements RewriteTest {
         assertThat(Members.isModuleListing("  DELETE CLM.PROD.EXTRACT\n")).isFalse();
     }
 
-    /**
-     * A member that says nothing about itself must not cost a full read to type: a report announces
-     * itself in its heading and a deck in its first card.
-     */
+    /// A member that says nothing about itself must not cost a full read to type: a report announces
+    /// itself in its heading and a deck in its first card.
     @Test
     void doesNotReadAWholeFileToRefuseIt() {
-        StringBuilder parms = new StringBuilder();
-        for (int i = 0; i < 200; i++) {
+        var parms = new StringBuilder();
+        for (var i = 0; i < 200; i++) {
             parms.append("  RECFM=FB,LRECL=80\n");
         }
         parms.append("1                     A M B L I S T\n");

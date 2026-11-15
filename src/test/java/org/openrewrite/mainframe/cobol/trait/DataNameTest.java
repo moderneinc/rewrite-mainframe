@@ -26,14 +26,12 @@ import org.openrewrite.mainframe.cobol.Corpus;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.test.RewriteTest;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
@@ -41,7 +39,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 class DataNameTest implements RewriteTest {
 
     private List<DataName> names(String source) {
-        List<DataName> found = new ArrayList<>();
+        var found = new ArrayList<DataName>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new DataName.Matcher().<ExecutionContext>asVisitor((name, ctx) -> {
               found.add(name);
@@ -67,18 +65,18 @@ class DataNameTest implements RewriteTest {
         return names.stream()
           .filter(n -> n.isDefinition() && n.getName().equals(name))
           .map(DataName::getTree)
-          .collect(Collectors.toList());
+          .toList();
     }
 
     private static List<DataName> usagesOf(List<DataName> names, String name) {
         return names.stream()
           .filter(n -> !n.isDefinition() && n.getName().equals(name))
-          .collect(Collectors.toList());
+          .toList();
     }
 
     @Test
     void resolvesARedefinesObjectByPosition() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. REDEF.                                              \s
@@ -101,7 +99,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void tellsADefinitionFromAUsage() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. XREFPGM.                                            \s
@@ -135,14 +133,14 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-REC").getParent()).isNull();
     }
 
-    /**
-     * {@code SET ERR-FLG-OFF TO TRUE} moves {@code 'N'} to {@code WS-ERR-FLG}, and {@code IF
-     * END-OF-FILE} compares {@code WS-EOF-FLG} with {@code 'Y'}, so each is a usage of its item even
-     * though nothing in the program writes the item's name.
-     */
+    /// `SET ERR-FLG-OFF TO TRUE` moves `'N'` to `WS-ERR-FLG`, and ```
+    /// IF
+    /// END-OF-FILE
+    /// ``` compares `WS-EOF-FLG` with `'Y'`, so each is a usage of its item even
+    /// though nothing in the program writes the item's name.
     @Test
     void countsAnyUseOfAConditionNameAsAUsageOfItsConditionalVariable() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. FLAGPGM.                                            \s
@@ -184,13 +182,11 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-ERR-FLG").getConditionalVariable()).isNull();
     }
 
-    /**
-     * A condition declared under a {@code FILLER} reads an item nothing else can name, so its uses
-     * credit no item, and not the group above the {@code FILLER} either.
-     */
+    /// A condition declared under a `FILLER` reads an item nothing else can name, so its uses
+    /// credit no item, and not the group above the `FILLER` either.
     @Test
     void aConditionUnderAFillerCreditsNoItem() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. FILLPGM.                                            \s
@@ -213,13 +209,11 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-SWITCHES").isReferenced()).isFalse();
     }
 
-    /**
-     * {@code WS-ROW (WS-IDX)} is a {@code TableCall} whose subscript is a sibling of the name; the
-     * occurrence is of the table, and the index within it is an occurrence of its own.
-     */
+    /// `WS-ROW (WS-IDX)` is a `TableCall` whose subscript is a sibling of the name; the
+    /// occurrence is of the table, and the index within it is an occurrence of its own.
     @Test
     void resolvesASubscriptedOrReferenceModifiedOccurrenceToTheItem() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. TABLPGM.                                            \s
@@ -259,7 +253,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesTheReturnCodeOfStopRunGiving() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. STOPPGM.                                            \s
@@ -275,14 +269,12 @@ class DataNameTest implements RewriteTest {
           .satisfies(usage -> assertThat(usage.getDefinition()).isNotNull());
     }
 
-    /**
-     * A name declared in two records is told apart by {@code OF}. Written without it the reference
-     * is one the compiler would reject, and resolves to nothing; both declarations count as named,
-     * since one of them was meant.
-     */
+    /// A name declared in two records is told apart by `OF`. Written without it the reference
+    /// is one the compiler would reject, and resolves to nothing; both declarations count as named,
+    /// since one of them was meant.
     @Test
     void qualifiesANameDeclaredTwice() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. QUALPGM.                                            \s
@@ -303,7 +295,7 @@ class DataNameTest implements RewriteTest {
         assertThat(names).filteredOn(n -> !n.isDefinition()).extracting(DataNameTest::describe)
           .containsExactly("CUST-ID", "REC-A", "CUST-ID", "REC-B", "CUST-ID", "CUST-NM");
 
-        List<DataName> usages = usagesOf(names, "CUST-ID");
+        var usages = usagesOf(names, "CUST-ID");
         assertThat(usages.getFirst().getQualifiers()).containsExactly("REC-A");
         assertThat(usages.getFirst().getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-A");
         assertThat(usages.get(1).getParent()).isNotNull().extracting(DataName::getName).isEqualTo("REC-B");
@@ -324,7 +316,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesAQualifierThroughTheNameItQualifies() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. QUALPGM.                                            \s
@@ -342,7 +334,7 @@ class DataNameTest implements RewriteTest {
             """
         );
 
-        List<DataName> keys = usagesOf(names, "KEY-GRP");
+        var keys = usagesOf(names, "KEY-GRP");
         assertThat(keys.getFirst().getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
         assertThat(keys.get(1).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-B");
         assertThat(keys.get(2).getDefinition()).isNotNull().extracting(d -> d.getParent().getName()).isEqualTo("REC-A");
@@ -350,7 +342,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesAnIndexNameToTheTableItIndexes() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -385,7 +377,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesAClauseOperandWithinTheEntryItBelongsTo() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. RENPGM.                                             \s
@@ -415,7 +407,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void qualifiesARecordByItsFile() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. FILEPGM.                                            \s
@@ -446,8 +438,8 @@ class DataNameTest implements RewriteTest {
           .containsExactly("OUT-REC", "OUT-REC", "OUT-KEY", "OUT-REC", "OUT-KEY", "KEY-EMPTY");
 
         // Each resolves to the declaration under the file it names, and so does a qualifier.
-        List<Cobol.Word> records = definitionsOf(names, "OUT-REC");
-        List<Cobol.Word> keys = definitionsOf(names, "OUT-KEY");
+        var records = definitionsOf(names, "OUT-REC");
+        var keys = definitionsOf(names, "OUT-KEY");
         assertThat(usagesOf(names, "OUT-REC")).extracting(u -> u.getDefinition().getTree())
           .containsExactly(records.getFirst(), records.get(1), records.getFirst());
         assertThat(usagesOf(names, "OUT-KEY")).extracting(u -> u.getDefinition().getTree())
@@ -461,7 +453,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void qualifiesByAContainingProgramsGlobalFileUnlessHidden() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -505,13 +497,11 @@ class DataNameTest implements RewriteTest {
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("HIDEPGM");
     }
 
-    /**
-     * FLTCMT declares a record with a condition name. The definitions are the copybook's; the usages
-     * the program's own.
-     */
+    /// FLTCMT declares a record with a condition name. The definitions are the copybook's; the usages
+    /// the program's own.
     @Test
     void attributesACopiedDefinitionToItsCopybook() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. COPYPGM.                                            \s
@@ -544,7 +534,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesANameTheTranslatorOrThePrecompilerDeclares() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. SUPPLIED.                                           \s
@@ -582,7 +572,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void qualifiesAnEibFieldTheProgramAlsoDeclares() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. SAVEEIB.                                            \s
@@ -596,7 +586,7 @@ class DataNameTest implements RewriteTest {
             """
         );
 
-        List<DataName> dates = usagesOf(names, "EIBDATE");
+        var dates = usagesOf(names, "EIBDATE");
         assertThat(dates.getFirst().getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(true);
         assertThat(dates.get(1).getDefinition()).isNotNull().extracting(DataName::isSystemSupplied).isEqualTo(false);
 
@@ -606,7 +596,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void prefersTheProgramsOwnDeclarationOfAnEibField() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OWNEIB.                                             \s
@@ -629,7 +619,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesADliInterfaceBlockFieldOnlyInAProgramWithExecDli() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. DLIPGM.                                             \s
@@ -651,7 +641,7 @@ class DataNameTest implements RewriteTest {
             assertThat(usage.getParent()).isNotNull().extracting(DataName::getName).isEqualTo("DLZDIB");
         });
 
-        List<DataName> withoutDli = names(
+        var withoutDli = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. NODLI.                                              \s
@@ -666,14 +656,12 @@ class DataNameTest implements RewriteTest {
           .satisfies(usage -> assertThat(usage.getDefinition()).isNull());
     }
 
-    /**
-     * The words of an {@code EXEC} block are not parsed, so a data name in one is known by where it
-     * sits: after a colon in SQL, inside an option's parentheses in CICS. {@code NAME} is a column
-     * and {@code LENGTH} an option; neither is declared, and neither is an occurrence.
-     */
+    /// The words of an `EXEC` block are not parsed, so a data name in one is known by where it
+    /// sits: after a colon in SQL, inside an option's parentheses in CICS. `NAME` is a column
+    /// and `LENGTH` an option; neither is declared, and neither is an occurrence.
     @Test
     void readsAHostVariableAndAnOptionOperandInAnExecBlock() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. EXECPGM.                                            \s
@@ -702,7 +690,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesAQualifiedOperandInAnExecBlock() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. EXECPGM.                                            \s
@@ -725,7 +713,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesAHostVariableQualifiedByItsStructure() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. SQLPGM.                                             \s
@@ -757,7 +745,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void readsACicsResponseValueAsALiteral() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. RESPPGM.                                            \s
@@ -783,7 +771,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void keepsANestedProgramsNamesApart() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -805,7 +793,7 @@ class DataNameTest implements RewriteTest {
         );
 
         // The inner declaration hides the outer GLOBAL one. Either program also reading the other's makes its usage ambiguous.
-        List<DataName> definitions = names.stream().filter(DataName::isDefinition).collect(Collectors.toList());
+        List<DataName> definitions = names.stream().filter(DataName::isDefinition).toList();
         assertThat(definitions).hasSize(2).allMatch(DataName::isReferenced);
         assertThat(usagesOf(names, "WS-SHARED")).satisfiesExactly(
           outer -> assertThat(outer.getDefinition()).isNotNull()
@@ -816,7 +804,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesTheGlobalItemsOfEveryContainingProgram() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -867,7 +855,7 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "WS-FLAG").isReferenced()).isTrue();
 
         // MIDPGM's WS-REC is not GLOBAL, so it neither reaches INNERPGM nor hides OUTERPGM's.
-        assertThat(names).filteredOn(n -> n.isDefinition() && n.getName().equals("WS-REC"))
+        assertThat(names).filteredOn(n -> n.isDefinition() && "WS-REC".equals(n.getName()))
           .extracting(DataName::isGlobal).containsExactly(true, false);
         assertThat(usagesOf(names, "WS-REC").getFirst().getDefinition()).isNotNull()
           .extracting(d -> Program.nameOf(d.getCursor())).isEqualTo("OUTERPGM");
@@ -879,7 +867,7 @@ class DataNameTest implements RewriteTest {
 
     @Test
     void resolvesANestedEibFieldToTheOuterProgramsGlobalDfheiblk() {
-        List<DataName> names = names(
+        var names = names(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -903,41 +891,39 @@ class DataNameTest implements RewriteTest {
         assertThat(definitionOf(names, "EIBCALEN").isReferenced()).isTrue();
     }
 
-    /**
-     * Run with {@code COBOL_CORPUS=/path/to/corpus}. GenApp declares its records through copybooks
-     * and names a called program only inside an {@code EXEC CICS LINK}; CardDemo sets and tests
-     * condition names its copybooks declare.
-     */
+    /// Run with `COBOL_CORPUS=/path/to/corpus`. GenApp declares its records through copybooks
+    /// and names a called program only inside an `EXEC CICS LINK`; CardDemo sets and tests
+    /// condition names its copybooks declare.
     @EnabledIfEnvironmentVariable(named = "COBOL_CORPUS", matches = ".+")
     @Test
-    void readsRealPrograms() throws IOException {
+    void readsRealPrograms() throws Exception {
         Path root = Path.of(System.getenv("COBOL_CORPUS"));
-        Map<String, List<DataName>> programs = new HashMap<>();
-        int definitions = 0;
-        int usages = 0;
-        int resolved = 0;
-        int unreferenced = 0;
-        int throughSet = 0;
-        Map<String, Integer> unresolved = new HashMap<>();
-        Map<String, List<String>> unresolvedIn = new HashMap<>();
+        var programs = new HashMap<String, List<DataName>>();
+        var definitions = 0;
+        var usages = 0;
+        var resolved = 0;
+        var unreferenced = 0;
+        var throughSet = 0;
+        var unresolved = new HashMap<String, Integer>();
+        var unresolvedIn = new HashMap<String, List<String>>();
 
         for (Path repository : Corpus.repositories(root)) {
             String application = repository.getFileName().toString();
-            if (!application.equals("genapp") && !application.equals("carddemo")) {
+            if (!"genapp".equals(application) && !"carddemo".equals(application)) {
                 continue;
             }
             List<SourceFile> copybooks = CopybookParser.builder().build()
               .parseInputs(Corpus.inputs(Corpus.copybooks(repository)), root, new InMemoryExecutionContext())
-              .collect(Collectors.toList());
+              .toList();
             List<SourceFile> parsed = CobolParser.builder().copybooks(copybooks).build()
               .parseInputs(Corpus.inputs(Corpus.programs(repository)), root, new InMemoryExecutionContext())
-              .collect(Collectors.toList());
+              .toList();
             for (SourceFile program : parsed) {
                 if (!(program instanceof Cobol.CompilationUnit)) {
                     continue;
                 }
                 String name = program.getSourcePath().getFileName().toString();
-                List<DataName> names = new ArrayList<>();
+                var names = new ArrayList<DataName>();
                 new DataName.Matcher().<Integer>asVisitor((dataName, p) -> {
                     names.add(dataName);
                     return dataName.getTree();
@@ -973,7 +959,7 @@ class DataNameTest implements RewriteTest {
             .sorted((a, b) -> b.getValue() - a.getValue())
             .limit(12)
             .map(e -> e.getKey() + " x" + e.getValue())
-            .collect(Collectors.joining(", ")));
+            .collect(joining(", ")));
 
         // GenApp: a called program's name is a 77 item reached only through EXEC CICS LINK Program(LGACDB01).
         List<DataName> lgacus01 = programs.get("lgacus01.cbl");

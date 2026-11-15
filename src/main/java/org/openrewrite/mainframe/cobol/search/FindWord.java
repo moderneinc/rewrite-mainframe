@@ -22,6 +22,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
 import org.openrewrite.mainframe.cobol.NameVisitor;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
@@ -29,7 +30,6 @@ import org.openrewrite.mainframe.cobol.table.WordSearchResult;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Replacement;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.concurrent.atomic.AtomicBoolean;

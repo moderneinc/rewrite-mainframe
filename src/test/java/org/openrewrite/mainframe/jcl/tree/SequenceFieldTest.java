@@ -25,8 +25,8 @@ import org.openrewrite.marker.Marker;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -134,7 +134,7 @@ class SequenceFieldTest {
           .parse(new InMemoryExecutionContext(t -> {
               throw new IllegalStateException(t);
           }), source)
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(Jcl.CompilationUnit.class);
         return (Jcl.CompilationUnit) parsed.getFirst();

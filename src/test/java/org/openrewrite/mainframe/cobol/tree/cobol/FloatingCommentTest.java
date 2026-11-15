@@ -28,15 +28,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-/**
- * A COBOL 2002 floating comment ({@code *>}) ends the content area wherever it appears, and the rest of the line
- * belongs to the comment area. Printing round-trips whether or not the words after a floating comment were read
- * from the right source positions, so these assert the structure rather than the output.
- */
+/// A COBOL 2002 floating comment (`*>`) ends the content area wherever it appears, and the rest of the line
+/// belongs to the comment area. Printing round-trips whether or not the words after a floating comment were read
+/// from the right source positions, so these assert the structure rather than the output.
 class FloatingCommentTest extends CobolTest {
 
     private List<String> entriesIn(String source) {
-        List<String> entries = new ArrayList<>();
+        var entries = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -51,7 +49,7 @@ class FloatingCommentTest extends CobolTest {
               // Words copied in from a copybook print in the copybook, not here, so the entry is built from their text.
               @Override
               public Cobol.Picture visitPicture(Cobol.Picture picture, ExecutionContext ctx) {
-                  StringBuilder chars = new StringBuilder();
+                  var chars = new StringBuilder();
                   for (Cobol.Word word : picture.getWords()) {
                       chars.append(word.getWord());
                   }
@@ -71,7 +69,7 @@ class FloatingCommentTest extends CobolTest {
     }
 
     private List<String> literalsIn(String source) {
-        List<String> literals = new ArrayList<>();
+        var literals = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -121,9 +119,7 @@ class FloatingCommentTest extends CobolTest {
         )).containsExactly("WS-SORTCODE", "PIC 9(6)", "WS-ACCNO", "PIC 9(8)");
     }
 
-    /**
-     * The tag does not have to be followed by a separator.
-     */
+    /// The tag does not have to be followed by a separator.
     @Test
     void floatingCommentWithoutASeparator() {
         assertThat(entriesIn(
@@ -140,9 +136,7 @@ class FloatingCommentTest extends CobolTest {
         )).containsExactly("WS-SORTCODE", "PIC 9(6)");
     }
 
-    /**
-     * The tag only starts a comment at the beginning of the content area or after a space.
-     */
+    /// The tag only starts a comment at the beginning of the content area or after a space.
     @Test
     void tagInsideALiteralIsNotAComment() {
         assertThat(literalsIn(
@@ -188,9 +182,7 @@ class FloatingCommentTest extends CobolTest {
         )).containsExactly("WS-SORTCODE", "PIC 9(6)", "WS-ACCNO", "PIC 9(8)");
     }
 
-    /**
-     * The tag ends the content area even when it runs right up against column 72.
-     */
+    /// The tag ends the content area even when it runs right up against column 72.
     @Test
     void floatingCommentAtTheEndOfTheContentArea() {
         rewriteRun(
@@ -205,9 +197,7 @@ class FloatingCommentTest extends CobolTest {
         );
     }
 
-    /**
-     * A comment line is a comment already; the tag inside one is just text.
-     */
+    /// A comment line is a comment already; the tag inside one is just text.
     @Test
     void tagOnACommentLineIsNotAFloatingComment() {
         rewriteRun(
@@ -241,9 +231,7 @@ class FloatingCommentTest extends CobolTest {
         );
     }
 
-    /**
-     * Copied source is read against the copybook's own column areas, then printed into the program being parsed.
-     */
+    /// Copied source is read against the copybook's own column areas, then printed into the program being parsed.
     @Test
     void floatingCommentInACopiedSource() {
         assertThat(entriesIn(

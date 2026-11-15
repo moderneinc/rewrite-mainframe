@@ -28,14 +28,10 @@ import org.openrewrite.text.PlainText;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
@@ -68,7 +64,7 @@ class SasCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("SAS members read, by application:");
+		IO.println("SAS members read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> paths = Corpus.sasPrograms(repository);
             if (paths.isEmpty()) {
@@ -128,8 +124,8 @@ class SasCorpusTest {
           members, statements, includes, libraries, librefs, files, macros, macroCalls, layouts,
           tables);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(failure -> System.out.println("  " + failure));
+			IO.println("failures:");
+            failures.forEach(failure -> IO.println("  " + failure));
         }
 
         assertThat(failures).isEmpty();
@@ -306,7 +302,7 @@ class SasCorpusTest {
     @Test
     void readsTheProgramTheJobWritesInStream() throws IOException {
         Jcl.CompilationUnit job = job();
-        List<InstreamSas> streams = new InstreamSas.Matcher().lower(job).collect(Collectors.toList());
+        List<InstreamSas> streams = new InstreamSas.Matcher().lower(job).collect(toList());
         assertThat(streams).extracting(InstreamSas::getName, InstreamSas::getLine)
           .containsExactly(tuple("SYSIN", 35));
 
@@ -331,7 +327,7 @@ class SasCorpusTest {
             programs.put(memberName(member), parse(directory, member));
         }
         Jcl.CompilationUnit job = job();
-        for (InstreamSas stream : new InstreamSas.Matcher().lower(job).collect(Collectors.toList())) {
+        for (InstreamSas stream : new InstreamSas.Matcher().lower(job).collect(toList())) {
             programs.put(memberName(job.getSourcePath()), stream.parse());
         }
         return programs;
@@ -343,7 +339,7 @@ class SasCorpusTest {
         assertThat(Files.isRegularFile(member)).as("%s", member).isTrue();
         List<SourceFile> parsed = JclParser.builder().build()
           .parseInputs(Corpus.inputs(singletonList(member)), directory, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).singleElement().isInstanceOf(Jcl.CompilationUnit.class);
         return (Jcl.CompilationUnit) parsed.getFirst();
     }
@@ -367,7 +363,7 @@ class SasCorpusTest {
     private static PlainText parse(Path directory, Path member) {
         List<SourceFile> parsed = Corpus.plainTextReader()
           .parseInputs(Corpus.inputs(singletonList(member)), directory, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).singleElement().isInstanceOf(PlainText.class);
         return (PlainText) parsed.getFirst();
     }

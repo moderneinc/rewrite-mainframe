@@ -27,11 +27,9 @@ import static org.openrewrite.test.SourceSpecs.text;
 
 class ReferencesTest implements RewriteTest {
 
-    /**
-     * INTERLINKS 21.2 and 21.3. Everything the program reaches, it reaches by a DD name the step
-     * running it resolves: {@code SASSRC} is not a path, and a {@code LIBNAME} or an {@code INFILE}
-     * with no data set after it names whatever the JCL allocated.
-     */
+    /// INTERLINKS 21.2 and 21.3. Everything the program reaches, it reaches by a DD name the step
+    /// running it resolves: `SASSRC` is not a path, and a `LIBNAME` or an `INFILE`
+    /// with no data set after it names whatever the JCL allocated.
     @DocumentExample
     @Test
     void readsWhatAProgramReachesByDdName() {
@@ -64,10 +62,8 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * A program that names its own data set is naming one, and there is no DD for a job to allocate.
-     * The two shapes are the same statement, so only the quoted literal tells them apart.
-     */
+    /// A program that names its own data set is naming one, and there is no DD for a job to allocate.
+    /// The two shapes are the same statement, so only the quoted literal tells them apart.
     @Test
     void tellsADataSetTheProgramNamesFromOneTheStepAllocates() {
         rewriteRun(
@@ -95,13 +91,11 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * INTERLINKS 21.3. A {@code PROC} names a libref two ways, and both are DD names where no
-     * {@code LIBNAME} of the member gave the libref a data set: {@code LIBRARY=} for the library a
-     * stored format outlives the step in, and the first qualifier of whatever {@code DATA=},
-     * {@code OUT=} or {@code BASE=} was given. An unqualified data set is in {@code WORK} and reaches
-     * nothing.
-     */
+    /// INTERLINKS 21.3. A `PROC` names a libref two ways, and both are DD names where no
+    /// `LIBNAME` of the member gave the libref a data set: `LIBRARY=` for the library a
+    /// stored format outlives the step in, and the first qualifier of whatever `DATA=`,
+    /// `OUT=` or `BASE=` was given. An unqualified data set is in `WORK` and reaches
+    /// nothing.
     @Test
     void readsTheLibrefsAProcNames() {
         rewriteRun(
@@ -131,10 +125,8 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * A libref the member itself gave a data set to needs nothing of the step, so a {@code PROC} that
-     * uses it reaches no DD and is not reported twice.
-     */
+    /// A libref the member itself gave a data set to needs nothing of the step, so a `PROC` that
+    /// uses it reaches no DD and is not reported twice.
     @Test
     void leavesOutALibrefALibnameAlreadyResolved() {
         rewriteRun(
@@ -153,11 +145,9 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * INTERLINKS 21.2. A name after a {@code %} is either a macro somebody wrote or a statement of
-     * the macro language, and nothing in the source tells them apart — so the statements are listed
-     * and everything else is an invocation. Read the other way, every {@code %LET} reports a call.
-     */
+    /// INTERLINKS 21.2. A name after a `%` is either a macro somebody wrote or a statement of
+    /// the macro language, and nothing in the source tells them apart — so the statements are listed
+    /// and everything else is an invocation. Read the other way, every `%LET` reports a call.
     @Test
     void tellsAMacroInvocationFromAStatementOfTheMacroLanguage() {
         rewriteRun(
@@ -193,10 +183,8 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * A member reached by a quoted path is not reached by a DD, and a member name with no library in
-     * front of it is left to the {@code SASAUTOS} search order.
-     */
+    /// A member reached by a quoted path is not reached by a DD, and a member name with no library in
+    /// front of it is left to the `SASAUTOS` search order.
     @Test
     void readsAnIncludeWrittenWithoutALibrary() {
         rewriteRun(

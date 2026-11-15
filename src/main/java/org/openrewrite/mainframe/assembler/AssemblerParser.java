@@ -21,6 +21,8 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.internal.EncodingDetectingInputStream;
+import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.mainframe.assembler.tree.Assembler;
 import org.openrewrite.mainframe.assembler.tree.Space;
 import org.openrewrite.mainframe.cobol.CopybookParser;
@@ -28,8 +30,6 @@ import org.openrewrite.mainframe.cobol.MacroLines;
 import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.mainframe.ims.ImsParser;
-import org.openrewrite.internal.EncodingDetectingInputStream;
-import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
@@ -105,7 +105,7 @@ public class AssemblerParser implements Parser {
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
-                        return requirePrintEqualsInput((SourceFile) cu, sourceFile, relativeTo, ctx);
+                        return requirePrintEqualsInput(cu, sourceFile, relativeTo, ctx);
                     } catch (Throwable t) {
                         sample.stop(MetricsHelper.errorTags(timer, t).register(Metrics.globalRegistry));
                         return ParseError.build(this, sourceFile, relativeTo, pctx, t);

@@ -26,9 +26,9 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -57,7 +57,7 @@ class ApplicationTest {
     void theApplicationsAndTheirTransactions() {
         Ims.CompilationUnit deck = parse(STAGE_1);
 
-        List<Application> applications = new Application.Matcher().lower(deck).collect(Collectors.toList());
+        List<Application> applications = new Application.Matcher().lower(deck).collect(toList());
         assertThat(applications).extracting(Application::getPsbName, Application::getProgramType,
             Application::isMessageDriven, Application::getLine)
           .containsExactly(
@@ -79,7 +79,7 @@ class ApplicationTest {
     @Test
     void aTransactionKnowsItsApplication() {
         List<Transaction> transactions = new Transaction.Matcher().lower(parse(STAGE_1))
-          .collect(Collectors.toList());
+          .collect(toList());
 
         assertThat(transactions).hasSize(2);
         assertThat(transactions.get(1).getApplication()).isNotNull()
@@ -91,7 +91,7 @@ class ApplicationTest {
      */
     @Test
     void theDatabasesTheControlRegionIsToldAbout() {
-        assertThat(new DatabaseAccess.Matcher().lower(parse(STAGE_1)).collect(Collectors.toList()))
+        assertThat(new DatabaseAccess.Matcher().lower(parse(STAGE_1)).collect(toList()))
           .extracting(DatabaseAccess::getName, DatabaseAccess::getAccess, DatabaseAccess::getLine)
           .containsExactly(
             tuple("CLMDBD01", "UP", 9),
@@ -112,7 +112,7 @@ class ApplicationTest {
                    TRANSACT CODE=CLMINQ,SPA=(150,)
           """);
 
-        assertThat(new Application.Matcher().lower(deck).collect(Collectors.toList()))
+        assertThat(new Application.Matcher().lower(deck).collect(toList()))
           .singleElement().satisfies(application ->
             assertThat(application.getTransactions()).isEmpty());
     }
@@ -125,7 +125,7 @@ class ApplicationTest {
                    TRANSACT CODE=CLMJTRN
           """);
 
-        assertThat(new Application.Matcher().lower(deck).collect(Collectors.toList()))
+        assertThat(new Application.Matcher().lower(deck).collect(toList()))
           .singleElement().satisfies(application -> {
               assertThat(application.getPsbName()).isEqualTo("CLMJINQ");
               assertThat(application.getTransactions()).extracting(Transaction::getCode).containsExactly("CLMJTRN");
@@ -135,7 +135,7 @@ class ApplicationTest {
     private static Ims.CompilationUnit parse(String source) {
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input(source)), null, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(Ims.CompilationUnit.class);
         assertThat(parsed.getFirst().printAll()).isEqualTo(source);

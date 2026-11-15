@@ -30,8 +30,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -63,7 +63,7 @@ class JclCoverageTest {
         for (Path member : members) {
             List<SourceFile> parsed = JclParser.builder().build()
                     .parse(new InMemoryExecutionContext(), new String(Files.readAllBytes(member)))
-                    .collect(Collectors.toList());
+                    .collect(toList());
             if (parsed.isEmpty() || !(parsed.getFirst() instanceof Jcl.CompilationUnit)) {
                 continue;
             }
@@ -79,13 +79,13 @@ class JclCoverageTest {
             }
         }
 
-        System.out.println("=== node types");
+		IO.println("=== node types");
         byType.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                 .forEach(e -> System.out.printf("%8d  %s%n", e.getValue(), e.getKey()));
-        System.out.println("=== operations");
+		IO.println("=== operations");
         byOperation.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                 .forEach(e -> System.out.printf("%8d  %s%n", e.getValue(), e.getKey()));
-        System.out.println("=== unknown, most common 25");
+		IO.println("=== unknown, most common 25");
         unknownTexts.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                 .limit(25).forEach(e -> System.out.printf("%8d  [%s]%n", e.getValue(), e.getKey()));
 

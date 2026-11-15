@@ -20,6 +20,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Incubating;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPrinterUtils;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
@@ -27,7 +28,6 @@ import org.openrewrite.mainframe.cobol.search.FindWords;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.ColumnArea;
 import org.openrewrite.mainframe.cobol.tree.IndicatorArea;
-import org.openrewrite.internal.ListUtils;
 
 import java.util.HashMap;
 import java.util.List;

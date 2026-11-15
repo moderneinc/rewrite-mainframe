@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.linkedit.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,8 +25,8 @@ import static org.openrewrite.mainframe.linkedit.Assertions.linkEdit;
 
 class LinkEditDeckTest implements RewriteTest {
 
-    @Test
-    void moduleEntryAndTheObjectsItIsBuiltFrom() {
+	@DocumentExample @Test
+	void moduleEntryAndTheObjectsItIsBuiltFrom() {
         rewriteRun(
           linkEdit(
             """
@@ -50,18 +51,16 @@ class LinkEditDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * A DL/I program's entry is the {@code DLITCBL} label it declares, not the program's own name, so
-     * the entry and the module are two different answers and both are worth having.
-     */
+    /// A DL/I program's entry is the `DLITCBL` label it declares, not the program's own name, so
+    /// the entry and the module are two different answers and both are worth having.
     @Test
     void entryThatIsALabelRatherThanTheProgram() {
         rewriteRun(
           linkEdit(
             """
-                INCLUDE RESLIB(DFSLI000)
-                ENTRY DLITCBL
-                NAME CLMI010(R)
+              INCLUDE RESLIB(DFSLI000)
+              ENTRY DLITCBL
+              NAME CLMI010(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);
@@ -77,9 +76,9 @@ class LinkEditDeckTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-                ENTRY GVBMR95
-                ALIAS GVBMR95E,GVBMR95R
-                NAME GVBMR95(R)
+              ENTRY GVBMR95
+              ALIAS GVBMR95E,GVBMR95R
+              NAME GVBMR95(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);
@@ -91,19 +90,17 @@ class LinkEditDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * What a deck leaves out is as much of an answer as what it names: the reserve calculation is
-     * included here and so is bound in, while the one the program calls through a data name is a load
-     * module of its own and appears in no {@code INCLUDE} at all.
-     */
+    /// What a deck leaves out is as much of an answer as what it names: the reserve calculation is
+    /// included here and so is bound in, while the one the program calls through a data name is a load
+    /// module of its own and appears in no `INCLUDE` at all.
     @Test
     void aModuleThatBindsSomeOfWhatItCalls() {
         rewriteRun(
           linkEdit(
             """
-                INCLUDE OBJLIB(CLMU010,CLMU030)
-                ENTRY CLMB020
-                NAME CLMB020(R)
+              INCLUDE OBJLIB(CLMU010,CLMU030)
+              ENTRY CLMB020
+              NAME CLMB020(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);
@@ -121,9 +118,9 @@ class LinkEditDeckTest implements RewriteTest {
         rewriteRun(
           linkEdit(
             """
-                INCLUDE SYSLMOD(EPSMPMT)
-                INCLUDE SYSLIB(EPSMLIST)
-                NAME EPSMLIST(R)
+              INCLUDE SYSLMOD(EPSMPMT)
+              INCLUDE SYSLIB(EPSMLIST)
+              NAME EPSMLIST(R)
               """,
             spec -> spec.afterRecipe(cu -> {
                 LinkEditDeck deck = new LinkEditDeck.Matcher().require(cu, null);

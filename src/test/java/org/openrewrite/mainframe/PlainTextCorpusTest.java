@@ -28,14 +28,11 @@ import org.openrewrite.text.PlainText;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
@@ -64,7 +61,7 @@ class PlainTextCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("scripts and run books read, by application:");
+		IO.println("scripts and run books read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> paths = new ArrayList<>(Corpus.scripts(repository));
             paths.addAll(Corpus.runBooks(repository));
@@ -82,11 +79,11 @@ class PlainTextCorpusTest {
                     continue;
                 }
                 read++;
-                for (Script script : new Script.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (Script script : new Script.Matcher().lower(cu).collect(toList())) {
                     references += script.getReferences().size();
                     names += script.getMentions().size();
                 }
-                for (RunBook book : new RunBook.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (RunBook book : new RunBook.Matcher().lower(cu).collect(toList())) {
                     if (book.getSubject() == null) {
                         failures.add(name + ": documents nothing");
                     }
@@ -99,7 +96,7 @@ class PlainTextCorpusTest {
 
         System.out.printf("script and run book corpus: %d members, %d references, %d names%n",
           members, references, names);
-        failures.forEach(failure -> System.out.println("  " + failure));
+        failures.forEach(failure -> IO.println("  " + failure));
 
         assertThat(failures).isEmpty();
         assertThat(fixtureFound).as("mainframe-fixtures under %s", corpus).isTrue();
@@ -117,7 +114,7 @@ class PlainTextCorpusTest {
         int members = 0;
         List<String> failures = new ArrayList<>();
 
-        System.out.println("C and PL/I members read, by application:");
+		IO.println("C and PL/I members read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             Map<Members.Kind, List<Path>> libraries = new LinkedHashMap<>();
             libraries.put(Members.Kind.C, Corpus.cSources(repository));
@@ -145,7 +142,7 @@ class PlainTextCorpusTest {
         }
 
         System.out.printf("C and PL/I corpus: %d members%n", members);
-        failures.forEach(failure -> System.out.println("  " + failure));
+        failures.forEach(failure -> IO.println("  " + failure));
 
         assertThat(failures).isEmpty();
         assertThat(members).as("no C or PL/I member found under %s", corpus).isPositive();
@@ -291,7 +288,7 @@ class PlainTextCorpusTest {
                 declared.add(member + " PROC " +
                              script.getParameters().stream().filter(Script.Parameter::isPositional).count() +
                              " " + script.getParameters().stream().map(Script.Parameter::toString)
-                               .collect(Collectors.joining(" ")));
+                               .collect(joining(" ")));
             }
             for (Script.Invocation invocation : script.getInvocations()) {
                 called.add(member + ":" + invocation.getLine() + " " + invocation);
@@ -381,7 +378,7 @@ class PlainTextCorpusTest {
     void findsEveryNameTheFixtureScriptsWriteDown() throws IOException {
         Map<String, List<String>> written = new TreeMap<>();
         scripts().forEach((member, script) -> written.put(member,
-          script.getMentions().stream().map(Mention::getText).collect(Collectors.toList())));
+          script.getMentions().stream().map(Mention::getText).collect(toList())));
 
         assertThat(written.get("CLMCOMP")).contains("CLMCMPB", "CLMCMPC", "CLMCMPD", "CLMCMPI",
           "CLMASMB", "COBOL", "CLMCOMP1", "CLMSETUP", "CLMSUB");
@@ -474,7 +471,7 @@ class PlainTextCorpusTest {
 
         Map<String, List<String>> named = new LinkedHashMap<>();
         fields.get("CLMJ010").forEach(field -> named.put(field.getLabel(),
-          field.getNames().stream().map(Mention::getText).collect(Collectors.toList())));
+          field.getNames().stream().map(Mention::getText).collect(toList())));
         assertThat(named).contains(
           entry("JOB", List.of("CLMJ010")),
           entry("LIBRARY", List.of("CLM.PROD.JCL")),
@@ -527,7 +524,7 @@ class PlainTextCorpusTest {
         Map<String, List<String>> mentioned = new TreeMap<>();
         for (RunBook book : runBooks()) {
             mentioned.put(book.getName(),
-              book.getMentions().stream().map(Mention::getText).collect(Collectors.toList()));
+              book.getMentions().stream().map(Mention::getText).collect(toList()));
         }
 
         assertThat(mentioned.get("CLMJ010")).contains("CLMJ020", "CLMB010", "PRMCLM01", "CLMBATCH",
@@ -589,7 +586,7 @@ class PlainTextCorpusTest {
     private static PlainText parse(Path relativeTo, Path member) {
         List<SourceFile> parsed = Corpus.plainTextReader()
           .parseInputs(Corpus.inputs(singletonList(member)), relativeTo, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).singleElement().isInstanceOf(PlainText.class);
         return (PlainText) parsed.getFirst();
     }

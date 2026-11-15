@@ -28,11 +28,9 @@ import static org.openrewrite.test.SourceSpecs.text;
 
 class InputLayoutTest implements RewriteTest {
 
-    /**
-     * INTERLINKS 21.4. The layout is the copybook written again: {@code @001 CLAIMNO $CHAR10.} says
-     * the same thing as {@code 05 EXT-CLAIM-NO PIC X(10)} at offset zero, and the informat says how
-     * many bytes of the record it took.
-     */
+    /// INTERLINKS 21.4. The layout is the copybook written again: `@001 CLAIMNO $CHAR10.` says
+    /// the same thing as `05 EXT-CLAIM-NO PIC X(10)` at offset zero, and the informat says how
+    /// many bytes of the record it took.
     @DocumentExample
     @Test
     void readsEachVariableAtTheColumnItStartsIn() {
@@ -60,10 +58,8 @@ class InputLayoutTest implements RewriteTest {
         );
     }
 
-    /**
-     * A variable written with no {@code @} in front of it starts where the one before it ended, which
-     * is where the pointer stands. Reading it as column one instead lays the whole record over itself.
-     */
+    /// A variable written with no `@` in front of it starts where the one before it ended, which
+    /// is where the pointer stands. Reading it as column one instead lays the whole record over itself.
     @Test
     void followsThePointerWhereNoColumnIsWritten() {
         rewriteRun(
@@ -80,10 +76,8 @@ class InputLayoutTest implements RewriteTest {
         );
     }
 
-    /**
-     * An informat that writes no width lets SAS decide, and nothing here can say how wide that is —
-     * so the width is nothing rather than a guess, and every column after it says so too.
-     */
+    /// An informat that writes no width lets SAS decide, and nothing here can say how wide that is —
+    /// so the width is nothing rather than a guess, and every column after it says so too.
     @Test
     void saysNothingAboutAWidthTheInformatDoesNotWrite() {
         rewriteRun(
@@ -101,11 +95,9 @@ class InputLayoutTest implements RewriteTest {
         );
     }
 
-    /**
-     * A record layout is read in a DATA step and nowhere else. The macro language has an
-     * {@code %INPUT} of its own, and a {@code RUN;} ends the step above — so what stands after one is
-     * in no step at all, and read as a layout it reports columns of a record nobody read.
-     */
+    /// A record layout is read in a DATA step and nowhere else. The macro language has an
+    /// `%INPUT` of its own, and a `RUN;` ends the step above — so what stands after one is
+    /// in no step at all, and read as a layout it reports columns of a record nobody read.
     @Test
     void readsNoLayoutOutsideADataStep() {
         rewriteRun(

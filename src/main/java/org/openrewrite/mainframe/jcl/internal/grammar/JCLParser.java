@@ -15,14 +15,17 @@
  */
 // Generated from src/main/antlr-jcl/JCLParser.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.jcl.internal.grammar;
-import org.antlr.v4.runtime.atn.*;
-import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.*;
-import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.atn.ATN;
+import org.antlr.v4.runtime.atn.ATNDeserializer;
+import org.antlr.v4.runtime.atn.ParserATNSimulator;
+import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.dfa.DFA;
+import org.antlr.v4.runtime.tree.ParseTreeListener;
+import org.antlr.v4.runtime.tree.ParseTreeVisitor;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.util.List;
-import java.util.Iterator;
-import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class JCLParser extends Parser {
@@ -32,23 +35,23 @@ public class JCLParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, JCL_STATEMENT=4, JCL_CONTINUATION=5, JCL_STREAM_END=6, 
-		JCL_STREAM=7, JES2=8, JES3=9, CM=10, COMMENT=11, UNKNOWN=12, CA_START=13, 
-		STRINGLITERAL=14, TEXT=15, JCL_TC_START=16, JCL_TC_STOP=17, JCL_STRINGLITERAL=18, 
-		JCL_TEXT=19, STREAM_WS=20, STREAM_STRINGLITERAL=21, STREAM_TEXT=22, JES2_STRINGLITERAL=23, 
-		JES2_TEXT=24, JES3_STRINGLITERAL=25, JES3_TEXT=26, CM_STRINGLITERAL=27, 
-		CM_TEXT=28, COMMENT_WS=29, COMMENT_STRINGLITERAL=30, COMMENT_TEXT=31, 
+		UTF_8_BOM=1, WS=2, EOL=3, JCL_STATEMENT=4, JCL_CONTINUATION=5, JCL_STREAM_END=6,
+		JCL_STREAM=7, JES2=8, JES3=9, CM=10, COMMENT=11, UNKNOWN=12, CA_START=13,
+		STRINGLITERAL=14, TEXT=15, JCL_TC_START=16, JCL_TC_STOP=17, JCL_STRINGLITERAL=18,
+		JCL_TEXT=19, STREAM_WS=20, STREAM_STRINGLITERAL=21, STREAM_TEXT=22, JES2_STRINGLITERAL=23,
+		JES2_TEXT=24, JES3_STRINGLITERAL=25, JES3_TEXT=26, CM_STRINGLITERAL=27,
+		CM_TEXT=28, COMMENT_WS=29, COMMENT_STRINGLITERAL=30, COMMENT_TEXT=31,
 		UNKNOWN_WS=32, UNKNOWN_STRINGLITERAL=33, UNKNOWN_TEXT=34;
 	public static final int
-		RULE_compilationUnit = 0, RULE_statement = 1, RULE_jcl = 2, RULE_jclWord = 3, 
-		RULE_jclTrailingComment = 4, RULE_jes2 = 5, RULE_jes2Word = 6, RULE_jes3 = 7, 
-		RULE_jes3Word = 8, RULE_stream = 9, RULE_streamWord = 10, RULE_controlM = 11, 
-		RULE_controlMWord = 12, RULE_comment = 13, RULE_commentWord = 14, RULE_unknown = 15, 
+		RULE_compilationUnit = 0, RULE_statement = 1, RULE_jcl = 2, RULE_jclWord = 3,
+		RULE_jclTrailingComment = 4, RULE_jes2 = 5, RULE_jes2Word = 6, RULE_jes3 = 7,
+		RULE_jes3Word = 8, RULE_stream = 9, RULE_streamWord = 10, RULE_controlM = 11,
+		RULE_controlMWord = 12, RULE_comment = 13, RULE_commentWord = 14, RULE_unknown = 15,
 		RULE_unknownWord = 16, RULE_commentArea = 17;
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"compilationUnit", "statement", "jcl", "jclWord", "jclTrailingComment", 
-			"jes2", "jes2Word", "jes3", "jes3Word", "stream", "streamWord", "controlM", 
+			"compilationUnit", "statement", "jcl", "jclWord", "jclTrailingComment",
+			"jes2", "jes2Word", "jes3", "jes3Word", "stream", "streamWord", "controlM",
 			"controlMWord", "comment", "commentWord", "unknown", "unknownWord", "commentArea"
 		};
 	}
@@ -56,20 +59,20 @@ public class JCLParser extends Parser {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'\\uFEFF'", null, null, null, null, null, "'^^STREAM^^'", null, 
-			null, "'^^CM^^'", "'^^COMMENT^^'", "'^^UNKNOWN^^'", null, null, null, 
+			null, "'\\uFEFF'", null, null, null, null, null, "'^^STREAM^^'", null,
+			null, "'^^CM^^'", "'^^COMMENT^^'", "'^^UNKNOWN^^'", null, null, null,
 			"'^^TC_START^^'", "'^^TC_STOP^^'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "JCL_STATEMENT", "JCL_CONTINUATION", 
-			"JCL_STREAM_END", "JCL_STREAM", "JES2", "JES3", "CM", "COMMENT", "UNKNOWN", 
-			"CA_START", "STRINGLITERAL", "TEXT", "JCL_TC_START", "JCL_TC_STOP", "JCL_STRINGLITERAL", 
-			"JCL_TEXT", "STREAM_WS", "STREAM_STRINGLITERAL", "STREAM_TEXT", "JES2_STRINGLITERAL", 
-			"JES2_TEXT", "JES3_STRINGLITERAL", "JES3_TEXT", "CM_STRINGLITERAL", "CM_TEXT", 
-			"COMMENT_WS", "COMMENT_STRINGLITERAL", "COMMENT_TEXT", "UNKNOWN_WS", 
+			null, "UTF_8_BOM", "WS", "EOL", "JCL_STATEMENT", "JCL_CONTINUATION",
+			"JCL_STREAM_END", "JCL_STREAM", "JES2", "JES3", "CM", "COMMENT", "UNKNOWN",
+			"CA_START", "STRINGLITERAL", "TEXT", "JCL_TC_START", "JCL_TC_STOP", "JCL_STRINGLITERAL",
+			"JCL_TEXT", "STREAM_WS", "STREAM_STRINGLITERAL", "STREAM_TEXT", "JES2_STRINGLITERAL",
+			"JES2_TEXT", "JES3_STRINGLITERAL", "JES3_TEXT", "CM_STRINGLITERAL", "CM_TEXT",
+			"COMMENT_WS", "COMMENT_STRINGLITERAL", "COMMENT_TEXT", "UNKNOWN_WS",
 			"UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}
@@ -157,7 +160,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitCompilationUnit(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -171,7 +174,7 @@ public class JCLParser extends Parser {
 			setState(39);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 29526597632L) != 0)) {
+			while ((_la & ~0x3f) == 0 && ((1L << _la) & 29526597632L) != 0) {
 				{
 				{
 				setState(36);
@@ -235,7 +238,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -341,7 +344,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitJcl(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -401,7 +404,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitJclWord(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -434,7 +437,7 @@ public class JCLParser extends Parser {
 			case 2:
 				{
 				setState(59);
-				if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+				if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 				}
 				break;
 			}
@@ -479,7 +482,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitJclTrailingComment(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -522,7 +525,7 @@ public class JCLParser extends Parser {
 			case 2:
 				{
 				setState(72);
-				if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+				if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 				}
 				break;
 			}
@@ -559,7 +562,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitJes2(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -606,7 +609,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitJes2Word(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -639,7 +642,7 @@ public class JCLParser extends Parser {
 			case 2:
 				{
 				setState(79);
-				if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+				if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 				}
 				break;
 			}
@@ -676,7 +679,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitJes3(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -723,7 +726,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitJes3Word(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -756,7 +759,7 @@ public class JCLParser extends Parser {
 			case 2:
 				{
 				setState(86);
-				if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+				if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 				}
 				break;
 			}
@@ -793,7 +796,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitStream(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -840,7 +843,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitStreamWord(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -873,7 +876,7 @@ public class JCLParser extends Parser {
 			case 2:
 				{
 				setState(93);
-				if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+				if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 				}
 				break;
 			}
@@ -910,7 +913,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitControlM(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -957,7 +960,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitControlMWord(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -990,7 +993,7 @@ public class JCLParser extends Parser {
 			case 2:
 				{
 				setState(100);
-				if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+				if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 				}
 				break;
 			}
@@ -1027,7 +1030,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitComment(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1074,7 +1077,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitCommentWord(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1107,7 +1110,7 @@ public class JCLParser extends Parser {
 			case 2:
 				{
 				setState(107);
-				if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+				if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 				}
 				break;
 			}
@@ -1144,7 +1147,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitUnknown(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1191,7 +1194,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitUnknownWord(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1229,7 +1232,7 @@ public class JCLParser extends Parser {
 				case 2:
 					{
 					setState(114);
-					if (!(!ahead(_localctx, CA_START))) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
+					if (!!ahead(_localctx, CA_START)) throw new FailedPredicateException(this, "!ahead($ctx, CA_START)");
 					}
 					break;
 				}
@@ -1275,7 +1278,7 @@ public class JCLParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof JCLParserVisitor ) return ((JCLParserVisitor<? extends T>)visitor).visitCommentArea(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1300,7 +1303,7 @@ public class JCLParser extends Parser {
 		return _localctx;
 	}
 
-	public boolean sempred(RuleContext _localctx, int ruleIndex, int predIndex) {
+	@Override public boolean sempred(RuleContext _localctx, int ruleIndex, int predIndex) {
 		switch (ruleIndex) {
 		case 3:
 			return jclWord_sempred((JclWordContext)_localctx, predIndex);

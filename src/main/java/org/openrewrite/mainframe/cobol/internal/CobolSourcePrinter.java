@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorVisitor;
 import org.openrewrite.mainframe.cobol.CobolVisitor;
 import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
@@ -26,7 +27,6 @@ import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.marker.ElidedExec;
 import org.openrewrite.mainframe.cobol.marker.MissingCopybook;
 import org.openrewrite.mainframe.cobol.tree.*;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 

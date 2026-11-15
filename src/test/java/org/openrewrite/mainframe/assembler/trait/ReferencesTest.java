@@ -20,7 +20,6 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
@@ -29,11 +28,9 @@ import static org.openrewrite.mainframe.assembler.Assertions.assembler;
 
 class ReferencesTest implements RewriteTest {
 
-    /**
-     * INTERLINKS 20.2. A member of the macro library is reached two ways, and which library it lives
-     * in says nothing: {@code CLMREGS} is copied, {@code CLMSAVE} is invoked, and both are
-     * {@code CLM.PROD.MACLIB}.
-     */
+    /// INTERLINKS 20.2. A member of the macro library is reached two ways, and which library it lives
+    /// in says nothing: `CLMREGS` is copied, `CLMSAVE` is invoked, and both are
+    /// `CLM.PROD.MACLIB`.
     @DocumentExample
     @Test
     void tellsAMemberThatIsCopiedFromOneThatIsInvoked() {
@@ -49,11 +46,11 @@ class ReferencesTest implements RewriteTest {
                        END   CLMU040
               """,
             spec -> spec.afterRecipe(cu -> {
-                assertThat(new Copy.Matcher().lower(cu).collect(Collectors.toList()))
+                assertThat(new Copy.Matcher().lower(cu).toList())
                   .extracting(Copy::getMember, Copy::getLine)
                   .containsExactly(tuple("CLMREGS", 1), tuple("CLMRECD", 2));
 
-                List<MacroCall> macros = new MacroCall.Matcher().lower(cu).collect(Collectors.toList());
+                List<MacroCall> macros = new MacroCall.Matcher().lower(cu).toList();
                 assertThat(macros).extracting(MacroCall::getName, MacroCall::getLabel, MacroCall::getLine)
                   .containsExactly(
                     tuple("CLMSAVE", "CLMU040", 3),
@@ -61,7 +58,7 @@ class ReferencesTest implements RewriteTest {
                     tuple("CLMRTRN", "U40NUM", 6));
                 // Which of them the shop wrote is the library's answer, not the program's: OPEN comes
                 // out of SYS1.MACLIB, which is nowhere in the repository.
-                List<String> library = List.of("CLMSAVE", "CLMRTRN", "CLMREGS", "CLMRECD", "CLMPCBD");
+                var library = List.of("CLMSAVE", "CLMRTRN", "CLMREGS", "CLMRECD", "CLMPCBD");
                 assertThat(macros).filteredOn(macro -> macro.isDefinedBy(library))
                   .extracting(MacroCall::getName).containsExactly("CLMSAVE", "CLMRTRN");
                 assertThat(macros.getFirst().getOperands()).containsExactly("12", "SAVE=U40SAVE", "ID=CLMU040");
@@ -71,10 +68,8 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * The statement after a {@code MACRO} names the macro being defined and says what a caller may
-     * pass it. Read as an invocation instead, every macro library member reports one call of itself.
-     */
+    /// The statement after a `MACRO` names the macro being defined and says what a caller may
+    /// pass it. Read as an invocation instead, every macro library member reports one call of itself.
     @Test
     void readsThePrototypeOfAMacroRatherThanAnInvocationOfIt() {
         rewriteRun(
@@ -87,8 +82,8 @@ class ReferencesTest implements RewriteTest {
                        MEND
               """,
             spec -> spec.afterRecipe(cu -> {
-                assertThat(new MacroCall.Matcher().lower(cu).collect(Collectors.toList())).isEmpty();
-                assertThat(new MacroDefinition.Matcher().lower(cu).collect(Collectors.toList()))
+                assertThat(new MacroCall.Matcher().lower(cu).toList()).isEmpty();
+                assertThat(new MacroDefinition.Matcher().lower(cu).toList())
                   .singleElement()
                   .satisfies(macro -> {
                       assertThat(macro.getName()).isEqualTo("CLMRTRN");
@@ -102,11 +97,9 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * An extended mnemonic is a machine instruction and not a macro, however short its name. Leaving
-     * the unconditional branch out of the table read 218 of them across the corpus as invocations of a
-     * macro called {@code B}.
-     */
+    /// An extended mnemonic is a machine instruction and not a macro, however short its name. Leaving
+    /// the unconditional branch out of the table read 218 of them across the corpus as invocations of a
+    /// macro called `B`.
     @Test
     void readsABranchAsAnInstructionRatherThanAMacro() {
         rewriteRun(
@@ -117,16 +110,14 @@ class ReferencesTest implements RewriteTest {
                        CLMRTRN 4
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new MacroCall.Matcher().lower(cu)
-              .collect(Collectors.toList())).extracting(MacroCall::getName)
+              .toList()).extracting(MacroCall::getName)
               .containsExactly("CLMRTRN"))
           )
         );
     }
 
-    /**
-     * Most of a shop's macro library is DSECTs read by {@code COPY}, and only the prototype tells the
-     * two apart: {@code CLMREGS} defines no macro, so an invocation of that name reaches nothing here.
-     */
+    /// Most of a shop's macro library is DSECTs read by `COPY`, and only the prototype tells the
+    /// two apart: `CLMREGS` defines no macro, so an invocation of that name reaches nothing here.
     @Test
     void readsNoMacroDefinitionInACopyMember() {
         rewriteRun(
@@ -136,15 +127,13 @@ class ReferencesTest implements RewriteTest {
               R13      EQU   13
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new MacroDefinition.Matcher().lower(cu)
-              .collect(Collectors.toList())).isEmpty())
+              .toList()).isEmpty())
           )
         );
     }
 
-    /**
-     * INTERLINKS 20.6. A DCB is the assembler's {@code ASSIGN}: it names a DD and nothing else, and
-     * only the JCL says what data set that DD is bound to.
-     */
+    /// INTERLINKS 20.6. A DCB is the assembler's `ASSIGN`: it names a DD and nothing else, and
+    /// only the JCL says what data set that DD is bound to.
     @Test
     void readsTheDdNameADcbAssigns() {
         rewriteRun(
@@ -156,7 +145,7 @@ class ReferencesTest implements RewriteTest {
                            LRECL=133
             """,
             spec -> spec.afterRecipe(cu -> assertThat(new DataControlBlock.Matcher().lower(cu)
-              .collect(Collectors.toList()))
+              .toList())
               .extracting(DataControlBlock::getName, DataControlBlock::getDdName,
                 DataControlBlock::getOrganization, DataControlBlock::getAccess,
                 DataControlBlock::getRecordFormat, DataControlBlock::getRecordLength,
@@ -168,10 +157,8 @@ class ReferencesTest implements RewriteTest {
         );
     }
 
-    /**
-     * The fixture's three programs have no {@code CSECT} statement at all — the entry macro generates
-     * it — so the name a caller writes is the one on the {@code END}.
-     */
+    /// The fixture's three programs have no `CSECT` statement at all — the entry macro generates
+    /// it — so the name a caller writes is the one on the `END`.
     @Test
     void readsTheNamesAMemberOffersAndTheOnesItNeeds() {
         rewriteRun(
@@ -184,13 +171,13 @@ class ReferencesTest implements RewriteTest {
                        END   BASE64E
               """,
             spec -> spec.afterRecipe(cu -> {
-                assertThat(new EntryPoint.Matcher().lower(cu).collect(Collectors.toList()))
+                assertThat(new EntryPoint.Matcher().lower(cu).toList())
                   .extracting(EntryPoint::getKind, EntryPoint::getNames)
                   .containsExactly(
                     tuple(EntryPoint.Kind.SECTION, List.of("BASE64E")),
                     tuple(EntryPoint.Kind.ENTRY, List.of("BASE64EA", "BASE64D")),
                     tuple(EntryPoint.Kind.END, List.of("BASE64E")));
-                assertThat(new ExternalName.Matcher().lower(cu).collect(Collectors.toList()))
+                assertThat(new ExternalName.Matcher().lower(cu).toList())
                   .extracting(ExternalName::getNames, ExternalName::isWeak)
                   .containsExactly(
                     tuple(List.of("CEEENTRY"), false),

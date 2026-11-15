@@ -18,9 +18,9 @@ package org.openrewrite.mainframe.cobol;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ScanResult;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.cobol.internal.CobolDialect;
 import org.openrewrite.mainframe.cobol.tree.Space;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 

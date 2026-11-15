@@ -16,9 +16,9 @@
 package org.openrewrite.mainframe.controlcard.sort;
 
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.controlcard.sort.tree.Sort;
 import org.openrewrite.mainframe.controlcard.sort.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 public class SortVisitor<P> extends TreeVisitor<Sort, P> {
 

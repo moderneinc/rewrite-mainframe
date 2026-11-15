@@ -26,9 +26,9 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -264,7 +264,7 @@ class DatabaseTest {
           () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).singleElement().isInstanceOf(Ims.CompilationUnit.class);
         return new Database.Matcher().lower(parsed.getFirst()).findFirst().orElseThrow(AssertionError::new);
     }

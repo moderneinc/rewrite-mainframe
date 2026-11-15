@@ -26,15 +26,11 @@ import org.openrewrite.mainframe.cobol.Corpus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -76,7 +72,7 @@ class BmsCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("map sets read, by application:");
+		IO.println("map sets read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> files = Corpus.mapsets(repository);
             if (files.isEmpty()) {
@@ -91,7 +87,7 @@ class BmsCorpusTest {
                 String source = new String(Files.readAllBytes(member));
                 List<SourceFile> parsed = BmsParser.builder().build()
                         .parse(new InMemoryExecutionContext(), source)
-                        .collect(Collectors.toList());
+                        .collect(toList());
                 if (parsed.isEmpty() || !(parsed.getFirst() instanceof Bms.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
@@ -133,7 +129,7 @@ class BmsCorpusTest {
                     read++;
                 }
 
-                List<Mapset> mapsetsRead = new Mapset.Matcher().lower(cu).collect(Collectors.toList());
+                List<Mapset> mapsetsRead = new Mapset.Matcher().lower(cu).collect(toList());
                 mapsets += mapsetsRead.size();
 
                 // A symbolic map an application keeps, as assembling the map set wrote it, is what
@@ -193,8 +189,8 @@ class BmsCorpusTest {
                         "%d initialised over more than one card), %d symbolic maps compared%n",
                 members, mapsets, maps, fields, named, inputs, positioned, scalar, continued, symbolicMaps);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(f -> System.out.println("  " + f));
+			IO.println("failures:");
+            failures.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(failures).isEmpty();
@@ -331,6 +327,6 @@ class BmsCorpusTest {
         return cu.getStatements().stream()
                 .filter(Bms.MacroStatement.class::isInstance)
                 .map(Bms.MacroStatement.class::cast)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 }

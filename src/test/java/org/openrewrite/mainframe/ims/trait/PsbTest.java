@@ -26,9 +26,9 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.ims.trait.Psb.ProgramKind.BATCH;
@@ -307,12 +307,12 @@ class PsbTest {
     private static Psb psb(String source) {
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input(source)), null, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(Ims.CompilationUnit.class);
         assertThat(parsed.getFirst().printAll()).isEqualTo(source);
 
-        List<Psb> psbs = new Psb.Matcher().lower(parsed.getFirst()).collect(Collectors.toList());
+        List<Psb> psbs = new Psb.Matcher().lower(parsed.getFirst()).collect(toList());
         assertThat(psbs).hasSize(1);
         return psbs.getFirst();
     }

@@ -18,6 +18,7 @@ package org.openrewrite.mainframe.cobol.tree.cobol;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
 import org.openrewrite.mainframe.cobol.CobolTest;
 
@@ -25,31 +26,8 @@ import static org.openrewrite.mainframe.cobol.Assertions.cobolPostProcess;
 
 class CobolParserCopyTest extends CobolTest {
 
-    @Issue("https://github.com/openrewrite/rewrite-cobol/issues/15")
-    @ParameterizedTest
-    @ValueSource(strings = {
-        "COPY MISSING-COPYBOOK.",
-        "EXEC SQL INCLUDE MISSING-COPYBOOK END-EXEC.",
-    })
-    void missingCopybook(String input) {
-        rewriteRun(
-          cobolPostProcess(
-            """
-              000000* Prevent trim
-                     IDENTIFICATION DIVISION.
-                     PROGRAM-ID. MISSING-COPYBOOK.
-                     DATA DIVISION.
-                     FILE SECTION.
-                     FD  PRINT-FILE.
-                     %s
-                     01  DUMMY-RECORD PICTURE X(120).
-              """.formatted(input)
-          )
-        );
-    }
-
-    @Test
-    void execSqlIncludeDclgenMember() {
+	@DocumentExample @Test
+	void execSqlIncludeDclgenMember() {
         rewriteRun(
           cobolPostProcess(
             """
@@ -77,10 +55,31 @@ class CobolParserCopyTest extends CobolTest {
         );
     }
 
-    /**
-     * A copybook name is a PDS member name, and those are case insensitive. Checked out onto a
-     * distributed filesystem the same member is often a lower case file.
-     */
+    @Issue("https://github.com/openrewrite/rewrite-cobol/issues/15")
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "COPY MISSING-COPYBOOK.",
+        "EXEC SQL INCLUDE MISSING-COPYBOOK END-EXEC.",
+    })
+    void missingCopybook(String input) {
+        rewriteRun(
+          cobolPostProcess(
+            """
+              000000* Prevent trim
+                     IDENTIFICATION DIVISION.
+                     PROGRAM-ID. MISSING-COPYBOOK.
+                     DATA DIVISION.
+                     FILE SECTION.
+                     FD  PRINT-FILE.
+                     %s
+                     01  DUMMY-RECORD PICTURE X(120).
+              """.formatted(input)
+          )
+        );
+    }
+
+    /// A copybook name is a PDS member name, and those are case insensitive. Checked out onto a
+    /// distributed filesystem the same member is often a lower case file.
     @ParameterizedTest
     @ValueSource(strings = {
       "COPY LOWCASE.",

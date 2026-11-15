@@ -19,10 +19,10 @@ import lombok.AllArgsConstructor;
 import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 @AllArgsConstructor
 public class CobolPreprocessorVisitor<P> extends TreeVisitor<CobolPreprocessor, P> {

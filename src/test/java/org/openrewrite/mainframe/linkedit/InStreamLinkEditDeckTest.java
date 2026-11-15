@@ -19,8 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.mainframe.linkedit.trait.LinkEditDeck;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 
@@ -40,7 +38,7 @@ class InStreamLinkEditDeckTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamLinkEditDeck> decks = InStreamLinkEditDeck.of(cu);
+                var decks = InStreamLinkEditDeck.of(cu);
                 assertThat(decks).hasSize(1);
                 assertThat(decks.getFirst().getDdName()).isEqualTo("SYSIN");
                 assertThat(decks.getFirst().getLine()).isEqualTo(4);
@@ -55,11 +53,9 @@ class InStreamLinkEditDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * The binder reads its control statements from {@code SYSLIN}, which is also where the object deck
-     * comes from, so a job may write them there rather than on the {@code SYSIN} a compile-and-link
-     * procedure concatenates to it.
-     */
+    /// The binder reads its control statements from `SYSLIN`, which is also where the object deck
+    /// comes from, so a job may write them there rather than on the `SYSIN` a compile-and-link
+    /// procedure concatenates to it.
     @Test
     void deckWrittenOnSyslin() {
         rewriteRun(
@@ -76,7 +72,7 @@ class InStreamLinkEditDeckTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamLinkEditDeck> decks = InStreamLinkEditDeck.of(cu);
+                var decks = InStreamLinkEditDeck.of(cu);
                 assertThat(decks).hasSize(1);
                 assertThat(decks.getFirst().getDdName()).isEqualTo("SYSLIN");
 
@@ -89,10 +85,8 @@ class InStreamLinkEditDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * A step that reads its cards from a {@code LINKLIB} member writes nothing in the job, so the job
-     * has no deck of its own to read.
-     */
+    /// A step that reads its cards from a `LINKLIB` member writes nothing in the job, so the job
+    /// has no deck of its own to read.
     @Test
     void cardsReadFromAMemberAreNotWrittenInTheJob() {
         rewriteRun(
@@ -108,10 +102,8 @@ class InStreamLinkEditDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * A {@code SYSIN} holds whatever the step reading it wants, so a deck is taken by what it says
-     * rather than by the DD it was written under.
-     */
+    /// A `SYSIN` holds whatever the step reading it wants, so a deck is taken by what it says
+    /// rather than by the DD it was written under.
     @Test
     void streamThatLinksNothingIsNotADeck() {
         rewriteRun(

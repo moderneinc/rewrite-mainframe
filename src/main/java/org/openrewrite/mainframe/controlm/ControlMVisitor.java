@@ -18,10 +18,10 @@ package org.openrewrite.mainframe.controlm;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.controlm.tree.ControlM;
 import org.openrewrite.mainframe.controlm.tree.ControlMLeftPadded;
 import org.openrewrite.mainframe.controlm.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 public class ControlMVisitor<P> extends TreeVisitor<ControlM, P> {
 

@@ -21,8 +21,8 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.mainframe.db2.Db2Parser;
 import org.openrewrite.mainframe.db2.tree.Db2;
-import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.mainframe.jcl.trait.DataDefinition;
+import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 

@@ -16,9 +16,9 @@
 package org.openrewrite.mainframe.ims;
 
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.ims.tree.Ims;
 import org.openrewrite.mainframe.ims.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 public class ImsVisitor<P> extends TreeVisitor<Ims, P> {
 

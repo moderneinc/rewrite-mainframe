@@ -15,12 +15,12 @@
  */
 package org.openrewrite.mainframe.cobol;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.ParseExceptionResult;
-import org.jspecify.annotations.Nullable;
+import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.Tree;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
@@ -38,8 +38,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -65,7 +65,7 @@ class CorpusCoverageTest {
         int copybookErrors = 0;
         List<String> fixtureNotRead = new ArrayList<>();
         boolean fixtureFound = false;
-        System.out.println("programs parsed, copybooks not found, by application:");
+		IO.println("programs parsed, copybooks not found, by application:");
         for (Path repository : Corpus.repositories(root)) {
             List<Parser.Input> programInputs = Corpus.inputs(Corpus.programs(repository));
             if (programInputs.isEmpty()) {
@@ -73,13 +73,13 @@ class CorpusCoverageTest {
             }
             List<SourceFile> copybooks = CopybookParser.builder().build()
               .parseInputs(Corpus.inputs(Corpus.copybooks(repository)), root, new InMemoryExecutionContext())
-              .collect(Collectors.toList());
+              .collect(toList());
             copybooksParsed += copybooks.size() - errors(copybooks).size();
             copybookErrors += errors(copybooks).size();
 
             List<SourceFile> parsed = CobolParser.builder().copybooks(copybooks).build()
               .parseInputs(programInputs, root, new InMemoryExecutionContext())
-              .collect(Collectors.toList());
+              .collect(toList());
             System.out.printf("  %-40s %3d of %3d parsed, %3d missing a copybook%n",
               repository.getFileName(), parsed.size() - errors(parsed).size(), parsed.size(),
               parsed.stream().filter(CorpusCoverageTest::missingACopybook).count());
@@ -104,7 +104,7 @@ class CorpusCoverageTest {
               .add(error.getSourcePath().toString());
         }
 
-        System.out.println("\nfailures grouped by cause:");
+		IO.println("\nfailures grouped by cause:");
         byCause.entrySet().stream()
           .sorted((a, b) -> b.getValue().size() - a.getValue().size())
           .forEach(e -> {
@@ -243,7 +243,7 @@ class CorpusCoverageTest {
     }
 
     private static List<SourceFile> errors(List<SourceFile> parsed) {
-        return parsed.stream().filter(s -> s instanceof ParseError).collect(Collectors.toList());
+        return parsed.stream().filter(ParseError.class::isInstance).collect(toList());
     }
 
     private static String cause(SourceFile error) {

@@ -15,14 +15,15 @@
  */
 // Generated from src/main/antlr-cobol/CobolPreprocessor.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.cobol.internal.grammar;
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.*;
-import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.misc.IntervalSet;
+import org.antlr.v4.runtime.tree.ParseTreeListener;
+import org.antlr.v4.runtime.tree.ParseTreeVisitor;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.util.List;
-import java.util.Iterator;
-import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class CobolPreprocessorParser extends Parser {
@@ -32,72 +33,72 @@ public class CobolPreprocessorParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		ADATA=1, ADV=2, ALIAS=3, ANSI=4, ANY=5, APOST=6, AR=7, ARITH=8, AUTO=9, 
-		AWO=10, BIN=11, BLOCK0=12, BUF=13, BUFSIZE=14, BY=15, CBL=16, CBLCARD=17, 
-		CICS=18, CO=19, COBOL2=20, COBOL3=21, CODEPAGE=22, COMPAT=23, COMPILE=24, 
-		COPY=25, CP=26, CPP=27, CPSM=28, CS=29, CURR=30, CURRENCY=31, DATA=32, 
-		DATEPROC=33, DBCS=34, DD=35, DEBUG=36, DECK=37, DIAGTRUNC=38, DLI=39, 
-		DLL=40, DP=41, DTR=42, DU=43, DUMP=44, DYN=45, DYNAM=46, EDF=47, EJECT=48, 
-		EJPD=49, EN=50, ENGLISH=51, END_EXEC=52, EPILOG=53, EXCI=54, EXEC=55, 
-		EXIT=56, EXP=57, EXPORTALL=58, EXTEND=59, FASTSRT=60, FEPI=61, FLAG=62, 
-		FLAGSTD=63, FSRT=64, FULL=65, GDS=66, GRAPHIC=67, HOOK=68, IN=69, INCLUDE=70, 
-		INTDATE=71, JA=72, JP=73, KA=74, LANG=75, LANGUAGE=76, LC=77, LEASM=78, 
-		LENGTH=79, LIB=80, LILIAN=81, LIN=82, LINECOUNT=83, LINKAGE=84, LIST=85, 
-		LM=86, LONGMIXED=87, LONGUPPER=88, LPARENCHAR=89, LU=90, MAP=91, MARGINS=92, 
-		MAX=93, MD=94, MDECK=95, MIG=96, MIXED=97, NAME=98, NAT=99, NATIONAL=100, 
-		NATLANG=101, NN=102, NO=103, NOADATA=104, NOADV=105, NOALIAS=106, NOAWO=107, 
-		NOBLOCK0=108, NOC=109, NOCBLCARD=110, NOCICS=111, NOCMPR2=112, NOCOMPILE=113, 
-		NOCPSM=114, NOCURR=115, NOCURRENCY=116, NOD=117, NODATEPROC=118, NODBCS=119, 
-		NODE=120, NODEBUG=121, NODECK=122, NODIAGTRUNC=123, NODLL=124, NODU=125, 
-		NODUMP=126, NODP=127, NODTR=128, NODYN=129, NODYNAM=130, NOEDF=131, NOEJPD=132, 
-		NOEPILOG=133, NOEXIT=134, NOEXP=135, NOEXPORTALL=136, NOF=137, NOFASTSRT=138, 
-		NOFEPI=139, NOFLAG=140, NOFLAGMIG=141, NOFLAGSTD=142, NOFSRT=143, NOGRAPHIC=144, 
-		NOHOOK=145, NOLENGTH=146, NOLIB=147, NOLINKAGE=148, NOLIST=149, NOMAP=150, 
-		NOMD=151, NOMDECK=152, NONAME=153, NONUM=154, NONUMBER=155, NOOBJ=156, 
-		NOOBJECT=157, NOOFF=158, NOOFFSET=159, NOOPSEQUENCE=160, NOOPT=161, NOOPTIMIZE=162, 
-		NOOPTIONS=163, NOP=164, NOPFD=165, NOPROLOG=166, NORENT=167, NOS=168, 
-		NOSEP=169, NOSEPARATE=170, NOSEQ=171, NOSOURCE=172, NOSPIE=173, NOSQL=174, 
-		NOSQLC=175, NOSQLCCSID=176, NOSSR=177, NOSSRANGE=178, NOSTDTRUNC=179, 
-		NOSEQUENCE=180, NOTERM=181, NOTERMINAL=182, NOTEST=183, NOTHREAD=184, 
-		NOTRIG=185, NOVBREF=186, NOWD=187, NOWORD=188, NOX=189, NOXREF=190, NOZWB=191, 
-		NS=192, NSEQ=193, NSYMBOL=194, NUM=195, NUMBER=196, NUMPROC=197, OBJ=198, 
-		OBJECT=199, OF=200, OFF=201, OFFSET=202, ON=203, OP=204, OPMARGINS=205, 
-		OPSEQUENCE=206, OPT=207, OPTFILE=208, OPTIMIZE=209, OPTIONS=210, OUT=211, 
-		OUTDD=212, PFD=213, PPTDBG=214, PGMN=215, PGMNAME=216, PROCESS=217, PROLOG=218, 
-		QUOTE=219, RENT=220, REPLACE=221, REPLACING=222, RMODE=223, RPARENCHAR=224, 
-		SEP=225, SEPARATE=226, SEQ=227, SEQUENCE=228, SHORT=229, SIZE=230, SOURCE=231, 
-		SP=232, SPACE=233, SPIE=234, SQL=235, SQLC=236, SQLCCSID=237, SQLIMS=238, 
-		SKIP1=239, SKIP2=240, SKIP3=241, SS=242, SSR=243, SSRANGE=244, STD=245, 
-		SUPPRESS=246, SYSEIB=247, SZ=248, TERM=249, TERMINAL=250, TEST=251, THREAD=252, 
-		TITLE=253, TRIG=254, TRUNC=255, UE=256, UPPER=257, VBREF=258, WD=259, 
-		WORD=260, XMLPARSE=261, XMLSS=262, XOPTS=263, XP=264, XREF=265, YEARWINDOW=266, 
-		YW=267, ZWB=268, C_CHAR=269, D_CHAR=270, E_CHAR=271, F_CHAR=272, H_CHAR=273, 
-		I_CHAR=274, M_CHAR=275, N_CHAR=276, Q_CHAR=277, S_CHAR=278, U_CHAR=279, 
-		W_CHAR=280, X_CHAR=281, COMMENTENTRYTAG=282, COMMENTTAG=283, COMMACHAR=284, 
-		DOT=285, DOUBLEEQUALCHAR=286, NONNUMERICLITERAL=287, INTEGERLITERAL=288, 
-		NUMERICLITERAL=289, IDENTIFIER=290, FILENAME=291, SEPARATOR=292, COMPILER_DIRECTIVE=293, 
+		ADATA=1, ADV=2, ALIAS=3, ANSI=4, ANY=5, APOST=6, AR=7, ARITH=8, AUTO=9,
+		AWO=10, BIN=11, BLOCK0=12, BUF=13, BUFSIZE=14, BY=15, CBL=16, CBLCARD=17,
+		CICS=18, CO=19, COBOL2=20, COBOL3=21, CODEPAGE=22, COMPAT=23, COMPILE=24,
+		COPY=25, CP=26, CPP=27, CPSM=28, CS=29, CURR=30, CURRENCY=31, DATA=32,
+		DATEPROC=33, DBCS=34, DD=35, DEBUG=36, DECK=37, DIAGTRUNC=38, DLI=39,
+		DLL=40, DP=41, DTR=42, DU=43, DUMP=44, DYN=45, DYNAM=46, EDF=47, EJECT=48,
+		EJPD=49, EN=50, ENGLISH=51, END_EXEC=52, EPILOG=53, EXCI=54, EXEC=55,
+		EXIT=56, EXP=57, EXPORTALL=58, EXTEND=59, FASTSRT=60, FEPI=61, FLAG=62,
+		FLAGSTD=63, FSRT=64, FULL=65, GDS=66, GRAPHIC=67, HOOK=68, IN=69, INCLUDE=70,
+		INTDATE=71, JA=72, JP=73, KA=74, LANG=75, LANGUAGE=76, LC=77, LEASM=78,
+		LENGTH=79, LIB=80, LILIAN=81, LIN=82, LINECOUNT=83, LINKAGE=84, LIST=85,
+		LM=86, LONGMIXED=87, LONGUPPER=88, LPARENCHAR=89, LU=90, MAP=91, MARGINS=92,
+		MAX=93, MD=94, MDECK=95, MIG=96, MIXED=97, NAME=98, NAT=99, NATIONAL=100,
+		NATLANG=101, NN=102, NO=103, NOADATA=104, NOADV=105, NOALIAS=106, NOAWO=107,
+		NOBLOCK0=108, NOC=109, NOCBLCARD=110, NOCICS=111, NOCMPR2=112, NOCOMPILE=113,
+		NOCPSM=114, NOCURR=115, NOCURRENCY=116, NOD=117, NODATEPROC=118, NODBCS=119,
+		NODE=120, NODEBUG=121, NODECK=122, NODIAGTRUNC=123, NODLL=124, NODU=125,
+		NODUMP=126, NODP=127, NODTR=128, NODYN=129, NODYNAM=130, NOEDF=131, NOEJPD=132,
+		NOEPILOG=133, NOEXIT=134, NOEXP=135, NOEXPORTALL=136, NOF=137, NOFASTSRT=138,
+		NOFEPI=139, NOFLAG=140, NOFLAGMIG=141, NOFLAGSTD=142, NOFSRT=143, NOGRAPHIC=144,
+		NOHOOK=145, NOLENGTH=146, NOLIB=147, NOLINKAGE=148, NOLIST=149, NOMAP=150,
+		NOMD=151, NOMDECK=152, NONAME=153, NONUM=154, NONUMBER=155, NOOBJ=156,
+		NOOBJECT=157, NOOFF=158, NOOFFSET=159, NOOPSEQUENCE=160, NOOPT=161, NOOPTIMIZE=162,
+		NOOPTIONS=163, NOP=164, NOPFD=165, NOPROLOG=166, NORENT=167, NOS=168,
+		NOSEP=169, NOSEPARATE=170, NOSEQ=171, NOSOURCE=172, NOSPIE=173, NOSQL=174,
+		NOSQLC=175, NOSQLCCSID=176, NOSSR=177, NOSSRANGE=178, NOSTDTRUNC=179,
+		NOSEQUENCE=180, NOTERM=181, NOTERMINAL=182, NOTEST=183, NOTHREAD=184,
+		NOTRIG=185, NOVBREF=186, NOWD=187, NOWORD=188, NOX=189, NOXREF=190, NOZWB=191,
+		NS=192, NSEQ=193, NSYMBOL=194, NUM=195, NUMBER=196, NUMPROC=197, OBJ=198,
+		OBJECT=199, OF=200, OFF=201, OFFSET=202, ON=203, OP=204, OPMARGINS=205,
+		OPSEQUENCE=206, OPT=207, OPTFILE=208, OPTIMIZE=209, OPTIONS=210, OUT=211,
+		OUTDD=212, PFD=213, PPTDBG=214, PGMN=215, PGMNAME=216, PROCESS=217, PROLOG=218,
+		QUOTE=219, RENT=220, REPLACE=221, REPLACING=222, RMODE=223, RPARENCHAR=224,
+		SEP=225, SEPARATE=226, SEQ=227, SEQUENCE=228, SHORT=229, SIZE=230, SOURCE=231,
+		SP=232, SPACE=233, SPIE=234, SQL=235, SQLC=236, SQLCCSID=237, SQLIMS=238,
+		SKIP1=239, SKIP2=240, SKIP3=241, SS=242, SSR=243, SSRANGE=244, STD=245,
+		SUPPRESS=246, SYSEIB=247, SZ=248, TERM=249, TERMINAL=250, TEST=251, THREAD=252,
+		TITLE=253, TRIG=254, TRUNC=255, UE=256, UPPER=257, VBREF=258, WD=259,
+		WORD=260, XMLPARSE=261, XMLSS=262, XOPTS=263, XP=264, XREF=265, YEARWINDOW=266,
+		YW=267, ZWB=268, C_CHAR=269, D_CHAR=270, E_CHAR=271, F_CHAR=272, H_CHAR=273,
+		I_CHAR=274, M_CHAR=275, N_CHAR=276, Q_CHAR=277, S_CHAR=278, U_CHAR=279,
+		W_CHAR=280, X_CHAR=281, COMMENTENTRYTAG=282, COMMENTTAG=283, COMMACHAR=284,
+		DOT=285, DOUBLEEQUALCHAR=286, NONNUMERICLITERAL=287, INTEGERLITERAL=288,
+		NUMERICLITERAL=289, IDENTIFIER=290, FILENAME=291, SEPARATOR=292, COMPILER_DIRECTIVE=293,
 		NEWLINE=294, COMMENTENTRYLINE=295, COMMENTLINE=296, WS=297, TEXT=298;
 	public static final int
-		RULE_compilationUnit = 0, RULE_compilerOptions = 1, RULE_compilerXOpts = 2, 
-		RULE_compilerOption = 3, RULE_execCicsStatement = 4, RULE_execDliStatement = 5, 
-		RULE_execSqlStatement = 6, RULE_execSqlIncludeStatement = 7, RULE_execSqlImsStatement = 8, 
-		RULE_copyStatement = 9, RULE_copySource = 10, RULE_copyLibrary = 11, RULE_replacingPhrase = 12, 
-		RULE_replaceArea = 13, RULE_replaceByStatement = 14, RULE_replaceOffStatement = 15, 
-		RULE_replaceClause = 16, RULE_directoryPhrase = 17, RULE_familyPhrase = 18, 
-		RULE_replaceable = 19, RULE_replacement = 20, RULE_identifierWords = 21, 
-		RULE_compilerDirective = 22, RULE_ejectStatement = 23, RULE_skipStatement = 24, 
-		RULE_titleStatement = 25, RULE_pseudoText = 26, RULE_charData = 27, RULE_charDataSql = 28, 
-		RULE_charDataLine = 29, RULE_subscript = 30, RULE_cobolWord = 31, RULE_literal = 32, 
+		RULE_compilationUnit = 0, RULE_compilerOptions = 1, RULE_compilerXOpts = 2,
+		RULE_compilerOption = 3, RULE_execCicsStatement = 4, RULE_execDliStatement = 5,
+		RULE_execSqlStatement = 6, RULE_execSqlIncludeStatement = 7, RULE_execSqlImsStatement = 8,
+		RULE_copyStatement = 9, RULE_copySource = 10, RULE_copyLibrary = 11, RULE_replacingPhrase = 12,
+		RULE_replaceArea = 13, RULE_replaceByStatement = 14, RULE_replaceOffStatement = 15,
+		RULE_replaceClause = 16, RULE_directoryPhrase = 17, RULE_familyPhrase = 18,
+		RULE_replaceable = 19, RULE_replacement = 20, RULE_identifierWords = 21,
+		RULE_compilerDirective = 22, RULE_ejectStatement = 23, RULE_skipStatement = 24,
+		RULE_titleStatement = 25, RULE_pseudoText = 26, RULE_charData = 27, RULE_charDataSql = 28,
+		RULE_charDataLine = 29, RULE_subscript = 30, RULE_cobolWord = 31, RULE_literal = 32,
 		RULE_filename = 33, RULE_commentEntry = 34, RULE_charDataKeyword = 35;
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"compilationUnit", "compilerOptions", "compilerXOpts", "compilerOption", 
-			"execCicsStatement", "execDliStatement", "execSqlStatement", "execSqlIncludeStatement", 
-			"execSqlImsStatement", "copyStatement", "copySource", "copyLibrary", 
-			"replacingPhrase", "replaceArea", "replaceByStatement", "replaceOffStatement", 
-			"replaceClause", "directoryPhrase", "familyPhrase", "replaceable", "replacement", 
-			"identifierWords", "compilerDirective", "ejectStatement", "skipStatement", 
-			"titleStatement", "pseudoText", "charData", "charDataSql", "charDataLine", 
+			"compilationUnit", "compilerOptions", "compilerXOpts", "compilerOption",
+			"execCicsStatement", "execDliStatement", "execSqlStatement", "execSqlIncludeStatement",
+			"execSqlImsStatement", "copyStatement", "copySource", "copyLibrary",
+			"replacingPhrase", "replaceArea", "replaceByStatement", "replaceOffStatement",
+			"replaceClause", "directoryPhrase", "familyPhrase", "replaceable", "replacement",
+			"identifierWords", "compilerDirective", "ejectStatement", "skipStatement",
+			"titleStatement", "pseudoText", "charData", "charDataSql", "charDataLine",
 			"subscript", "cobolWord", "literal", "filename", "commentEntry", "charDataKeyword"
 		};
 	}
@@ -105,93 +106,93 @@ public class CobolPreprocessorParser extends Parser {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'ADATA'", "'ADV'", "'ALIAS'", "'ANSI'", "'ANY'", "'APOST'", "'AR'", 
-			"'ARITH'", "'AUTO'", "'AWO'", "'BIN'", "'BLOCK0'", "'BUF'", "'BUFSIZE'", 
-			"'BY'", "'CBL'", "'CBLCARD'", "'CICS'", "'CO'", "'COBOL2'", "'COBOL3'", 
-			"'CODEPAGE'", "'COMPAT'", "'COMPILE'", "'COPY'", "'CP'", "'CPP'", "'CPSM'", 
-			"'CS'", "'CURR'", "'CURRENCY'", "'DATA'", "'DATEPROC'", "'DBCS'", "'DD'", 
-			"'DEBUG'", "'DECK'", "'DIAGTRUNC'", "'DLI'", "'DLL'", "'DP'", "'DTR'", 
-			"'DU'", "'DUMP'", "'DYN'", "'DYNAM'", "'EDF'", "'EJECT'", "'EJPD'", "'EN'", 
-			"'ENGLISH'", "'END-EXEC'", "'EPILOG'", "'EXCI'", "'EXEC'", "'EXIT'", 
-			"'EXP'", "'EXPORTALL'", "'EXTEND'", "'FASTSRT'", "'FEPI'", "'FLAG'", 
-			"'FLAGSTD'", "'FSRT'", "'FULL'", "'GDS'", "'GRAPHIC'", "'HOOK'", "'IN'", 
-			"'INCLUDE'", "'INTDATE'", "'JA'", "'JP'", "'KA'", "'LANG'", "'LANGUAGE'", 
-			"'LC'", "'LEASM'", "'LENGTH'", "'LIB'", "'LILIAN'", "'LIN'", "'LINECOUNT'", 
-			"'LINKAGE'", "'LIST'", "'LM'", "'LONGMIXED'", "'LONGUPPER'", "'('", "'LU'", 
-			"'MAP'", "'MARGINS'", "'MAX'", "'MD'", "'MDECK'", "'MIG'", "'MIXED'", 
-			"'NAME'", "'NAT'", "'NATIONAL'", "'NATLANG'", "'NN'", "'NO'", "'NOADATA'", 
-			"'NOADV'", "'NOALIAS'", "'NOAWO'", "'NOBLOCK0'", "'NOC'", "'NOCBLCARD'", 
-			"'NOCICS'", "'NOCMPR2'", "'NOCOMPILE'", "'NOCPSM'", "'NOCURR'", "'NOCURRENCY'", 
-			"'NOD'", "'NODATEPROC'", "'NODBCS'", "'NODE'", "'NODEBUG'", "'NODECK'", 
-			"'NODIAGTRUNC'", "'NODLL'", "'NODU'", "'NODUMP'", "'NODP'", "'NODTR'", 
-			"'NODYN'", "'NODYNAM'", "'NOEDF'", "'NOEJPD'", "'NOEPILOG'", "'NOEXIT'", 
-			"'NOEXP'", "'NOEXPORTALL'", "'NOF'", "'NOFASTSRT'", "'NOFEPI'", "'NOFLAG'", 
-			"'NOFLAGMIG'", "'NOFLAGSTD'", "'NOFSRT'", "'NOGRAPHIC'", "'NOHOOK'", 
-			"'NOLENGTH'", "'NOLIB'", "'NOLINKAGE'", "'NOLIST'", "'NOMAP'", "'NOMD'", 
-			"'NOMDECK'", "'NONAME'", "'NONUM'", "'NONUMBER'", "'NOOBJ'", "'NOOBJECT'", 
-			"'NOOFF'", "'NOOFFSET'", "'NOOPSEQUENCE'", "'NOOPT'", "'NOOPTIMIZE'", 
-			"'NOOPTIONS'", "'NOP'", "'NOPFD'", "'NOPROLOG'", "'NORENT'", "'NOS'", 
-			"'NOSEP'", "'NOSEPARATE'", "'NOSEQ'", "'NOSOURCE'", "'NOSPIE'", "'NOSQL'", 
-			"'NOSQLC'", "'NOSQLCCSID'", "'NOSSR'", "'NOSSRANGE'", "'NOSTDTRUNC'", 
-			"'NOSEQUENCE'", "'NOTERM'", "'NOTERMINAL'", "'NOTEST'", "'NOTHREAD'", 
-			"'NOTRIG'", "'NOVBREF'", "'NOWD'", "'NOWORD'", "'NOX'", "'NOXREF'", "'NOZWB'", 
-			"'NS'", "'NSEQ'", "'NSYMBOL'", "'NUM'", "'NUMBER'", "'NUMPROC'", "'OBJ'", 
-			"'OBJECT'", "'OF'", "'OFF'", "'OFFSET'", "'ON'", "'OP'", "'OPMARGINS'", 
-			"'OPSEQUENCE'", "'OPT'", "'OPTFILE'", "'OPTIMIZE'", "'OPTIONS'", "'OUT'", 
-			"'OUTDD'", "'PFD'", "'PPTDBG'", "'PGMN'", "'PGMNAME'", "'PROCESS'", "'PROLOG'", 
-			"'QUOTE'", "'RENT'", "'REPLACE'", "'REPLACING'", "'RMODE'", "')'", "'SEP'", 
-			"'SEPARATE'", "'SEQ'", "'SEQUENCE'", "'SHORT'", "'SIZE'", "'SOURCE'", 
-			"'SP'", "'SPACE'", "'SPIE'", "'SQL'", "'SQLC'", "'SQLCCSID'", "'SQLIMS'", 
-			"'SKIP1'", "'SKIP2'", "'SKIP3'", "'SS'", "'SSR'", "'SSRANGE'", "'STD'", 
-			"'SUPPRESS'", "'SYSEIB'", "'SZ'", "'TERM'", "'TERMINAL'", "'TEST'", "'THREAD'", 
-			"'TITLE'", "'TRIG'", "'TRUNC'", "'UE'", "'UPPER'", "'VBREF'", "'WD'", 
-			"'WORD'", "'XMLPARSE'", "'XMLSS'", "'XOPTS'", "'XP'", "'XREF'", "'YEARWINDOW'", 
-			"'YW'", "'ZWB'", "'C'", "'D'", "'E'", "'F'", "'H'", "'I'", "'M'", "'N'", 
+			null, "'ADATA'", "'ADV'", "'ALIAS'", "'ANSI'", "'ANY'", "'APOST'", "'AR'",
+			"'ARITH'", "'AUTO'", "'AWO'", "'BIN'", "'BLOCK0'", "'BUF'", "'BUFSIZE'",
+			"'BY'", "'CBL'", "'CBLCARD'", "'CICS'", "'CO'", "'COBOL2'", "'COBOL3'",
+			"'CODEPAGE'", "'COMPAT'", "'COMPILE'", "'COPY'", "'CP'", "'CPP'", "'CPSM'",
+			"'CS'", "'CURR'", "'CURRENCY'", "'DATA'", "'DATEPROC'", "'DBCS'", "'DD'",
+			"'DEBUG'", "'DECK'", "'DIAGTRUNC'", "'DLI'", "'DLL'", "'DP'", "'DTR'",
+			"'DU'", "'DUMP'", "'DYN'", "'DYNAM'", "'EDF'", "'EJECT'", "'EJPD'", "'EN'",
+			"'ENGLISH'", "'END-EXEC'", "'EPILOG'", "'EXCI'", "'EXEC'", "'EXIT'",
+			"'EXP'", "'EXPORTALL'", "'EXTEND'", "'FASTSRT'", "'FEPI'", "'FLAG'",
+			"'FLAGSTD'", "'FSRT'", "'FULL'", "'GDS'", "'GRAPHIC'", "'HOOK'", "'IN'",
+			"'INCLUDE'", "'INTDATE'", "'JA'", "'JP'", "'KA'", "'LANG'", "'LANGUAGE'",
+			"'LC'", "'LEASM'", "'LENGTH'", "'LIB'", "'LILIAN'", "'LIN'", "'LINECOUNT'",
+			"'LINKAGE'", "'LIST'", "'LM'", "'LONGMIXED'", "'LONGUPPER'", "'('", "'LU'",
+			"'MAP'", "'MARGINS'", "'MAX'", "'MD'", "'MDECK'", "'MIG'", "'MIXED'",
+			"'NAME'", "'NAT'", "'NATIONAL'", "'NATLANG'", "'NN'", "'NO'", "'NOADATA'",
+			"'NOADV'", "'NOALIAS'", "'NOAWO'", "'NOBLOCK0'", "'NOC'", "'NOCBLCARD'",
+			"'NOCICS'", "'NOCMPR2'", "'NOCOMPILE'", "'NOCPSM'", "'NOCURR'", "'NOCURRENCY'",
+			"'NOD'", "'NODATEPROC'", "'NODBCS'", "'NODE'", "'NODEBUG'", "'NODECK'",
+			"'NODIAGTRUNC'", "'NODLL'", "'NODU'", "'NODUMP'", "'NODP'", "'NODTR'",
+			"'NODYN'", "'NODYNAM'", "'NOEDF'", "'NOEJPD'", "'NOEPILOG'", "'NOEXIT'",
+			"'NOEXP'", "'NOEXPORTALL'", "'NOF'", "'NOFASTSRT'", "'NOFEPI'", "'NOFLAG'",
+			"'NOFLAGMIG'", "'NOFLAGSTD'", "'NOFSRT'", "'NOGRAPHIC'", "'NOHOOK'",
+			"'NOLENGTH'", "'NOLIB'", "'NOLINKAGE'", "'NOLIST'", "'NOMAP'", "'NOMD'",
+			"'NOMDECK'", "'NONAME'", "'NONUM'", "'NONUMBER'", "'NOOBJ'", "'NOOBJECT'",
+			"'NOOFF'", "'NOOFFSET'", "'NOOPSEQUENCE'", "'NOOPT'", "'NOOPTIMIZE'",
+			"'NOOPTIONS'", "'NOP'", "'NOPFD'", "'NOPROLOG'", "'NORENT'", "'NOS'",
+			"'NOSEP'", "'NOSEPARATE'", "'NOSEQ'", "'NOSOURCE'", "'NOSPIE'", "'NOSQL'",
+			"'NOSQLC'", "'NOSQLCCSID'", "'NOSSR'", "'NOSSRANGE'", "'NOSTDTRUNC'",
+			"'NOSEQUENCE'", "'NOTERM'", "'NOTERMINAL'", "'NOTEST'", "'NOTHREAD'",
+			"'NOTRIG'", "'NOVBREF'", "'NOWD'", "'NOWORD'", "'NOX'", "'NOXREF'", "'NOZWB'",
+			"'NS'", "'NSEQ'", "'NSYMBOL'", "'NUM'", "'NUMBER'", "'NUMPROC'", "'OBJ'",
+			"'OBJECT'", "'OF'", "'OFF'", "'OFFSET'", "'ON'", "'OP'", "'OPMARGINS'",
+			"'OPSEQUENCE'", "'OPT'", "'OPTFILE'", "'OPTIMIZE'", "'OPTIONS'", "'OUT'",
+			"'OUTDD'", "'PFD'", "'PPTDBG'", "'PGMN'", "'PGMNAME'", "'PROCESS'", "'PROLOG'",
+			"'QUOTE'", "'RENT'", "'REPLACE'", "'REPLACING'", "'RMODE'", "')'", "'SEP'",
+			"'SEPARATE'", "'SEQ'", "'SEQUENCE'", "'SHORT'", "'SIZE'", "'SOURCE'",
+			"'SP'", "'SPACE'", "'SPIE'", "'SQL'", "'SQLC'", "'SQLCCSID'", "'SQLIMS'",
+			"'SKIP1'", "'SKIP2'", "'SKIP3'", "'SS'", "'SSR'", "'SSRANGE'", "'STD'",
+			"'SUPPRESS'", "'SYSEIB'", "'SZ'", "'TERM'", "'TERMINAL'", "'TEST'", "'THREAD'",
+			"'TITLE'", "'TRIG'", "'TRUNC'", "'UE'", "'UPPER'", "'VBREF'", "'WD'",
+			"'WORD'", "'XMLPARSE'", "'XMLSS'", "'XOPTS'", "'XP'", "'XREF'", "'YEARWINDOW'",
+			"'YW'", "'ZWB'", "'C'", "'D'", "'E'", "'F'", "'H'", "'I'", "'M'", "'N'",
 			"'Q'", "'S'", "'U'", "'W'", "'X'", "'*>CE'", "'*>'", "','", "'.'", "'=='"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "ADATA", "ADV", "ALIAS", "ANSI", "ANY", "APOST", "AR", "ARITH", 
-			"AUTO", "AWO", "BIN", "BLOCK0", "BUF", "BUFSIZE", "BY", "CBL", "CBLCARD", 
-			"CICS", "CO", "COBOL2", "COBOL3", "CODEPAGE", "COMPAT", "COMPILE", "COPY", 
-			"CP", "CPP", "CPSM", "CS", "CURR", "CURRENCY", "DATA", "DATEPROC", "DBCS", 
-			"DD", "DEBUG", "DECK", "DIAGTRUNC", "DLI", "DLL", "DP", "DTR", "DU", 
-			"DUMP", "DYN", "DYNAM", "EDF", "EJECT", "EJPD", "EN", "ENGLISH", "END_EXEC", 
-			"EPILOG", "EXCI", "EXEC", "EXIT", "EXP", "EXPORTALL", "EXTEND", "FASTSRT", 
-			"FEPI", "FLAG", "FLAGSTD", "FSRT", "FULL", "GDS", "GRAPHIC", "HOOK", 
-			"IN", "INCLUDE", "INTDATE", "JA", "JP", "KA", "LANG", "LANGUAGE", "LC", 
-			"LEASM", "LENGTH", "LIB", "LILIAN", "LIN", "LINECOUNT", "LINKAGE", "LIST", 
-			"LM", "LONGMIXED", "LONGUPPER", "LPARENCHAR", "LU", "MAP", "MARGINS", 
-			"MAX", "MD", "MDECK", "MIG", "MIXED", "NAME", "NAT", "NATIONAL", "NATLANG", 
-			"NN", "NO", "NOADATA", "NOADV", "NOALIAS", "NOAWO", "NOBLOCK0", "NOC", 
-			"NOCBLCARD", "NOCICS", "NOCMPR2", "NOCOMPILE", "NOCPSM", "NOCURR", "NOCURRENCY", 
-			"NOD", "NODATEPROC", "NODBCS", "NODE", "NODEBUG", "NODECK", "NODIAGTRUNC", 
-			"NODLL", "NODU", "NODUMP", "NODP", "NODTR", "NODYN", "NODYNAM", "NOEDF", 
-			"NOEJPD", "NOEPILOG", "NOEXIT", "NOEXP", "NOEXPORTALL", "NOF", "NOFASTSRT", 
-			"NOFEPI", "NOFLAG", "NOFLAGMIG", "NOFLAGSTD", "NOFSRT", "NOGRAPHIC", 
-			"NOHOOK", "NOLENGTH", "NOLIB", "NOLINKAGE", "NOLIST", "NOMAP", "NOMD", 
-			"NOMDECK", "NONAME", "NONUM", "NONUMBER", "NOOBJ", "NOOBJECT", "NOOFF", 
-			"NOOFFSET", "NOOPSEQUENCE", "NOOPT", "NOOPTIMIZE", "NOOPTIONS", "NOP", 
-			"NOPFD", "NOPROLOG", "NORENT", "NOS", "NOSEP", "NOSEPARATE", "NOSEQ", 
-			"NOSOURCE", "NOSPIE", "NOSQL", "NOSQLC", "NOSQLCCSID", "NOSSR", "NOSSRANGE", 
-			"NOSTDTRUNC", "NOSEQUENCE", "NOTERM", "NOTERMINAL", "NOTEST", "NOTHREAD", 
-			"NOTRIG", "NOVBREF", "NOWD", "NOWORD", "NOX", "NOXREF", "NOZWB", "NS", 
-			"NSEQ", "NSYMBOL", "NUM", "NUMBER", "NUMPROC", "OBJ", "OBJECT", "OF", 
-			"OFF", "OFFSET", "ON", "OP", "OPMARGINS", "OPSEQUENCE", "OPT", "OPTFILE", 
-			"OPTIMIZE", "OPTIONS", "OUT", "OUTDD", "PFD", "PPTDBG", "PGMN", "PGMNAME", 
-			"PROCESS", "PROLOG", "QUOTE", "RENT", "REPLACE", "REPLACING", "RMODE", 
-			"RPARENCHAR", "SEP", "SEPARATE", "SEQ", "SEQUENCE", "SHORT", "SIZE", 
-			"SOURCE", "SP", "SPACE", "SPIE", "SQL", "SQLC", "SQLCCSID", "SQLIMS", 
-			"SKIP1", "SKIP2", "SKIP3", "SS", "SSR", "SSRANGE", "STD", "SUPPRESS", 
-			"SYSEIB", "SZ", "TERM", "TERMINAL", "TEST", "THREAD", "TITLE", "TRIG", 
-			"TRUNC", "UE", "UPPER", "VBREF", "WD", "WORD", "XMLPARSE", "XMLSS", "XOPTS", 
-			"XP", "XREF", "YEARWINDOW", "YW", "ZWB", "C_CHAR", "D_CHAR", "E_CHAR", 
-			"F_CHAR", "H_CHAR", "I_CHAR", "M_CHAR", "N_CHAR", "Q_CHAR", "S_CHAR", 
-			"U_CHAR", "W_CHAR", "X_CHAR", "COMMENTENTRYTAG", "COMMENTTAG", "COMMACHAR", 
-			"DOT", "DOUBLEEQUALCHAR", "NONNUMERICLITERAL", "INTEGERLITERAL", "NUMERICLITERAL", 
-			"IDENTIFIER", "FILENAME", "SEPARATOR", "COMPILER_DIRECTIVE", "NEWLINE", 
+			null, "ADATA", "ADV", "ALIAS", "ANSI", "ANY", "APOST", "AR", "ARITH",
+			"AUTO", "AWO", "BIN", "BLOCK0", "BUF", "BUFSIZE", "BY", "CBL", "CBLCARD",
+			"CICS", "CO", "COBOL2", "COBOL3", "CODEPAGE", "COMPAT", "COMPILE", "COPY",
+			"CP", "CPP", "CPSM", "CS", "CURR", "CURRENCY", "DATA", "DATEPROC", "DBCS",
+			"DD", "DEBUG", "DECK", "DIAGTRUNC", "DLI", "DLL", "DP", "DTR", "DU",
+			"DUMP", "DYN", "DYNAM", "EDF", "EJECT", "EJPD", "EN", "ENGLISH", "END_EXEC",
+			"EPILOG", "EXCI", "EXEC", "EXIT", "EXP", "EXPORTALL", "EXTEND", "FASTSRT",
+			"FEPI", "FLAG", "FLAGSTD", "FSRT", "FULL", "GDS", "GRAPHIC", "HOOK",
+			"IN", "INCLUDE", "INTDATE", "JA", "JP", "KA", "LANG", "LANGUAGE", "LC",
+			"LEASM", "LENGTH", "LIB", "LILIAN", "LIN", "LINECOUNT", "LINKAGE", "LIST",
+			"LM", "LONGMIXED", "LONGUPPER", "LPARENCHAR", "LU", "MAP", "MARGINS",
+			"MAX", "MD", "MDECK", "MIG", "MIXED", "NAME", "NAT", "NATIONAL", "NATLANG",
+			"NN", "NO", "NOADATA", "NOADV", "NOALIAS", "NOAWO", "NOBLOCK0", "NOC",
+			"NOCBLCARD", "NOCICS", "NOCMPR2", "NOCOMPILE", "NOCPSM", "NOCURR", "NOCURRENCY",
+			"NOD", "NODATEPROC", "NODBCS", "NODE", "NODEBUG", "NODECK", "NODIAGTRUNC",
+			"NODLL", "NODU", "NODUMP", "NODP", "NODTR", "NODYN", "NODYNAM", "NOEDF",
+			"NOEJPD", "NOEPILOG", "NOEXIT", "NOEXP", "NOEXPORTALL", "NOF", "NOFASTSRT",
+			"NOFEPI", "NOFLAG", "NOFLAGMIG", "NOFLAGSTD", "NOFSRT", "NOGRAPHIC",
+			"NOHOOK", "NOLENGTH", "NOLIB", "NOLINKAGE", "NOLIST", "NOMAP", "NOMD",
+			"NOMDECK", "NONAME", "NONUM", "NONUMBER", "NOOBJ", "NOOBJECT", "NOOFF",
+			"NOOFFSET", "NOOPSEQUENCE", "NOOPT", "NOOPTIMIZE", "NOOPTIONS", "NOP",
+			"NOPFD", "NOPROLOG", "NORENT", "NOS", "NOSEP", "NOSEPARATE", "NOSEQ",
+			"NOSOURCE", "NOSPIE", "NOSQL", "NOSQLC", "NOSQLCCSID", "NOSSR", "NOSSRANGE",
+			"NOSTDTRUNC", "NOSEQUENCE", "NOTERM", "NOTERMINAL", "NOTEST", "NOTHREAD",
+			"NOTRIG", "NOVBREF", "NOWD", "NOWORD", "NOX", "NOXREF", "NOZWB", "NS",
+			"NSEQ", "NSYMBOL", "NUM", "NUMBER", "NUMPROC", "OBJ", "OBJECT", "OF",
+			"OFF", "OFFSET", "ON", "OP", "OPMARGINS", "OPSEQUENCE", "OPT", "OPTFILE",
+			"OPTIMIZE", "OPTIONS", "OUT", "OUTDD", "PFD", "PPTDBG", "PGMN", "PGMNAME",
+			"PROCESS", "PROLOG", "QUOTE", "RENT", "REPLACE", "REPLACING", "RMODE",
+			"RPARENCHAR", "SEP", "SEPARATE", "SEQ", "SEQUENCE", "SHORT", "SIZE",
+			"SOURCE", "SP", "SPACE", "SPIE", "SQL", "SQLC", "SQLCCSID", "SQLIMS",
+			"SKIP1", "SKIP2", "SKIP3", "SS", "SSR", "SSRANGE", "STD", "SUPPRESS",
+			"SYSEIB", "SZ", "TERM", "TERMINAL", "TEST", "THREAD", "TITLE", "TRIG",
+			"TRUNC", "UE", "UPPER", "VBREF", "WD", "WORD", "XMLPARSE", "XMLSS", "XOPTS",
+			"XP", "XREF", "YEARWINDOW", "YW", "ZWB", "C_CHAR", "D_CHAR", "E_CHAR",
+			"F_CHAR", "H_CHAR", "I_CHAR", "M_CHAR", "N_CHAR", "Q_CHAR", "S_CHAR",
+			"U_CHAR", "W_CHAR", "X_CHAR", "COMMENTENTRYTAG", "COMMENTTAG", "COMMACHAR",
+			"DOT", "DOUBLEEQUALCHAR", "NONNUMERICLITERAL", "INTEGERLITERAL", "NUMERICLITERAL",
+			"IDENTIFIER", "FILENAME", "SEPARATOR", "COMPILER_DIRECTIVE", "NEWLINE",
 			"COMMENTENTRYLINE", "COMMENTLINE", "WS", "TEXT"
 		};
 	}
@@ -414,7 +415,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCompilationUnit(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -519,7 +520,7 @@ public class CobolPreprocessorParser extends Parser {
 						}
 						break;
 					}
-					} 
+					}
 				}
 				setState(90);
 				_errHandler.sync(this);
@@ -575,7 +576,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCompilerOptions(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -597,7 +598,7 @@ public class CobolPreprocessorParser extends Parser {
 				_errHandler.reportMatch(this);
 				consume();
 			}
-			setState(99); 
+			setState(99);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -839,12 +840,12 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(101); 
+				setState(101);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,4,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
 			setState(103);
-			if (!(!continuesCompilerOptions())) throw new FailedPredicateException(this, "!continuesCompilerOptions()");
+			if (!!continuesCompilerOptions()) throw new FailedPredicateException(this, "!continuesCompilerOptions()");
 			}
 		}
 		catch (RecognitionException re) {
@@ -888,7 +889,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCompilerXOpts(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -908,7 +909,7 @@ public class CobolPreprocessorParser extends Parser {
 			setState(114);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -639230256804891194L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -5339311376243L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -144121922584707089L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -6946732225628997889L) != 0) || ((((_la - 258)) & ~0x3f) == 0 && ((1L << (_la - 258)) & 77094863L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & -639230256804891194L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -5339311376243L) != 0) || (((_la - 128) & ~0x3f) == 0 && ((1L << (_la - 128)) & -144121922584707089L) != 0) || (((_la - 192) & ~0x3f) == 0 && ((1L << (_la - 192)) & -6946732225628997889L) != 0) || (((_la - 258) & ~0x3f) == 0 && ((1L << (_la - 258)) & 77094863L) != 0)) {
 				{
 				{
 				setState(109);
@@ -1246,7 +1247,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCompilerOption(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -1371,7 +1372,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(139);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -1548,7 +1549,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(174);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -1710,7 +1711,7 @@ public class CobolPreprocessorParser extends Parser {
 				match(LPARENCHAR);
 				setState(192);
 				_la = _input.LA(1);
-				if ( !(((((_la - 271)) & ~0x3f) == 0 && ((1L << (_la - 271)) & 905L) != 0)) ) {
+				if ( !(((_la - 271) & ~0x3f) == 0 && ((1L << (_la - 271)) & 905L) != 0) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -1727,7 +1728,7 @@ public class CobolPreprocessorParser extends Parser {
 					match(COMMACHAR);
 					setState(194);
 					_la = _input.LA(1);
-					if ( !(((((_la - 271)) & ~0x3f) == 0 && ((1L << (_la - 271)) & 905L) != 0)) ) {
+					if ( !(((_la - 271) & ~0x3f) == 0 && ((1L << (_la - 271)) & 905L) != 0) ) {
 					_errHandler.recoverInline(this);
 					}
 					else {
@@ -1751,7 +1752,7 @@ public class CobolPreprocessorParser extends Parser {
 				match(LPARENCHAR);
 				setState(200);
 				_la = _input.LA(1);
-				if ( !(((((_la - 273)) & ~0x3f) == 0 && ((1L << (_la - 273)) & 7L) != 0)) ) {
+				if ( !(((_la - 273) & ~0x3f) == 0 && ((1L << (_la - 273)) & 7L) != 0) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -1768,7 +1769,7 @@ public class CobolPreprocessorParser extends Parser {
 					match(COMMACHAR);
 					setState(202);
 					_la = _input.LA(1);
-					if ( !(_la==DD || _la==NN || ((((_la - 242)) & ~0x3f) == 0 && ((1L << (_la - 242)) & 86167781377L) != 0)) ) {
+					if ( !(_la==DD || _la==NN || (((_la - 242) & ~0x3f) == 0 && ((1L << (_la - 242)) & 86167781377L) != 0)) ) {
 					_errHandler.recoverInline(this);
 					}
 					else {
@@ -1835,7 +1836,7 @@ public class CobolPreprocessorParser extends Parser {
 				match(LPARENCHAR);
 				setState(214);
 				_la = _input.LA(1);
-				if ( !(((((_la - 29)) & ~0x3f) == 0 && ((1L << (_la - 29)) & 61572657446913L) != 0) || _la==UE) ) {
+				if ( !((((_la - 29) & ~0x3f) == 0 && ((1L << (_la - 29)) & 61572657446913L) != 0) || _la==UE) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -1983,7 +1984,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(243);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -2018,7 +2019,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(250);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -2033,7 +2034,7 @@ public class CobolPreprocessorParser extends Parser {
 				match(LPARENCHAR);
 				setState(255);
 				_la = _input.LA(1);
-				if ( !(((((_la - 29)) & ~0x3f) == 0 && ((1L << (_la - 29)) & 35184374185985L) != 0)) ) {
+				if ( !(((_la - 29) & ~0x3f) == 0 && ((1L << (_la - 29)) & 35184374185985L) != 0) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -2116,7 +2117,7 @@ public class CobolPreprocessorParser extends Parser {
 					match(LPARENCHAR);
 					setState(266);
 					_la = _input.LA(1);
-					if ( !(((((_la - 271)) & ~0x3f) == 0 && ((1L << (_la - 271)) & 641L) != 0)) ) {
+					if ( !(((_la - 271) & ~0x3f) == 0 && ((1L << (_la - 271)) & 641L) != 0) ) {
 					_errHandler.recoverInline(this);
 					}
 					else {
@@ -2131,7 +2132,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(268);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -2854,7 +2855,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(357);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -2919,7 +2920,7 @@ public class CobolPreprocessorParser extends Parser {
 				match(LPARENCHAR);
 				setState(370);
 				_la = _input.LA(1);
-				if ( !(_la==CO || _la==COMPAT || ((((_la - 86)) & ~0x3f) == 0 && ((1L << (_la - 86)) & 2071L) != 0) || ((((_la - 257)) & ~0x3f) == 0 && ((1L << (_la - 257)) & 4456449L) != 0)) ) {
+				if ( !(_la==CO || _la==COMPAT || (((_la - 86) & ~0x3f) == 0 && ((1L << (_la - 86)) & 2071L) != 0) || (((_la - 257) & ~0x3f) == 0 && ((1L << (_la - 257)) & 4456449L) != 0)) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -3030,7 +3031,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(390);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -3138,7 +3139,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(413);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -3239,11 +3240,11 @@ public class CobolPreprocessorParser extends Parser {
 					setState(429);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
-					if (((((_la - 169)) & ~0x3f) == 0 && ((1L << (_la - 169)) & 216172782113783811L) != 0)) {
+					if (((_la - 169) & ~0x3f) == 0 && ((1L << (_la - 169)) & 216172782113783811L) != 0) {
 						{
 						setState(428);
 						_la = _input.LA(1);
-						if ( !(((((_la - 169)) & ~0x3f) == 0 && ((1L << (_la - 169)) & 216172782113783811L) != 0)) ) {
+						if ( !(((_la - 169) & ~0x3f) == 0 && ((1L << (_la - 169)) & 216172782113783811L) != 0) ) {
 						_errHandler.recoverInline(this);
 						}
 						else {
@@ -3289,7 +3290,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(438);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -3368,7 +3369,7 @@ public class CobolPreprocessorParser extends Parser {
 				match(LPARENCHAR);
 				setState(454);
 				_la = _input.LA(1);
-				if ( !(_la==COMPAT || ((((_la - 262)) & ~0x3f) == 0 && ((1L << (_la - 262)) & 524417L) != 0)) ) {
+				if ( !(_la==COMPAT || (((_la - 262) & ~0x3f) == 0 && ((1L << (_la - 262)) & 524417L) != 0)) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -3425,7 +3426,7 @@ public class CobolPreprocessorParser extends Parser {
 				case 2:
 					{
 					setState(462);
-					if (!(!parenAhead(_localctx))) throw new FailedPredicateException(this, "!parenAhead($ctx)");
+					if (!!parenAhead(_localctx)) throw new FailedPredicateException(this, "!parenAhead($ctx)");
 					}
 					break;
 				}
@@ -3496,7 +3497,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitExecCicsStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3567,7 +3568,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitExecDliStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3638,7 +3639,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitExecSqlStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -3716,7 +3717,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitExecSqlIncludeStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4076,7 +4077,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitExecSqlImsStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4164,7 +4165,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCopyStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4182,7 +4183,7 @@ public class CobolPreprocessorParser extends Parser {
 			setState(525);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while (_la==IN || ((((_la - 200)) & ~0x3f) == 0 && ((1L << (_la - 200)) & 70368744177673L) != 0)) {
+			while (_la==IN || (((_la - 200) & ~0x3f) == 0 && ((1L << (_la - 200)) & 70368744177673L) != 0)) {
 				{
 				setState(523);
 				_errHandler.sync(this);
@@ -4270,7 +4271,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCopySource(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4632,7 +4633,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCopyLibrary(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4961,7 +4962,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitReplacingPhrase(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -4979,7 +4980,7 @@ public class CobolPreprocessorParser extends Parser {
 			setState(552);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || ((((_la - 256)) & ~0x3f) == 0 && ((1L << (_la - 256)) & 33621540591L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || (((_la - 128) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || (((_la - 192) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || (((_la - 256) & ~0x3f) == 0 && ((1L << (_la - 256)) & 33621540591L) != 0)) {
 				{
 				{
 				setState(549);
@@ -5044,7 +5045,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitReplaceArea(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5085,7 +5086,7 @@ public class CobolPreprocessorParser extends Parser {
 						}
 						break;
 					}
-					} 
+					}
 				}
 				setState(563);
 				_errHandler.sync(this);
@@ -5147,7 +5148,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitReplaceByStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5160,7 +5161,7 @@ public class CobolPreprocessorParser extends Parser {
 			{
 			setState(569);
 			match(REPLACE);
-			setState(571); 
+			setState(571);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			do {
@@ -5170,10 +5171,10 @@ public class CobolPreprocessorParser extends Parser {
 				replaceClause();
 				}
 				}
-				setState(573); 
+				setState(573);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || ((((_la - 256)) & ~0x3f) == 0 && ((1L << (_la - 256)) & 33621540591L) != 0) );
+			} while ( ((_la & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || (((_la - 128) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || (((_la - 192) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || (((_la - 256) & ~0x3f) == 0 && ((1L << (_la - 256)) & 33621540591L) != 0) );
 			setState(575);
 			match(DOT);
 			}
@@ -5209,7 +5210,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitReplaceOffStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5262,7 +5263,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitReplaceClause(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5316,7 +5317,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitDirectoryPhrase(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5657,7 +5658,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitFamilyPhrase(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -5994,7 +5995,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitReplaceable(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6075,7 +6076,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitReplacement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6164,7 +6165,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitIdentifierWords(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6184,7 +6185,7 @@ public class CobolPreprocessorParser extends Parser {
 			case IN:
 			case OF:
 				{
-				setState(610); 
+				setState(610);
 				_errHandler.sync(this);
 				_alt = 1;
 				do {
@@ -6210,7 +6211,7 @@ public class CobolPreprocessorParser extends Parser {
 					default:
 						throw new NoViableAltException(this);
 					}
-					setState(612); 
+					setState(612);
 					_errHandler.sync(this);
 					_alt = getInterpreter().adaptivePredict(_input,54,_ctx);
 				} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -6232,7 +6233,7 @@ public class CobolPreprocessorParser extends Parser {
 				break;
 			case LPARENCHAR:
 				{
-				setState(621); 
+				setState(621);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 				do {
@@ -6242,7 +6243,7 @@ public class CobolPreprocessorParser extends Parser {
 					subscript();
 					}
 					}
-					setState(623); 
+					setState(623);
 					_errHandler.sync(this);
 					_la = _input.LA(1);
 				} while ( _la==LPARENCHAR );
@@ -6282,7 +6283,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCompilerDirective(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6326,7 +6327,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitEjectStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6388,7 +6389,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitSkipStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6401,7 +6402,7 @@ public class CobolPreprocessorParser extends Parser {
 			{
 			setState(634);
 			_la = _input.LA(1);
-			if ( !(((((_la - 239)) & ~0x3f) == 0 && ((1L << (_la - 239)) & 7L) != 0)) ) {
+			if ( !(((_la - 239) & ~0x3f) == 0 && ((1L << (_la - 239)) & 7L) != 0) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -6460,7 +6461,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitTitleStatement(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6527,7 +6528,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitPseudoText(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6587,7 +6588,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCharData(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6598,7 +6599,7 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(652); 
+			setState(652);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -6614,7 +6615,7 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(654); 
+				setState(654);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,62,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -6662,7 +6663,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCharDataSql(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6673,7 +6674,7 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(659); 
+			setState(659);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -6707,7 +6708,7 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(661); 
+				setState(661);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,64,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -6781,7 +6782,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCharDataLine(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -6792,7 +6793,7 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(674); 
+			setState(674);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -6801,7 +6802,7 @@ public class CobolPreprocessorParser extends Parser {
 					{
 					{
 					setState(663);
-					if (!(!compilerOptionsAhead())) throw new FailedPredicateException(this, "!compilerOptionsAhead()");
+					if (!!compilerOptionsAhead()) throw new FailedPredicateException(this, "!compilerOptionsAhead()");
 					setState(672);
 					_errHandler.sync(this);
 					switch (_input.LA(1)) {
@@ -7127,12 +7128,12 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(676); 
+				setState(676);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,66,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
 			setState(678);
-			if (!(!continuesCharDataLine())) throw new FailedPredicateException(this, "!continuesCharDataLine()");
+			if (!!continuesCharDataLine()) throw new FailedPredicateException(this, "!continuesCharDataLine()");
 			}
 		}
 		catch (RecognitionException re) {
@@ -7185,7 +7186,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitSubscript(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -7490,7 +7491,7 @@ public class CobolPreprocessorParser extends Parser {
 			setState(696);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || ((((_la - 256)) & ~0x3f) == 0 && ((1L << (_la - 256)) & 4430594309871L) != 0)) {
+			while (((_la & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || (((_la - 128) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || (((_la - 192) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || (((_la - 256) & ~0x3f) == 0 && ((1L << (_la - 256)) & 4430594309871L) != 0)) {
 				{
 				{
 				setState(687);
@@ -7834,7 +7835,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCobolWord(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8156,7 +8157,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitLiteral(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8169,7 +8170,7 @@ public class CobolPreprocessorParser extends Parser {
 			{
 			setState(705);
 			_la = _input.LA(1);
-			if ( !(((((_la - 287)) & ~0x3f) == 0 && ((1L << (_la - 287)) & 7L) != 0)) ) {
+			if ( !(((_la - 287) & ~0x3f) == 0 && ((1L << (_la - 287)) & 7L) != 0) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -8208,7 +8209,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitFilename(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8254,7 +8255,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCommentEntry(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8265,7 +8266,7 @@ public class CobolPreprocessorParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(710); 
+			setState(710);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -8281,7 +8282,7 @@ public class CobolPreprocessorParser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(712); 
+				setState(712);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,72,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );
@@ -8580,7 +8581,7 @@ public class CobolPreprocessorParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof CobolPreprocessorVisitor ) return ((CobolPreprocessorVisitor<? extends T>)visitor).visitCharDataKeyword(this);
-			else return visitor.visitChildren(this);
+			return visitor.visitChildren(this);
 		}
 	}
 
@@ -8593,7 +8594,7 @@ public class CobolPreprocessorParser extends Parser {
 			{
 			setState(716);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || ((((_la - 128)) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || ((((_la - 192)) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || ((((_la - 256)) & ~0x3f) == 0 && ((1L << (_la - 256)) & 335544047L) != 0)) ) {
+			if ( !(((_la & ~0x3f) == 0 && ((1L << _la) & -2346656880870555650L) != 0) || (((_la - 64) & ~0x3f) == 0 && ((1L << (_la - 64)) & -33570881L) != 0) || (((_la - 128) & ~0x3f) == 0 && ((1L << (_la - 128)) & -576460752303423489L) != 0) || (((_la - 192) & ~0x3f) == 0 && ((1L << (_la - 192)) & -2306898545208197121L) != 0) || (((_la - 256) & ~0x3f) == 0 && ((1L << (_la - 256)) & 335544047L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -8614,7 +8615,7 @@ public class CobolPreprocessorParser extends Parser {
 		return _localctx;
 	}
 
-	public boolean sempred(RuleContext _localctx, int ruleIndex, int predIndex) {
+	@Override public boolean sempred(RuleContext _localctx, int ruleIndex, int predIndex) {
 		switch (ruleIndex) {
 		case 1:
 			return compilerOptions_sempred((CompilerOptionsContext)_localctx, predIndex);

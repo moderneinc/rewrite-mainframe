@@ -29,8 +29,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -65,7 +65,7 @@ class SourcePositionsCorpusTest {
             }
             List<SourceFile> parsed = JclParser.builder().procedureLibrary(jobs).build()
               .parseInputs(Corpus.inputs(jobs), corpus, new InMemoryExecutionContext())
-              .collect(Collectors.toList());
+              .collect(toList());
             for (SourceFile source : parsed) {
                 if (!(source instanceof Jcl.CompilationUnit)) {
                     continue;
@@ -134,12 +134,12 @@ class SourcePositionsCorpusTest {
                           "card that brought them in, %d words read back, %d misplaced%n",
           members, placed, statements, broughtIn, words, misplaced.size());
         if (!unplaced.isEmpty()) {
-            System.out.println("not placed:");
-            unplaced.forEach(f -> System.out.println("  " + f));
+			IO.println("not placed:");
+            unplaced.forEach(f -> IO.println("  " + f));
         }
         if (!misplaced.isEmpty()) {
-            System.out.println("misplaced:");
-            misplaced.subList(0, Math.min(50, misplaced.size())).forEach(f -> System.out.println("  " + f));
+			IO.println("misplaced:");
+            misplaced.subList(0, Math.min(50, misplaced.size())).forEach(f -> IO.println("  " + f));
         }
 
         assertThat(words).isPositive();

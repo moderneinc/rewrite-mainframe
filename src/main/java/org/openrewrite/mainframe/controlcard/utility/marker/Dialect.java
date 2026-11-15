@@ -17,9 +17,9 @@ package org.openrewrite.mainframe.controlcard.utility.marker;
 
 import lombok.Value;
 import lombok.With;
-import org.openrewrite.marker.Marker;
 import org.openrewrite.mainframe.controlcard.utility.tree.Statement;
 import org.openrewrite.mainframe.controlcard.utility.tree.Utility;
+import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;

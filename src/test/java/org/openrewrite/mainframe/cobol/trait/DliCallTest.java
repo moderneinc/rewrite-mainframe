@@ -22,8 +22,6 @@ import org.openrewrite.test.RewriteTest;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
@@ -32,7 +30,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 class DliCallTest implements RewriteTest {
 
     private List<DliCall> parse(String source) {
-        List<DliCall> found = new ArrayList<>();
+        var found = new ArrayList<DliCall>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new DliCall.Matcher().<ExecutionContext>asVisitor((call, ctx) -> {
               found.add(call);
@@ -45,7 +43,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void resolvesFunctionCodeFromValueClause() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -72,7 +70,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void resolvesFunctionCodeMovedIntoAField() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -93,7 +91,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void leavesTheFunctionUnresolvedWhenSeveralLiteralsReachIt() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -115,7 +113,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void recoversPcbOrderFromTheEntryPoint() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -136,13 +134,13 @@ class DliCallTest implements RewriteTest {
         assertThat(pcbs.indexOf("NOT-A-PCB")).isEqualTo(-1);
         assertThat(pcbs.isIoPcb("IO-PCB")).isTrue();
         assertThat(pcbs.isIoPcb("ACCT-DB-PCB")).isFalse();
-        // The position is what a PSB listing has to be joined on to name the database.
-        assertThat(calls.getFirst().getPcbPosition()).isEqualTo(1);
+		// The position is what a PSB listing has to be joined on to name the database.
+		assertThat(calls.getFirst().getPcbPosition()).isOne();
     }
 
     @Test
     void recoversPcbOrderFromProcedureDivisionUsing() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -168,7 +166,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void distinguishesMessageCallsFromDatabaseCalls() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -190,7 +188,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void followsANestedProgramsPcbBackToTheOutermostEntry() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -244,7 +242,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void readsAGlobalPcbsPositionFromTheEntryOfTheProgramDeclaringIt() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -284,7 +282,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void givesEachOperandAsTheDataNameItIsWrittenAs() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -320,7 +318,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void followsAGlobalPcbThatANestedCallerPassesDown() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -358,7 +356,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void keepsADatabasePcbPassedToANestedProgramOffTheMessageQueue() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. BATCHPGM.                                           \s
@@ -387,7 +385,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void leavesANestedProgramsPcbUnknownWhereItsCallersDoNotSayWhichItIs() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -446,7 +444,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void leavesANestedProgramsPcbUnknownBesideADynamicCall() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -480,7 +478,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void resolvesSegmentNamesFromSsas() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -501,7 +499,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void fallsBackToTheSsaNamingConvention() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s
@@ -517,14 +515,12 @@ class DliCallTest implements RewriteTest {
         assertThat(calls.getFirst().getSegments()).containsExactly("CUSTOMER");
     }
 
-    /**
-     * A program that never moves anything into an SSA writes the segment name as the {@code VALUE}
-     * of the group's first field, the eight bytes at offset 0, and builds the qualification after it.
-     * That name stands over the data name's: neither SSA here is named for its segment.
-     */
+    /// A program that never moves anything into an SSA writes the segment name as the `VALUE`
+    /// of the group's first field, the eight bytes at offset 0, and builds the qualification after it.
+    /// That name stands over the data name's: neither SSA here is named for its segment.
     @Test
     void readsAGroupSsaThroughItsFirstField() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         \s
             000000 PROGRAM-ID. IMSPGM.                                              \s
@@ -550,12 +546,12 @@ class DliCallTest implements RewriteTest {
         );
 
         assertThat(calls).extracting(DliCall::getSegments)
-          .containsExactly(singletonList("CLMROOT"), singletonList("CLMROOT"));
+          .containsExactly(List.of("CLMROOT"), List.of("CLMROOT"));
     }
 
     @Test
     void readsANestedProgramsCallFromTheDataItCanSee() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. OUTERPGM.                                           \s
@@ -584,17 +580,15 @@ class DliCallTest implements RewriteTest {
 
         // Only the nested program declares ROOT-QUAL, so the outer program's call names no segment.
         assertThat(calls).extracting(DliCall::getFunction, DliCall::getSegments).containsExactly(
-          tuple("GU", emptyList()),
+          tuple("GU", List.of()),
           tuple("GU", List.of("CLMROOT", "CLMCHILD")));
     }
 
-    /**
-     * A checkpoint's later arguments are the areas it saves, which a program declares with values
-     * as it declares an SSA, and are no search arguments.
-     */
+    /// A checkpoint's later arguments are the areas it saves, which a program declares with values
+    /// as it declares an SSA, and are no search arguments.
     @Test
     void aCheckpointCarriesNoSsas() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         \s
             000000 PROGRAM-ID. IMSPGM.                                              \s
@@ -619,7 +613,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void keepsEachSsasSegmentInItsPlace() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         \s
             000000 PROGRAM-ID. IMSPGM.                                              \s
@@ -642,7 +636,7 @@ class DliCallTest implements RewriteTest {
 
     @Test
     void recognisesTheCommandLevelInterface() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. DLIPGM.                                             \s
@@ -662,15 +656,13 @@ class DliCallTest implements RewriteTest {
         assertThat(gu.getAccess()).isEqualTo(DliCall.Access.READ);
     }
 
-    /**
-     * A program's whole say about a screen under IMS: the MOD's name, passed as the fourth argument
-     * of an {@code ISRT} against a message PCB and kept in working storage. Read as a segment search
-     * argument it resolves to a plausible segment name no database has, which is the defect this
-     * exists to prevent.
-     */
+    /// A program's whole say about a screen under IMS: the MOD's name, passed as the fourth argument
+    /// of an `ISRT` against a message PCB and kept in working storage. Read as a segment search
+    /// argument it resolves to a plausible segment name no database has, which is the defect this
+    /// exists to prevent.
     @Test
     void resolvesTheModAnIsrtNames() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CLMI030.                                            \s
@@ -694,17 +686,17 @@ class DliCallTest implements RewriteTest {
         assertThat(calls).extracting(DliCall::getMod, DliCall::getModOperand, DliCall::getSsas,
             DliCall::getSegments)
           .containsExactly(
-            tuple("CLMI1O", "MOD-INQ", emptyList(), emptyList()),
+            tuple("CLMI1O", "MOD-INQ", List.of(), List.of()),
             // An alternate PCB sends to another terminal and names a MOD the same way.
-            tuple("CLMI6O", "MOD-ACK", emptyList(), emptyList()),
-            tuple(null, null, singletonList("CLAIM-SSA"), singletonList("CLAIM")),
+            tuple("CLMI6O", "MOD-ACK", List.of(), List.of()),
+            tuple(null, null, List.of("CLAIM-SSA"), List.of("CLAIM")),
             // The SPA goes back with no format at all.
-            tuple(null, null, emptyList(), emptyList()));
+            tuple(null, null, List.of(), List.of()));
     }
 
     @Test
     void ignoresOrdinaryProgramCalls() {
-        List<DliCall> calls = parse(
+        var calls = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. IMSPGM.                                             \s

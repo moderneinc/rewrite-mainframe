@@ -31,6 +31,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
+import static java.util.Collections.singletonList;
+
 public interface Jcl extends Tree {
 
     @SuppressWarnings("unchecked")
@@ -404,7 +406,7 @@ public interface Jcl extends Tree {
             }
             String separator = raw.toString().endsWith(",") ? "," : "";
             Word last = value.get(value.size() - 1);
-            return withValue(java.util.Collections.singletonList(
+            return withValue(singletonList(
                     new Word(last.getId(), Space.EMPTY, last.getMarkers(), "=" + text + separator)));
         }
     }

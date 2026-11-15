@@ -37,17 +37,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -77,7 +71,7 @@ class ControlCardCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("control card members read, by application:");
+		IO.println("control card members read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> sortCards = Corpus.sortCards(repository);
             List<Path> idcamsCards = Corpus.idcamsCards(repository);
@@ -103,7 +97,7 @@ class ControlCardCorpusTest {
                     failures.add(name + ": did not print back");
                     continue;
                 }
-                List<SortStatement> read = new SortStatement.Matcher().lower(cu).collect(Collectors.toList());
+                List<SortStatement> read = new SortStatement.Matcher().lower(cu).collect(toList());
                 int count = countSortStatements(source);
                 written += count;
                 if (read.size() != count) {
@@ -129,7 +123,7 @@ class ControlCardCorpusTest {
                     failures.add(name + ": did not print back");
                     continue;
                 }
-                List<IdcamsCommand> read = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<IdcamsCommand> read = new IdcamsCommand.Matcher().lower(cu).collect(toList());
                 int count = countIdcamsCommands(source);
                 written += count;
                 if (named(read) != count) {
@@ -162,7 +156,7 @@ class ControlCardCorpusTest {
                 for (InStreamCards cards : InStreamCards.of(cu)) {
                     if (SortLineReader.isSortDeck(cards.getText())) {
                         Sort.CompilationUnit deck = SortParser.parse(job, cards.getText());
-                        int read = new SortStatement.Matcher().lower(deck).collect(Collectors.toList()).size();
+                        int read = new SortStatement.Matcher().lower(deck).collect(toList()).size();
                         int count = countSortStatements(cards.getText());
                         decks++;
                         inStream += read;
@@ -172,7 +166,7 @@ class ControlCardCorpusTest {
                         }
                     } else if (IdcamsLineReader.isIdcamsDeck(cards.getText())) {
                         Idcams.CompilationUnit deck = IdcamsParser.parse(job, cards.getText());
-                        List<IdcamsCommand> read = new IdcamsCommand.Matcher().lower(deck).collect(Collectors.toList());
+                        List<IdcamsCommand> read = new IdcamsCommand.Matcher().lower(deck).collect(toList());
                         int count = countIdcamsCommands(cards.getText());
                         decks++;
                         inStream += read.size();
@@ -189,8 +183,8 @@ class ControlCardCorpusTest {
                           "%d data sets defined); %d decks written in-stream, %d statements%n",
                 members, statements, fields, defined, decks, inStream);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(f -> System.out.println("  " + f));
+			IO.println("failures:");
+            failures.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(failures).isEmpty();
@@ -239,14 +233,14 @@ class ControlCardCorpusTest {
         for (Path member : Corpus.idcamsCards(ctlcard)) {
             Idcams.CompilationUnit cu = parseIdcams(member, new String(Files.readAllBytes(member)));
             assertThat(cu).as("%s", member).isNotNull();
-            for (IdcamsCommand command : new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList())) {
+            for (IdcamsCommand command : new IdcamsCommand.Matcher().lower(cu).collect(toList())) {
                 if (command.definesDataSet()) {
                     defines.add(command);
                 }
             }
         }
 
-        TreeSet<String> names = new TreeSet<>();
+        Set<String> names = new TreeSet<>();
         defines.forEach(define -> names.addAll(define.getDefinedNames()));
         assertThat(names).contains("CLM.PROD.CLMMAST", "CLM.PROD.CLMMAST.DATA", "CLM.PROD.CLMMAST.INDEX",
                 "CLM.PROD.CLMTYPE", "CLM.PROD.EXTRACT", "CLM.PROD.CLMRPT", "CLM.PROD.CLMAUDIT",
@@ -257,15 +251,15 @@ class ControlCardCorpusTest {
         Sort.CompilationUnit sortExtract = parseSort(ctlcard.resolve("SRTCLM01.ctl"),
                 new String(Files.readAllBytes(ctlcard.resolve("SRTCLM01.ctl"))));
         assertThat(sortExtract).isNotNull();
-        List<SortStatement> statements = new SortStatement.Matcher().lower(sortExtract).collect(Collectors.toList());
+        List<SortStatement> statements = new SortStatement.Matcher().lower(sortExtract).collect(toList());
         assertThat(statements.getFirst().getFields()).containsExactly(
                 new SortStatement.Field(53, 4, "CH", "A"),
                 new SortStatement.Field(1, 10, "CH", "A"));
         assertThat(statements.get(1).getOperand("COND")).contains("57,1,CH,EQ,C'O'");
     }
 
-    private static TreeSet<String> names(List<Path> members) {
-        TreeSet<String> names = new TreeSet<>();
+    private static Set<String> names(List<Path> members) {
+        Set<String> names = new TreeSet<>();
         for (Path member : members) {
             String name = member.getFileName().toString();
             int dot = name.lastIndexOf('.');
@@ -358,7 +352,7 @@ class ControlCardCorpusTest {
         List<SourceFile> parsed = parser
                 .parseInputs(singletonList(new Parser.Input(path, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
-                .collect(Collectors.toList());
+                .collect(toList());
         return parsed.size() == 1 ? parsed.getFirst() : null;
     }
 }

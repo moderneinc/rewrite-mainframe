@@ -16,15 +16,38 @@
 package org.openrewrite.mainframe.db2.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.db2.Assertions.db2;
 
 class TableTest implements RewriteTest {
+
+	@DocumentExample @Test
+	void whatAnIndexCovers() {
+        rewriteRun(
+          db2(
+            """
+              CREATE UNIQUE INDEX CARDDEMO.XAUTHFRD
+                  ON CARDDEMO.AUTHFRDS
+                  (CARD_NUM ASC, AUTH_TS DESC)
+                  COPY YES;
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                Index index = new Index.Matcher().lower(cu).findFirst().orElseThrow();
+                assertThat(index.getName()).isEqualTo("XAUTHFRD");
+                assertThat(index.getQualifiedName()).isEqualTo("CARDDEMO.XAUTHFRD");
+                assertThat(index.getTable()).isEqualTo("CARDDEMO.AUTHFRDS");
+                assertThat(index.getKeyColumns()).containsExactly("CARD_NUM", "AUTH_TS");
+                assertThat(index.getKeys()).extracting(Index.Key::getDirection)
+                  .containsExactly("ASC", "DESC");
+            })
+          )
+        );
+    }
 
     @Test
     void whatAColumnHolds() {
@@ -49,7 +72,7 @@ class TableTest implements RewriteTest {
                 assertThat(cardNum.getTypeName()).isEqualTo("CHAR");
                 assertThat(cardNum.getLength()).isEqualTo(16);
                 assertThat(cardNum.getScale()).isNull();
-                assertThat(cardNum.getOrdinal()).isEqualTo(1);
+				assertThat(cardNum.getOrdinal()).isOne();
 
                 Column amount = table.getColumn("TRANSACTION_AMT");
                 assertThat(amount.getTypeName()).isEqualTo("DECIMAL");
@@ -66,10 +89,8 @@ class TableTest implements RewriteTest {
         );
     }
 
-    /**
-     * DB2 supplies {@code NOT NULL} for a primary key column whether or not the DDL writes it, so a
-     * key column is never nullable even when nothing in its own definition says so.
-     */
+    /// DB2 supplies `NOT NULL` for a primary key column whether or not the DDL writes it, so a
+    /// key column is never nullable even when nothing in its own definition says so.
     @Test
     void aPrimaryKeyColumnIsNotNullable() {
         rewriteRun(
@@ -94,10 +115,8 @@ class TableTest implements RewriteTest {
         );
     }
 
-    /**
-     * A foreign key added afterwards belongs to the table the {@code ALTER} names, not to the one
-     * the file happens to create first.
-     */
+    /// A foreign key added afterwards belongs to the table the `ALTER` names, not to the one
+    /// the file happens to create first.
     @Test
     void aForeignKeyAddedByAnAlter() {
         rewriteRun(
@@ -119,11 +138,12 @@ class TableTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 // The CREATE TABLE declares none, so reaching foreign keys only through Table would
                 // report an estate with no referential integrity at all.
-                List<Table> tables = new Table.Matcher().lower(cu).collect(toList());
-                assertThat(tables).hasSize(2);
-                assertThat(tables).allMatch(table -> table.getForeignKeys().isEmpty());
+                List<Table> tables = new Table.Matcher().lower(cu).toList();
+                assertThat(tables)
+                        .hasSize(2)
+                        .allMatch(table -> table.getForeignKeys().isEmpty());
 
-                List<ForeignKey> foreignKeys = new ForeignKey.Matcher().lower(cu).collect(toList());
+                List<ForeignKey> foreignKeys = new ForeignKey.Matcher().lower(cu).toList();
                 assertThat(foreignKeys).hasSize(1);
 
                 ForeignKey foreignKey = foreignKeys.getFirst();
@@ -138,12 +158,10 @@ class TableTest implements RewriteTest {
         );
     }
 
-    /**
-     * The form DB2 documents adds a key with {@code ADD} and names it after {@code CONSTRAINT}. It is
-     * the same edge CardDemo's {@code ALTER} draws, and its name is the one DB2 catalogs it under —
-     * as is the name CardDemo's {@code CREATE TABLE} writes between {@code FOREIGN KEY} and the
-     * columns.
-     */
+    /// The form DB2 documents adds a key with `ADD` and names it after `CONSTRAINT`. It is
+    /// the same edge CardDemo's `ALTER` draws, and its name is the one DB2 catalogs it under —
+    /// as is the name CardDemo's `CREATE TABLE` writes between `FOREIGN KEY` and the
+    /// columns.
     @Test
     void aForeignKeyAddedUnderAName() {
         rewriteRun(
@@ -163,7 +181,7 @@ class TableTest implements RewriteTest {
               ALTER TABLE CLM.CLAIM_HIST ADD FOREIGN KEY (CLAIM_NO) REFERENCES CLM.CLAIM;
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<ForeignKey> foreignKeys = new ForeignKey.Matcher().lower(cu).collect(toList());
+                List<ForeignKey> foreignKeys = new ForeignKey.Matcher().lower(cu).toList();
                 assertThat(foreignKeys).hasSize(3);
                 assertThat(foreignKeys.getFirst().getName()).isEqualTo("TRC_TYPE_CODE");
 
@@ -187,10 +205,8 @@ class TableTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code SET NULL} is the one delete rule written as two words, and reading only the first would
-     * report a rule DB2 does not have.
-     */
+    /// `SET NULL` is the one delete rule written as two words, and reading only the first would
+    /// report a rule DB2 does not have.
     @Test
     void theTwoWordDeleteRule() {
         rewriteRun(
@@ -257,29 +273,6 @@ class TableTest implements RewriteTest {
                 Index index = new Index.Matcher().lower(cu).findFirst().orElseThrow();
                 assertThat(index.getTable()).isEqualTo("GENEVA.LOGIC_LOB");
                 assertThat(index.getKeyColumns()).isEmpty();
-            })
-          )
-        );
-    }
-
-    @Test
-    void whatAnIndexCovers() {
-        rewriteRun(
-          db2(
-            """
-              CREATE UNIQUE INDEX CARDDEMO.XAUTHFRD
-                  ON CARDDEMO.AUTHFRDS
-                  (CARD_NUM ASC, AUTH_TS DESC)
-                  COPY YES;
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                Index index = new Index.Matcher().lower(cu).findFirst().orElseThrow();
-                assertThat(index.getName()).isEqualTo("XAUTHFRD");
-                assertThat(index.getQualifiedName()).isEqualTo("CARDDEMO.XAUTHFRD");
-                assertThat(index.getTable()).isEqualTo("CARDDEMO.AUTHFRDS");
-                assertThat(index.getKeyColumns()).containsExactly("CARD_NUM", "AUTH_TS");
-                assertThat(index.getKeys()).extracting(Index.Key::getDirection)
-                  .containsExactly("ASC", "DESC");
             })
           )
         );

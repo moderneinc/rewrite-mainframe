@@ -29,7 +29,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 class CicsCommandTest implements RewriteTest {
 
     private List<CicsCommand> parse(String source) {
-        List<CicsCommand> found = new ArrayList<>();
+        var found = new ArrayList<CicsCommand>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CicsCommand.Matcher().<ExecutionContext>asVisitor((command, ctx) -> {
               found.add(command);
@@ -42,7 +42,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void decomposesAFileRead() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -65,7 +65,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void readsQualifiersThatChangeMeaning() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -87,14 +87,12 @@ class CicsCommandTest implements RewriteTest {
         assertThat(commands.get(2).getCommand()).isEqualTo("SEND MAP");
     }
 
-    /**
-     * {@code SEND MAP('ACCTM')} writes the qualifier and an option of the same name once, so reading
-     * it only as the qualifier lost the map. Over the corpus that was every one of them: 131 mapsets
-     * and no maps at all.
-     */
+    /// `SEND MAP('ACCTM')` writes the qualifier and an option of the same name once, so reading
+    /// it only as the qualifier lost the map. Over the corpus that was every one of them: 131 mapsets
+    /// and no maps at all.
     @Test
     void readsAQualifierThatIsAlsoAnOption() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -116,7 +114,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void readsOptionsWithoutOperands() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -134,7 +132,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void readsSubscriptedOperands() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -148,13 +146,11 @@ class CicsCommandTest implements RewriteTest {
         assertThat(commands.getFirst().getOption("PROGRAM")).isEqualTo("WS-TAB(1)");
     }
 
-    /**
-     * A blank inside an operand. Read off the words alone it disappears, so a field a program names
-     * only here reads as one long name and belongs to no data item.
-     */
+    /// A blank inside an operand. Read off the words alone it disappears, so a field a program names
+    /// only here reads as one long name and belongs to no data item.
     @Test
     void keepsTheBlanksInsideAnOperand() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -172,13 +168,11 @@ class CicsCommandTest implements RewriteTest {
         assertThat(commands.get(1).getOption("LENGTH")).isEqualTo("LENGTH OF CARDDEMO-COMMAREA");
     }
 
-    /**
-     * Only the blanks that were written. A subscript list keeps the one after its comma and nothing
-     * where the name meets its brackets.
-     */
+    /// Only the blanks that were written. A subscript list keeps the one after its comma and nothing
+    /// where the name meets its brackets.
     @Test
     void keepsOnlyTheBlanksThatWereWritten() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -197,7 +191,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void classifiesFileAccess() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -235,7 +229,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void marksDynamicResourceNames() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -255,7 +249,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void givesAnOperandAsTheDataNameItIsWrittenAs() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -281,7 +275,7 @@ class CicsCommandTest implements RewriteTest {
 
     @Test
     void readsMultiLineCommands() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -300,14 +294,12 @@ class CicsCommandTest implements RewriteTest {
         assertThat(commands.getFirst().getOption("LENGTH")).isEqualTo("100");
     }
 
-    /**
-     * A block in the procedure division parses to a statement whose words each answer with the block
-     * they came from, so asking every word what it carries hears about one command a dozen times.
-     * Matching the stand-in is what makes it one.
-     */
+    /// A block in the procedure division parses to a statement whose words each answer with the block
+    /// they came from, so asking every word what it carries hears about one command a dozen times.
+    /// Matching the stand-in is what makes it one.
     @Test
     void readsABlockInAParagraphOnce() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s
@@ -323,13 +315,11 @@ class CicsCommandTest implements RewriteTest {
           .containsExactly("READ", "WRITEQ TS");
     }
 
-    /**
-     * The command is on the word that stands in for the block, so that is what a caller marks. The
-     * block's own text prints from the preprocessor statement and would not carry a marker.
-     */
+    /// The command is on the word that stands in for the block, so that is what a caller marks. The
+    /// block's own text prints from the preprocessor statement and would not carry a marker.
     @Test
     void isAnchoredOnTheStandInWord() {
-        List<CicsCommand> commands = parse(
+        var commands = parse(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. CICSPGM.                                            \s

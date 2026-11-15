@@ -22,7 +22,6 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.db2.Assertions.db2;
 
@@ -66,10 +65,8 @@ class QueryTest implements RewriteTest {
         );
     }
 
-    /**
-     * A column in the select list, a join's condition or a {@code WHERE}, a function, and an alias
-     * written with {@code AS} or without are none of them a table.
-     */
+    /// A column in the select list, a join's condition or a `WHERE`, a function, and an alias
+    /// written with `AS` or without are none of them a table.
     @Test
     void takesNoColumnFunctionOrAliasForATable() {
         rewriteRun(
@@ -217,14 +214,14 @@ class QueryTest implements RewriteTest {
 
     private static List<List<String>> tablesByQuery(Db2.Ddl cu) {
         return new Query.Matcher().lower(cu)
-          .map(query -> query.getTables().stream().map(Db2.Name::getFullName).collect(toList()))
-          .collect(toList());
+          .map(query -> query.getTables().stream().map(Db2.Name::getFullName).toList())
+          .toList();
     }
 
     private static List<String> tables(Db2.Ddl cu) {
         return new Query.Matcher().lower(cu)
           .flatMap(query -> query.getTables().stream())
           .map(Db2.Name::getFullName)
-          .collect(toList());
+          .toList();
     }
 }

@@ -17,9 +17,9 @@ package org.openrewrite.mainframe.cobol;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.tree.*;
-import org.openrewrite.internal.ListUtils;
 
 public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
 

@@ -22,7 +22,6 @@ import org.openrewrite.test.RewriteTest;
 import org.openrewrite.text.PlainText;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -30,12 +29,10 @@ import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 
 class InstreamSasTest implements RewriteTest {
 
-    /**
-     * INTERLINKS 8.7. A job runs a SAS program by naming a member on {@code SYSIN} or by writing one
-     * there, and the program written there has no member name at all. It is read detached from the
-     * job: two source files cannot share a path, and the program is a fact about the estate rather
-     * than about the job.
-     */
+    /// INTERLINKS 8.7. A job runs a SAS program by naming a member on `SYSIN` or by writing one
+    /// there, and the program written there has no member name at all. It is read detached from the
+    /// job: two source files cannot share a path, and the program is a fact about the estate rather
+    /// than about the job.
     @DocumentExample
     @Test
     void readsTheProgramAJobWritesOnItsSysin() {
@@ -53,7 +50,7 @@ class InstreamSasTest implements RewriteTest {
               /*
               """,
             spec -> spec.path("jcl/CLMSTAT.jcl").afterRecipe(cu -> {
-                List<InstreamSas> streams = new InstreamSas.Matcher().lower(cu).collect(Collectors.toList());
+                List<InstreamSas> streams = new InstreamSas.Matcher().lower(cu).toList();
                 assertThat(streams).extracting(InstreamSas::getName, InstreamSas::getLine)
                   .containsExactly(tuple("SYSIN", 4));
 
@@ -71,10 +68,8 @@ class InstreamSasTest implements RewriteTest {
         );
     }
 
-    /**
-     * The rule the matcher asks for, which anything else holding a stream of text and no path to
-     * type it from asks for by the same name: half a program is not one.
-     */
+    /// The rule the matcher asks for, which anything else holding a stream of text and no path to
+    /// type it from asks for by the same name: half a program is not one.
     @Test
     void aStreamIsSasOnlyWhereItOpensAStepAndEndsOne() {
         assertThat(Members.isSasProgram("PROC PRINT DATA=CLMSAS.CLMDAY;\nRUN;\n")).isTrue();
@@ -82,10 +77,8 @@ class InstreamSasTest implements RewriteTest {
         assertThat(Members.isSasProgram("  SORT FIELDS=(53,4,CH,A)\n")).isFalse();
     }
 
-    /**
-     * A {@code SYSIN} carries sort cards, IDCAMS commands and TSO input under the same DD name, so a
-     * stream is SAS only if it says so — a step opener and the statement that ends a step.
-     */
+    /// A `SYSIN` carries sort cards, IDCAMS commands and TSO input under the same DD name, so a
+    /// stream is SAS only if it says so — a step opener and the statement that ends a step.
     @Test
     void claimsNoStreamThatIsNotSas() {
         rewriteRun(
@@ -99,7 +92,7 @@ class InstreamSasTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(new InstreamSas.Matcher().lower(cu).collect(Collectors.toList())).isEmpty())
+              assertThat(new InstreamSas.Matcher().lower(cu).toList()).isEmpty())
           )
         );
     }

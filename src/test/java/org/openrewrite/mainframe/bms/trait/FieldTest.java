@@ -16,15 +16,39 @@
 package org.openrewrite.mainframe.bms.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.bms.Assertions.bms;
 
 class FieldTest implements RewriteTest {
+
+	/// A field that says nothing about protection cannot be typed into, so reporting it as an input
+	/// would be wrong. `UNPROT` has to be written.
+	@DocumentExample @Test
+	void onlyUnprotectedFieldsAreInputs() {
+        rewriteRun(
+          bms(
+            """
+              COSGN0A DFHMDI SIZE=(24,80)
+              TITLE01 DFHMDF ATTRB=(ASKIP,FSET,NORM),LENGTH=40,POS=(1,21)
+              CURDATE DFHMDF LENGTH=8,POS=(1,71)
+              USERID  DFHMDF ATTRB=(UNPROT,FSET,NORM),LENGTH=8,POS=(10,20)
+              ERRMSG  DFHMDF ATTRB=(PROT,BRT),LENGTH=78,POS=(23,1)
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<Field> fields = new Field.Matcher().lower(cu).toList();
+                assertThat(fields).filteredOn(Field::isInput).extracting(Field::getName)
+                  .containsExactly("USERID");
+                assertThat(fields).filteredOn(Field::isProtected).extracting(Field::getName)
+                  .containsExactly("TITLE01", "CURDATE", "ERRMSG");
+            })
+          )
+        );
+    }
 
     @Test
     void whatAFieldSaysAboutItself() {
@@ -52,36 +76,8 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * A field that says nothing about protection cannot be typed into, so reporting it as an input
-     * would be wrong. {@code UNPROT} has to be written.
-     */
-    @Test
-    void onlyUnprotectedFieldsAreInputs() {
-        rewriteRun(
-          bms(
-            """
-              COSGN0A DFHMDI SIZE=(24,80)
-              TITLE01 DFHMDF ATTRB=(ASKIP,FSET,NORM),LENGTH=40,POS=(1,21)
-              CURDATE DFHMDF LENGTH=8,POS=(1,71)
-              USERID  DFHMDF ATTRB=(UNPROT,FSET,NORM),LENGTH=8,POS=(10,20)
-              ERRMSG  DFHMDF ATTRB=(PROT,BRT),LENGTH=78,POS=(23,1)
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                List<Field> fields = new Field.Matcher().lower(cu).collect(Collectors.toList());
-                assertThat(fields).filteredOn(Field::isInput).extracting(Field::getName)
-                  .containsExactly("USERID");
-                assertThat(fields).filteredOn(Field::isProtected).extracting(Field::getName)
-                  .containsExactly("TITLE01", "CURDATE", "ERRMSG");
-            })
-          )
-        );
-    }
-
-    /**
-     * The join to COBOL. A program never names the BMS field — it names the data items BMS generated
-     * from it in the symbolic map, and those names are the field's with a letter appended.
-     */
+    /// The join to COBOL. A program never names the BMS field — it names the data items BMS generated
+    /// from it in the symbolic map, and those names are the field's with a letter appended.
     @Test
     void generatesTheSymbolicMapNamesAProgramActuallyUses() {
         rewriteRun(
@@ -106,11 +102,9 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * Which name a program used, not merely that it used one of them. Only the value subfields put
-     * anything on the screen or take anything off it — a lineage row about the colour byte would be
-     * describing how the field is drawn as though it were data.
-     */
+    /// Which name a program used, not merely that it used one of them. Only the value subfields put
+    /// anything on the screen or take anything off it — a lineage row about the colour byte would be
+    /// describing how the field is drawn as though it were data.
     @Test
     void tellsTheValueSubfieldsFromTheOnesThatOnlySayHowAFieldIsDrawn() {
         rewriteRun(
@@ -137,10 +131,8 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * A field whose name is a prefix of another's. Matching on the prefix alone would report
-     * {@code CUSTNOL} as the length of {@code CUSTNO} and as the outline attribute of {@code CUSTN}.
-     */
+    /// A field whose name is a prefix of another's. Matching on the prefix alone would report
+    /// `CUSTNOL` as the length of `CUSTNO` and as the outline attribute of `CUSTN`.
     @Test
     void aNameIsOnlyASubfieldOfTheFieldItIsExactlyOneLetterLongerThan() {
         rewriteRun(
@@ -151,7 +143,7 @@ class FieldTest implements RewriteTest {
               CUSTNO  DFHMDF ATTRB=(UNPROT),LENGTH=9,POS=(4,1)
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Field> fields = new Field.Matcher().lower(cu).collect(Collectors.toList());
+                List<Field> fields = new Field.Matcher().lower(cu).toList();
                 assertThat(fields).filteredOn(f -> f.generates("CUSTNOL")).extracting(Field::getName)
                   .containsExactly("CUSTNO");
                 assertThat(fields).filteredOn(f -> f.generates("CUSTNOI")).extracting(Field::getName)
@@ -180,10 +172,8 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * A doubled ampersand, which is how a literal writes one: the assembler reads {@code &} on its
-     * own as the start of a variable, so a screen offering {@code Save&Exit} has to write it twice.
-     */
+    /// A doubled ampersand, which is how a literal writes one: the assembler reads `&` on its
+    /// own as the start of a variable, so a screen offering `Save&Exit` has to write it twice.
     @Test
     void aLiteralWritingADoubledAmpersand() {
         rewriteRun(
@@ -200,11 +190,9 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * A literal too long for one card. The operand field ends at the first blank, but not one inside
-     * a quoted string — reading it that way leaves the field saying {@code 'This}, with a quote
-     * nothing closes.
-     */
+    /// A literal too long for one card. The operand field ends at the first blank, but not one inside
+    /// a quoted string — reading it that way leaves the field saying `'This`, with a quote
+    /// nothing closes.
     @Test
     void aLiteralContinuedOntoASecondCard() {
         rewriteRun(
@@ -225,10 +213,8 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * The rest of the operand field written after the literal closes on the second card. Carrying
-     * the whole card as the literal's value would lose the operands that follow it.
-     */
+    /// The rest of the operand field written after the literal closes on the second card. Carrying
+    /// the whole card as the literal's value would lose the operands that follow it.
     @Test
     void operandsWrittenAfterAContinuedLiteralCloses() {
         rewriteRun(
@@ -271,10 +257,8 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * The other form of {@code POS}: one number, counted from zero, running along the map a row at a
-     * time. Nothing on the field says where that lands — only the map's width does.
-     */
+    /// The other form of `POS`: one number, counted from zero, running along the map a row at a
+    /// time. Nothing on the field says where that lands — only the map's width does.
     @Test
     void aScalarPosIsAnOffsetIntoTheMap() {
         rewriteRun(
@@ -286,7 +270,7 @@ class FieldTest implements RewriteTest {
               ERRMSG  DFHMDF ATTRB=(PROT,BRT),LENGTH=78,POS=1760
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Field> fields = new Field.Matcher().lower(cu).collect(Collectors.toList());
+                List<Field> fields = new Field.Matcher().lower(cu).toList();
                 assertThat(fields).extracting(Field::getPosition)
                   .containsExactly(new Position(1, 1), new Position(10, 20), new Position(23, 1));
             })
@@ -294,10 +278,8 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * The same number on a narrower map is somewhere else entirely, which is why this cannot be read
-     * off the field alone.
-     */
+    /// The same number on a narrower map is somewhere else entirely, which is why this cannot be read
+    /// off the field alone.
     @Test
     void theSameOffsetOnANarrowerMapIsADifferentPlace() {
         rewriteRun(
@@ -314,10 +296,8 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * A map that declares no {@code SIZE} is a page of whatever the mapset's device is, so that is
-     * the width the offset counts against.
-     */
+    /// A map that declares no `SIZE` is a page of whatever the mapset's device is, so that is
+    /// the width the offset counts against.
     @Test
     void aMapWithoutASizeIsAPageOfTheMapsetsDevice() {
         rewriteRun(
@@ -337,9 +317,7 @@ class FieldTest implements RewriteTest {
         );
     }
 
-    /**
-     * A password field is written by hiding what is typed, so this is how a report finds one.
-     */
+    /// A password field is written by hiding what is typed, so this is how a report finds one.
     @Test
     void darkFieldsAreHidden() {
         rewriteRun(

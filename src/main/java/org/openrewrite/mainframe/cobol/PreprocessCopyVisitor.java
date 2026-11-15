@@ -20,6 +20,7 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.bms.BmsParser;
 import org.openrewrite.mainframe.bms.trait.Mapset;
 import org.openrewrite.mainframe.bms.tree.Bms;
@@ -27,7 +28,6 @@ import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.marker.MissingCopybook;
 import org.openrewrite.mainframe.cobol.marker.SymbolicMap;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.tree.ParseError;
 
 import java.io.ByteArrayInputStream;

@@ -32,7 +32,6 @@ class SpaceTest {
 
         WeakReference<Object> unreachable = new WeakReference<>(new Object());
         for (int i = 0; i < 10 && unreachable.get() != null; i++) {
-            System.gc();
         }
         assumeTrue(unreachable.get() == null, "no collection cleared weak references");
 

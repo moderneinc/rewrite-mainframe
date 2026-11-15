@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.controlcard.utility;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.controlcard.utility.trait.Template;
 import org.openrewrite.mainframe.controlcard.utility.trait.UnloadCommand;
 import org.openrewrite.mainframe.controlcard.utility.tree.Utility;
@@ -24,7 +25,6 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.openrewrite.mainframe.jcl.Assertions.jcl;
@@ -48,32 +48,10 @@ class InStreamUnloadDeckTest implements RewriteTest {
       /*
       """;
 
-    @Test
-    void deckWrittenInAJob() {
-        rewriteRun(
-          jcl(JOB,
-            spec -> spec.afterRecipe(cu -> {
-                List<InStreamUnloadDeck> decks = InStreamUnloadDeck.of(cu);
-                assertThat(decks).hasSize(1);
-                assertThat(decks.getFirst().getDdName()).isEqualTo("SYSIN");
-                assertThat(decks.getFirst().getLine()).isEqualTo(5);
-
-                UnloadCommand unload = new UnloadCommand.Matcher()
-                  .lower(decks.getFirst().getDeck()).findFirst().orElseThrow();
-                assertThat(unload.getTableSpace()).isEqualTo("CLMDB01.CLMTSPOL");
-                assertThat(unload.getOutputDdNames()).containsExactly("POLUNL");
-                assertThat(unload.getLock()).isEqualTo("YES");
-            })
-          )
-        );
-    }
-
-    /**
-     * The deck the job runs is named nowhere in it: the member is the value of a symbolic the EXEC
-     * passes, and the SYSIN that reads it is written in the procedure.
-     */
-    @Test
-    void deckReachedThroughAProcedure() {
+	/// The deck the job runs is named nowhere in it: the member is the value of a symbolic the EXEC
+	/// passes, and the SYSIN that reads it is written in the procedure.
+	@DocumentExample @Test
+	void deckReachedThroughAProcedure() {
         rewriteRun(
           jclWithProcedures(
             """
@@ -92,7 +70,7 @@ class InStreamUnloadDeckTest implements RewriteTest {
                 //         PEND
                 """)),
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamUnloadDeck> decks = InStreamUnloadDeck.of(cu);
+                var decks = InStreamUnloadDeck.of(cu);
                 assertThat(decks).hasSize(1);
                 // Nothing of the procedure is written in the job, so the deck is reached at the EXEC.
                 assertThat(decks.getFirst().getLine()).isEqualTo(2);
@@ -109,10 +87,28 @@ class InStreamUnloadDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * A deck edited through the island and written back into the job: one card changes and every
-     * other byte of the job is what it was.
-     */
+    @Test
+    void deckWrittenInAJob() {
+        rewriteRun(
+          jcl(JOB,
+            spec -> spec.afterRecipe(cu -> {
+                var decks = InStreamUnloadDeck.of(cu);
+                assertThat(decks).hasSize(1);
+                assertThat(decks.getFirst().getDdName()).isEqualTo("SYSIN");
+                assertThat(decks.getFirst().getLine()).isEqualTo(5);
+
+                UnloadCommand unload = new UnloadCommand.Matcher()
+                  .lower(decks.getFirst().getDeck()).findFirst().orElseThrow();
+                assertThat(unload.getTableSpace()).isEqualTo("CLMDB01.CLMTSPOL");
+                assertThat(unload.getOutputDdNames()).containsExactly("POLUNL");
+                assertThat(unload.getLock()).isEqualTo("YES");
+            })
+          )
+        );
+    }
+
+    /// A deck edited through the island and written back into the job: one card changes and every
+    /// other byte of the job is what it was.
     @Test
     void writesAnEditedDeckBackIntoTheJob() {
         rewriteRun(
@@ -132,10 +128,8 @@ class InStreamUnloadDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * Writing a deck back unchanged changes nothing, which is what makes the edit above the only
-     * change the job carries.
-     */
+    /// Writing a deck back unchanged changes nothing, which is what makes the edit above the only
+    /// change the job carries.
     @Test
     void writesAnUneditedDeckBackAsItWas() {
         rewriteRun(
@@ -148,10 +142,8 @@ class InStreamUnloadDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * A deck holds the cards it was read from and writing replaces them, so a deck read before an
-     * earlier write says so rather than writing nothing.
-     */
+    /// A deck holds the cards it was read from and writing replaces them, so a deck read before an
+    /// earlier write says so rather than writing nothing.
     @Test
     void refusesADeckReadBeforeAnEarlierWrite() {
         rewriteRun(
@@ -165,11 +157,9 @@ class InStreamUnloadDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * SYMBOLS=JCLONLY has JES substitute the job's symbols into the card text before the step runs.
-     * The utility's own template variables are written the same way and are still there when it
-     * reads the deck, so the two have to be told apart by name.
-     */
+    /// SYMBOLS=JCLONLY has JES substitute the job's symbols into the card text before the step runs.
+    /// The utility's own template variables are written the same way and are still there when it
+    /// reads the deck, so the two have to be told apart by name.
     @Test
     void jclSymbolsAndTemplateVariablesInOneDeck() {
         rewriteRun(
@@ -208,7 +198,7 @@ class InStreamUnloadDeckTest implements RewriteTest {
                 }
                 return o.withValue(o.getValue().stream()
                   .map(word -> word.withText("NO"))
-                  .collect(toList()));
+                  .toList());
             }
         }.visit(deck, 0);
     }

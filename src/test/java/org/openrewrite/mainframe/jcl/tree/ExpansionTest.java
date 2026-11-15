@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.jcl.tree;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.ExpandedPrinter;
 import org.openrewrite.mainframe.jcl.JclIsoVisitor;
 import org.openrewrite.mainframe.jcl.marker.ExpandedMember;
@@ -27,20 +28,17 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jclWithProcedures;
 import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.procedureMember;
 
-/**
- * What a job actually runs, read from the members it names.
- * <p>
- * Every case here also asserts that the source prints back byte for byte, since {@code rewriteRun}
- * compares before with after: a resolved procedure is in the tree and never in the text.
- */
+/// What a job actually runs, read from the members it names.
+///
+/// Every case here also asserts that the source prints back byte for byte, since `rewriteRun`
+/// compares before with after: a resolved procedure is in the tree and never in the text.
 class ExpansionTest implements RewriteTest {
 
-    private static final List<Path> BATCH = singletonList(procedureMember("CLMBATCH",
+    private static final List<Path> BATCH = List.of(procedureMember("CLMBATCH",
       """
         //CLMBATCH PROC PGM=,HLQ=CLM.PROD,REGION=4M
         //RUN      EXEC PGM=&PGM,REGION=&REGION
@@ -61,7 +59,7 @@ class ExpansionTest implements RewriteTest {
     }
 
     private static List<String> cards(Jcl.Expansion expansion) {
-        List<String> texts = new ArrayList<>();
+        var texts = new ArrayList<String>();
         for (Statement statement : expansion.getStatements()) {
             if (statement instanceof Jcl.JobControlStatement controlStatement) {
                 texts.add(controlStatement.getName().getText());
@@ -87,8 +85,8 @@ class ExpansionTest implements RewriteTest {
           .map(ResolvedText::getText).orElseGet(parameter::getValueText);
     }
 
-    @Test
-    void expandsCatalogedProcedure() {
+	@DocumentExample @Test
+	void expandsCatalogedProcedure() {
         rewriteRun(
           jclWithProcedures(
             """
@@ -113,7 +111,7 @@ class ExpansionTest implements RewriteTest {
             "//EXTRACT  EXEC CLMBATCH,PGM=CLMB010\n",
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement exec = (Jcl.JobControlStatement) cu.getStatements().getFirst();
+                var exec = (Jcl.JobControlStatement) cu.getStatements().getFirst();
                 assertThat(exec.getMarkers().findFirst(ExpandedMember.class)).hasValueSatisfying(member -> {
                     assertThat(member.getMemberName()).isEqualTo("CLMBATCH");
                     assertThat(member.getStatus()).isEqualTo(ExpandedMember.Status.EXPANDED);
@@ -130,7 +128,7 @@ class ExpansionTest implements RewriteTest {
             "//COMPILE  EXEC IGYWCL,MEM=CLMB010\n",
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement exec = (Jcl.JobControlStatement) cu.getStatements().getFirst();
+                var exec = (Jcl.JobControlStatement) cu.getStatements().getFirst();
                 assertThat(exec.getMarkers().findFirst(ExpandedMember.class)).hasValueSatisfying(member -> {
                     assertThat(member.getMemberName()).isEqualTo("IGYWCL");
                     assertThat(member.getStatus()).isEqualTo(ExpandedMember.Status.MISSING);
@@ -187,10 +185,8 @@ class ExpansionTest implements RewriteTest {
         );
     }
 
-    /**
-     * A trailing period ends a symbol and is eaten, which is what makes {@code &HLQ..LOADLIB} read
-     * as one qualifier and a period rather than as a symbol named {@code HLQ.}.
-     */
+    /// A trailing period ends a symbol and is eaten, which is what makes `&HLQ..LOADLIB` read
+    /// as one qualifier and a period rather than as a symbol named `HLQ.`.
     @Test
     void aPeriodEndsASymbol() {
         rewriteRun(
@@ -203,7 +199,7 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement dd = (Jcl.JobControlStatement) cu.getStatements().get(3);
+                var dd = (Jcl.JobControlStatement) cu.getStatements().get(3);
                 assertThat(resolved(dd, "DSN")).isEqualTo("CLM.PROD.CLMMAST");
             })
           )
@@ -220,7 +216,7 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement dd = (Jcl.JobControlStatement) cu.getStatements().get(1);
+                var dd = (Jcl.JobControlStatement) cu.getStatements().get(1);
                 assertThat(resolved(dd, "DSN")).isEqualTo("&HLQ..CLMMAST");
                 ResolvedText text = dd.getParameter("DSN").getMarkers().findFirst(ResolvedText.class).orElseThrow();
                 assertThat(text.getSymbolics()).singleElement().satisfies(symbolic -> {
@@ -236,9 +232,7 @@ class ExpansionTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code &&WORK} names a temporary data set, not a symbol called {@code &WORK}.
-     */
+    /// `&&WORK` names a temporary data set, not a symbol called `&WORK`.
     @Test
     void aDoubledAmpersandIsNotASymbol() {
         rewriteRun(
@@ -249,24 +243,22 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement dd = (Jcl.JobControlStatement) cu.getStatements().get(1);
+                var dd = (Jcl.JobControlStatement) cu.getStatements().get(1);
                 assertThat(dd.getParameter("DSN").getMarkers().findFirst(ResolvedText.class)).isEmpty();
             })
           )
         );
     }
 
-    /**
-     * Apostrophes are how a value with special characters in it is written, and are not part of the
-     * value: a procedure that defaults one and uses it inside apostrophes runs with one pair, not
-     * two.
-     */
+    /// Apostrophes are how a value with special characters in it is written, and are not part of the
+    /// value: a procedure that defaults one and uses it inside apostrophes runs with one pair, not
+    /// two.
     @Test
     void apostrophesAroundAValueAreNotPartOfIt() {
         rewriteRun(
           jclWithProcedures(
             "//COMPILE  EXEC CLMCOB\n",
-            singletonList(procedureMember("CLMCOB",
+            List.of(procedureMember("CLMCOB",
               """
                 //CLMCOB   PROC CBLOPTS='APOST,RENT'
                 //COB      EXEC PGM=IGYCRCTL,PARM='&CBLOPTS'
@@ -279,10 +271,8 @@ class ExpansionTest implements RewriteTest {
         );
     }
 
-    /**
-     * A symbol set from another symbol that nothing set stands for nothing itself, so every use of
-     * it is left as it was written rather than filled in with half a name.
-     */
+    /// A symbol set from another symbol that nothing set stands for nothing itself, so every use of
+    /// it is left as it was written rather than filled in with half a name.
     @Test
     void aSymbolSetFromOneNothingSetIsNotFilledIn() {
         rewriteRun(
@@ -294,7 +284,7 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                Jcl.JobControlStatement dd = (Jcl.JobControlStatement) cu.getStatements().get(2);
+                var dd = (Jcl.JobControlStatement) cu.getStatements().get(2);
                 assertThat(resolved(dd, "DSN")).isEqualTo("&HLQ..CLMMAST");
                 assertThat(dd.getParameter("DSN").getMarkers().findFirst(ResolvedText.class).orElseThrow()
                   .getSymbolics()).singleElement().satisfies(symbolic -> {
@@ -308,7 +298,7 @@ class ExpansionTest implements RewriteTest {
 
     @Test
     void expandsAnIncludeMember() {
-        List<Path> library = List.of(
+        var library = List.of(
           procedureMember("@JOBCARD",
             """
               //         SET ENV=PROD
@@ -324,7 +314,7 @@ class ExpansionTest implements RewriteTest {
               """,
             library,
             spec -> spec.afterRecipe(cu -> {
-                List<Jcl.Expansion> found = expansions(cu);
+                var found = expansions(cu);
                 assertThat(found).extracting(Jcl.Expansion::getMemberName)
                   .containsExactly("@JOBCARD", "CLMBATCH");
                 assertThat(found.getFirst().getKind()).isEqualTo(Jcl.Expansion.Kind.INCLUDE);
@@ -353,7 +343,7 @@ class ExpansionTest implements RewriteTest {
                     assertThat(expansion.getMemberName()).isEqualTo("MYPROC");
                     assertThat(resolved(card(expansion, "MASTER"), "DSN")).isEqualTo("CLM.TEST.CLMMAST");
                 });
-                Jcl.JobControlStatement exec = (Jcl.JobControlStatement) cu.getStatements().get(5);
+                var exec = (Jcl.JobControlStatement) cu.getStatements().get(5);
                 assertThat(exec.getMarkers().findFirst(ExpandedMember.class).orElseThrow().getStatus())
                   .isEqualTo(ExpandedMember.Status.IN_STREAM);
             })
@@ -375,7 +365,7 @@ class ExpansionTest implements RewriteTest {
                 assertThat(resolved(systsin, "DSN")).isEqualTo("CLM.PROD.CTLCARD(RUNTEP2)");
                 assertThat(resolved(systsin, "DISP")).isEqualTo("SHR");
                 // A data set replaces the procedure's DUMMY.
-                assertThat(systsin.getParameters()).noneMatch(p -> p instanceof Jcl.PositionalParameter);
+                assertThat(systsin.getParameters()).noneMatch(Jcl.PositionalParameter.class::isInstance);
             })
           )
         );
@@ -411,7 +401,7 @@ class ExpansionTest implements RewriteTest {
               //REPORT.SYSPRINT DD SYSOUT=D
               //EXTRA    DD DSN=PROD.EXTRA,DISP=SHR
               """,
-            singletonList(procedureMember("TWOSTEP",
+            List.of(procedureMember("TWOSTEP",
               """
                 //TWOSTEP  PROC
                 //SORT     EXEC PGM=SORT
@@ -445,7 +435,7 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> {
-                List<String> data = new ArrayList<>();
+                var data = new ArrayList<String>();
                 for (Statement statement : cu.getStatements()) {
                     if (statement instanceof Jcl.DataDefinitionStream stream) {
                         data.add(statement.getMarkers().findFirst(ResolvedText.class)
@@ -473,22 +463,20 @@ class ExpansionTest implements RewriteTest {
               """,
             BATCH,
             spec -> spec.afterRecipe(cu -> assertThat(cu.getStatements())
-              .filteredOn(s -> s instanceof Jcl.DataDefinitionStream)
+              .filteredOn(Jcl.DataDefinitionStream.class::isInstance)
               .allSatisfy(s -> assertThat(s.getMarkers().findFirst(ResolvedText.class)).isEmpty()))
           )
         );
     }
 
-    /**
-     * A procedure that calls itself would expand for ever; the member is expanded once and the
-     * second call is reported the way a missing one is.
-     */
+    /// A procedure that calls itself would expand for ever; the member is expanded once and the
+    /// second call is reported the way a missing one is.
     @Test
     void doesNotExpandAProcedureIntoItself() {
         rewriteRun(
           jclWithProcedures(
             "//RUNIT    EXEC LOOPER\n",
-            singletonList(procedureMember("LOOPER",
+            List.of(procedureMember("LOOPER",
               """
                 //LOOPER   PROC
                 //INNER    EXEC LOOPER
@@ -499,10 +487,8 @@ class ExpansionTest implements RewriteTest {
         );
     }
 
-    /**
-     * The resolved body follows the card that called it, and the override cards stay where they
-     * were written — so the listing says both what was asked for and what it resolved to.
-     */
+    /// The resolved body follows the card that called it, and the override cards stay where they
+    /// were written — so the listing says both what was asked for and what it resolved to.
     @Test
     void printsTheResolvedListing() {
         rewriteRun(

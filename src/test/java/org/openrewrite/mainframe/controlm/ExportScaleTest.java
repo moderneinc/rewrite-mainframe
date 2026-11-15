@@ -19,12 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
-import org.openrewrite.mainframe.controlm.tree.ControlM;
 import org.openrewrite.mainframe.controlm.trait.ScheduledJob;
+import org.openrewrite.mainframe.controlm.tree.ControlM;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -59,7 +59,7 @@ class ExportScaleTest {
         long start = System.nanoTime();
         List<SourceFile> parsed = ControlMParser.builder().build()
           .parse(new InMemoryExecutionContext(), export)
-          .collect(Collectors.toList());
+          .collect(toList());
         long read = System.nanoTime() - start;
         assertThat(parsed).singleElement().isInstanceOf(ControlM.CompilationUnit.class);
         ControlM.CompilationUnit cu = (ControlM.CompilationUnit) parsed.getFirst();
@@ -71,8 +71,6 @@ class ExportScaleTest {
         start = System.nanoTime();
         long found = new ScheduledJob.Matcher().lower(cu).count();
         long traits = System.nanoTime() - start;
-
-        System.gc();
         Runtime runtime = Runtime.getRuntime();
         long held = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
         System.out.printf("read %.1fs, printed %.1fs, %,d jobs read by the traits in %.1fs, " +

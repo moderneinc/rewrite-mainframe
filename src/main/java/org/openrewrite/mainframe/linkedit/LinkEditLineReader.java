@@ -19,11 +19,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.openrewrite.mainframe.cobol.LineEndings;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Classifies the cards of a link-edit deck before they are lexed.

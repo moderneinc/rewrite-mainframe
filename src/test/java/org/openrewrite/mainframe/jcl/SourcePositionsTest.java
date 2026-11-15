@@ -25,10 +25,10 @@ import org.openrewrite.marker.Range;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.procedureMember;
 
@@ -250,7 +250,7 @@ class SourcePositionsTest {
           .parse(new InMemoryExecutionContext(t -> {
               throw new IllegalStateException(t);
           }), source)
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(Jcl.CompilationUnit.class);
         Jcl.CompilationUnit cu = (Jcl.CompilationUnit) parsed.getFirst();

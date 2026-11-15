@@ -20,7 +20,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.mainframe.controlcard.idcams.tree.Idcams;
 import org.openrewrite.test.RewriteTest;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,13 +50,13 @@ class IdcamsParserTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(3);
 
-                Idcams.Command delete = (Idcams.Command) cu.getStatements().getFirst();
+                var delete = (Idcams.Command) cu.getStatements().getFirst();
                 assertThat(delete.getVerb().getText()).isEqualTo("DELETE");
                 assertThat(delete.getNamedParameters()).hasSize(3);
 
                 // A group runs to the parenthesis that closes it, which is eleven cards and four
                 // continuation dashes away.
-                Idcams.Command define = (Idcams.Command) cu.getStatements().get(2);
+                var define = (Idcams.Command) cu.getStatements().get(2);
                 assertThat(define.getParameter("CLUSTER").getValueText())
                   .startsWith("(NAME(CLM.PROD.CLMMAST) INDEXED")
                   .endsWith("VOLUMES(PRD001))");
@@ -81,7 +80,7 @@ class IdcamsParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Idcams.Command define = (Idcams.Command) cu.getStatements().getFirst();
+                var define = (Idcams.Command) cu.getStatements().getFirst();
                 assertThat(define.getParameter("ALIAS").getValueText())
                   .isEqualTo("(NAME('SYS1.DB2.V9.SDSNLOAD') REL('SYS1.DB2.V12.SDSNLOAD'))");
                 assertThat(define.getParameter("CAT").getValueText()).isEqualTo("('CAT.MCAT')");
@@ -104,7 +103,7 @@ class IdcamsParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Idcams.Command alter = (Idcams.Command) cu.getStatements().getFirst();
+                var alter = (Idcams.Command) cu.getStatements().getFirst();
                 assertThat(alter.getNamedParameters()).hasSize(2);
                 assertThat(alter.getParameter("NEWNM").getValueText()).isEqualTo("(HLQ.DEVB.DFHCSD)");
             })
@@ -112,10 +111,8 @@ class IdcamsParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A comment says nothing about the command it interrupts, so one written between two cards of a
-     * continued command leaves it continued.
-     */
+    /// A comment says nothing about the command it interrupts, so one written between two cards of a
+    /// continued command leaves it continued.
     @Test
     void commentCardsBetweenAndWithinCommands() {
         rewriteRun(
@@ -136,7 +133,7 @@ class IdcamsParserTest implements RewriteTest {
     }
 
     @Test
-    void refusesAMemberThatIsNotAnIdcamsDeck(@TempDir Path directory) throws IOException {
+    void refusesAMemberThatIsNotAnIdcamsDeck(@TempDir Path directory) throws Exception {
         Files.write(directory.resolve("DEFCLM01.ctl"),
           "  /* CLAIM MASTER */\n  DELETE CLM.PROD.CLMMAST CLUSTER PURGE\n".getBytes(StandardCharsets.UTF_8));
         Files.write(directory.resolve("SRTCLM01.ctl"), "  SORT FIELDS=(1,10,CH,A)\n".getBytes(StandardCharsets.UTF_8));
@@ -148,10 +145,8 @@ class IdcamsParserTest implements RewriteTest {
         assertThat(parser.accept(directory.resolve("RUNCLM01.ctl"))).isFalse();
     }
 
-    /**
-     * {@code VERIFY} is an ICETOOL operator as well, and the two are told apart by what they name
-     * their input with.
-     */
+    /// `VERIFY` is an ICETOOL operator as well, and the two are told apart by what they name
+    /// their input with.
     @Test
     void verifyIsIdcamsOnlyWhenItNamesADataSet() {
         assertThat(IdcamsLineReader.isIdcamsDeck("  VERIFY DATASET(CLM.PROD.CLMMAST)\n")).isTrue();

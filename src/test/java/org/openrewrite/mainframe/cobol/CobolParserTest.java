@@ -144,13 +144,13 @@ class CobolParserTest {
 
     @Test
     void aProgramThatIsNotUtf8PrintsBackInItsOwnCharset() {
-        byte[] source = ("""
+        byte[] source = """
                                 IDENTIFICATION DIVISION.
                                 PROGRAM-ID. HELLO.
                                *Ý STANDARDIZED
                                 PROCEDURE DIVISION.
                                     STOP RUN.
-                         """).getBytes(StandardCharsets.ISO_8859_1);
+                         """.getBytes(StandardCharsets.ISO_8859_1);
         Parser.Input input = new Parser.Input(Path.of("HELLO.cbl"), () -> new ByteArrayInputStream(source));
 
         SourceFile parsed = parser.parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();

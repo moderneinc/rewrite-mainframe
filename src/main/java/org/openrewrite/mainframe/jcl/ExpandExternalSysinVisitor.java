@@ -16,12 +16,12 @@
 package org.openrewrite.mainframe.jcl;
 
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.jcl.marker.GeneratedParmContent;
 import org.openrewrite.mainframe.jcl.marker.ParmMember;
 import org.openrewrite.mainframe.jcl.marker.ResolvedText;
 import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.mainframe.jcl.tree.Space;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.jcl.tree.Statement;
 import org.openrewrite.marker.Markers;
 
@@ -29,6 +29,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 
 /**
@@ -51,14 +52,6 @@ import static org.openrewrite.Tree.randomId;
 public class ExpandExternalSysinVisitor<P> extends JclIsoVisitor<P> {
 
     private static final Pattern DSN_MEMBER = Pattern.compile("^(.+)\\(([^)]+)\\)$");
-
-    /**
-     * JCL operation keywords. Used to tell a continuation line ({@code //} followed by a
-     * parameter) from a new unnamed statement ({@code //} followed by an operation).
-     */
-    private static final Set<String> OPERATIONS = new HashSet<>(Arrays.asList("JOB", "JCLLIB", "CNTL",
-            "ENDCNTL", "DD", "EXEC", "EXPORT", "IF", "INCLUDE", "NOTIFY", "OUTPUT", "PEND", "PROC",
-            "SCHEDULE", "SET", "XMIT"));
 
     private final Map<String, List<String>> parmMembers = new HashMap<>();
 
@@ -169,7 +162,7 @@ public class ExpandExternalSysinVisitor<P> extends JclIsoVisitor<P> {
      */
     private static List<Statement> buildStreamNodes(@Nullable List<String> words, String memberName) {
         if (words == null) {
-            return Collections.emptyList();
+            return emptyList();
         }
         List<Statement> nodes = new ArrayList<>(words.size());
         for (String word : words) {

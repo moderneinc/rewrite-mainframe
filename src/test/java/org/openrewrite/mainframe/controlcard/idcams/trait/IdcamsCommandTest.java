@@ -16,18 +16,18 @@
 package org.openrewrite.mainframe.controlcard.idcams.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlcard.idcams.Assertions.idcamsCard;
 
 class IdcamsCommandTest implements RewriteTest {
 
-    @Test
-    void defineClusterMakesTheDataSetAndItsComponents() {
+	@DocumentExample @Test
+	void defineClusterMakesTheDataSetAndItsComponents() {
         rewriteRun(
           idcamsCard(
             """
@@ -43,7 +43,7 @@ class IdcamsCommandTest implements RewriteTest {
                      INDEX   (NAME(CLM.PROD.CLMMAST.INDEX))
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).toList();
                 assertThat(commands).hasSize(3);
 
                 IdcamsCommand delete = commands.getFirst();
@@ -77,7 +77,7 @@ class IdcamsCommandTest implements RewriteTest {
               REL('SYS1.DB2.V12.SDSNLOAD')) CAT('CAT.MCAT')
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).toList();
 
                 IdcamsCommand gdg = commands.getFirst();
                 assertThat(gdg.getObjectType()).isEqualTo("GDG");
@@ -95,24 +95,22 @@ class IdcamsCommandTest implements RewriteTest {
         );
     }
 
-    /**
-     * The object type is written on one card and the group it belongs to opened on the next, which is
-     * how every GDG in CardDemo is defined.
-     */
+    /// The object type is written on one card and the group it belongs to opened on the next, which is
+    /// how every GDG in CardDemo is defined.
     @Test
     void groupOpenedOnTheCardAfterTheObjectType() {
         rewriteRun(
           idcamsCard(
             """
-                 DEFINE GENERATIONDATAGROUP -
-                 (NAME(AWS.M2.CARDDEMO.TRANSACT.BKUP) -
-                  LIMIT(5) -
-                  SCRATCH -
-                 )
-                 IF LASTCC=12 THEN SET MAXCC=0
+              DEFINE GENERATIONDATAGROUP -
+              (NAME(AWS.M2.CARDDEMO.TRANSACT.BKUP) -
+               LIMIT(5) -
+               SCRATCH -
+              )
+              IF LASTCC=12 THEN SET MAXCC=0
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).toList();
                 assertThat(commands).hasSize(2);
 
                 IdcamsCommand define = commands.getFirst();
@@ -127,10 +125,8 @@ class IdcamsCommandTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code NEWNAME} ends in the letters {@code NAME}, so reading a group's name has to know where a
-     * keyword begins.
-     */
+    /// `NEWNAME` ends in the letters `NAME`, so reading a group's name has to know where a
+    /// keyword begins.
     @Test
     void alterNamesTheEntryItRenames() {
         rewriteRun(
@@ -140,7 +136,7 @@ class IdcamsCommandTest implements RewriteTest {
               LISTCAT ENTRIES(VSAM.NEW) ALL
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<IdcamsCommand> commands = new IdcamsCommand.Matcher().lower(cu).toList();
                 assertThat(commands.getFirst().getObjectName()).isEqualTo("VSAM.OLD");
                 assertThat(commands.getFirst().getParameter("NEWNAME")).isEqualTo("VSAM.NEW");
                 assertThat(commands.get(1).getObjectName()).isEqualTo("VSAM.NEW");
@@ -149,10 +145,8 @@ class IdcamsCommandTest implements RewriteTest {
         );
     }
 
-    /**
-     * A REPRO names DDs, and which data sets those are bound to is written in the JCL and nowhere
-     * here.
-     */
+    /// A REPRO names DDs, and which data sets those are bound to is written in the JCL and nowhere
+    /// here.
     @Test
     void reproNamesDdsRatherThanDataSets() {
         rewriteRun(
@@ -161,7 +155,7 @@ class IdcamsCommandTest implements RewriteTest {
               REPRO INFILE(BACKUP) OUTFILE(MASTER) REPLACE
               """,
             spec -> spec.afterRecipe(cu -> {
-                IdcamsCommand repro = new IdcamsCommand.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
+                IdcamsCommand repro = new IdcamsCommand.Matcher().lower(cu).toList().getFirst();
                 assertThat(repro.getVerb()).isEqualTo("REPRO");
                 assertThat(repro.getObjectName()).isNull();
                 assertThat(repro.definesDataSet()).isFalse();

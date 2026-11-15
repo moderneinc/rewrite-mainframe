@@ -26,14 +26,11 @@ import org.openrewrite.mainframe.assembler.tree.Assembler;
 import org.openrewrite.mainframe.cobol.CopybookParser;
 import org.openrewrite.test.RewriteTest;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.assembler.Assertions.assembler;
@@ -53,7 +50,7 @@ class AssemblerParserTest implements RewriteTest {
                        END   CLMU030
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Assembler.Instruction> instructions = instructions(cu);
+                var instructions = instructions(cu);
                 assertThat(instructions).extracting(Assembler.Instruction::getSimpleName,
                     i -> i.getOperation().getText(), Assembler.Instruction::getOperandTexts)
                   .containsExactly(
@@ -92,7 +89,7 @@ class AssemblerParserTest implements RewriteTest {
                              LRECL=80,EODAD=A10NOCD
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Assembler.Instruction> instructions = instructions(cu);
+                var instructions = instructions(cu);
                 assertThat(instructions).singleElement()
                   .extracting(Assembler.Instruction::getOperandTexts)
                   .isEqualTo(List.of("DDNAME=PURGCARD", "DSORG=PS", "MACRF=(GM)", "RECFM=FB",
@@ -119,11 +116,9 @@ class AssemblerParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A continuation line that leaves column 16 blank is carrying on the remarks and not the operands.
-     * Read as operands, the text lands nowhere and prints back out of the white space in front of the
-     * next word.
-     */
+    /// A continuation line that leaves column 16 blank is carrying on the remarks and not the operands.
+    /// Read as operands, the text lands nowhere and prints back out of the white space in front of the
+    /// next word.
     @Test
     void carriesRemarksOverALineBreakToo() {
         rewriteRun(
@@ -143,17 +138,15 @@ class AssemblerParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * Columns 1 to 15 of a continuation line are ignored by the assembler, which is what happens to a
-     * statement whose remarks ran past column 71 by accident.
-     */
+    /// Columns 1 to 15 of a continuation line are ignored by the assembler, which is what happens to a
+    /// statement whose remarks ran past column 71 by accident.
     @Test
     void keepsWhatAContinuationLineWritesBeforeColumn16() {
         rewriteRun(
           assembler(
             """
-                     MVI   12(13),X'FF'            *ML purpose of this? - can we remove it?
-                     SR    15,15                   ZERO R15 BEFORE RETURN
+            MVI   12(13),X'FF'            *ML purpose of this? - can we remove it?
+            SR    15,15                   ZERO R15 BEFORE RETURN
             """,
             spec -> spec.afterRecipe(cu -> assertThat(instructions(cu)).singleElement()
               .extracting(Assembler.Instruction::getOperandTexts)
@@ -181,11 +174,9 @@ class AssemblerParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code L'SYMBOL} is the length attribute of a symbol and not the start of a literal, so the
-     * apostrophe in it does not open a quote. Read as one, the operand field runs to the end of the
-     * line and swallows the remarks.
-     */
+    /// `L'SYMBOL` is the length attribute of a symbol and not the start of a literal, so the
+    /// apostrophe in it does not open a quote. Read as one, the operand field runs to the end of the
+    /// line and swallows the remarks.
     @Test
     void readsALengthAttributeRatherThanAQuote() {
         rewriteRun(
@@ -198,10 +189,8 @@ class AssemblerParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A logical expression in parentheses may hold blanks, which is the one place the operand field
-     * does not end at the first of them.
-     */
+    /// A logical expression in parentheses may hold blanks, which is the one place the operand field
+    /// does not end at the first of them.
     @Test
     void readsAConditionalAssemblyExpressionWhole() {
         rewriteRun(
@@ -277,10 +266,8 @@ class AssemblerParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code ICTL} moves the begin, end and continue columns, so what carries a statement onto the
-     * next line is column 61 here and not column 72.
-     */
+    /// `ICTL` moves the begin, end and continue columns, so what carries a statement onto the
+    /// next line is column 61 here and not column 72.
     @Test
     void honoursTheColumnsIctlMovesThemTo() {
         rewriteRun(
@@ -297,12 +284,10 @@ class AssemblerParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * Bank of Z keeps its DBDs and PSBs as {@code .asm}, so an extension is not enough to say which
-     * reader takes a member: what it gens is, and that is the IMS reader's rule to answer.
-     */
+    /// Bank of Z keeps its DBDs and PSBs as `.asm`, so an extension is not enough to say which
+    /// reader takes a member: what it gens is, and that is the IMS reader's rule to answer.
     @Test
-    void declinesAnImsGenMemberKeptAsAssembler(@TempDir Path dir) throws IOException {
+    void declinesAnImsGenMemberKeptAsAssembler(@TempDir Path dir) throws Exception {
         Path database = Files.write(dir.resolve("CUSTOMER.asm"),
           "      DBD   NAME=CUSTOMER,ACCESS=(HDAM,OSAM)\n".getBytes(StandardCharsets.UTF_8));
         Path program = Files.write(dir.resolve("CLMU030.asm"),
@@ -315,7 +300,7 @@ class AssemblerParserTest implements RewriteTest {
     }
 
     @Test
-    void claimsACopybookWhoseFirstStatementIsAssembler(@TempDir Path dir) throws IOException {
+    void claimsACopybookWhoseFirstStatementIsAssembler(@TempDir Path dir) throws Exception {
         Path copyMember = Files.write(dir.resolve("EXECDATA.copy"), """
           * EXEC PARAMETER AREA DEFINITION
                    EJECT
@@ -336,7 +321,7 @@ class AssemblerParserTest implements RewriteTest {
         assertThat(cobol.accept(copybook)).isTrue();
         assertThat(AssemblerParser.isMacroLibraryMember(copyMember)).isTrue();
 
-        SourceFile parsed = assembler.parseInputs(singletonList(Parser.Input.fromFile(copyMember)), dir,
+        SourceFile parsed = assembler.parseInputs(List.of(Parser.Input.fromFile(copyMember)), dir,
           new InMemoryExecutionContext()).findFirst().orElseThrow();
         assertThat(parsed).isInstanceOfSatisfying(Assembler.CompilationUnit.class, cu ->
           assertThat(instructions(cu)).extracting(i -> i.getOperation().getText())
@@ -347,6 +332,6 @@ class AssemblerParserTest implements RewriteTest {
         return cu.getStatements().stream()
           .filter(Assembler.Instruction.class::isInstance)
           .map(Assembler.Instruction.class::cast)
-          .collect(Collectors.toList());
+          .toList();
     }
 }

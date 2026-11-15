@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.controlm.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.controlm.ControlMParser;
@@ -24,16 +25,13 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlm.tree.ParserAssertions.controlM;
 
-/**
- * The same job, browsed on the z/OS panel and exported as XML, has to read the same either way.
- * A portfolio may arrive in either dialect, so a trait that answered differently would be a report
- * that changed with the export format.
- */
+/// The same job, browsed on the z/OS panel and exported as XML, has to read the same either way.
+/// A portfolio may arrive in either dialect, so a trait that answered differently would be a report
+/// that changed with the export format.
 class ScheduledJobTest implements RewriteTest {
 
     private static final String PANEL =
@@ -73,6 +71,41 @@ class ScheduledJobTest implements RewriteTest {
         </DEFTABLE>
         """;
 
+	@DocumentExample @Test
+	void readsEveryWayThePanelWritesACondition() {
+        rewriteRun(
+          controlM(
+            """
+              +---------------------------------- BROWSE -----------------------------------+
+              | MEMNAME CLMJ030         MEMLIB CLM.PROD.JCL                                 |
+              | =========================================================================== |
+              | SCHEDULE RBC                                                                |
+              | =========================================================================== |
+              | IN       CLMNIGHT_CLMJ020_OK  0101      CLMNIGHT_CLMJ010_OK  $$$$           |
+              |          (L) CLMNIGHT_CLMJ025_RESERVE_UPDATE_DONE        PREV               |
+              | CONTROL                                                                     |
+              | =========================================================================== |
+              | OUT      CLMNIGHT_CLMJ020_OK  **** -  CLMNIGHT_CLMJ030_OK  NEXT +           |
+              |          (L) CLMNIGHT_CLMJ030_RESERVE_UPDATE_DONE        ODAT +             |
+              | AUTO-ARCHIVE Y          SYSDB    Y      MAXDAYS      MAXRUNS                |
+              | =========================================================================== |
+              | APPL TYPE                                  APPL VER                         |
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                ScheduledJob job = jobsOf(cu).getFirst();
+                assertThat(job.getInConditions())
+                  .extracting(InCondition::toString)
+                  .containsExactly("IN CLMNIGHT_CLMJ020_OK 0101", "IN CLMNIGHT_CLMJ010_OK $$$$",
+                    "IN CLMNIGHT_CLMJ025_RESERVE_UPDATE_DONE PREV");
+                assertThat(job.getOutConditions())
+                  .extracting(OutCondition::toString)
+                  .containsExactly("OUT CLMNIGHT_CLMJ020_OK **** -", "OUT CLMNIGHT_CLMJ030_OK NEXT +",
+                    "OUT CLMNIGHT_CLMJ030_RESERVE_UPDATE_DONE ODAT +");
+            })
+          )
+        );
+    }
+
     @Test
     void readsThePanel() {
         rewriteRun(
@@ -106,7 +139,7 @@ class ScheduledJobTest implements RewriteTest {
     void readsTheExport() {
         rewriteRun(
           controlM(EXPORT, spec -> spec.afterRecipe(cu -> {
-              List<ScheduledJob> jobs = jobsOf(cu);
+              var jobs = jobsOf(cu);
               assertThat(jobs).hasSize(2);
 
               ScheduledJob table = jobs.getFirst();
@@ -139,10 +172,8 @@ class ScheduledJobTest implements RewriteTest {
         );
     }
 
-    /**
-     * The one field the panel writes as a word with nothing to separate it from the next field's
-     * name: an empty {@code CONFCAL} is followed by {@code SHIFT}, which is not a calendar.
-     */
+    /// The one field the panel writes as a word with nothing to separate it from the next field's
+    /// name: an empty `CONFCAL` is followed by `SHIFT`, which is not a calendar.
     @Test
     void readsOnlyTheCalendarsNamed() {
         rewriteRun(
@@ -158,7 +189,7 @@ class ScheduledJobTest implements RewriteTest {
     void readsCalendarsFromTheExport() {
         rewriteRun(
           controlM(EXPORT, spec -> spec.afterRecipe(cu -> {
-              List<ScheduledJob> jobs = jobsOf(cu);
+              var jobs = jobsOf(cu);
               assertThat(jobs.getFirst().getCalendarReferences()).singleElement()
                 .extracting(CalendarReference::getCalendar).isEqualTo("CLMWORK");
               // CONFCAL is written empty, which is the export's way of saying it names none
@@ -175,48 +206,13 @@ class ScheduledJobTest implements RewriteTest {
         rewriteRun(
           controlM(EXPORT, spec -> spec.afterRecipe(cu -> {
               List<GroupMembership> memberships = new GroupMembership.Matcher().lower(cu)
-                .collect(Collectors.toList());
+                .toList();
               assertThat(memberships).singleElement().satisfies(membership -> {
                   assertThat(membership.getGroup()).isEqualTo("CLMNIGHT");
                   assertThat(membership.getJob().getName()).isEqualTo("CLMJ010");
                   assertThat(membership.isSmartTable()).isTrue();
               });
           }))
-        );
-    }
-
-    @Test
-    void readsEveryWayThePanelWritesACondition() {
-        rewriteRun(
-          controlM(
-            """
-              +---------------------------------- BROWSE -----------------------------------+
-              | MEMNAME CLMJ030         MEMLIB CLM.PROD.JCL                                 |
-              | =========================================================================== |
-              | SCHEDULE RBC                                                                |
-              | =========================================================================== |
-              | IN       CLMNIGHT_CLMJ020_OK  0101      CLMNIGHT_CLMJ010_OK  $$$$           |
-              |          (L) CLMNIGHT_CLMJ025_RESERVE_UPDATE_DONE        PREV               |
-              | CONTROL                                                                     |
-              | =========================================================================== |
-              | OUT      CLMNIGHT_CLMJ020_OK  **** -  CLMNIGHT_CLMJ030_OK  NEXT +           |
-              |          (L) CLMNIGHT_CLMJ030_RESERVE_UPDATE_DONE        ODAT +             |
-              | AUTO-ARCHIVE Y          SYSDB    Y      MAXDAYS      MAXRUNS                |
-              | =========================================================================== |
-              | APPL TYPE                                  APPL VER                         |
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                ScheduledJob job = jobsOf(cu).getFirst();
-                assertThat(job.getInConditions())
-                  .extracting(InCondition::toString)
-                  .containsExactly("IN CLMNIGHT_CLMJ020_OK 0101", "IN CLMNIGHT_CLMJ010_OK $$$$",
-                    "IN CLMNIGHT_CLMJ025_RESERVE_UPDATE_DONE PREV");
-                assertThat(job.getOutConditions())
-                  .extracting(OutCondition::toString)
-                  .containsExactly("OUT CLMNIGHT_CLMJ020_OK **** -", "OUT CLMNIGHT_CLMJ030_OK NEXT +",
-                    "OUT CLMNIGHT_CLMJ030_RESERVE_UPDATE_DONE ODAT +");
-            })
-          )
         );
     }
 
@@ -268,7 +264,7 @@ class ScheduledJobTest implements RewriteTest {
               </DEFTABLE>
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<ScheduledJob> jobs = jobsOf(cu);
+                var jobs = jobsOf(cu);
                 assertThat(jobs).extracting(ScheduledJob::toString)
                   .containsExactly("JOB CLMJ110", "TABLE CLMNIGHT", "JOB CLMJ010");
                 assertThat(jobs.getFirst().getGroup()).isEqualTo("CLMDAY");
@@ -282,10 +278,8 @@ class ScheduledJobTest implements RewriteTest {
         );
     }
 
-    /**
-     * A condition is the only thing either job names, so a chain is found across files the same way
-     * it is found within one.
-     */
+    /// A condition is the only thing either job names, so a chain is found across files the same way
+    /// it is found within one.
     @Test
     void triggersAcrossFiles() {
         String successor = PANEL
@@ -293,14 +287,14 @@ class ScheduledJobTest implements RewriteTest {
           .replace("CLMMAST-CLOSED", "CLMNIGHT_CLMJ010_OK");
         List<SourceFile> parsed = ControlMParser.builder().build()
           .parse(new InMemoryExecutionContext(), EXPORT, successor)
-          .collect(Collectors.toList());
+          .toList();
 
-        List<ScheduledJob> jobs = new ArrayList<>();
+        var jobs = new ArrayList<ScheduledJob>();
         for (SourceFile source : parsed) {
             jobs.addAll(jobsOf((ControlM.CompilationUnit) source));
         }
 
-        List<Schedules.Trigger> triggers = Schedules.triggersAmong(jobs);
+        var triggers = Schedules.triggersAmong(jobs);
         assertThat(triggers).singleElement().satisfies(trigger -> {
             assertThat(trigger.getPredecessor().getName()).isEqualTo("CLMJ010");
             assertThat(trigger.getSuccessor().getName()).isEqualTo("CLMJ020");
@@ -310,6 +304,6 @@ class ScheduledJobTest implements RewriteTest {
     }
 
     private static List<ScheduledJob> jobsOf(ControlM.CompilationUnit cu) {
-        return new ScheduledJob.Matcher().lower(cu).collect(Collectors.toList());
+        return new ScheduledJob.Matcher().lower(cu).toList();
     }
 }

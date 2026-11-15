@@ -21,9 +21,9 @@ import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.dfa.DFAState;
 import org.antlr.v4.runtime.misc.Interval;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
@@ -123,7 +123,7 @@ class ParseCostTest {
             report.append(language.measure(root, repositories, watch, caches));
             files += language.files;
         }
-        System.out.print(report + caches.describe() + watch.describe());
+		IO.print(report + caches.describe() + watch.describe());
 
         assertThat(files).as("files under %s", root).isPositive();
         assertThat(watch.longestScan).as("tokens scanned by one full-context prediction, in %s", watch.longestScanRule)

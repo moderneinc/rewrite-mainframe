@@ -30,8 +30,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -58,7 +58,7 @@ class ControlMCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("schedules read, by application:");
+		IO.println("schedules read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> files = Corpus.schedules(repository);
             if (files.isEmpty()) {
@@ -75,7 +75,7 @@ class ControlMCorpusTest {
                 String source = new String(Files.readAllBytes(member));
                 List<SourceFile> parsed = ControlMParser.builder().build()
                   .parse(new InMemoryExecutionContext(), source)
-                  .collect(Collectors.toList());
+                  .collect(toList());
                 if (parsed.isEmpty() || !(parsed.getFirst() instanceof ControlM.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
@@ -87,9 +87,9 @@ class ControlMCorpusTest {
                 }
                 read++;
 
-                List<ScheduledJob> here = new ScheduledJob.Matcher().lower(cu).collect(Collectors.toList());
+                List<ScheduledJob> here = new ScheduledJob.Matcher().lower(cu).collect(toList());
                 (isExport(source) ? exported : browsed).addAll(here);
-                defined.addAll(new Calendar.Matcher().lower(cu).collect(Collectors.toList()));
+                defined.addAll(new Calendar.Matcher().lower(cu).collect(toList()));
             }
 
             jobs += exported.size() + browsed.size();
@@ -119,8 +119,8 @@ class ControlMCorpusTest {
                           "%d conditions, %d calendars%n",
           members, jobs, scheduled, conditions, calendars);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(failure -> System.out.println("  " + failure));
+			IO.println("failures:");
+            failures.forEach(failure -> IO.println("  " + failure));
         }
 
         assertThat(failures).isEmpty();

@@ -21,10 +21,8 @@ import org.openrewrite.test.RewriteTest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlm.tree.ParserAssertions.controlM;
 
-/**
- * The XML dialect: what {@code exportdeftable} and {@code exportdefcal} write, told apart from the
- * z/OS panel by the file's root element rather than by its name.
- */
+/// The XML dialect: what `exportdeftable` and `exportdefcal` write, told apart from the
+/// z/OS panel by the file's root element rather than by its name.
 class ExportTest implements RewriteTest {
 
     @Test
@@ -45,9 +43,9 @@ class ExportTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getSections()).hasSize(2);
-                assertThat(cu.getSections().getFirst()).isInstanceOf(ControlM.Directive.class);
+                assertThat(cu.getSections()).first().isInstanceOf(ControlM.Directive.class);
 
-                ControlM.Element table = (ControlM.Element) cu.getSections().get(1);
+                var table = (ControlM.Element) cu.getSections().get(1);
                 assertThat(table.getName()).isEqualTo("DEFTABLE");
                 ControlM.Element folder = table.getElements("SMART_FOLDER").getFirst();
                 assertThat(folder.getAttributeText("TASKTYPE")).isEqualTo("SMART Table");
@@ -59,10 +57,8 @@ class ExportTest implements RewriteTest {
         );
     }
 
-    /**
-     * A job written with nothing under it is not the same as one written closed, and the two print
-     * differently.
-     */
+    /// A job written with nothing under it is not the same as one written closed, and the two print
+    /// differently.
     @Test
     void emptyBodyIsNotAClosedTag() {
         rewriteRun(
@@ -101,19 +97,17 @@ class ExportTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getSections()).hasSize(3);
-                ControlM.Element calendars = (ControlM.Element) cu.getSections().get(2);
+                var calendars = (ControlM.Element) cu.getSections().get(2);
                 assertThat(calendars.getElements()).hasSize(2);
-                assertThat(calendars.getElements().getFirst()).isInstanceOf(ControlM.Directive.class);
+                assertThat(calendars.getElements()).first().isInstanceOf(ControlM.Directive.class);
                 assertThat(calendars.getElements("CALENDAR")).hasSize(1);
             })
           )
         );
     }
 
-    /**
-     * A value is kept as written so the file prints back; what it says is what the entities resolve
-     * to.
-     */
+    /// A value is kept as written so the file prints back; what it says is what the entities resolve
+    /// to.
     @Test
     void entitiesInAValue() {
         rewriteRun(

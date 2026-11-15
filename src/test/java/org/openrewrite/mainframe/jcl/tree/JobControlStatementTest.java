@@ -16,26 +16,24 @@
 package org.openrewrite.mainframe.jcl.tree;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.JclIsoVisitor;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 
-/**
- * The shape of the tree, as against whether it prints back.
- * <p>
- * Every other test here checks that parsing and printing round-trips, and a flat run of words
- * round-trips perfectly while telling you nothing. These check that the words are grouped into the
- * statements they belong to and that the parts of a statement are what they claim to be.
- */
+/// The shape of the tree, as against whether it prints back.
+///
+/// Every other test here checks that parsing and printing round-trips, and a flat run of words
+/// round-trips perfectly while telling you nothing. These check that the words are grouped into the
+/// statements they belong to and that the parts of a statement are what they claim to be.
 class JobControlStatementTest implements RewriteTest {
 
-    @Test
-    void aStatementIsOneNode() {
+	@DocumentExample @Test
+	void aStatementIsOneNode() {
         rewriteRun(
           jcl(
             """
@@ -44,7 +42,7 @@ class JobControlStatementTest implements RewriteTest {
               //ACCTDD   DD  DSN=PROD.ACCOUNT.MASTER,DISP=SHR
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Jcl.JobControlStatement> statements = statementsIn(cu);
+                var statements = statementsIn(cu);
                 assertThat(statements).hasSize(3);
                 assertThat(statements).extracting(Jcl.JobControlStatement::getSimpleName)
                   .containsExactly("ACCTJOB", "STEP010", "ACCTDD");
@@ -62,11 +60,9 @@ class JobControlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A comment card between two lines of a statement does not end it. Real members carry the
-     * parameters somebody swapped out this way, and the line after was being read as a statement
-     * whose operation was its first operand.
-     */
+    /// A comment card between two lines of a statement does not end it. Real members carry the
+    /// parameters somebody swapped out this way, and the line after was being read as a statement
+    /// whose operation was its first operand.
     @Test
     void aCommentCardBetweenContinuationLines() {
         rewriteRun(
@@ -85,16 +81,14 @@ class JobControlStatementTest implements RewriteTest {
                 assertThat(dd.getParameter("DSN").getValueText()).isEqualTo("&LOADLIB(&MEM)");
                 assertThat(dd.getParameter("DISP").getValueText()).isEqualTo("SHR");
                 // Two cards of two words each; a comment is one node per word.
-                assertThat(dd.getOperands()).filteredOn(o -> o instanceof Jcl.Comment).hasSize(4);
+                assertThat(dd.getOperands()).filteredOn(Jcl.Comment.class::isInstance).hasSize(4);
             })
           )
         );
     }
 
-    /**
-     * The whole reason the words have to be grouped: a statement written over four lines is one
-     * statement, and its parameters belong to it wherever they were written.
-     */
+    /// The whole reason the words have to be grouped: a statement written over four lines is one
+    /// statement, and its parameters belong to it wherever they were written.
     @Test
     void aContinuedStatementIsStillOneNode() {
         rewriteRun(
@@ -117,10 +111,8 @@ class JobControlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A statement continues when its operand field ends with a comma, and the comment field that
-     * follows on the same line does not change that.
-     */
+    /// A statement continues when its operand field ends with a comma, and the comment field that
+    /// follows on the same line does not change that.
     @Test
     void aCommentFieldDoesNotEndAStatement() {
         rewriteRun(
@@ -149,7 +141,7 @@ class JobControlStatementTest implements RewriteTest {
               //SORTIN   DD  DSN=PROD.TRAN.DAILY,DISP=SHR
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Jcl.JobControlStatement> statements = statementsIn(cu);
+                var statements = statementsIn(cu);
                 assertThat(statements.getFirst().getParameters()).singleElement()
                   .isInstanceOf(Jcl.PositionalParameter.class)
                   .satisfies(p -> assertThat(((Jcl.PositionalParameter) p).getValueText()).isEqualTo("DUMMY"));
@@ -160,10 +152,8 @@ class JobControlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A quoted string is its own token, so a parameter list containing one used to arrive as three
-     * unrelated words. It has to come back as the parameters it is.
-     */
+    /// A quoted string is its own token, so a parameter list containing one used to arrive as three
+    /// unrelated words. It has to come back as the parameters it is.
     @Test
     void readsParametersAroundAQuotedString() {
         rewriteRun(
@@ -181,10 +171,8 @@ class JobControlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * The point of a tree over a report: a parameter can be replaced and the source printed back with
-     * that one change and nothing else. No derived model can do this.
-     */
+    /// The point of a tree over a report: a parameter can be replaced and the source printed back with
+    /// that one change and nothing else. No derived model can do this.
     @Test
     void aParameterCanBeChanged() {
         rewriteRun(
@@ -213,10 +201,8 @@ class JobControlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code /*} ends in-stream data. It is the delimiter statement, not a job control statement with
-     * a name of {@code /*} and no operation.
-     */
+    /// `/*` ends in-stream data. It is the delimiter statement, not a job control statement with
+    /// a name of `/*` and no operation.
     @Test
     void readsTheDelimiterStatement() {
         rewriteRun(
@@ -238,9 +224,7 @@ class JobControlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code //} alone is the null statement, which ends a job.
-     */
+    /// `//` alone is the null statement, which ends a job.
     @Test
     void readsTheNullStatement() {
         rewriteRun(
@@ -258,10 +242,8 @@ class JobControlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A DD names its own terminator with {@code DLM}, which is how a member containing {@code /*} is
-     * passed through untouched. Miss it and the data is read as JCL.
-     */
+    /// A DD names its own terminator with `DLM`, which is how a member containing `/*` is
+    /// passed through untouched. Miss it and the data is read as JCL.
     @Test
     void readsInStreamDataEndedByACustomDelimiter() {
         rewriteRun(
@@ -290,6 +272,6 @@ class JobControlStatementTest implements RewriteTest {
         return cu.getStatements().stream()
                 .filter(Jcl.JobControlStatement.class::isInstance)
                 .map(Jcl.JobControlStatement.class::cast)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

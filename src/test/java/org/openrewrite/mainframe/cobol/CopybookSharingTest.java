@@ -35,8 +35,8 @@ import org.openrewrite.marker.Markers;
 
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.Tree.randomId;
 
@@ -71,10 +71,10 @@ class CopybookSharingTest {
           Parser.Input.fromString(Path.of("OUTER.cpy"), """
             000100     COPY LEAF.
             000200     COPY NOWHERE.
-            """)), null, ctx).collect(Collectors.toList());
+            """)), null, ctx).collect(toList());
         List<SourceFile> programs = CobolParser.builder().copybooks(copybooks).build().parseInputs(List.of(
           Parser.Input.fromString(Path.of("PGMONE.cbl"), program("PGMONE")),
-          Parser.Input.fromString(Path.of("PGMTWO.cbl"), program("PGMTWO"))), null, ctx).collect(Collectors.toList());
+          Parser.Input.fromString(Path.of("PGMTWO.cbl"), program("PGMTWO"))), null, ctx).collect(toList());
 
         CobolPreprocessor.Copybook outer = copybook(programs.getFirst(), "OUTER");
         assertThat(copybook(programs.get(1), "OUTER")).isSameAs(outer);

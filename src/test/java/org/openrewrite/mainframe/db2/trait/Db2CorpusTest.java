@@ -77,7 +77,7 @@ class Db2CorpusTest {
         int files = 0;
         int streams = 0;
 
-        System.out.println("DDL read, by application:");
+		IO.println("DDL read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> members = members(repository, ".ddl", ".sql");
             List<Path> jobs = Corpus.jobs(repository);
@@ -129,11 +129,11 @@ class Db2CorpusTest {
                         "%d tables, %d columns, %d indexes, %d primary keys, %d foreign keys%n",
                 files, streams, counts.tableNames.size(), counts.columns, counts.indexNames.size(),
                 counts.keys, counts.foreignKeys.size());
-        counts.foreignKeys.forEach(edge -> System.out.println("  " + edge));
-        skipped.forEach(member -> System.out.println("  not DB2 for z/OS DDL: " + member));
+        counts.foreignKeys.forEach(edge -> IO.println("  " + edge));
+        skipped.forEach(member -> IO.println("  not DB2 for z/OS DDL: " + member));
         if (!failures.isEmpty()) {
-            System.out.println("not read:");
-            failures.forEach(failure -> System.out.println("  " + failure));
+			IO.println("not read:");
+            failures.forEach(failure -> IO.println("  " + failure));
         }
 
         assertThat(fixtureFailures).isEmpty();

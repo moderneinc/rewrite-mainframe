@@ -16,20 +16,19 @@
 package org.openrewrite.mainframe.jcl.trait;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.Cursor;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 
 class StepTest implements RewriteTest {
 
-    @Test
-    void readsStepsAndTheirDataDefinitions() {
+	@DocumentExample @Test
+	void readsStepsAndTheirDataDefinitions() {
         rewriteRun(
           jcl(
             """
@@ -42,7 +41,7 @@ class StepTest implements RewriteTest {
               //RPTDD    DD  DSN=PROD.ACCOUNT.REPORT,DISP=(NEW,CATLG)
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Step> steps = steps(cu);
+                var steps = steps(cu);
                 assertThat(steps).extracting(Step::getName).containsExactly("STEP010", "STEP020");
                 assertThat(steps).extracting(Step::getProgram).containsExactly("ACCTPOST", "ACCTRPT");
                 assertThat(steps.getFirst().getProcedure()).isNull();
@@ -78,11 +77,9 @@ class StepTest implements RewriteTest {
         );
     }
 
-    /**
-     * A DD with no name of its own concatenates onto the one before it, and the two are one DD as far
-     * as the program reading them is concerned. Reported separately, a concatenation names data sets
-     * that no DD claims — which is the shape every STEPLIB in a portfolio takes.
-     */
+    /// A DD with no name of its own concatenates onto the one before it, and the two are one DD as far
+    /// as the program reading them is concerned. Reported separately, a concatenation names data sets
+    /// that no DD claims — which is the shape every STEPLIB in a portfolio takes.
     @Test
     void concatenatesUnnamedDataDefinitions() {
         rewriteRun(
@@ -106,11 +103,9 @@ class StepTest implements RewriteTest {
         );
     }
 
-    /**
-     * A member in parentheses is a library member, unless it is a relative generation, in which case
-     * the same syntax means a generation data group. Reporting {@code MY.GDG(+1)} as a member of a
-     * library would put a data set in the wrong place in every batch flow that uses one.
-     */
+    /// A member in parentheses is a library member, unless it is a relative generation, in which case
+    /// the same syntax means a generation data group. Reporting `MY.GDG(+1)` as a member of a
+    /// library would put a data set in the wrong place in every batch flow that uses one.
     @Test
     void tellsAMemberFromAGeneration() {
         rewriteRun(
@@ -156,9 +151,7 @@ class StepTest implements RewriteTest {
         );
     }
 
-    /**
-     * In-stream data belongs to the DD that introduced it, and that DD names no data set.
-     */
+    /// In-stream data belongs to the DD that introduced it, and that DD names no data set.
     @Test
     void readsInStreamData() {
         rewriteRun(
@@ -184,10 +177,8 @@ class StepTest implements RewriteTest {
         );
     }
 
-    /**
-     * A DD found on its own has to be able to name its step, or nothing can say which program opens
-     * it.
-     */
+    /// A DD found on its own has to be able to name its step, or nothing can say which program opens
+    /// it.
     @Test
     void readsTheStepADataDefinitionBelongsTo() {
         rewriteRun(
@@ -201,7 +192,7 @@ class StepTest implements RewriteTest {
               //RPTDD    DD  DSN=PROD.ACCOUNT.REPORT,DISP=(NEW,CATLG)
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<DataDefinition> dds = new DataDefinition.Matcher().lower(cu).collect(Collectors.toList());
+                List<DataDefinition> dds = new DataDefinition.Matcher().lower(cu).toList();
                 assertThat(dds).extracting(DataDefinition::getName)
                   .containsExactly("JOBLIB", "ACCTDD", "RPTDD");
                 // A JOBLIB is the job's, not any step's.
@@ -222,7 +213,7 @@ class StepTest implements RewriteTest {
               //STEP010  EXEC PGM=ACCTPOST
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(new Job.Matcher().lower(cu).collect(Collectors.toList()))
+              assertThat(new Job.Matcher().lower(cu).toList())
                 .singleElement()
                 .satisfies(job -> {
                     assertThat(job.getName()).isEqualTo("ACCTJOB");
@@ -233,10 +224,8 @@ class StepTest implements RewriteTest {
         );
     }
 
-    /**
-     * A member with no JOB card — a procedure, or a fragment meant to be included — still has steps
-     * worth reading.
-     */
+    /// A member with no JOB card — a procedure, or a fragment meant to be included — still has steps
+    /// worth reading.
     @Test
     void readsAMemberWithNoJobCard() {
         rewriteRun(
@@ -254,10 +243,8 @@ class StepTest implements RewriteTest {
         );
     }
 
-    /**
-     * A utility reads its PARM by position, and a group in it is one position: Db2 High Performance
-     * Unload is passed {@code ssid,uid} and options that carry commas of their own.
-     */
+    /// A utility reads its PARM by position, and a group in it is one position: Db2 High Performance
+    /// Unload is passed `ssid,uid` and options that carry commas of their own.
     @Test
     void readsThePositionsOfAParm() {
         rewriteRun(
@@ -294,6 +281,6 @@ class StepTest implements RewriteTest {
     }
 
     private static List<Step> steps(Jcl.CompilationUnit cu) {
-        return new Step.Matcher().lower(cu).collect(Collectors.toList());
+        return new Step.Matcher().lower(cu).toList();
     }
 }

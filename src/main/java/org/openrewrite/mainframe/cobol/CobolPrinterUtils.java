@@ -17,8 +17,8 @@ package org.openrewrite.mainframe.cobol;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.openrewrite.mainframe.cobol.internal.CobolDialect;
 import org.openrewrite.internal.StringUtils;
+import org.openrewrite.mainframe.cobol.internal.CobolDialect;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CobolPrinterUtils {

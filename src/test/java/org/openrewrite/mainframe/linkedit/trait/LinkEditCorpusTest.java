@@ -33,14 +33,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
@@ -73,7 +70,7 @@ class LinkEditCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("link-edit decks read, by application:");
+		IO.println("link-edit decks read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> members = new ArrayList<>(Corpus.linkEditDecks(repository));
             members.addAll(templates(repository));
@@ -135,8 +132,8 @@ class LinkEditCorpusTest {
                         "%d included members); %d decks written in-stream, %d statements%n",
                 decks, statements, modules, entries, aliases, includes, inStream, inStreamStatements);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(f -> System.out.println("  " + f));
+			IO.println("failures:");
+            failures.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(failures).isEmpty();
@@ -214,8 +211,8 @@ class LinkEditCorpusTest {
 
         // Every object library include and the CALL it matches: what is included is bound in, what is
         // not is called dynamically and is a load module of its own.
-        TreeMap<String, List<String>> statics = new TreeMap<>();
-        TreeMap<String, Integer> stubs = new TreeMap<>();
+        Map<String, List<String>> statics = new TreeMap<>();
+        Map<String, Integer> stubs = new TreeMap<>();
         for (LinkEditDeck deck : decks) {
             for (LinkEditDeck.Include include : deck.getIncludes()) {
                 if ("OBJLIB".equals(include.getDdName())) {
@@ -251,7 +248,7 @@ class LinkEditCorpusTest {
                   return !source.contains("<#") && LinkEditLineReader.isLinkEditDeck(source);
               })
               .sorted()
-              .collect(Collectors.toList());
+              .collect(toList());
         }
     }
 
@@ -295,7 +292,7 @@ class LinkEditCorpusTest {
         List<SourceFile> parsed = LinkEditParser.builder().build()
                 .parseInputs(singletonList(new Parser.Input(member, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
-                .collect(Collectors.toList());
+                .collect(toList());
         return parsed.size() == 1 && parsed.getFirst() instanceof LinkEdit.CompilationUnit ?
                 (LinkEdit.CompilationUnit) parsed.getFirst() : null;
     }
@@ -304,7 +301,7 @@ class LinkEditCorpusTest {
         List<SourceFile> parsed = JclParser.builder().build()
                 .parseInputs(singletonList(new Parser.Input(job, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
-                .collect(Collectors.toList());
+                .collect(toList());
         return parsed.size() == 1 && parsed.getFirst() instanceof Jcl.CompilationUnit ?
                 (Jcl.CompilationUnit) parsed.getFirst() : null;
     }

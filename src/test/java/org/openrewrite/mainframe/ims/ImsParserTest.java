@@ -32,9 +32,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -191,7 +191,7 @@ class ImsParserTest {
           """);
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input), null, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
 
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(ParseError.class);
@@ -410,7 +410,7 @@ class ImsParserTest {
     private static Ims.CompilationUnit parse(String name, String source) {
         List<SourceFile> parsed = ImsParser.builder().build()
           .parseInputs(singletonList(input(name, source)), null, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(Ims.CompilationUnit.class);
         return (Ims.CompilationUnit) parsed.getFirst();

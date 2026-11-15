@@ -15,14 +15,12 @@
  */
 // Generated from src/main/antlr-jcl/JCLLexer.g4 by ANTLR 4.13.2
 package org.openrewrite.mainframe.jcl.internal.grammar;
-import org.antlr.v4.runtime.Lexer;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.*;
+import org.antlr.v4.runtime.atn.ATN;
+import org.antlr.v4.runtime.atn.ATNDeserializer;
+import org.antlr.v4.runtime.atn.LexerATNSimulator;
+import org.antlr.v4.runtime.atn.PredictionContextCache;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class JCLLexer extends Lexer {
@@ -32,37 +30,37 @@ public class JCLLexer extends Lexer {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		UTF_8_BOM=1, WS=2, EOL=3, JCL_STATEMENT=4, JCL_CONTINUATION=5, JCL_STREAM_END=6, 
-		JCL_STREAM=7, JES2=8, JES3=9, CM=10, COMMENT=11, UNKNOWN=12, CA_START=13, 
-		STRINGLITERAL=14, TEXT=15, JCL_TC_START=16, JCL_TC_STOP=17, JCL_STRINGLITERAL=18, 
-		JCL_TEXT=19, STREAM_WS=20, STREAM_STRINGLITERAL=21, STREAM_TEXT=22, JES2_STRINGLITERAL=23, 
-		JES2_TEXT=24, JES3_STRINGLITERAL=25, JES3_TEXT=26, CM_STRINGLITERAL=27, 
-		CM_TEXT=28, COMMENT_WS=29, COMMENT_STRINGLITERAL=30, COMMENT_TEXT=31, 
+		UTF_8_BOM=1, WS=2, EOL=3, JCL_STATEMENT=4, JCL_CONTINUATION=5, JCL_STREAM_END=6,
+		JCL_STREAM=7, JES2=8, JES3=9, CM=10, COMMENT=11, UNKNOWN=12, CA_START=13,
+		STRINGLITERAL=14, TEXT=15, JCL_TC_START=16, JCL_TC_STOP=17, JCL_STRINGLITERAL=18,
+		JCL_TEXT=19, STREAM_WS=20, STREAM_STRINGLITERAL=21, STREAM_TEXT=22, JES2_STRINGLITERAL=23,
+		JES2_TEXT=24, JES3_STRINGLITERAL=25, JES3_TEXT=26, CM_STRINGLITERAL=27,
+		CM_TEXT=28, COMMENT_WS=29, COMMENT_STRINGLITERAL=30, COMMENT_TEXT=31,
 		UNKNOWN_WS=32, UNKNOWN_STRINGLITERAL=33, UNKNOWN_TEXT=34;
 	public static final int
-		INSIDE_JCL=1, INSIDE_STREAM=2, INSIDE_JES2=3, INSIDE_JES3=4, INSIDE_CM=5, 
+		INSIDE_JCL=1, INSIDE_STREAM=2, INSIDE_JES2=3, INSIDE_JES3=4, INSIDE_CM=5,
 		INSIDE_COMMENT=6, INSIDE_UNKNOWN=7;
 	public static String[] channelNames = {
 		"DEFAULT_TOKEN_CHANNEL", "HIDDEN"
 	};
 
 	public static String[] modeNames = {
-		"DEFAULT_MODE", "INSIDE_JCL", "INSIDE_STREAM", "INSIDE_JES2", "INSIDE_JES3", 
+		"DEFAULT_MODE", "INSIDE_JCL", "INSIDE_STREAM", "INSIDE_JES2", "INSIDE_JES3",
 		"INSIDE_CM", "INSIDE_COMMENT", "INSIDE_UNKNOWN"
 	};
 
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"UTF_8_BOM", "WS", "EOL", "JCL_STATEMENT", "JCL_CONTINUATION", "JCL_STREAM_END", 
-			"JCL_STREAM", "JES2", "JES3", "CM", "COMMENT", "UNKNOWN", "CA_START", 
-			"STRINGLITERAL", "TEXT", "LF", "CR", "FORM_FEED", "JCL_WS", "JCL_EOL", 
-			"JCL_TC_START", "JCL_TC_STOP", "JCL_CA_START", "JCL_STRINGLITERAL", "JCL_TEXT", 
-			"STREAM_WS", "STREAM_EOL", "STREAM_CA_START", "STREAM_STRINGLITERAL", 
-			"STREAM_TEXT", "JES2_WS", "JES2_EOL", "JES2_CA_START", "JES2_STRINGLITERAL", 
-			"JES2_TEXT", "JES3_WS", "JES3_EOL", "JES3_CA_START", "JES3_STRINGLITERAL", 
-			"JES3_TEXT", "CM_WS", "CM_EOL", "CM_CA_START", "CM_STRINGLITERAL", "CM_TEXT", 
-			"COMMENT_WS", "COMMENT_EOL", "COMMENT_CA_START", "COMMENT_STRINGLITERAL", 
-			"COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_EOL", "UNKNOWN_CA_START", "UNKNOWN_STRINGLITERAL", 
+			"UTF_8_BOM", "WS", "EOL", "JCL_STATEMENT", "JCL_CONTINUATION", "JCL_STREAM_END",
+			"JCL_STREAM", "JES2", "JES3", "CM", "COMMENT", "UNKNOWN", "CA_START",
+			"STRINGLITERAL", "TEXT", "LF", "CR", "FORM_FEED", "JCL_WS", "JCL_EOL",
+			"JCL_TC_START", "JCL_TC_STOP", "JCL_CA_START", "JCL_STRINGLITERAL", "JCL_TEXT",
+			"STREAM_WS", "STREAM_EOL", "STREAM_CA_START", "STREAM_STRINGLITERAL",
+			"STREAM_TEXT", "JES2_WS", "JES2_EOL", "JES2_CA_START", "JES2_STRINGLITERAL",
+			"JES2_TEXT", "JES3_WS", "JES3_EOL", "JES3_CA_START", "JES3_STRINGLITERAL",
+			"JES3_TEXT", "CM_WS", "CM_EOL", "CM_CA_START", "CM_STRINGLITERAL", "CM_TEXT",
+			"COMMENT_WS", "COMMENT_EOL", "COMMENT_CA_START", "COMMENT_STRINGLITERAL",
+			"COMMENT_TEXT", "UNKNOWN_WS", "UNKNOWN_EOL", "UNKNOWN_CA_START", "UNKNOWN_STRINGLITERAL",
 			"UNKNOWN_TEXT"
 		};
 	}
@@ -70,20 +68,20 @@ public class JCLLexer extends Lexer {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'\\uFEFF'", null, null, null, null, null, "'^^STREAM^^'", null, 
-			null, "'^^CM^^'", "'^^COMMENT^^'", "'^^UNKNOWN^^'", null, null, null, 
+			null, "'\\uFEFF'", null, null, null, null, null, "'^^STREAM^^'", null,
+			null, "'^^CM^^'", "'^^COMMENT^^'", "'^^UNKNOWN^^'", null, null, null,
 			"'^^TC_START^^'", "'^^TC_STOP^^'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, "UTF_8_BOM", "WS", "EOL", "JCL_STATEMENT", "JCL_CONTINUATION", 
-			"JCL_STREAM_END", "JCL_STREAM", "JES2", "JES3", "CM", "COMMENT", "UNKNOWN", 
-			"CA_START", "STRINGLITERAL", "TEXT", "JCL_TC_START", "JCL_TC_STOP", "JCL_STRINGLITERAL", 
-			"JCL_TEXT", "STREAM_WS", "STREAM_STRINGLITERAL", "STREAM_TEXT", "JES2_STRINGLITERAL", 
-			"JES2_TEXT", "JES3_STRINGLITERAL", "JES3_TEXT", "CM_STRINGLITERAL", "CM_TEXT", 
-			"COMMENT_WS", "COMMENT_STRINGLITERAL", "COMMENT_TEXT", "UNKNOWN_WS", 
+			null, "UTF_8_BOM", "WS", "EOL", "JCL_STATEMENT", "JCL_CONTINUATION",
+			"JCL_STREAM_END", "JCL_STREAM", "JES2", "JES3", "CM", "COMMENT", "UNKNOWN",
+			"CA_START", "STRINGLITERAL", "TEXT", "JCL_TC_START", "JCL_TC_STOP", "JCL_STRINGLITERAL",
+			"JCL_TEXT", "STREAM_WS", "STREAM_STRINGLITERAL", "STREAM_TEXT", "JES2_STRINGLITERAL",
+			"JES2_TEXT", "JES3_STRINGLITERAL", "JES3_TEXT", "CM_STRINGLITERAL", "CM_TEXT",
+			"COMMENT_WS", "COMMENT_STRINGLITERAL", "COMMENT_TEXT", "UNKNOWN_WS",
 			"UNKNOWN_STRINGLITERAL", "UNKNOWN_TEXT"
 		};
 	}

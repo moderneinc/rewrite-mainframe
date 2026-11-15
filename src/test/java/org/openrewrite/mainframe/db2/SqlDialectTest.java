@@ -31,8 +31,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SqlDialectTest {
@@ -173,7 +173,7 @@ class SqlDialectTest {
     private static List<SourceFile> parse(String source, List<String> errors) {
         return Db2Parser.builder().build()
           .parse(new InMemoryExecutionContext(t -> errors.add(String.valueOf(t.getMessage()))), source)
-          .collect(Collectors.toList());
+          .collect(toList());
     }
 
     private static String refusalOf(String source) {

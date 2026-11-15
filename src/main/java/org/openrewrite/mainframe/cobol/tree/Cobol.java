@@ -31,8 +31,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
-import static org.openrewrite.Tree.randomId;
-
 public interface Cobol extends Tree {
 
     @SuppressWarnings("unchecked")

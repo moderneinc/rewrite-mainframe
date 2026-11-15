@@ -25,13 +25,7 @@ import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.mainframe.jcl.tree.Statement;
 import org.openrewrite.marker.Range;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Where each statement and parameter of a job sits in its source.

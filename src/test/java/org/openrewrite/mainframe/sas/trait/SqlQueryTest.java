@@ -29,11 +29,9 @@ import static org.openrewrite.test.SourceSpecs.text;
 
 class SqlQueryTest implements RewriteTest {
 
-    /**
-     * INTERLINKS 21.5. Which side of the connection a name is on is what a lineage recipe needs, and
-     * the source says: inside the parentheses of {@code FROM CONNECTION TO DB2} is a DB2 table, and
-     * outside is a data set of a SAS library that no DB2 catalog has heard of.
-     */
+    /// INTERLINKS 21.5. Which side of the connection a name is on is what a lineage recipe needs, and
+    /// the source says: inside the parentheses of `FROM CONNECTION TO DB2` is a DB2 table, and
+    /// outside is a data set of a SAS library that no DB2 catalog has heard of.
     @DocumentExample
     @Test
     void tellsATableReadThroughAConnectionFromADataSetOfASasLibrary() {
@@ -69,10 +67,8 @@ class SqlQueryTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code DISCONNECT FROM DB2} names the connection, not a table. Read as a {@code FROM} list it
-     * reports a table called DB2 in every program that closes one.
-     */
+    /// `DISCONNECT FROM DB2` names the connection, not a table. Read as a `FROM` list it
+    /// reports a table called DB2 in every program that closes one.
     @Test
     void readsNoTableOnAConnectStatement() {
         rewriteRun(
@@ -88,10 +84,8 @@ class SqlQueryTest implements RewriteTest {
         );
     }
 
-    /**
-     * A {@code FROM} outside a {@code PROC SQL} step is not SQL at all. The step's {@code QUIT;} ends
-     * it, and what stands after one is in no step.
-     */
+    /// A `FROM` outside a `PROC SQL` step is not SQL at all. The step's `QUIT;` ends
+    /// it, and what stands after one is in no step.
     @Test
     void readsNoTableOutsideAProcSqlStep() {
         rewriteRun(
@@ -112,7 +106,7 @@ class SqlQueryTest implements RewriteTest {
     }
 
     private static List<SqlQuery.Table> tables(PlainText cu) {
-        List<SqlQuery.Table> tables = new ArrayList<>();
+        var tables = new ArrayList<SqlQuery.Table>();
         for (SqlQuery.Query query : new SqlQuery.Matcher().require(cu, null).getQueries()) {
             tables.addAll(query.getTables());
         }

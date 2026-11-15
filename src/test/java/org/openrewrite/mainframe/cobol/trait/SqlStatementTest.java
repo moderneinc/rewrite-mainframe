@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.cobol.trait;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.SourceFile;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
@@ -28,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
@@ -36,12 +36,10 @@ import static org.openrewrite.mainframe.cobol.Assertions.copybook;
 
 class SqlStatementTest implements RewriteTest {
 
-    /**
-     * The shape genapp's DB2 modules are written in. The host variable in the WHERE clause is a
-     * predicate rather than a result, and a row claiming a column flows into it would be wrong.
-     */
-    @Test
-    void bindsEachColumnToTheHostVariableItLandsIn() {
+	/// The shape genapp's DB2 modules are written in. The host variable in the WHERE clause is a
+	/// predicate rather than a result, and a row claiming a column flows into it would be wrong.
+	@DocumentExample @Test
+	void bindsEachColumnToTheHostVariableItLandsIn() {
         rewriteRun(
           cobol(
             """
@@ -174,13 +172,11 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * Real SQL is written a column to a line, so the comma separating two of them is the last thing
-     * on the card. Bank of Z and genapp both write it this way, and the separator is kept somewhere
-     * different from one written mid-line. Lost, {@code SELECT A, B} becomes {@code SELECT A B},
-     * which is not a parse failure but a column with an alias — INQCUST read as one column where it
-     * names seventeen, and reported no column at all rather than the wrong one.
-     */
+    /// Real SQL is written a column to a line, so the comma separating two of them is the last thing
+    /// on the card. Bank of Z and genapp both write it this way, and the separator is kept somewhere
+    /// different from one written mid-line. Lost, `SELECT A, B` becomes `SELECT A B`,
+    /// which is not a parse failure but a column with an alias — INQCUST read as one column where it
+    /// names seventeen, and reported no column at all rather than the wrong one.
     @Test
     void bindsColumnsSeparatedAcrossLines() {
         rewriteRun(
@@ -214,11 +210,9 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * CardDemo qualifies its tables with a schema. SQL writes the name as one word and COBOL reads it
-     * as two, so read as words it is the table CARDDEMO.TRANSACTION — a name no database has, and one
-     * the CRUD matrix reported for every DB2 access in the program.
-     */
+    /// CardDemo qualifies its tables with a schema. SQL writes the name as one word and COBOL reads it
+    /// as two, so read as words it is the table CARDDEMO.TRANSACTION — a name no database has, and one
+    /// the CRUD matrix reported for every DB2 access in the program.
     @Test
     void keepsAQualifiedTableWhole() {
         rewriteRun(
@@ -251,11 +245,9 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A fetch names no columns of its own, so the only way it says which column it read is the
-     * cursor it was declared against. The indicator variable rides with the column before it rather
-     * than taking a position of its own.
-     */
+    /// A fetch names no columns of its own, so the only way it says which column it read is the
+    /// cursor it was declared against. The indicator variable rides with the column before it rather
+    /// than taking a position of its own.
     @Test
     void bindsAFetchThroughTheCursorItWasDeclaredAgainst() {
         rewriteRun(
@@ -304,12 +296,10 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * DB2 writes a fetch {@code FETCH FROM <cursor>}, and read as a table introducer that
-     * {@code FROM} makes the cursor a table: Bank of Z reported {@code ACC-CURSOR} beside
-     * {@code ACCOUNT} as a store of its own. A cursor is not a resource, and the tables a fetch
-     * reaches are the ones its declaration named.
-     */
+    /// DB2 writes a fetch `FETCH FROM <cursor>`, and read as a table introducer that
+    /// `FROM` makes the cursor a table: Bank of Z reported `ACC-CURSOR` beside
+    /// `ACCOUNT` as a store of its own. A cursor is not a resource, and the tables a fetch
+    /// reaches are the ones its declaration named.
     @Test
     void readsAFetchAsAnAccessToTheTableAndNeverToTheCursor() {
         rewriteRun(
@@ -353,11 +343,9 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A join names two tables and the program reaches both. Read off the words only the first is
-     * found, and genapp writes {@code FROM POLICY,COMMERCIAL} with no space, which the words hand
-     * back as one table nothing is called.
-     */
+    /// A join names two tables and the program reaches both. Read off the words only the first is
+    /// found, and genapp writes `FROM POLICY,COMMERCIAL` with no space, which the words hand
+    /// back as one table nothing is called.
     @Test
     void namesEveryTableOfAJoin() {
         rewriteRun(
@@ -391,10 +379,8 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A DCLGEN declares its table ahead of the keyword, which is the one place a table is not
-     * introduced by the word in front of it, and the statement is not one any SQL parser takes.
-     */
+    /// A DCLGEN declares its table ahead of the keyword, which is the one place a table is not
+    /// introduced by the word in front of it, and the statement is not one any SQL parser takes.
     @Test
     void readsTheTableADclgenDeclares() {
         rewriteRun(
@@ -427,11 +413,9 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * The fixture's CLMD020 writes its indicator with no {@code INDICATOR} keyword, which is the
-     * other spelling DB2 takes. Counted as a position of its own it leaves the fetch one host
-     * variable longer than the cursor's select list, and then nothing pairs at all.
-     */
+    /// The fixture's CLMD020 writes its indicator with no `INDICATOR` keyword, which is the
+    /// other spelling DB2 takes. Counted as a position of its own it leaves the fetch one host
+    /// variable longer than the cursor's select list, and then nothing pairs at all.
     @Test
     void ridesABareIndicatorWithTheColumnBeforeIt() {
         rewriteRun(
@@ -476,10 +460,8 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * SQL's one name reaches COBOL as more than one word, so the name is spelled by all of them:
-     * the first alone, as a search anchored on it would place it, is the table CLM.CLAIM.
-     */
+    /// SQL's one name reaches COBOL as more than one word, so the name is spelled by all of them:
+    /// the first alone, as a search anchored on it would place it, is the table CLM.CLAIM.
     @Test
     void spellsAQualifiedNameWithEveryWordItReachedCobolAs() {
         rewriteRun(
@@ -512,10 +494,8 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * What a statement writes is the one table that takes its access. Every other table it names,
-     * in the query an insert copies from or in a subquery, it only reads.
-     */
+    /// What a statement writes is the one table that takes its access. Every other table it names,
+    /// in the query an insert copies from or in a subquery, it only reads.
     @Test
     void writesTheTargetAndReadsTheRest() {
         rewriteRun(
@@ -562,10 +542,8 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * The parser hands the tables of a statement back as a set. The accesses are in the order they
-     * were written, so the first of them is the first table a reader meets.
-     */
+    /// The parser hands the tables of a statement back as a set. The accesses are in the order they
+    /// were written, so the first of them is the first table a reader meets.
     @Test
     void putsTheTablesInTheOrderTheyWereWritten() {
         rewriteRun(
@@ -592,10 +570,8 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A column can share its table's name. The name is looked for after a word that introduces a
-     * table first, so the column ahead of it is not where the table is said to be written.
-     */
+    /// A column can share its table's name. The name is looked for after a word that introduces a
+    /// table first, so the column ahead of it is not where the table is said to be written.
     @Test
     void takesNoColumnForTheTableItIsNamedAfter() {
         rewriteRun(
@@ -616,7 +592,7 @@ class SqlStatementTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 SqlStatement statement = statementsIn(cu).getFirst();
-                List<Cobol.Word> words = wordsOf(statement.getExec());
+                var words = wordsOf(statement.getExec());
                 Cobol.Word written = statement.getTableAccesses().getFirst().getWords().getFirst();
                 assertThat(words.get(words.indexOf(written) - 1).getWord()).isEqualTo("FROM");
             })
@@ -624,10 +600,8 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * DB2 folds a name to upper case and a delimited name is taken as it is, so the table is named
-     * the way the catalog names it. The tables keep the spelling the statement used.
-     */
+    /// DB2 folds a name to upper case and a delimited name is taken as it is, so the table is named
+    /// the way the catalog names it. The tables keep the spelling the statement used.
     @Test
     void namesADelimitedTableAsDb2FoldsIt() {
         rewriteRun(
@@ -667,9 +641,7 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * Every cursor statement says which words name its cursor, wherever the statement puts the name.
-     */
+    /// Every cursor statement says which words name its cursor, wherever the statement puts the name.
     @Test
     void namesTheWordsOfEachCursorStatementsCursor() {
         rewriteRun(
@@ -708,11 +680,9 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * The words of a block hand the visitor back to the COBOL tree, so a matcher asking every word
-     * reports one block many times. Each is reported once, wherever it was written, and
-     * {@link SqlStatements#find} still reads the word a block hangs off.
-     */
+    /// The words of a block hand the visitor back to the COBOL tree, so a matcher asking every word
+    /// reports one block many times. Each is reported once, wherever it was written, and
+    /// [SqlStatements#find] still reads the word a block hangs off.
     @Test
     void reportsEachBlockOnce() {
         rewriteRun(
@@ -741,7 +711,7 @@ class SqlStatementTest implements RewriteTest {
                 assertThat(statements).allSatisfy(statement ->
                   assertThat(statement.getEnclosingWord()).isNotNull());
 
-                List<SqlStatement> found = new ArrayList<>();
+                var found = new ArrayList<SqlStatement>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.Word visitWord(Cobol.Word word, Integer p) {
@@ -750,16 +720,14 @@ class SqlStatementTest implements RewriteTest {
                     }
                 }.visit(cu, 0);
                 assertThat(found).extracting(SqlStatement::getExec)
-                  .containsExactlyElementsOf(statements.stream().map(SqlStatement::getExec).collect(toList()));
+                  .containsExactlyElementsOf(statements.stream().map(SqlStatement::getExec).toList());
             })
           )
         );
     }
 
-    /**
-     * A DCLGEN copybook is a source of its own, and the table it declares is read there, with no
-     * word of a program around it.
-     */
+    /// A DCLGEN copybook is a source of its own, and the table it declares is read there, with no
+    /// word of a program around it.
     @Test
     void readsTheBlocksOfACopybook() {
         rewriteRun(
@@ -789,12 +757,10 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A copybook's blocks stay in the copybook, under the statement copying it, rather than being
-     * left on a word of the program, so they are the copybook's to report. Read in the program as
-     * well, a DCLGEN's table would be declared once by the copybook and again by every program
-     * including it.
-     */
+    /// A copybook's blocks stay in the copybook, under the statement copying it, rather than being
+    /// left on a word of the program, so they are the copybook's to report. Read in the program as
+    /// well, a DCLGEN's table would be declared once by the copybook and again by every program
+    /// including it.
     @Test
     void leavesTheBlocksOfACopybookToTheCopybook() {
         rewriteRun(
@@ -821,10 +787,8 @@ class SqlStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code EXEC SQLIMS} is SQL for IMS, read by another precompiler against databases that are
-     * not DB2's, and none of its statements are this trait's.
-     */
+    /// `EXEC SQLIMS` is SQL for IMS, read by another precompiler against databases that are
+    /// not DB2's, and none of its statements are this trait's.
     @Test
     void leavesSqlImsAlone() {
         rewriteRun(
@@ -848,7 +812,7 @@ class SqlStatementTest implements RewriteTest {
     }
 
     private static List<SqlStatement> statementsIn(SourceFile sourceFile) {
-        return new SqlStatement.Matcher().lower(sourceFile).collect(toList());
+        return new SqlStatement.Matcher().lower(sourceFile).toList();
     }
 
     private static String spelled(SqlTableAccess table) {
@@ -856,7 +820,7 @@ class SqlStatementTest implements RewriteTest {
     }
 
     private static List<Cobol.Word> wordsOf(CobolPreprocessor.ExecStatement exec) {
-        List<Cobol.Word> words = new ArrayList<>();
+        var words = new ArrayList<Cobol.Word>();
         new CobolPreprocessorIsoVisitor<Integer>() {
             @Override
             public CobolPreprocessor.Word visitWord(CobolPreprocessor.Word word, Integer p) {

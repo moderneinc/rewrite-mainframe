@@ -78,8 +78,8 @@ public class Literals {
             return null;
         }
         String word = keyword instanceof Cobol.Word ? ((Cobol.Word) keyword).getWord() : "";
-        String upper = word.equalsIgnoreCase("DFHRESP") ? "DFHRESP" :
-                word.equalsIgnoreCase("DFHVALUE") ? "DFHVALUE" : null;
+        String upper = "DFHRESP".equalsIgnoreCase(word) ? "DFHRESP" :
+                "DFHVALUE".equalsIgnoreCase(word) ? "DFHVALUE" : null;
         if (upper == null || subscripts == null || subscripts.size() != 1 ||
             subscripts.get(0).getContents().isEmpty()) {
             return null;

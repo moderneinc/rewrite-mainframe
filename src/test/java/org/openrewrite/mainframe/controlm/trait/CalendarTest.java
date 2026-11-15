@@ -20,15 +20,12 @@ import org.openrewrite.test.RewriteTest;
 
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlm.tree.ParserAssertions.controlM;
 
-/**
- * A {@code DEFCAL} year is twelve months of thirty-one positions whether the month has them or not,
- * so the days a job runs on are only readable by decoding it.
- */
+/// A `DEFCAL` year is twelve months of thirty-one positions whether the month has them or not,
+/// so the days a job runs on are only readable by decoding it.
 class CalendarTest implements RewriteTest {
 
     @Test
@@ -37,7 +34,7 @@ class CalendarTest implements RewriteTest {
           controlM(
             defcal("NYY"),
             spec -> spec.afterRecipe(cu -> {
-                Calendar calendar = new Calendar.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
+                Calendar calendar = new Calendar.Matcher().lower(cu).toList().getFirst();
                 assertThat(calendar.getName()).isEqualTo("CLMWORK");
                 assertThat(calendar.getType()).isEqualTo("Regular");
                 assertThat(calendar.getDataCenter()).isEqualTo("CTMPROD");
@@ -52,17 +49,15 @@ class CalendarTest implements RewriteTest {
         );
     }
 
-    /**
-     * February is written with thirty-one positions like every other month, and 2026 has twenty-eight
-     * days. A position past the end of a month is no day at all.
-     */
+    /// February is written with thirty-one positions like every other month, and 2026 has twenty-eight
+    /// days. A position past the end of a month is no day at all.
     @Test
     void ignoresAPositionPastTheEndOfAMonth() {
         rewriteRun(
           controlM(
             defcal(marks(31 + 27, 31 + 29)),
             spec -> spec.afterRecipe(cu -> {
-                Calendar calendar = new Calendar.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
+                Calendar calendar = new Calendar.Matcher().lower(cu).toList().getFirst();
                 assertThat(calendar.getDays(2026)).containsExactly(LocalDate.of(2026, 2, 28));
             })
           )

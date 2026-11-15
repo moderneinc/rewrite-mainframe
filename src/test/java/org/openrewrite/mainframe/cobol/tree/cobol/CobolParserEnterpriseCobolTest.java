@@ -17,6 +17,7 @@ package org.openrewrite.mainframe.cobol.tree.cobol;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Cursor;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorIsoVisitor;
@@ -28,18 +29,16 @@ import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static java.util.stream.Collectors.joining;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 
-/**
- * Statements and phrases Enterprise COBOL 6 added to the language.
- */
+/// Statements and phrases Enterprise COBOL 6 added to the language.
 class CobolParserEnterpriseCobolTest extends CobolTest {
 
-    @Test
-    void jsonGenerateAndParseReadTheirDocumentAndDataItem() {
+	@DocumentExample @Test
+	void jsonGenerateAndParseReadTheirDocumentAndDataItem() {
         rewriteRun(
           cobol(
             """
@@ -73,8 +72,8 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000028     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Cobol.JsonXml> statements = treesOf(cu, Cobol.JsonXml.class);
-                Cursor root = new Cursor(null, cu);
+                var statements = treesOf(cu, Cobol.JsonXml.class);
+                var root = new Cursor(null, cu);
                 assertThat(statements).extracting(s -> s.getDocument().printTrimmed(root), s -> s.getData().printTrimmed(root))
                   .containsExactly(tuple("DOC", "REC"), tuple("DOC", "REC"), tuple("DOC", "REC"));
                 assertThat(statements.getFirst().getPhrases()).hasSize(4);
@@ -154,7 +153,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000021     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                Cursor root = new Cursor(null, cu);
+                var root = new Cursor(null, cu);
                 assertThat(treesOf(cu, Cobol.Allocate.class))
                   .extracting(a -> a.getPointer() == null ? null : a.getPointer().printTrimmed(root))
                   .containsExactly("PTR", "PTR2", "PTR");
@@ -392,7 +391,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
 
     @Test
     void directivesAreNodesOfTheirOwnAndLeaveReplaceAndPseudoTextAlone() {
-        String source = """
+        var source = """
               000001 IDENTIFICATION DIVISION.
               000002 PROGRAM-ID. ENTCOB.
               000003 AUTHOR. A PERSON.
@@ -413,9 +412,9 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               .satisfies(display -> assertThat(wordsIn(display)).containsExactly("DISPLAY", "WS-TEXT"))))
         );
 
-        CobolPreprocessor.CompilationUnit preprocessed = (CobolPreprocessor.CompilationUnit) CobolPreprocessorParser.builder().build()
+        var preprocessed = (CobolPreprocessor.CompilationUnit) CobolPreprocessorParser.builder().build()
           .parse(new InMemoryExecutionContext(), source).findFirst().orElseThrow();
-        List<String> directives = new ArrayList<>();
+        var directives = new ArrayList<String>();
         new CobolPreprocessorIsoVisitor<List<String>>() {
             @Override
             public CobolPreprocessor.CompilerDirective visitCompilerDirective(CobolPreprocessor.CompilerDirective directive, List<String> found) {
@@ -504,7 +503,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
     }
 
     private static List<String> wordsIn(Cobol tree) {
-        List<String> words = new ArrayList<>();
+        var words = new ArrayList<String>();
         new CobolIsoVisitor<List<String>>() {
             @Override
             public Cobol.Word visitWord(Cobol.Word word, List<String> found) {
@@ -614,7 +613,7 @@ class CobolParserEnterpriseCobolTest extends CobolTest {
               000015     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                Cursor root = new Cursor(null, cu);
+                var root = new Cursor(null, cu);
                 assertThat(treesOf(cu, Cobol.Argument.class)).hasSize(3);
                 assertThat(treesOf(cu, Cobol.TableCall.class)).extracting(t -> t.getQualifiedDataName().printTrimmed(root))
                   .containsExactly("CELL");

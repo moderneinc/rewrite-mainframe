@@ -19,14 +19,10 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.PrintOutputCapture;
-import org.openrewrite.mainframe.cobol.tree.*;
 import org.openrewrite.internal.StringUtils;
+import org.openrewrite.mainframe.cobol.tree.*;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static org.openrewrite.mainframe.cobol.CobolPrinterUtils.*;
 import static org.openrewrite.mainframe.cobol.CobolStringUtils.isSubstituteCharacter;
