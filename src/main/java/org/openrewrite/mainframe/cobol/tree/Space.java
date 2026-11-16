@@ -23,6 +23,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.mainframe.internal.StringRange;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * COBOL white space.
@@ -40,7 +41,7 @@ public class Space {
      * e.g.: a single space between keywords, or the common indentation of every line in a block.
      * So use flyweights to avoid storing many instances of functionally identical spaces
      */
-    private static final ConcurrentHashMap<String, Space> flyweights = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Space> flyweights = new ConcurrentHashMap<>();
 
     private Space(@Nullable String whitespace) {
         this.whitespace = whitespace == null || whitespace.isEmpty() ? null : whitespace;

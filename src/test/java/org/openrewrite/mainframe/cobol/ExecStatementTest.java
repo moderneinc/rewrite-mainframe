@@ -29,13 +29,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 
-/**
- * Preprocessing removes an EXEC block from the text the COBOL grammar is handed, and the preprocessor rule
- * {@code execCicsStatement : EXEC CICS charData END_EXEC DOT?} takes the period that ended the sentence with it. A
- * tagged line and a period stand in for them in the parser input so that the EXEC is a statement in its own right and
- * the sentence is still terminated. Both stand-ins are marked {@link ElidedExec}: the source text prints from the EXEC
- * statement attached to them, never from the words themselves.
- */
+/// Preprocessing removes an EXEC block from the text the COBOL grammar is handed, and the preprocessor rule
+/// `execCicsStatement : EXEC CICS charData END_EXEC DOT?` takes the period that ended the sentence with it. A
+/// tagged line and a period stand in for them in the parser input so that the EXEC is a statement in its own right and
+/// the sentence is still terminated. Both stand-ins are marked [ElidedExec]: the source text prints from the EXEC
+/// statement attached to them, never from the words themselves.
 class ExecStatementTest extends CobolTest {
 
     @Test
@@ -60,10 +58,8 @@ class ExecStatementTest extends CobolTest {
         );
     }
 
-    /**
-     * The elided period is the only terminator the sentence has. Without it the IF ran on and swallowed the next
-     * paragraph's name as a statement.
-     */
+    /// The elided period is the only terminator the sentence has. Without it the IF ran on and swallowed the next
+    /// paragraph's name as a statement.
     @Test
     void execCicsAsTheOnlyBodyOfAnIf() {
         rewriteRun(
@@ -87,9 +83,7 @@ class ExecStatementTest extends CobolTest {
         );
     }
 
-    /**
-     * An EXEC that ends no sentence has no period to stand back up, only the block itself.
-     */
+    /// An EXEC that ends no sentence has no period to stand back up, only the block itself.
     @Test
     void execCicsAsTheOnlyBodyOfAnIfWithEndIf() {
         rewriteRun(
@@ -113,9 +107,7 @@ class ExecStatementTest extends CobolTest {
         );
     }
 
-    /**
-     * Each EXEC gets its own statement, rather than the second piling onto the word the first is attached to.
-     */
+    /// Each EXEC gets its own statement, rather than the second piling onto the word the first is attached to.
     @Test
     void consecutiveExecs() {
         rewriteRun(
@@ -226,10 +218,8 @@ class ExecStatementTest extends CobolTest {
         );
     }
 
-    /**
-     * Outside the procedure division an EXEC is not a statement and a period is not a sentence terminator, so the
-     * block stays elided or the data description entries around it stop parsing.
-     */
+    /// Outside the procedure division an EXEC is not a statement and a period is not a sentence terminator, so the
+    /// block stays elided or the data description entries around it stop parsing.
     @Test
     void execSqlInWorkingStorageStaysElided() {
         rewriteRun(
@@ -253,7 +243,7 @@ class ExecStatementTest extends CobolTest {
     }
 
     private static List<String> paragraphNames(Cobol.CompilationUnit cu) {
-        List<String> names = new ArrayList<>();
+        var names = new ArrayList<String>();
         new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.Paragraph visitParagraph(Cobol.Paragraph paragraph, Integer p) {
@@ -264,12 +254,10 @@ class ExecStatementTest extends CobolTest {
         return names;
     }
 
-    /**
-     * The text of every word that stands in for an elided EXEC: the block itself has none, the period it took with it
-     * keeps its own.
-     */
+    /// The text of every word that stands in for an elided EXEC: the block itself has none, the period it took with it
+    /// keeps its own.
     private static List<String> standIns(Cobol.CompilationUnit cu) {
-        List<String> words = new ArrayList<>();
+        var words = new ArrayList<String>();
         new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.Word visitWord(Cobol.Word word, Integer p) {
@@ -283,7 +271,7 @@ class ExecStatementTest extends CobolTest {
     }
 
     private static List<Class<?>> statementTypes(Cobol.CompilationUnit cu) {
-        List<Class<?>> types = new ArrayList<>();
+        var types = new ArrayList<Class<?>>();
         new CobolIsoVisitor<Integer>() {
             @Override
             public @Nullable Cobol visit(@Nullable Tree tree, Integer p) {
@@ -296,12 +284,10 @@ class ExecStatementTest extends CobolTest {
         return types;
     }
 
-    /**
-     * The EXEC block each EXEC statement stands for, so that a statement and its command are known to belong together.
-     * A line carrying more than one block shows them joined by a plus.
-     */
+    /// The EXEC block each EXEC statement stands for, so that a statement and its command are known to belong together.
+    /// A line carrying more than one block shows them joined by a plus.
     private static List<String> execs(Cobol.CompilationUnit cu) {
-        List<String> execs = new ArrayList<>();
+        var execs = new ArrayList<String>();
         new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.ExecCicsStatement visitExecCicsStatement(Cobol.ExecCicsStatement exec, Integer p) {
@@ -331,10 +317,10 @@ class ExecStatementTest extends CobolTest {
     }
 
     private static List<String> commands(Cobol.Word line) {
-        List<String> commands = new ArrayList<>();
+        var commands = new ArrayList<String>();
         for (CobolPreprocessor statement : line.getPreprocessorStatements()) {
             if (statement instanceof CobolPreprocessor.ExecStatement) {
-                List<String> words = new ArrayList<>();
+                var words = new ArrayList<String>();
                 new CobolPreprocessorIsoVisitor<Integer>() {
                     @Override
                     public CobolPreprocessor.Word visitWord(CobolPreprocessor.Word word, Integer p) {

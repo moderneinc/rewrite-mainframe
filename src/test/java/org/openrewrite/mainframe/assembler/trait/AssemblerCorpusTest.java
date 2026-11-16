@@ -29,16 +29,11 @@ import org.openrewrite.mainframe.cobol.Corpus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
@@ -75,7 +70,7 @@ class AssemblerCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("assembler members read, by application:");
+		IO.println("assembler members read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> files = Corpus.assemblerMembers(repository);
             if (files.isEmpty()) {
@@ -89,7 +84,7 @@ class AssemblerCorpusTest {
                 String source = new String(Files.readAllBytes(member));
                 List<SourceFile> parsed = AssemblerParser.builder().build()
                   .parseInputs(Corpus.inputs(singletonList(member)), corpus, new InMemoryExecutionContext())
-                  .collect(Collectors.toList());
+                  .collect(toList());
                 if (parsed.size() != 1 || !(parsed.getFirst() instanceof Assembler.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
@@ -135,20 +130,20 @@ class AssemblerCorpusTest {
                     read++;
                 }
 
-                for (ControlSection section : new ControlSection.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (ControlSection section : new ControlSection.Matcher().lower(cu).collect(toList())) {
                     sections++;
                     if (section.isDummy()) {
                         dummySections++;
                     }
                     fields += section.getFields().size();
                 }
-                copies += new Copy.Matcher().lower(cu).collect(Collectors.toList()).size();
-                macroCalls += new MacroCall.Matcher().lower(cu).collect(Collectors.toList()).size();
-                calls += new Call.Matcher().lower(cu).collect(Collectors.toList()).size();
-                dliCalls += new DliCall.Matcher().lower(cu).collect(Collectors.toList()).size();
-                dataControlBlocks += new DataControlBlock.Matcher().lower(cu).collect(Collectors.toList()).size();
-                entryPoints += new EntryPoint.Matcher().lower(cu).collect(Collectors.toList()).size();
-                macros += new MacroDefinition.Matcher().lower(cu).collect(Collectors.toList()).size();
+                copies += new Copy.Matcher().lower(cu).collect(toList()).size();
+                macroCalls += new MacroCall.Matcher().lower(cu).collect(toList()).size();
+                calls += new Call.Matcher().lower(cu).collect(toList()).size();
+                dliCalls += new DliCall.Matcher().lower(cu).collect(toList()).size();
+                dataControlBlocks += new DataControlBlock.Matcher().lower(cu).collect(toList()).size();
+                entryPoints += new EntryPoint.Matcher().lower(cu).collect(toList()).size();
+                macros += new MacroDefinition.Matcher().lower(cu).collect(toList()).size();
             }
             System.out.printf("  %-40s %3d of %3d%n", repository.getFileName(), read, files.size());
         }
@@ -160,8 +155,8 @@ class AssemblerCorpusTest {
           members, sections, dummySections, fields, copies, macros, macroCalls, calls, dliCalls,
           dataControlBlocks, entryPoints);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(failure -> System.out.println("  " + failure));
+			IO.println("failures:");
+            failures.forEach(failure -> IO.println("  " + failure));
         }
 
         assertThat(failures).isEmpty();
@@ -202,11 +197,11 @@ class AssemblerCorpusTest {
         Map<String, Integer> invoked = new TreeMap<>();
         List<String> statements = new ArrayList<>();
         for (Map.Entry<String, Assembler.CompilationUnit> program : programs().entrySet()) {
-            for (Copy copy : new Copy.Matcher().lower(program.getValue()).collect(Collectors.toList())) {
+            for (Copy copy : new Copy.Matcher().lower(program.getValue()).collect(toList())) {
                 copied.merge(copy.getMember(), 1, Integer::sum);
                 statements.add(program.getKey() + " COPY " + copy.getMember());
             }
-            for (MacroCall macro : new MacroCall.Matcher().lower(program.getValue()).collect(Collectors.toList())) {
+            for (MacroCall macro : new MacroCall.Matcher().lower(program.getValue()).collect(toList())) {
                 if (macro.isDefinedBy(library)) {
                     invoked.merge(macro.getName(), 1, Integer::sum);
                 }
@@ -233,7 +228,7 @@ class AssemblerCorpusTest {
     void readsEveryCallTheFixtureWritesInAssembler() throws IOException {
         List<String> calls = new ArrayList<>();
         for (Map.Entry<String, Assembler.CompilationUnit> program : programs().entrySet()) {
-            for (Call call : new Call.Matcher().lower(program.getValue()).collect(Collectors.toList())) {
+            for (Call call : new Call.Matcher().lower(program.getValue()).collect(toList())) {
                 calls.add(program.getKey() + " " + call.getKind() + " " + call.getTarget());
             }
         }
@@ -323,7 +318,7 @@ class AssemblerCorpusTest {
         Assembler.CompilationUnit purge = programs().get("CLMA010");
         assertThat(purge).isNotNull();
 
-        assertThat(new DliCall.Matcher().lower(purge).collect(Collectors.toList()))
+        assertThat(new DliCall.Matcher().lower(purge).collect(toList()))
           .extracting(DliCall::getIface, DliCall::getFunction, DliCall::getPcbRegister,
             DliCall::getIoArea, DliCall::getSegments, DliCall::getLine)
           .containsExactly(
@@ -332,7 +327,7 @@ class AssemblerCorpusTest {
             // cascade. That the segment is CLMROOT is the reader of the pair's answer, not this one's.
             tuple("ASMTDLI", "DLET", "R11", "A10ROOT", List.of(), 58));
 
-        assertThat(new DataControlBlock.Matcher().lower(purge).collect(Collectors.toList()))
+        assertThat(new DataControlBlock.Matcher().lower(purge).collect(toList()))
           .extracting(DataControlBlock::getName, DataControlBlock::getDdName,
             DataControlBlock::getRecordLength)
           .containsExactly(
@@ -343,7 +338,7 @@ class AssemblerCorpusTest {
         for (Map.Entry<String, Assembler.CompilationUnit> program : programs().entrySet()) {
             if (!"CLMA010".equals(program.getKey())) {
                 assertThat(new DataControlBlock.Matcher().lower(program.getValue())
-                  .collect(Collectors.toList())).as("%s", program.getKey()).isEmpty();
+                  .collect(toList())).as("%s", program.getKey()).isEmpty();
             }
         }
     }
@@ -387,7 +382,7 @@ class AssemblerCorpusTest {
     private static Assembler.CompilationUnit parse(Path directory, Path member) {
         List<SourceFile> parsed = AssemblerParser.builder().build()
           .parseInputs(Corpus.inputs(singletonList(member)), directory, new InMemoryExecutionContext())
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).singleElement().isInstanceOf(Assembler.CompilationUnit.class);
         return (Assembler.CompilationUnit) parsed.getFirst();
     }
@@ -474,6 +469,6 @@ class AssemblerCorpusTest {
         return cu.getStatements().stream()
           .filter(Assembler.Instruction.class::isInstance)
           .map(Assembler.Instruction.class::cast)
-          .collect(Collectors.toList());
+          .collect(toList());
     }
 }

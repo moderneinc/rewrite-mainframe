@@ -32,19 +32,7 @@ import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 import org.openrewrite.trait.VisitFunction2;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;

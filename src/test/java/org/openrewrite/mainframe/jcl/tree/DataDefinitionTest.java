@@ -25,6 +25,24 @@ import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jcl;
 
 class DataDefinitionTest implements RewriteTest {
 
+	/// A data line is data in every column, so a line past column 72 keeps its text and prints back.
+    @Test
+    void dataPastColumn72() {
+        rewriteRun(
+          jcl(
+            """
+              //SYSTSIN  DD *
+              OMVS CMD='chmod -R 755 /usr/lpp/zowe/components/api-mediation/bin/scripts/internal/'
+              /*
+              """,
+            // A data line is one node per word.
+            spec -> spec.afterRecipe(cu -> assertThat(cu.getStatements()).extracting(s -> s.getClass().getSimpleName())
+              .containsExactly("JobControlStatement", "DataDefinitionStream", "DataDefinitionStream",
+                "DataDefinitionStream", "Delimiter"))
+          )
+        );
+    }
+
     @ParameterizedTest
     @ValueSource(
       strings = {
@@ -157,30 +175,8 @@ class DataDefinitionTest implements RewriteTest {
         );
     }
 
-    /**
-     * A data line is data in every column, so a line past column 72 keeps its text and prints back.
-     */
-    @Test
-    void dataPastColumn72() {
-        rewriteRun(
-          jcl(
-            """
-              //SYSTSIN  DD *
-              OMVS CMD='chmod -R 755 /usr/lpp/zowe/components/api-mediation/bin/scripts/internal/'
-              /*
-              """,
-            // A data line is one node per word.
-            spec -> spec.afterRecipe(cu -> assertThat(cu.getStatements()).extracting(s -> s.getClass().getSimpleName())
-              .containsExactly("JobControlStatement", "DataDefinitionStream", "DataDefinitionStream",
-                "DataDefinitionStream", "Delimiter"))
-          )
-        );
-    }
-
-    /**
-     * With DLM in force only the delimiter ends the data; a comment line beginning with a slash and
-     * a star inside RACF commands is data, not the end of it.
-     */
+    /// With DLM in force only the delimiter ends the data; a comment line beginning with a slash and
+    /// a star inside RACF commands is data, not the end of it.
     @Test
     void dlmKeepsDelimiterLookalikesAsData() {
         rewriteRun(
@@ -196,7 +192,7 @@ class DataDefinitionTest implements RewriteTest {
                 assertThat(cu.getStatements()).extracting(s -> s.getClass().getSimpleName())
                   .containsSubsequence("JobControlStatement", "DataDefinitionStream", "Delimiter", "JobControlStatement")
                   .doesNotContain("Jes2", "Unknown");
-                assertThat(cu.getStatements()).filteredOn(s -> s instanceof Jcl.DataDefinitionStream)
+                assertThat(cu.getStatements()).filteredOn(Jcl.DataDefinitionStream.class::isInstance)
                   .extracting(s -> ((Jcl.DataDefinitionStream) s).getWord().getText())
                   .containsExactly("/*", "Define", "the", "keyring", "*/", "RACDCERT", "ADDRING(ZOWERING)", "ID(ZWESVUSR)");
             })
@@ -204,9 +200,7 @@ class DataDefinitionTest implements RewriteTest {
         );
     }
 
-    /**
-     * A literal too long for one card carries on at column 16 of the next, and may carry on again.
-     */
+    /// A literal too long for one card carries on at column 16 of the next, and may carry on again.
     @Test
     void aLiteralOverThreeCards() {
         rewriteRun(

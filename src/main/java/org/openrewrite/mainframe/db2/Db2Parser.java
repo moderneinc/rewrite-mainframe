@@ -25,13 +25,13 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.internal.EncodingDetectingInputStream;
+import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.mainframe.db2.internal.Db2ParserVisitor;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Lexer;
 import org.openrewrite.mainframe.db2.internal.grammar.DB2Parser;
 import org.openrewrite.mainframe.db2.tree.Db2;
-import org.openrewrite.internal.EncodingDetectingInputStream;
-import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
@@ -75,7 +75,7 @@ public class Db2Parser implements Parser {
                                 is.isCharsetBomMarked(), sourceFile.getPath(), ctx);
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
-                        return requirePrintEqualsInput((SourceFile) cu, sourceFile, relativeTo, ctx);
+                        return requirePrintEqualsInput(cu, sourceFile, relativeTo, ctx);
                     } catch (Throwable t) {
                         sample.stop(MetricsHelper.errorTags(timer, t).register(Metrics.globalRegistry));
                         return ParseError.build(this, sourceFile, relativeTo, pctx, t);

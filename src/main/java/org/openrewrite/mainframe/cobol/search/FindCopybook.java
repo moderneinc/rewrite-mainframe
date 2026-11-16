@@ -23,10 +23,10 @@ import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.cobol.table.CopybookSource;
 import org.openrewrite.mainframe.cobol.trait.CopybookReference;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
-import org.openrewrite.internal.StringUtils;
 
 import java.nio.file.Path;
 

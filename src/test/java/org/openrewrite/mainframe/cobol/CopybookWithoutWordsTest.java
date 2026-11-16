@@ -19,15 +19,13 @@ import org.junit.jupiter.api.Test;
 
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 
-/**
- * A copybook of nothing but a DB2 table declaration contributes no COBOL words: preprocessing elides the EXEC block,
- * and comment lines are not words either. Everything that follows the copy still belongs to the including program.
- * <p>
- * The copied-word bookkeeping used to assume a copybook always yields at least one word — it opened on the word that
- * carried the copybook rather than on the copy template itself, so a copybook with no words opened after its own stop
- * comment closed, and every word in the rest of the program was taken for copied source and printed as nothing. Over
- * the corpus that lost about 80% of the text of 15 programs.
- */
+/// A copybook of nothing but a DB2 table declaration contributes no COBOL words: preprocessing elides the EXEC block,
+/// and comment lines are not words either. Everything that follows the copy still belongs to the including program.
+///
+/// The copied-word bookkeeping used to assume a copybook always yields at least one word — it opened on the word that
+/// carried the copybook rather than on the copy template itself, so a copybook with no words opened after its own stop
+/// comment closed, and every word in the rest of the program was taken for copied source and printed as nothing. Over
+/// the corpus that lost about 80% of the text of 15 programs.
 class CopybookWithoutWordsTest extends CobolTest {
 
     @Test
@@ -68,10 +66,8 @@ class CopybookWithoutWordsTest extends CobolTest {
         );
     }
 
-    /**
-     * The comment belongs to the program, and the copy statement it precedes prints it. Keeping it on the word that
-     * carries the copybook as well printed it twice.
-     */
+    /// The comment belongs to the program, and the copy statement it precedes prints it. Keeping it on the word that
+    /// carries the copybook as well printed it twice.
     @Test
     void commentBeforeADeclarationOnlyCopy() {
         rewriteRun(
@@ -92,9 +88,7 @@ class CopybookWithoutWordsTest extends CobolTest {
         );
     }
 
-    /**
-     * The genapp programs write the include over three lines rather than one.
-     */
+    /// The genapp programs write the include over three lines rather than one.
     @Test
     void includeSplitOverLines() {
         rewriteRun(
@@ -161,10 +155,8 @@ class CopybookWithoutWordsTest extends CobolTest {
         );
     }
 
-    /**
-     * A copybook that does contribute words takes the other path, where the word carrying the copybook is the first
-     * copied one and the copybook has already printed it.
-     */
+    /// A copybook that does contribute words takes the other path, where the word carrying the copybook is the first
+    /// copied one and the copybook has already printed it.
     @Test
     void copybookThatContributesWords() {
         rewriteRun(

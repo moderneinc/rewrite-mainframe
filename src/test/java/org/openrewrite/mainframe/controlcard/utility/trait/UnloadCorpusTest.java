@@ -33,13 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -75,7 +69,7 @@ class UnloadCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("Db2 utility decks read, by application:");
+		IO.println("Db2 utility decks read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> decks = Corpus.utilityCards(repository);
             if (decks.isEmpty()) {
@@ -141,8 +135,8 @@ class UnloadCorpusTest {
                           "%d output DD names); %d decks written in-stream, %d statements%n",
                 members, statements, unloads, selects, outputs, inStream, inStreamStatements);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(f -> System.out.println("  " + f));
+			IO.println("failures:");
+            failures.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(failures).isEmpty();
@@ -188,7 +182,7 @@ class UnloadCorpusTest {
             read.addAll(new UtilityStatement.Matcher().lower(deck).collect(toList()));
             unloads.addAll(new UnloadCommand.Matcher().lower(deck).collect(toList()));
         }
-        TreeMap<String, Integer> verbs = new TreeMap<>();
+        Map<String, Integer> verbs = new TreeMap<>();
         read.forEach(statement -> verbs.merge(statement.getVerb(), 1, Integer::sum));
         assertThat(verbs).containsExactly(
                 entry("GLOBAL", 3),

@@ -20,7 +20,6 @@ import org.openrewrite.mainframe.db2.bind.trait.BindCommand;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.Assertions.jcl;
@@ -44,13 +43,13 @@ class InStreamBindDeckTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamBindDeck> decks = InStreamBindDeck.of(cu);
+                var decks = InStreamBindDeck.of(cu);
                 assertThat(decks).hasSize(1);
                 assertThat(decks.getFirst().getDdName()).isEqualTo("SYSTSIN");
                 assertThat(decks.getFirst().getLine()).isEqualTo(5);
 
                 List<BindCommand> commands = new BindCommand.Matcher()
-                  .lower(decks.getFirst().getDeck()).collect(Collectors.toList());
+                  .lower(decks.getFirst().getDeck()).toList();
                 assertThat(commands).hasSize(1);
                 assertThat(commands.getFirst().getCollection()).isEqualTo("STOCKTRD");
                 assertThat(commands.getFirst().getMembers()).containsExactly("ACCT01");
@@ -75,7 +74,7 @@ class InStreamBindDeckTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamBindDeck> decks = InStreamBindDeck.of(cu);
+                var decks = InStreamBindDeck.of(cu);
                 assertThat(decks).hasSize(1);
                 assertThat(decks.getFirst().getDdName()).isEqualTo("SYSTSIN");
 
@@ -127,7 +126,7 @@ class InStreamBindDeckTest implements RewriteTest {
               /*
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<InStreamBindDeck> decks = InStreamBindDeck.of(cu);
+                var decks = InStreamBindDeck.of(cu);
                 assertThat(decks).hasSize(2);
                 assertThat(decks.getFirst().getLine()).isEqualTo(4);
                 assertThat(decks.get(1).getLine()).isEqualTo(10);

@@ -19,18 +19,15 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.bms.Assertions.bms;
 
-/**
- * The shape of the tree, as against whether it prints back.
- * <p>
- * A flat run of words round-trips perfectly while telling you nothing, so these check that the words
- * are grouped into the macro statements they belong to and that the parts of a statement are what
- * they claim to be.
- */
+/// The shape of the tree, as against whether it prints back.
+///
+/// A flat run of words round-trips perfectly while telling you nothing, so these check that the words
+/// are grouped into the macro statements they belong to and that the parts of a statement are what
+/// they claim to be.
 class MacroStatementTest implements RewriteTest {
 
     @Test
@@ -45,7 +42,7 @@ class MacroStatementTest implements RewriteTest {
                       END
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Bms.MacroStatement> statements = statementsIn(cu);
+                var statements = statementsIn(cu);
                 assertThat(statements).hasSize(5);
                 assertThat(statements).extracting(Bms.MacroStatement::getSimpleName)
                   .containsExactly("COSGN00", "COSGN0A", "TRNNAME", "", "");
@@ -64,10 +61,8 @@ class MacroStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * The name field begins in column 1, so a statement without one is told apart by where its
-     * operation starts and by nothing else.
-     */
+    /// The name field begins in column 1, so a statement without one is told apart by where its
+    /// operation starts and by nothing else.
     @Test
     void aStatementWithNoNameField() {
         rewriteRun(
@@ -87,10 +82,8 @@ class MacroStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A statement written over several lines is still one statement. Nothing in the text of a
-     * continuation line says so — it is a continuation because of column 72 of the line above it.
-     */
+    /// A statement written over several lines is still one statement. Nothing in the text of a
+    /// continuation line says so — it is a continuation because of column 72 of the line above it.
     @Test
     void continuationGathersOneStatement() {
         rewriteRun(
@@ -102,7 +95,7 @@ class MacroStatementTest implements RewriteTest {
                              TYPE=&&SYSPARM
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<Bms.MacroStatement> statements = statementsIn(cu);
+                var statements = statementsIn(cu);
                 assertThat(statements).hasSize(1);
                 Bms.MacroStatement mapset = statements.getFirst();
                 assertThat(mapset.getSimpleName()).isEqualTo("COSGN00");
@@ -115,9 +108,7 @@ class MacroStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * Any character in column 72 continues the statement; the corpus writes all three of these.
-     */
+    /// Any character in column 72 continues the statement; the corpus writes all three of these.
     @Test
     void anyContinuationCharacter() {
         rewriteRun(
@@ -133,9 +124,7 @@ class MacroStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A comment line is a statement of its own, and does not swallow the macro that follows it.
-     */
+    /// A comment line is a statement of its own, and does not swallow the macro that follows it.
     @Test
     void commentLines() {
         rewriteRun(
@@ -148,7 +137,7 @@ class MacroStatementTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(4);
-                assertThat(cu.getStatements().subList(0, 3)).allMatch(s -> s instanceof Bms.Comment);
+                assertThat(cu.getStatements().subList(0, 3)).allMatch(Bms.Comment.class::isInstance);
                 assertThat(statementsIn(cu)).hasSize(1);
             })
           )
@@ -177,6 +166,6 @@ class MacroStatementTest implements RewriteTest {
         return cu.getStatements().stream()
           .filter(Bms.MacroStatement.class::isInstance)
           .map(Bms.MacroStatement.class::cast)
-          .collect(Collectors.toList());
+          .toList();
     }
 }

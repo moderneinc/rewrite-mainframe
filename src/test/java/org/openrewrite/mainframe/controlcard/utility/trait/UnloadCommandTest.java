@@ -21,11 +21,41 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlcard.utility.Assertions.utilityCard;
 
 class UnloadCommandTest implements RewriteTest {
+
+	/// One pass over the table space fanning out to three files. Each SELECT carries its own output
+	/// DD and its own layout, which is what the base utility has no answer to.
+    @Test
+    void severalSelectsFanOutToSeveralFiles() {
+        rewriteRun(
+          utilityCard(
+            """
+                UNLOAD TABLESPACE CLMDB01.CLMTSHST
+                       DB2 NO
+                  SELECT CLAIM_NO FROM CLM.CLAIM_HIST WHERE STATUS_CODE = 'O'
+                  OUTDDN (OPENCLM)
+                  FORMAT DSNTIAUL
+                  SELECT CLAIM_NO FROM CLM.CLAIM_HIST WHERE STATUS_CODE = 'C'
+                  OUTDDN (CLOSCLM)
+                  FORMAT DSNTIAUL
+                  LOADDDN HSTCARD
+                  SELECT CLAIM_NO FROM CLM.CLAIM_HIST WHERE STATUS_CODE = 'D'
+                  OUTDDN (DENYCLM)
+                  FORMAT DELIMITED SEP ','
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                UnloadCommand unload = new UnloadCommand.Matcher().lower(cu).findFirst().orElseThrow();
+                assertThat(unload.getSelects()).hasSize(3);
+                assertThat(unload.getOutputDdNames()).containsExactly("OPENCLM", "CLOSCLM", "DENYCLM");
+                assertThat(unload.getLoadDdNames()).containsExactly("HSTCARD");
+                assertThat(unload.getFormats()).containsExactly("DSNTIAUL", "DSNTIAUL", "DELIMITED");
+            })
+          )
+        );
+    }
 
     @Test
     void whatAnUnloadReadsAndWhereItPutsIt() {
@@ -56,40 +86,7 @@ class UnloadCommandTest implements RewriteTest {
                 assertThat(unload.getFormats()).containsExactly("VARIABLE ALL");
                 assertThat(unload.getDb2()).isEqualTo("NO");
                 assertThat(unload.getLine()).isEqualTo(4);
-                assertThat(unload.toString()).isEqualTo("UNLOAD CLMDB01.CLMTSHST");
-            })
-          )
-        );
-    }
-
-    /**
-     * One pass over the table space fanning out to three files. Each SELECT carries its own output
-     * DD and its own layout, which is what the base utility has no answer to.
-     */
-    @Test
-    void severalSelectsFanOutToSeveralFiles() {
-        rewriteRun(
-          utilityCard(
-            """
-                UNLOAD TABLESPACE CLMDB01.CLMTSHST
-                       DB2 NO
-                  SELECT CLAIM_NO FROM CLM.CLAIM_HIST WHERE STATUS_CODE = 'O'
-                  OUTDDN (OPENCLM)
-                  FORMAT DSNTIAUL
-                  SELECT CLAIM_NO FROM CLM.CLAIM_HIST WHERE STATUS_CODE = 'C'
-                  OUTDDN (CLOSCLM)
-                  FORMAT DSNTIAUL
-                  LOADDDN HSTCARD
-                  SELECT CLAIM_NO FROM CLM.CLAIM_HIST WHERE STATUS_CODE = 'D'
-                  OUTDDN (DENYCLM)
-                  FORMAT DELIMITED SEP ','
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                UnloadCommand unload = new UnloadCommand.Matcher().lower(cu).findFirst().orElseThrow();
-                assertThat(unload.getSelects()).hasSize(3);
-                assertThat(unload.getOutputDdNames()).containsExactly("OPENCLM", "CLOSCLM", "DENYCLM");
-                assertThat(unload.getLoadDdNames()).containsExactly("HSTCARD");
-                assertThat(unload.getFormats()).containsExactly("DSNTIAUL", "DSNTIAUL", "DELIMITED");
+				assertThat(unload).hasToString("UNLOAD CLMDB01.CLMTSHST");
             })
           )
         );
@@ -122,10 +119,8 @@ class UnloadCommandTest implements RewriteTest {
         );
     }
 
-    /**
-     * A keyword a deck leaves out is not a default a reader may assume: it is whatever the parmlib
-     * member on INFPLIB says today, and that member is in no application library.
-     */
+    /// A keyword a deck leaves out is not a default a reader may assume: it is whatever the parmlib
+    /// member on INFPLIB says today, and that member is in no application library.
     @Test
     void whatIsCodedAndWhatComesFromTheSite() {
         rewriteRun(
@@ -179,7 +174,7 @@ class UnloadCommandTest implements RewriteTest {
                   FORMAT DSNTIAUL
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<UnloadCommand> unloads = new UnloadCommand.Matcher().lower(cu).collect(toList());
+                List<UnloadCommand> unloads = new UnloadCommand.Matcher().lower(cu).toList();
                 // A GLOBAL governs what follows it, so the unload written above it takes DB2 from the
                 // site and the one below it does not.
                 assertThat(unloads.getFirst().isCoded("DB2")).isFalse();
@@ -191,10 +186,8 @@ class UnloadCommandTest implements RewriteTest {
         );
     }
 
-    /**
-     * An image copy is neither locked nor quiesced, so a deck that reads one codes neither keyword
-     * and the rows come from a DD rather than from the table space.
-     */
+    /// An image copy is neither locked nor quiesced, so a deck that reads one codes neither keyword
+    /// and the rows come from a DD rather than from the table space.
     @Test
     void unloadFromAnImageCopy() {
         rewriteRun(
@@ -221,11 +214,9 @@ class UnloadCommandTest implements RewriteTest {
         );
     }
 
-    /**
-     * The same deck asking for the rows through Db2 instead. COPYDDN_STRICT in the site parmlib
-     * decides whether that is rejected or the copy is dropped and the live table unloaded, so which
-     * data set is read is a site setting, and a live table is locked and quiesced by one too.
-     */
+    /// The same deck asking for the rows through Db2 instead. COPYDDN_STRICT in the site parmlib
+    /// decides whether that is rejected or the copy is dropped and the live table unloaded, so which
+    /// data set is read is a site setting, and a live table is locked and quiesced by one too.
     @Test
     void unloadOfAnImageCopyAskedForThroughDb2() {
         rewriteRun(
@@ -249,9 +240,7 @@ class UnloadCommandTest implements RewriteTest {
         );
     }
 
-    /**
-     * A SELECT is part of the unload that holds it, so only the statements of the deck are matched.
-     */
+    /// A SELECT is part of the unload that holds it, so only the statements of the deck are matched.
     @Test
     void everyStatementOfADeck() {
         rewriteRun(
@@ -264,7 +253,7 @@ class UnloadCommandTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<String> statements = new UtilityStatement.Matcher().lower(cu)
-                  .map(UtilityStatement::toString).collect(toList());
+                  .map(UtilityStatement::toString).toList();
                 assertThat(statements).containsExactly(
                   "TEMPLATE HSTCARD", "GLOBAL", "UNLOAD CLMDB01.CLMTSHST");
             })
@@ -282,7 +271,7 @@ class UnloadCommandTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 List<UtilityStatement> statements = new UtilityStatement.Matcher().lower(cu)
-                  .collect(toList());
+                  .toList();
                 assertThat(statements).hasSize(2);
                 assertThat(statements.getFirst().getVerb()).isEqualTo("RUNSTATS");
                 assertThat(statements.getFirst().getObject()).isEqualTo("CLMDB01.CLMTSPOL");

@@ -50,10 +50,8 @@ class LinkEditDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * A DL/I program's entry is the {@code DLITCBL} label it declares, not the program's own name, so
-     * the entry and the module are two different answers and both are worth having.
-     */
+    /// A DL/I program's entry is the `DLITCBL` label it declares, not the program's own name, so
+    /// the entry and the module are two different answers and both are worth having.
     @Test
     void entryThatIsALabelRatherThanTheProgram() {
         rewriteRun(
@@ -91,11 +89,9 @@ class LinkEditDeckTest implements RewriteTest {
         );
     }
 
-    /**
-     * What a deck leaves out is as much of an answer as what it names: the reserve calculation is
-     * included here and so is bound in, while the one the program calls through a data name is a load
-     * module of its own and appears in no {@code INCLUDE} at all.
-     */
+    /// What a deck leaves out is as much of an answer as what it names: the reserve calculation is
+    /// included here and so is bound in, while the one the program calls through a data name is a load
+    /// module of its own and appears in no `INCLUDE` at all.
     @Test
     void aModuleThatBindsSomeOfWhatItCalls() {
         rewriteRun(

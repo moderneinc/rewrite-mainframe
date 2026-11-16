@@ -32,14 +32,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -70,7 +67,7 @@ class BindCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("bind decks read, by application:");
+		IO.println("bind decks read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> files = Corpus.bindDecks(repository);
             if (files.isEmpty()) {
@@ -91,7 +88,7 @@ class BindCorpusTest {
                     continue;
                 }
 
-                List<BindCommand> read = new BindCommand.Matcher().lower(cu).collect(Collectors.toList());
+                List<BindCommand> read = new BindCommand.Matcher().lower(cu).collect(toList());
                 int count = countCommands(source);
                 written += count;
                 if (read.size() != count) {
@@ -125,7 +122,7 @@ class BindCorpusTest {
                 int read = 0;
                 for (InStreamBindDeck deck : InStreamBindDeck.of(cu)) {
                     inStream++;
-                    read += new BindCommand.Matcher().lower(deck.getDeck()).collect(Collectors.toList()).size();
+                    read += new BindCommand.Matcher().lower(deck.getDeck()).collect(toList()).size();
                 }
                 // Counted off the job rather than off its SYSTSINs: a bind the deck finding missed
                 // is still a BIND card in the file, and this is what says so.
@@ -142,8 +139,8 @@ class BindCorpusTest {
                         "%d decks written in-stream, %d binds%n",
                 decks, commands, packages, plans, members, inStream, inStreamCommands);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(f -> System.out.println("  " + f));
+			IO.println("failures:");
+            failures.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(failures).isEmpty();
@@ -171,7 +168,7 @@ class BindCorpusTest {
         for (Path member : Corpus.bindDecks(cardlib)) {
             Bind.CompilationUnit cu = parse(member, new String(Files.readAllBytes(member)));
             assertThat(cu).as("%s", member).isNotNull();
-            for (BindCommand command : new BindCommand.Matcher().lower(cu).collect(Collectors.toList())) {
+            for (BindCommand command : new BindCommand.Matcher().lower(cu).collect(toList())) {
                 (command.getKind() == BindCommand.Kind.REBIND ? rebinds : binds).add(command);
             }
         }
@@ -193,9 +190,9 @@ class BindCorpusTest {
         }
     }
 
-    private static TreeSet<String> names(List<BindCommand> commands,
+    private static Set<String> names(List<BindCommand> commands,
                                          Function<BindCommand, List<String>> of) {
-        TreeSet<String> names = new TreeSet<>();
+        Set<String> names = new TreeSet<>();
         commands.forEach(command -> names.addAll(of.apply(command)));
         return names;
     }
@@ -222,7 +219,7 @@ class BindCorpusTest {
         List<SourceFile> parsed = BindParser.builder().build()
                 .parseInputs(singletonList(new Parser.Input(member, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
-                .collect(Collectors.toList());
+                .collect(toList());
         return parsed.size() == 1 && parsed.getFirst() instanceof Bind.CompilationUnit ?
                 (Bind.CompilationUnit) parsed.getFirst() : null;
     }
@@ -231,7 +228,7 @@ class BindCorpusTest {
         List<SourceFile> parsed = JclParser.builder().build()
                 .parseInputs(singletonList(new Parser.Input(job, () -> new ByteArrayInputStream(source.getBytes()))),
                         null, new InMemoryExecutionContext())
-                .collect(Collectors.toList());
+                .collect(toList());
         return parsed.size() == 1 && parsed.getFirst() instanceof Jcl.CompilationUnit ?
                 (Jcl.CompilationUnit) parsed.getFirst() : null;
     }

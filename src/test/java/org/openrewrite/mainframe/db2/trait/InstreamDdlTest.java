@@ -22,13 +22,10 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 
-/**
- * Reading the DDL a job runs, which is where most of an estate's tables are really created.
- */
+/// Reading the DDL a job runs, which is where most of an estate's tables are really created.
 class InstreamDdlTest implements RewriteTest {
 
     @Test
@@ -57,7 +54,7 @@ class InstreamDdlTest implements RewriteTest {
               //
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<InstreamDdl> streams = new InstreamDdl.Matcher().lower(cu).collect(toList());
+                List<InstreamDdl> streams = new InstreamDdl.Matcher().lower(cu).toList();
 
                 // SYSTSIN carries the DSN and RUN commands that submit the DDL, not DDL itself.
                 assertThat(streams).hasSize(1);
@@ -67,7 +64,7 @@ class InstreamDdlTest implements RewriteTest {
                     throw new IllegalStateException(t);
                 }));
 
-                List<Table> tables = new Table.Matcher().lower(ddl).collect(toList());
+                List<Table> tables = new Table.Matcher().lower(ddl).toList();
                 assertThat(tables).hasSize(1);
                 assertThat(tables.getFirst().getQualifiedName()).isEqualTo("GENASA1.CUSTOMER");
                 assertThat(tables.getFirst().getTablespace()).isEqualTo("GENASA1.GENATS01");
@@ -75,7 +72,7 @@ class InstreamDdlTest implements RewriteTest {
                   .containsExactly("customerNumber", "firstName");
                 assertThat(tables.getFirst().getPrimaryKey()).containsExactly("customerNumber");
 
-                List<Index> indexes = new Index.Matcher().lower(ddl).collect(toList());
+                List<Index> indexes = new Index.Matcher().lower(ddl).toList();
                 assertThat(indexes).hasSize(1);
                 assertThat(indexes.getFirst().getTable()).isEqualTo("GENASA1.CUSTOMER");
                 assertThat(indexes.getFirst().isUnique()).isTrue();
@@ -88,10 +85,8 @@ class InstreamDdlTest implements RewriteTest {
         );
     }
 
-    /**
-     * A SYSIN stream is far more often IDCAMS or sort cards than DDL. Reading every one of them as
-     * DB2 would report nothing but cost the whole estate a parse.
-     */
+    /// A SYSIN stream is far more often IDCAMS or sort cards than DDL. Reading every one of them as
+    /// DB2 would report nothing but cost the whole estate a parse.
     @Test
     void aStreamThatIsNotDdlIsNotRead() {
         rewriteRun(
@@ -108,7 +103,7 @@ class InstreamDdlTest implements RewriteTest {
               //
               """,
             spec -> spec.afterRecipe(cu ->
-              assertThat(new InstreamDdl.Matcher().lower(cu).collect(toList())).isEmpty())
+              assertThat(new InstreamDdl.Matcher().lower(cu).toList()).isEmpty())
           )
         );
     }

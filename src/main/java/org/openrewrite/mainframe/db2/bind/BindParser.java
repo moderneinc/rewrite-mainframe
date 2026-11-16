@@ -26,13 +26,13 @@ import org.openrewrite.FileAttributes;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.internal.EncodingDetectingInputStream;
+import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.mainframe.db2.bind.internal.BindParserVisitor;
 import org.openrewrite.mainframe.db2.bind.internal.grammar.BindLexer;
 import org.openrewrite.mainframe.db2.bind.tree.Bind;
-import org.openrewrite.internal.EncodingDetectingInputStream;
-import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
@@ -80,7 +80,7 @@ public class BindParser implements Parser {
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
-                        return requirePrintEqualsInput((SourceFile) cu, sourceFile, relativeTo, ctx);
+                        return requirePrintEqualsInput(cu, sourceFile, relativeTo, ctx);
                     } catch (Throwable t) {
                         sample.stop(MetricsHelper.errorTags(timer, t).register(Metrics.globalRegistry));
                         return ParseError.build(this, sourceFile, relativeTo, pctx, t);

@@ -17,14 +17,10 @@ package org.openrewrite.mainframe.internal;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.Collections.singletonList;
 import static java.util.Collections.synchronizedMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,6 +38,6 @@ class StringRangeTest {
             assertThat(StringRange.get(map, source, 7, 10)).isNull();
             assertThat(StringRange.get(map, source, 3, 5)).isNull();
         }
-        assertThat(StringRange.contains(new HashSet<>(Collections.singletonList(key)), source, 4, 6)).isTrue();
+        assertThat(StringRange.contains(new HashSet<>(singletonList(key)), source, 4, 6)).isTrue();
     }
 }

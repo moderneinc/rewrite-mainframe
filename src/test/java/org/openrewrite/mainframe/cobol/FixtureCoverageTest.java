@@ -37,11 +37,7 @@ import org.openrewrite.tree.ParseError;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
@@ -114,12 +110,12 @@ class FixtureCoverageTest {
             }
         }
 
-        System.out.println("fixture members read, by reader:");
+		IO.println("fixture members read, by reader:");
         read.forEach((reader, count) -> System.out.printf("  %-24s %3d%n", reader, count));
-        System.out.println("no reader:");
+		IO.println("no reader:");
         unread.forEach((extension, count) -> System.out.printf("  %-24s %3d%n", extension, count));
-        claimedTwice.forEach(member -> System.out.println("  claimed twice: " + member));
-        failures.forEach(failure -> System.out.println("  " + failure));
+        claimedTwice.forEach(member -> IO.println("  claimed twice: " + member));
+        failures.forEach(failure -> IO.println("  " + failure));
 
         assertThat(claimedTwice).isEmpty();
         assertThat(failures).isEmpty();

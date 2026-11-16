@@ -15,10 +15,9 @@
  */
 package org.openrewrite.mainframe.db2;
 
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.mainframe.db2.tree.*;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.mainframe.db2.tree.*;
 
 public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
 
@@ -38,8 +37,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withContents(visitAndCast(x.getContents(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateIndex(Db2.CreateIndex createIndex, P p) {
@@ -53,8 +51,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getKeys() != null) {
             x = x.withKeys(visitContainer(x.getKeys(), p));
         }
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateTablespace(Db2.CreateTablespace createTablespace, P p) {
@@ -69,8 +66,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getDatabase() != null) {
             x = x.withDatabase(visitAndCast(x.getDatabase(), p));
         }
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateDatabase(Db2.CreateDatabase createDatabase, P p) {
@@ -79,8 +75,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateStogroup(Db2.CreateStogroup createStogroup, P p) {
@@ -89,8 +84,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateView(Db2.CreateView createView, P p) {
@@ -103,8 +97,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
             x = x.withColumns(visitContainer(x.getColumns(), p));
         }
         x = x.withQuery(visitLeftPadded(x.getQuery(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateAlias(Db2.CreateAlias createAlias, P p) {
@@ -113,8 +106,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withTarget(visitLeftPadded(x.getTarget(), p));
-        return x;
+        return x.withTarget(visitLeftPadded(x.getTarget(), p));
     }
 
     public Db2 visitCreateSynonym(Db2.CreateSynonym createSynonym, P p) {
@@ -123,8 +115,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withTarget(visitLeftPadded(x.getTarget(), p));
-        return x;
+        return x.withTarget(visitLeftPadded(x.getTarget(), p));
     }
 
     public Db2 visitCreateSequence(Db2.CreateSequence createSequence, P p) {
@@ -136,8 +127,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getType() != null) {
             x = x.withType(visitLeftPadded(x.getType(), p));
         }
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateRole(Db2.CreateRole createRole, P p) {
@@ -145,8 +135,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.CREATE_ROLE_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
-        x = x.withName(visitAndCast(x.getName(), p));
-        return x;
+        return x.withName(visitAndCast(x.getName(), p));
     }
 
     public Db2 visitCreateAuxiliaryTable(Db2.CreateAuxiliaryTable createAuxiliaryTable, P p) {
@@ -155,8 +144,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateType(Db2.CreateType createType, P p) {
@@ -166,8 +154,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withType(visitLeftPadded(x.getType(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateVariable(Db2.CreateVariable createVariable, P p) {
@@ -177,8 +164,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withType(visitAndCast(x.getType(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateMask(Db2.CreateMask createMask, P p) {
@@ -188,8 +174,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withTable(visitAndCast(x.getTable(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreatePermission(Db2.CreatePermission createPermission, P p) {
@@ -199,8 +184,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withTable(visitAndCast(x.getTable(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateTrustedContext(Db2.CreateTrustedContext createTrustedContext, P p) {
@@ -209,8 +193,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitCreateTrigger(Db2.CreateTrigger createTrigger, P p) {
@@ -267,8 +250,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withContents(visitAndCast(x.getContents(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterTable(Db2.AlterTable alterTable, P p) {
@@ -277,8 +259,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withActions(ListUtils.map(x.getActions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withActions(ListUtils.map(x.getActions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterTablespace(Db2.AlterTablespace alterTablespace, P p) {
@@ -293,8 +274,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getDatabase() != null) {
             x = x.withDatabase(visitAndCast(x.getDatabase(), p));
         }
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterIndex(Db2.AlterIndex alterIndex, P p) {
@@ -303,8 +283,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterDatabase(Db2.AlterDatabase alterDatabase, P p) {
@@ -313,8 +292,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterStogroup(Db2.AlterStogroup alterStogroup, P p) {
@@ -323,8 +301,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterSequence(Db2.AlterSequence alterSequence, P p) {
@@ -333,8 +310,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterView(Db2.AlterView alterView, P p) {
@@ -343,8 +319,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterProcedure(Db2.AlterProcedure alterProcedure, P p) {
@@ -385,8 +360,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterMask(Db2.AlterMask alterMask, P p) {
@@ -395,8 +369,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterPermission(Db2.AlterPermission alterPermission, P p) {
@@ -405,8 +378,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitAlterTrustedContext(Db2.AlterTrustedContext alterTrustedContext, P p) {
@@ -415,8 +387,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitDrop(Db2.Drop drop, P p) {
@@ -425,8 +396,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitRename(Db2.Rename rename, P p) {
@@ -435,8 +405,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withNewName(visitLeftPadded(x.getNewName(), p));
-        return x;
+        return x.withNewName(visitLeftPadded(x.getNewName(), p));
     }
 
     public Db2 visitComment(Db2.Comment comment, P p) {
@@ -445,8 +414,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withTarget(visitAndCast(x.getTarget(), p));
-        x = x.withText(visitLeftPadded(x.getText(), p));
-        return x;
+        return x.withText(visitLeftPadded(x.getText(), p));
     }
 
     public Db2 visitLabel(Db2.Label label, P p) {
@@ -455,8 +423,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withTarget(visitAndCast(x.getTarget(), p));
-        x = x.withText(visitLeftPadded(x.getText(), p));
-        return x;
+        return x.withText(visitLeftPadded(x.getText(), p));
     }
 
     public Db2 visitGrant(Db2.Grant grant, P p) {
@@ -471,8 +438,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
             x = x.withTo(visitAndCast(x.getTo(), p));
         }
         x = x.withGrantees(visitContainer(x.getGrantees(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitRevoke(Db2.Revoke revoke, P p) {
@@ -487,8 +453,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
             x = x.withTo(visitAndCast(x.getTo(), p));
         }
         x = x.withGrantees(visitContainer(x.getGrantees(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitSet(Db2.Set set, P p) {
@@ -496,16 +461,14 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.SET_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
-        x = x.withValue(visitLeftPadded(x.getValue(), p));
-        return x;
+        return x.withValue(visitLeftPadded(x.getValue(), p));
     }
 
     public Db2 visitCommit(Db2.Commit commit, P p) {
         Db2.Commit x = commit;
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.COMMIT_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
-        x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitRollback(Db2.Rollback rollback, P p) {
@@ -525,8 +488,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withName(visitAndCast(x.getName(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitReleaseSavepoint(Db2.ReleaseSavepoint releaseSavepoint, P p) {
@@ -534,8 +496,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.RELEASE_SAVEPOINT_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
-        x = x.withName(visitAndCast(x.getName(), p));
-        return x;
+        return x.withName(visitAndCast(x.getName(), p));
     }
 
     public Db2 visitLockTable(Db2.LockTable lockTable, P p) {
@@ -543,8 +504,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.LOCK_TABLE_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
-        x = x.withName(visitAndCast(x.getName(), p));
-        return x;
+        return x.withName(visitAndCast(x.getName(), p));
     }
 
     public Db2 visitInsert(Db2.Insert insert, P p) {
@@ -556,8 +516,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getColumns() != null) {
             x = x.withColumns(visitContainer(x.getColumns(), p));
         }
-        x = x.withValues(visitContainer(x.getValues(), p));
-        return x;
+        return x.withValues(visitContainer(x.getValues(), p));
     }
 
     public Db2 visitUpdate(Db2.Update update, P p) {
@@ -566,8 +525,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withTable(visitAndCast(x.getTable(), p));
-        x = x.withClauses(visitAndCast(x.getClauses(), p));
-        return x;
+        return x.withClauses(visitAndCast(x.getClauses(), p));
     }
 
     public Db2 visitDelete(Db2.Delete delete, P p) {
@@ -585,16 +543,14 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
     public Db2 visitEmpty(Db2.Empty empty, P p) {
         Db2.Empty x = empty;
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.EMPTY_PREFIX, p));
-        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
-        return x;
+        return x.withMarkers(visitMarkers(x.getMarkers(), p));
     }
 
     public Db2 visitTableElements(Db2.TableElements tableElements, P p) {
         Db2.TableElements x = tableElements;
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.TABLE_ELEMENTS_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
-        x = x.withElements(visitContainer(x.getElements(), p));
-        return x;
+        return x.withElements(visitContainer(x.getElements(), p));
     }
 
     public Db2 visitTableLike(Db2.TableLike tableLike, P p) {
@@ -603,8 +559,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withTable(visitAndCast(x.getTable(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitTableAsQuery(Db2.TableAsQuery tableAsQuery, P p) {
@@ -613,8 +568,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
         x = x.withQuery(visitContainer(x.getQuery(), p));
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitColumnDefinition(Db2.ColumnDefinition columnDefinition, P p) {
@@ -623,8 +577,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withName(visitAndCast(x.getName(), p));
         x = x.withType(visitAndCast(x.getType(), p));
-        x = x.withAttributes(ListUtils.map(x.getAttributes(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withAttributes(ListUtils.map(x.getAttributes(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitConstraint(Db2.Constraint constraint, P p) {
@@ -653,8 +606,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getReferencedColumns() != null) {
             x = x.withReferencedColumns(visitContainer(x.getReferencedColumns(), p));
         }
-        x = x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withOptions(ListUtils.map(x.getOptions(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitDataType(Db2.DataType dataType, P p) {
@@ -665,8 +617,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getArguments() != null) {
             x = x.withArguments(visitContainer(x.getArguments(), p));
         }
-        x = x.withAttributes(ListUtils.map(x.getAttributes(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withAttributes(ListUtils.map(x.getAttributes(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitIndexKey(Db2.IndexKey indexKey, P p) {
@@ -685,8 +636,7 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.OPTION_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
         x = x.withKeywords(ListUtils.map(x.getKeywords(), e -> visitAndCast(e, p)));
-        x = x.withValues(ListUtils.map(x.getValues(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withValues(ListUtils.map(x.getValues(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitParameter(Db2.Parameter parameter, P p) {
@@ -699,16 +649,14 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         if (x.getName() != null) {
             x = x.withName(visitAndCast(x.getName(), p));
         }
-        x = x.withType(visitAndCast(x.getType(), p));
-        return x;
+        return x.withType(visitAndCast(x.getType(), p));
     }
 
     public Db2 visitQuery(Db2.Query query, P p) {
         Db2.Query x = query;
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.QUERY_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
-        x = x.withParts(ListUtils.map(x.getParts(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withParts(ListUtils.map(x.getParts(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitBlock(Db2.Block block, P p) {
@@ -730,15 +678,13 @@ public class Db2Visitor<P> extends TreeVisitor<Db2, P> {
         Db2.Name x = name;
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.NAME_PREFIX, p));
         x = x.withMarkers(visitMarkers(x.getMarkers(), p));
-        x = x.withParts(ListUtils.map(x.getParts(), e -> visitAndCast(e, p)));
-        return x;
+        return x.withParts(ListUtils.map(x.getParts(), e -> visitAndCast(e, p)));
     }
 
     public Db2 visitKeyword(Db2.Keyword keyword, P p) {
         Db2.Keyword x = keyword;
         x = x.withPrefix(visitSpace(x.getPrefix(), Space.Location.KEYWORD_PREFIX, p));
-        x = x.withMarkers(visitMarkers(x.getMarkers(), p));
-        return x;
+        return x.withMarkers(visitMarkers(x.getMarkers(), p));
     }
 
     public Db2 visitWord(Db2.Word word, P p) {

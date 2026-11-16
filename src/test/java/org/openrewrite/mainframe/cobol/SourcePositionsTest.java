@@ -28,11 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.mainframe.cobol.Assertions.copybook;
 
-/**
- * The program is written the way real mainframe source is: sequence numbers in columns 1 to 6 and an
- * identification area in 73 to 80. Neither belongs to a statement, and a position that swallowed
- * them would point a catalog at the line rather than at the code.
- */
+/// The program is written the way real mainframe source is: sequence numbers in columns 1 to 6 and an
+/// identification area in 73 to 80. Neither belongs to a statement, and a position that swallowed
+/// them would point a catalog at the line rather than at the code.
 class SourcePositionsTest extends CobolTest {
 
     private static final String PROGRAM =
@@ -50,9 +48,50 @@ class SourcePositionsTest extends CobolTest {
         001100     GOBACK.                                                      00000110
         """;
 
+	/// A literal continued over a column-7 break is one word and two lines of source. The word's
+	/// range spans both; its pieces are what a highlight needs, one per line. The comment line and
+	/// the floating comment are not nodes, so they are found by identity.
+    @Test
+    void placesEachLineOfAContinuedLiteralAndTheCommentsAroundIt() {
+        rewriteRun(
+          cobol(
+            """
+              000100 IDENTIFICATION DIVISION.                                         00000010
+              000200 PROGRAM-ID. POSCONT.                                             00000020
+              000300 PROCEDURE DIVISION.                                              00000030
+              000400 MAIN-PARA.                                                       00000040
+              000500* The message is wider than a card.                               00000050
+              000600     DISPLAY 'ACCOUNT FILE OPEN FAILED, CHECK THE DD STATEMENT INP
+              000700-    'UT'.                                              *> so far
+              000800     GOBACK.                                                      00000080
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                SourcePositions positions = SourcePositions.of(cu);
+                Cobol.Word display = ((Cobol.Display) statementsIn(cu).getFirst()).getDisplay();
+                var literal = (Cobol.Word) ((Cobol.Display) statementsIn(cu).getFirst()).getOperands().getFirst();
+
+                assertThat(positions.textOf(positions.get(literal)))
+                  .startsWith("'ACCOUNT FILE").endsWith("UT'").contains("\n000700-");
+                assertThat(positions.pieces(literal)).extracting(positions::textOf)
+                  .containsExactly("'ACCOUNT FILE OPEN FAILED, CHECK THE DD STATEMENT INP", "UT'");
+
+                assertThat(display.getLines()).singleElement().satisfies(line ->
+                  assertThat(positions.textOf(positions.get(line)).trim())
+                    .isEqualTo("The message is wider than a card."));
+                // The floating comment belongs to the last word on its line, which is the period.
+                Range comment = positions.get(wordsIn(cu).stream()
+                  .map(Cobol.Word::getCommentArea)
+                  .filter(area -> area != null && area.getComment().startsWith("*>"))
+                  .findFirst().orElseThrow());
+                assertThat(positions.textOf(comment)).isEqualTo("*> so far");
+                assertThat(comment.getStart().getLine()).isEqualTo(7);
+            }))
+        );
+    }
+
     @Test
     void placesEachStatementAtItsOwnWords() {
-        List<String> placed = new ArrayList<>();
+        var placed = new ArrayList<String>();
         rewriteRun(
           cobol(PROGRAM, spec -> spec.afterRecipe(cu -> {
               SourcePositions positions = SourcePositions.of(cu);
@@ -74,11 +113,9 @@ class SourcePositionsTest extends CobolTest {
           "11:12-11:18 GOBACK");
     }
 
-    /**
-     * The EXEC blocks are where a lineage edge crosses the program boundary, so they are the
-     * statements a catalog most wants to point at. Preprocessing takes their text out of what the
-     * grammar sees and the printer puts it back, which is a path worth pinning separately.
-     */
+    /// The EXEC blocks are where a lineage edge crosses the program boundary, so they are the
+    /// statements a catalog most wants to point at. Preprocessing takes their text out of what the
+    /// grammar sees and the printer puts it back, which is a path worth pinning separately.
     @Test
     void placesAnExecBlockAtItsOwnText() {
         rewriteRun(
@@ -111,10 +148,8 @@ class SourcePositionsTest extends CobolTest {
         );
     }
 
-    /**
-     * A copied statement prints nothing in the program that includes it, so it has nowhere to point
-     * at here. Reporting no position is the answer; the copybook is what has one.
-     */
+    /// A copied statement prints nothing in the program that includes it, so it has nowhere to point
+    /// at here. Reporting no position is the answer; the copybook is what has one.
     @Test
     void leavesACopiedStatementWithoutAPosition() {
         rewriteRun(
@@ -134,8 +169,8 @@ class SourcePositionsTest extends CobolTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 SourcePositions positions = SourcePositions.of(cu);
-                List<Statement> statements = statementsIn(cu);
-                assertThat(statements.getFirst()).isInstanceOf(Cobol.MoveStatement.class);
+                var statements = statementsIn(cu);
+                assertThat(statements).first().isInstanceOf(Cobol.MoveStatement.class);
                 assertThat(positions.get(statements.getFirst())).isNull();
 
                 Range display = positions.get(statements.get(1));
@@ -145,10 +180,8 @@ class SourcePositionsTest extends CobolTest {
         );
     }
 
-    /**
-     * The COPY statement itself is written in the program even though what it brings in is not. It
-     * prints through the preprocessor rather than as a word of the program, so it is placed apart.
-     */
+    /// The COPY statement itself is written in the program even though what it brings in is not. It
+    /// prints through the preprocessor rather than as a word of the program, so it is placed apart.
     @Test
     void placesACopyStatementWhereItWasWritten() {
         rewriteRun(
@@ -176,10 +209,8 @@ class SourcePositionsTest extends CobolTest {
         );
     }
 
-    /**
-     * A copybook parsed on its own is preprocessor source outright, so everything in it is placed
-     * the same way.
-     */
+    /// A copybook parsed on its own is preprocessor source outright, so everything in it is placed
+    /// the same way.
     @Test
     void placesTheStatementsOfACopybook() {
         rewriteRun(
@@ -199,51 +230,8 @@ class SourcePositionsTest extends CobolTest {
         );
     }
 
-    /**
-     * A literal continued over a column-7 break is one word and two lines of source. The word's
-     * range spans both; its pieces are what a highlight needs, one per line. The comment line and
-     * the floating comment are not nodes, so they are found by identity.
-     */
-    @Test
-    void placesEachLineOfAContinuedLiteralAndTheCommentsAroundIt() {
-        rewriteRun(
-          cobol(
-            """
-              000100 IDENTIFICATION DIVISION.                                         00000010
-              000200 PROGRAM-ID. POSCONT.                                             00000020
-              000300 PROCEDURE DIVISION.                                              00000030
-              000400 MAIN-PARA.                                                       00000040
-              000500* The message is wider than a card.                               00000050
-              000600     DISPLAY 'ACCOUNT FILE OPEN FAILED, CHECK THE DD STATEMENT INP
-              000700-    'UT'.                                              *> so far
-              000800     GOBACK.                                                      00000080
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                SourcePositions positions = SourcePositions.of(cu);
-                Cobol.Word display = ((Cobol.Display) statementsIn(cu).getFirst()).getDisplay();
-                Cobol.Word literal = (Cobol.Word) ((Cobol.Display) statementsIn(cu).getFirst()).getOperands().getFirst();
-
-                assertThat(positions.textOf(positions.get(literal)))
-                  .startsWith("'ACCOUNT FILE").endsWith("UT'").contains("\n000700-");
-                assertThat(positions.pieces(literal)).extracting(positions::textOf)
-                  .containsExactly("'ACCOUNT FILE OPEN FAILED, CHECK THE DD STATEMENT INP", "UT'");
-
-                assertThat(display.getLines()).singleElement().satisfies(line ->
-                  assertThat(positions.textOf(positions.get(line)).trim())
-                    .isEqualTo("The message is wider than a card."));
-                // The floating comment belongs to the last word on its line, which is the period.
-                Range comment = positions.get(wordsIn(cu).stream()
-                  .map(Cobol.Word::getCommentArea)
-                  .filter(area -> area != null && area.getComment().startsWith("*>"))
-                  .findFirst().orElseThrow());
-                assertThat(positions.textOf(comment)).isEqualTo("*> so far");
-                assertThat(comment.getStart().getLine()).isEqualTo(7);
-            }))
-        );
-    }
-
     private static List<CobolPreprocessor.CopyStatement> copyStatementsIn(Cobol.CompilationUnit cu) {
-        List<CobolPreprocessor.CopyStatement> copies = new ArrayList<>();
+        var copies = new ArrayList<CobolPreprocessor.CopyStatement>();
         for (Cobol.Word word : wordsIn(cu)) {
             for (CobolPreprocessor preprocessorStatement : word.getPreprocessorStatements()) {
                 if (preprocessorStatement instanceof CobolPreprocessor.CopyStatement statement) {
@@ -255,7 +243,7 @@ class SourcePositionsTest extends CobolTest {
     }
 
     private static List<CobolPreprocessor.CopyStatement> copyStatementsIn(CobolPreprocessor.Copybook copybook) {
-        List<CobolPreprocessor.CopyStatement> copies = new ArrayList<>();
+        var copies = new ArrayList<CobolPreprocessor.CopyStatement>();
         new CobolPreprocessorIsoVisitor<Integer>() {
             @Override
             public CobolPreprocessor.CopyStatement visitCopyStatement(CobolPreprocessor.CopyStatement copyStatement, Integer p) {
@@ -267,7 +255,7 @@ class SourcePositionsTest extends CobolTest {
     }
 
     private static List<Cobol.Word> wordsIn(Cobol.CompilationUnit cu) {
-        List<Cobol.Word> words = new ArrayList<>();
+        var words = new ArrayList<Cobol.Word>();
         new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.Word visitWord(Cobol.Word word, Integer p) {
@@ -279,7 +267,7 @@ class SourcePositionsTest extends CobolTest {
     }
 
     private static List<Statement> statementsIn(Cobol.CompilationUnit cu) {
-        List<Statement> statements = new ArrayList<>();
+        var statements = new ArrayList<Statement>();
         new CobolIsoVisitor<Integer>() {
             @Override
             public Cobol.Paragraph visitParagraph(Cobol.Paragraph paragraph, Integer p) {

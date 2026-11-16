@@ -18,6 +18,7 @@ package org.openrewrite.mainframe.cobol.internal;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.cobol.CobolPreprocessorVisitor;
 import org.openrewrite.mainframe.cobol.marker.CopiedWord;
 import org.openrewrite.mainframe.cobol.tree.CobolLine;
@@ -25,7 +26,6 @@ import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.CommentArea;
 import org.openrewrite.mainframe.cobol.tree.Replacement;
 import org.openrewrite.mainframe.cobol.tree.Space;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 

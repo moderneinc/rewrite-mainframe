@@ -52,12 +52,10 @@ class FindWordTest implements RewriteTest {
         );
     }
 
-    /**
-     * A keyword parameter is now two words, the keyword and its value, so {@code SYSOUT.*} matches
-     * the keyword and marks it there. That is a narrower answer than the whole {@code SYSOUT=*} the
-     * flat token stream gave, and a more useful one: the mark lands on the thing that was searched
-     * for.
-     */
+    /// A keyword parameter is now two words, the keyword and its value, so `SYSOUT.*` matches
+    /// the keyword and marks it there. That is a narrower answer than the whole `SYSOUT=*` the
+    /// flat token stream gave, and a more useful one: the mark lands on the thing that was searched
+    /// for.
     @Test
     void regexMatch() {
         rewriteRun(

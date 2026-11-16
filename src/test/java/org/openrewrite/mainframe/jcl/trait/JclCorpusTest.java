@@ -33,8 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -71,7 +71,7 @@ class JclCorpusTest {
         List<String> fixtureNotRead = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("members read, by application:");
+		IO.println("members read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> jobs = Corpus.jobs(repository);
             if (jobs.isEmpty()) {
@@ -83,7 +83,7 @@ class JclCorpusTest {
             // what a portfolio checked out whole gives a build.
             List<SourceFile> parsed = JclParser.builder().procedureLibrary(jobs).build()
                     .parseInputs(Corpus.inputs(jobs), corpus, new InMemoryExecutionContext())
-                    .collect(Collectors.toList());
+                    .collect(toList());
             for (int i = 0; i < jobs.size(); i++) {
                 members++;
                 Path member = jobs.get(i);
@@ -106,7 +106,7 @@ class JclCorpusTest {
                 }
                 read++;
 
-                for (Step step : new Step.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (Step step : new Step.Matcher().lower(cu).collect(toList())) {
                     steps++;
                     if (step.getExpandedFrom() != null) {
                         expanded++;
@@ -143,12 +143,12 @@ class JclCorpusTest {
                 members, steps, programs, expanded, throughProcedures, missingMembers, dds, dataSets,
                 concatenations);
         if (!notRead.isEmpty()) {
-            System.out.println("not read:");
-            notRead.forEach(f -> System.out.println("  " + f));
+			IO.println("not read:");
+            notRead.forEach(f -> IO.println("  " + f));
         }
         if (!notPrintedBack.isEmpty()) {
-            System.out.println("not printed back:");
-            notPrintedBack.forEach(f -> System.out.println("  " + f));
+			IO.println("not printed back:");
+            notPrintedBack.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(notPrintedBack).isEmpty();
@@ -179,7 +179,7 @@ class JclCorpusTest {
         List<Path> library = Corpus.jobs(fixture);
         List<SourceFile> parsed = JclParser.builder().procedureLibrary(library).build()
                 .parseInputs(Corpus.inputs(library), corpus, new InMemoryExecutionContext())
-                .collect(Collectors.toList());
+                .collect(toList());
 
         int jobs = 0;
         int written = 0;
@@ -194,7 +194,7 @@ class JclCorpusTest {
             }
             jobs++;
             Jcl.CompilationUnit cu = (Jcl.CompilationUnit) parsed.get(i);
-            for (Step step : new Step.Matcher().lower(cu).collect(Collectors.toList())) {
+            for (Step step : new Step.Matcher().lower(cu).collect(toList())) {
                 if (step.getExpandedFrom() == null) {
                     written++;
                     callsAProcedure += step.getProcedure() == null ? 0 : 1;

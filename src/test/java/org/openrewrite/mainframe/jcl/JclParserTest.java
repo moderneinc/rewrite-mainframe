@@ -23,19 +23,19 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
-import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.mainframe.jcl.trait.Step;
+import org.openrewrite.mainframe.jcl.tree.Jcl;
 import org.openrewrite.tree.ParseError;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;

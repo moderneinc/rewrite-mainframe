@@ -51,10 +51,8 @@ class CobolPreprocessorCopybookTest extends CobolTest {
         );
     }
 
-    /**
-     * A DCLGEN book closes with the three comment lines that say how many columns it declares, and
-     * they hang off EOF rather than off a word. The copybook printer used to stop at the last word.
-     */
+    /// A DCLGEN book closes with the three comment lines that say how many columns it declares, and
+    /// they hang off EOF rather than off a word. The copybook printer used to stop at the last word.
     @Test
     void commentLinesAfterTheLastWord() {
         rewriteRun(

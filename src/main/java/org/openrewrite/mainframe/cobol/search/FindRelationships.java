@@ -23,6 +23,9 @@ import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.StringUtils;
+import org.openrewrite.mainframe.Members;
 import org.openrewrite.mainframe.assembler.AssemblerIsoVisitor;
 import org.openrewrite.mainframe.assembler.AssemblerParser;
 import org.openrewrite.mainframe.assembler.trait.Call;
@@ -60,12 +63,6 @@ import org.openrewrite.mainframe.db2.bind.BindIsoVisitor;
 import org.openrewrite.mainframe.db2.bind.InStreamBindDeck;
 import org.openrewrite.mainframe.db2.bind.trait.BindCommand;
 import org.openrewrite.mainframe.db2.bind.tree.Bind;
-import org.openrewrite.mainframe.Members;
-import org.openrewrite.mainframe.trait.Mention;
-import org.openrewrite.mainframe.trait.RunBook;
-import org.openrewrite.mainframe.trait.Script;
-import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.ims.ImsIsoVisitor;
 import org.openrewrite.mainframe.ims.trait.Application;
 import org.openrewrite.mainframe.ims.trait.Database;
@@ -86,28 +83,22 @@ import org.openrewrite.mainframe.linkedit.LinkEditIsoVisitor;
 import org.openrewrite.mainframe.linkedit.trait.LinkEditDeck;
 import org.openrewrite.mainframe.linkedit.tree.LinkEdit;
 import org.openrewrite.mainframe.listload.trait.ModuleListing;
-import org.openrewrite.marker.Range;
-import org.openrewrite.marker.SearchResult;
 import org.openrewrite.mainframe.sas.trait.Include;
 import org.openrewrite.mainframe.sas.trait.InstreamSas;
 import org.openrewrite.mainframe.sas.trait.SqlQuery;
+import org.openrewrite.mainframe.trait.Mention;
+import org.openrewrite.mainframe.trait.RunBook;
+import org.openrewrite.mainframe.trait.Script;
+import org.openrewrite.marker.Range;
+import org.openrewrite.marker.SearchResult;
 import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextVisitor;
 
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.*;
 
+import static java.util.Collections.newSetFromMap;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.mainframe.cobol.table.CobolRelationships.ResourceAction.*;
 import static org.openrewrite.mainframe.cobol.table.CobolRelationships.ResourceType.*;
 
@@ -752,13 +743,13 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
         String memberName = memberName(member.getSourcePath());
         String sourcePath = member.getSourcePath().toString();
 
-        for (ControlSection section : new ControlSection.Matcher().lower(member).collect(Collectors.toList())) {
+        for (ControlSection section : new ControlSection.Matcher().lower(member).collect(toList())) {
             if (!section.isDummy() && !section.getName().isEmpty()) {
                 insertCsectRow(cobolRelationships, seen, memberName, ASSEMBLER, DEFINES, section.getName(),
                         sourcePath, section.getLine(), ctx);
             }
         }
-        for (EntryPoint entry : new EntryPoint.Matcher().lower(member).collect(Collectors.toList())) {
+        for (EntryPoint entry : new EntryPoint.Matcher().lower(member).collect(toList())) {
             if (entry.getKind() == EntryPoint.Kind.SECTION) {
                 continue;
             }
@@ -769,23 +760,23 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
         }
         // The other end of an ENTRY: a name the member uses and does not define, which the binder
         // resolves from an object library or, where no deck includes it, by autocall.
-        for (ExternalName external : new ExternalName.Matcher().lower(member).collect(Collectors.toList())) {
+        for (ExternalName external : new ExternalName.Matcher().lower(member).collect(toList())) {
             for (String name : external.getNames()) {
                 insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, REFERENCES, name, acc.typeOf(name),
                         sourcePath, external.getLine(), external.isWeak() ? "WXTRN" : "EXTRN", ctx);
             }
         }
-        for (Copy copy : new Copy.Matcher().lower(member).collect(Collectors.toList())) {
+        for (Copy copy : new Copy.Matcher().lower(member).collect(toList())) {
             insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, COPY, copy.getMember(), ASSEMBLER,
                     sourcePath, copy.getLine(), ctx);
         }
-        for (MacroCall macro : new MacroCall.Matcher().lower(member).collect(Collectors.toList())) {
+        for (MacroCall macro : new MacroCall.Matcher().lower(member).collect(toList())) {
             if (acc.isMacro(macro.getName())) {
                 insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, INCLUDE, macro.getName(), ASSEMBLER,
                         sourcePath, macro.getLine(), ctx);
             }
         }
-        for (Call call : new Call.Matcher().lower(member).collect(Collectors.toList())) {
+        for (Call call : new Call.Matcher().lower(member).collect(toList())) {
             // A DL/I interface is not a program of the estate; what the call reached is the database.
             if (!call.isDli()) {
                 insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, CALL, call.getTarget(),
@@ -860,7 +851,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
                                    CobolRelationships.ResourceType deckType, String sourcePath,
                                    int lineOffset, ExecutionContext ctx) {
         Set<String> seen = new HashSet<>();
-        for (BindCommand command : new BindCommand.Matcher().lower(deck).collect(Collectors.toList())) {
+        for (BindCommand command : new BindCommand.Matcher().lower(deck).collect(toList())) {
             int line = lineOffset + command.getLine();
             boolean rebind = command.getKind() == BindCommand.Kind.REBIND;
             String collection = command.getCollection();
@@ -994,7 +985,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
         Set<String> seen = new HashSet<>();
         String memberName = memberName(member.getSourcePath());
         String sourcePath = member.getSourcePath().toString();
-        for (Database database : new Database.Matcher().lower(member).collect(Collectors.toList())) {
+        for (Database database : new Database.Matcher().lower(member).collect(toList())) {
             String name = database.getName();
             insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, DEFINES, name, IMS_DATABASE, sourcePath,
                     database.getLine(), ctx);
@@ -1023,7 +1014,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
         Set<String> seen = new HashSet<>();
         String memberName = memberName(member.getSourcePath());
         String sourcePath = member.getSourcePath().toString();
-        for (Psb psb : new Psb.Matcher().lower(member).collect(Collectors.toList())) {
+        for (Psb psb : new Psb.Matcher().lower(member).collect(toList())) {
             String psbName = psb.getName();
             insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, DEFINES, psbName, IMS_PSB, sourcePath,
                     psb.getLine(), ctx);
@@ -1063,7 +1054,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
         Set<String> seen = new HashSet<>();
         String memberName = memberName(member.getSourcePath());
         String sourcePath = member.getSourcePath().toString();
-        for (Application application : new Application.Matcher().lower(member).collect(Collectors.toList())) {
+        for (Application application : new Application.Matcher().lower(member).collect(toList())) {
             String psb = application.getPsbName();
             if (psb == null) {
                 continue;
@@ -1076,7 +1067,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
                         IMS_PSB, sourcePath, transaction.getLine(), ctx);
             }
         }
-        for (DatabaseAccess database : new DatabaseAccess.Matcher().lower(member).collect(Collectors.toList())) {
+        for (DatabaseAccess database : new DatabaseAccess.Matcher().lower(member).collect(toList())) {
             insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, REFERENCES, database.getName(),
                     IMS_DATABASE, sourcePath, database.getLine(),
                     database.getAccess() == null ? "" : database.getAccess(), ctx);
@@ -1096,11 +1087,11 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
         Set<String> seen = new HashSet<>();
         String memberName = memberName(member.getSourcePath());
         String sourcePath = member.getSourcePath().toString();
-        for (FormatSet format : new FormatSet.Matcher().lower(member).collect(Collectors.toList())) {
+        for (FormatSet format : new FormatSet.Matcher().lower(member).collect(toList())) {
             insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, DEFINES, format.getName(), MFS_FORMAT,
                     sourcePath, format.getLine(), ctx);
         }
-        for (Message message : new Message.Matcher().lower(member).collect(Collectors.toList())) {
+        for (Message message : new Message.Matcher().lower(member).collect(toList())) {
             String type = message.getType() == null ? "" : message.getType();
             insertDeckRow(cobolRelationships, seen, memberName, ASSEMBLER, DEFINES, message.getName(), MFS_MAP,
                     sourcePath, message.getLine(), type, ctx);
@@ -1140,7 +1131,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
                                      CobolRelationships.ResourceType deckType, String sourcePath,
                                      int lineOffset, ExecutionContext ctx) {
         Set<String> seen = new HashSet<>();
-        for (IdcamsCommand command : new IdcamsCommand.Matcher().lower(deck).collect(Collectors.toList())) {
+        for (IdcamsCommand command : new IdcamsCommand.Matcher().lower(deck).collect(toList())) {
             int line = lineOffset + command.getLine();
             for (String name : command.getDefinedNames()) {
                 insertDeckRow(cobolRelationships, seen, deckName, deckType, DEFINES, name, DATA_SET, sourcePath,
@@ -1215,7 +1206,7 @@ public class FindRelationships extends ScanningRecipe<FindRelationships.Assemble
                     block;
         }
         Map<Cobol.Word, CobolPreprocessor.Word> written = writtenWords(block);
-        Set<Cobol.Word> found = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<Cobol.Word> found = newSetFromMap(new IdentityHashMap<>());
         for (SqlTableAccess table : statement.getTableAccesses()) {
             String metadata = metadataOf(statement, table);
             if (cursorNames.contains(table.getName()) || !seenTableAccess.add(table.getName() + "_" + metadata)) {

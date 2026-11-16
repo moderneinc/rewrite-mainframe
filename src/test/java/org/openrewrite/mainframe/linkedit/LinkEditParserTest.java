@@ -32,12 +32,37 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.linkedit.Assertions.linkEdit;
 
 class LinkEditParserTest implements RewriteTest {
+
+	/// `ENTRY` and `ALIAS` write a name with no parentheses at all, so an operand with no
+	/// value has to survive as an operand rather than be swallowed by the operator.
+    @Test
+    void namesWrittenWithoutParentheses() {
+        rewriteRun(
+          linkEdit(
+            """
+              ENTRY CLMU020
+              ALIAS CLMRESV,CLMOLDRS
+              NAME CLMU020(R)
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                var entry = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
+                assertThat(entry.getParameters()).singleElement().satisfies(operand -> {
+                    assertThat(operand.getKeyword().getText()).isEqualTo("CLMU020");
+                    assertThat(operand.getValue()).isEmpty();
+                });
+                var alias = (LinkEdit.ControlStatement) cu.getStatements().get(1);
+                assertThat(alias.getParameters()).extracting(o -> o.getKeyword().getText())
+                  .containsExactly("CLMRESV", "CLMOLDRS");
+            })
+          )
+        );
+    }
 
     @Test
     void deckForOneModule() {
@@ -52,11 +77,11 @@ class LinkEditParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(4);
-                LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().get(1);
+                var include = (LinkEdit.ControlStatement) cu.getStatements().get(1);
                 assertThat(include.getOperator().getText()).isEqualTo("INCLUDE");
                 assertThat(include.getParameters().getFirst().getKeyword().getText()).isEqualTo("OBJLIB");
                 assertThat(include.getParameters().getFirst().getValueText()).isEqualTo("(CLMU020)");
-                LinkEdit.ControlStatement name = (LinkEdit.ControlStatement) cu.getStatements().get(3);
+                var name = (LinkEdit.ControlStatement) cu.getStatements().get(3);
                 assertThat(name.getParameters().getFirst().getKeyword().getText()).isEqualTo("CLMC020");
                 assertThat(name.getParameters().getFirst().getValueText()).isEqualTo("(R)");
             })
@@ -64,37 +89,8 @@ class LinkEditParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code ENTRY} and {@code ALIAS} write a name with no parentheses at all, so an operand with no
-     * value has to survive as an operand rather than be swallowed by the operator.
-     */
-    @Test
-    void namesWrittenWithoutParentheses() {
-        rewriteRun(
-          linkEdit(
-            """
-                ENTRY CLMU020
-                ALIAS CLMRESV,CLMOLDRS
-                NAME CLMU020(R)
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                LinkEdit.ControlStatement entry = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
-                assertThat(entry.getParameters()).singleElement().satisfies(operand -> {
-                    assertThat(operand.getKeyword().getText()).isEqualTo("CLMU020");
-                    assertThat(operand.getValue()).isEmpty();
-                });
-                LinkEdit.ControlStatement alias = (LinkEdit.ControlStatement) cu.getStatements().get(1);
-                assertThat(alias.getParameters()).extracting(o -> o.getKeyword().getText())
-                  .containsExactly("CLMRESV", "CLMOLDRS");
-            })
-          )
-        );
-    }
-
-    /**
-     * The binder separates operands with a comma as readily as with a blank, and the commas inside a
-     * member list belong to the list.
-     */
+    /// The binder separates operands with a comma as readily as with a blank, and the commas inside a
+    /// member list belong to the list.
     @Test
     void operandsSeparatedByCommas() {
         rewriteRun(
@@ -105,11 +101,11 @@ class LinkEditParserTest implements RewriteTest {
                 NAME CLMC030(R)
               """,
             spec -> spec.afterRecipe(cu -> {
-                LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
+                var include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
                 assertThat(include.getParameters()).extracting(o -> o.getKeyword().getText())
                   .containsExactly("OBJLIB", "SYSLIB");
                 assertThat(include.getParameters().getFirst().getValueText()).isEqualTo("(CLMU010,CLMU020)");
-                LinkEdit.ControlStatement mode = (LinkEdit.ControlStatement) cu.getStatements().get(1);
+                var mode = (LinkEdit.ControlStatement) cu.getStatements().get(1);
                 assertThat(mode.getParameters()).extracting(o -> o.getKeyword().getText())
                   .containsExactly("AMODE", "RMODE");
             })
@@ -117,13 +113,11 @@ class LinkEditParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A member list continued into the next card is one operand, and the continuation is column 72 of
-     * the card above rather than anything on the card itself.
-     * <p>
-     * Parsed from the text rather than through a source spec, since a spec trims the indentation off
-     * a deck and the columns are the whole point.
-     */
+    /// A member list continued into the next card is one operand, and the continuation is column 72 of
+    /// the card above rather than anything on the card itself.
+    ///
+    /// Parsed from the text rather than through a source spec, since a spec trims the indentation off
+    /// a deck and the columns are the whole point.
     @Test
     void memberListWrittenOverTwoCards() {
         String source =
@@ -133,16 +127,14 @@ class LinkEditParserTest implements RewriteTest {
         LinkEdit.CompilationUnit cu = LinkEditParser.parse(Path.of("CLMI050.lnk"), source);
 
         assertThat(cu.getStatements()).hasSize(2);
-        LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
+        var include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
         assertThat(include.getParameters()).singleElement().satisfies(operand ->
           assertThat(operand.getValueText()).isEqualTo("(CLMU010, CLMU030)"));
         assertThat(cu.printAll()).isEqualTo(source);
     }
 
-    /**
-     * Columns 72-80 are the binder's, not the operand field's: what a shop numbers its cards with
-     * prints back, and reads as nothing.
-     */
+    /// Columns 72-80 are the binder's, not the operand field's: what a shop numbers its cards with
+    /// prints back, and reads as nothing.
     @Test
     void sequenceNumbersAreNotOperands() {
         String source =
@@ -151,7 +143,7 @@ class LinkEditParserTest implements RewriteTest {
         LinkEdit.CompilationUnit cu = LinkEditParser.parse(Path.of("CLMB020.lnk"), source);
 
         assertThat(cu.getStatements()).hasSize(2);
-        LinkEdit.ControlStatement include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
+        var include = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
         assertThat(include.getParameters()).singleElement().satisfies(operand ->
           assertThat(operand.getKeyword().getText()).isEqualTo("OBJLIB"));
         assertThat(cu.printAll()).isEqualTo(source);
@@ -167,7 +159,7 @@ class LinkEditParserTest implements RewriteTest {
                 NAME CLMB010(R)
               """,
             spec -> spec.afterRecipe(cu -> {
-                LinkEdit.ControlStatement identify = (LinkEdit.ControlStatement) cu.getStatements().get(1);
+                var identify = (LinkEdit.ControlStatement) cu.getStatements().get(1);
                 assertThat(identify.getParameters()).singleElement().satisfies(operand -> {
                     assertThat(operand.getKeyword().getText()).isEqualTo("CLMB010");
                     assertThat(operand.getValueText()).isEqualTo("('BUILT 2026-08-25 BY CLMCMPB')");
@@ -190,7 +182,7 @@ class LinkEditParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(5);
-                LinkEdit.ControlStatement setopt = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
+                var setopt = (LinkEdit.ControlStatement) cu.getStatements().getFirst();
                 assertThat(setopt.getParameters()).singleElement().satisfies(operand -> {
                     assertThat(operand.getKeyword().getText()).isEqualTo("PARM");
                     assertThat(operand.getValueText()).isEqualTo("(AMODE=31)");
@@ -206,12 +198,10 @@ class LinkEditParserTest implements RewriteTest {
         assertThat(LinkEditParser.builder().build().accept(Path.of(name))).isTrue();
     }
 
-    /**
-     * A {@code LINKLIB} member has no extension to be known by, so the parser reads far enough into
-     * one to see whether it builds anything.
-     */
+    /// A `LINKLIB` member has no extension to be known by, so the parser reads far enough into
+    /// one to see whether it builds anything.
     @Test
-    void acceptsAnExtensionlessMemberThatLinks(@TempDir Path tempDir) throws IOException {
+    void acceptsAnExtensionlessMemberThatLinks(@TempDir Path tempDir) throws Exception {
         Path deck = write(tempDir, "CLMB010", "  ENTRY CLMB010\n  NAME CLMB010(R)\n");
         Path sort = write(tempDir, "SRTCLM01", "  SORT FIELDS=(1,8,CH,A)\n  INCLUDE COND=(57,1,CH,EQ,C'O')\n");
         Path notice = write(tempDir, "LICENSE", "Apache License, Version 2.0\n");
@@ -222,17 +212,15 @@ class LinkEditParserTest implements RewriteTest {
         assertThat(parser.accept(notice)).isFalse();
     }
 
-    /**
-     * The grammar reads any deck of operators and operands, so a member named for the language but
-     * building nothing is refused by name rather than read as an empty deck — and under its own type,
-     * so a parse-quality report can tell it from a grammar gap.
-     */
+    /// The grammar reads any deck of operators and operands, so a member named for the language but
+    /// building nothing is refused by name rather than read as an empty deck — and under its own type,
+    /// so a parse-quality report can tell it from a grammar gap.
     @Test
     void aMemberThatLinksNothingIsSaidSo() {
-        Parser.Input input = new Parser.Input(Path.of("LNKOPTS.lnk"),
+        var input = new Parser.Input(Path.of("LNKOPTS.lnk"),
           () -> new ByteArrayInputStream(" SETOPT  PARM(AMODE=31)\n SETOPT  PARM(RMODE=24)\n".getBytes(StandardCharsets.UTF_8)));
         SourceFile parsed = LinkEditParser.builder().build()
-          .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
+          .parseInputs(List.of(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
 
         assertThat(parsed).isInstanceOf(ParseError.class);
         ParseExceptionResult failure = parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow();
@@ -249,7 +237,7 @@ class LinkEditParserTest implements RewriteTest {
     }
 
     private static String data(String text) {
-        StringBuilder card = new StringBuilder(text);
+        var card = new StringBuilder(text);
         while (card.length() < LinkEditLineReader.DATA_COLUMNS) {
             card.append(' ');
         }

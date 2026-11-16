@@ -20,12 +20,12 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.PrintOutputCapture;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.internal.CobolDialect;
 import org.openrewrite.mainframe.cobol.internal.CobolPreprocessorOutputSourcePrinter;
 import org.openrewrite.mainframe.cobol.internal.CobolPreprocessorPrinter;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
-import org.openrewrite.internal.StringUtils;
 
 import java.util.List;
 
@@ -37,6 +37,36 @@ class CobolPreprocessorReplaceTest extends CobolTest {
     private static final CobolDialect DIALECT = CobolDialect.ibmAnsi85();
     public static final CobolPreprocessorOutputSourcePrinter<ExecutionContext> printer =
             new CobolPreprocessorOutputSourcePrinter<>(DIALECT, false);
+
+    @Test
+    void aQualifiedOrSubscriptedOperandIsOneRunOfWords() {
+        rewriteRun(
+          cobolPreprocessorCopy(
+            """
+              000001 IDENTIFICATION DIVISION.
+              000002 PROGRAM-ID. REPLOPS.
+              000003 DATA DIVISION.
+              000004 WORKING-STORAGE SECTION.
+              000005 REPLACE ==A== BY B OF C ==D== BY E (1) ==F== BY G.
+              000006 01  A PIC X.
+              000007 REPLACE OFF.
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                List<CobolPreprocessor.ReplaceClause> clauses = cu.getCobols().stream()
+                  .filter(CobolPreprocessor.ReplaceArea.class::isInstance)
+                  .map(CobolPreprocessor.ReplaceArea.class::cast)
+                  .flatMap(area -> area.getReplaceByStatement().getClauses().stream())
+                  .toList();
+                assertThat(clauses).hasSize(3);
+                assertThat(clauses.getFirst().getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
+                assertThat(words(clauses.getFirst().getReplacement())).containsExactly("B", "OF", "C");
+                assertThat(clauses.get(1).getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
+                assertThat(words(clauses.get(1).getReplacement())).containsExactly("E", "(", "1", ")");
+                assertThat(clauses.get(2).getReplacement()).isInstanceOf(CobolPreprocessor.Word.class);
+            })
+          )
+        );
+    }
 
     @Issue("https://github.com/openrewrite/rewrite-cobol/issues/36")
     @Test
@@ -71,36 +101,6 @@ class CobolPreprocessorReplaceTest extends CobolTest {
                     """
                 );
             }))
-        );
-    }
-
-    @Test
-    void aQualifiedOrSubscriptedOperandIsOneRunOfWords() {
-        rewriteRun(
-          cobolPreprocessorCopy(
-            """
-              000001 IDENTIFICATION DIVISION.
-              000002 PROGRAM-ID. REPLOPS.
-              000003 DATA DIVISION.
-              000004 WORKING-STORAGE SECTION.
-              000005 REPLACE ==A== BY B OF C ==D== BY E (1) ==F== BY G.
-              000006 01  A PIC X.
-              000007 REPLACE OFF.
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                List<CobolPreprocessor.ReplaceClause> clauses = cu.getCobols().stream()
-                  .filter(CobolPreprocessor.ReplaceArea.class::isInstance)
-                  .map(CobolPreprocessor.ReplaceArea.class::cast)
-                  .flatMap(area -> area.getReplaceByStatement().getClauses().stream())
-                  .toList();
-                assertThat(clauses).hasSize(3);
-                assertThat(clauses.getFirst().getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
-                assertThat(words(clauses.getFirst().getReplacement())).containsExactly("B", "OF", "C");
-                assertThat(clauses.get(1).getReplacement()).isInstanceOf(CobolPreprocessor.CharDataLine.class);
-                assertThat(words(clauses.get(1).getReplacement())).containsExactly("E", "(", "1", ")");
-                assertThat(clauses.get(2).getReplacement()).isInstanceOf(CobolPreprocessor.Word.class);
-            })
-          )
         );
     }
 

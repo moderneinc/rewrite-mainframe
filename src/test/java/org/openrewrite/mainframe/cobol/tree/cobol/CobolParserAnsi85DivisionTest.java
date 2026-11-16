@@ -21,21 +21,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Issue;
+import org.openrewrite.PrintOutputCapture;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.cobol.CobolIsoVisitor;
 import org.openrewrite.mainframe.cobol.CobolTest;
 import org.openrewrite.mainframe.cobol.internal.CobolPreprocessorSourcePrinter;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
-import org.openrewrite.internal.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
@@ -192,10 +191,8 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
-    /**
-     * IBM lets CBL and PROCESS start in any column from 1, and a line that does has no sequence
-     * area — {@code CBL} in columns 4 to 6 is the statement, not a sequence number.
-     */
+    /// IBM lets CBL and PROCESS start in any column from 1, and a line that does has no sequence
+    /// area — `CBL` in columns 4 to 6 is the statement, not a sequence number.
     @Test
     void compilerOptionsAheadOfColumn8() {
         rewriteRun(
@@ -247,9 +244,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
-    /**
-     * Each program as its name, its nested programs in brackets, and a dot when an {@code END PROGRAM} closes it.
-     */
+    /// Each program as its name, its nested programs in brackets, and a dot when an `END PROGRAM` closes it.
     private static String programTree(List<Cobol.ProgramUnit> programUnits) {
         return programUnits.stream()
           .map(pu -> ((Cobol.Word) pu.getIdentificationDivision().getProgramIdParagraph().getProgramName()).getWord() +
@@ -308,9 +303,9 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         return new CobolIsoVisitor<List<List<String>>>() {
             @Override
             public Cobol.ProgramUnit visitProgramUnit(Cobol.ProgramUnit programUnit, List<List<String>> found) {
-                List<String> options = new ArrayList<>();
+                var options = new ArrayList<String>();
                 for (CobolPreprocessor.CompilerOptions o : programUnit.getCompilerOptions()) {
-                    PrintOutputCapture<Integer> out = new PrintOutputCapture<>(0);
+                    var out = new PrintOutputCapture<Integer>(0);
                     new CobolPreprocessorSourcePrinter<Integer>(false).visit(o, out);
                     options.add(out.getOut().trim());
                 }
@@ -320,12 +315,10 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         }.reduce(cu, new ArrayList<>());
     }
 
-    /**
-     * A paragraph header belongs in area A, and generated code begins it at column 9 rather than 8;
-     * the comment entry after it was being read as code. Only area A, though: a comment entry's text
-     * in area B may begin with {@code PROCEDURE} or {@code IDENTIFICATION}, as NIST SG104A's and
-     * OBNC1M's do, and is still the entry.
-     */
+    /// A paragraph header belongs in area A, and generated code begins it at column 9 rather than 8;
+    /// the comment entry after it was being read as code. Only area A, though: a comment entry's text
+    /// in area B may begin with `PROCEDURE` or `IDENTIFICATION`, as NIST SG104A's and
+    /// OBNC1M's do, and is still the entry.
     @Test
     void commentEntryParagraphsAnywhereInAreaA() {
         rewriteRun(
@@ -390,11 +383,11 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                      STOP RUN.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<String> values = new ArrayList<>();
+                var values = new ArrayList<String>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.SetTo visitSetTo(Cobol.SetTo setTo, Integer p) {
-                        StringBuilder shape = new StringBuilder();
+                        var shape = new StringBuilder();
                         for (Cobol value : setTo.getValues()) {
                             shape.append(value.getClass().getSimpleName()).append(' ')
                                     .append(value.printTrimmed(getCursor())).append(' ');
@@ -430,11 +423,11 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
                      STOP RUN.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<String> shapes = new ArrayList<>();
+                var shapes = new ArrayList<String>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.TableCall visitTableCall(Cobol.TableCall tableCall, Integer p) {
-                        Cobol.Subscript subscript = (Cobol.Subscript) tableCall.getSubscripts().getFirst().getContents().getFirst();
+                        var subscript = (Cobol.Subscript) tableCall.getSubscripts().getFirst().getContents().getFirst();
                         shapes.add(tableCall.getQualifiedDataName().printTrimmed(getCursor()) + " " +
                                    subscript.getFirst().getClass().getSimpleName() + " " +
                                    subscript.getFirst().printTrimmed(getCursor()));
@@ -467,7 +460,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000009     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<String> clauses = new ArrayList<>();
+                var clauses = new ArrayList<String>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.DataValueClause visitDataValueClause(Cobol.DataValueClause value, Integer p) {
@@ -507,7 +500,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000013     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<String> abbreviations = new ArrayList<>();
+                var abbreviations = new ArrayList<String>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.Abbreviation visitAbbreviation(Cobol.Abbreviation abbreviation, Integer p) {
@@ -566,7 +559,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000035     GOBACK.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<String> advancing = new ArrayList<>();
+                var advancing = new ArrayList<String>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.WriteAdvancingMnemonic visitWriteAdvancingMnemonic(Cobol.WriteAdvancingMnemonic mnemonic, Integer p) {
@@ -864,10 +857,8 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
-    /**
-     * The command level interface to IMS. Unlike EXEC CICS and EXEC SQL it has no dedicated LST
-     * node; it is preserved as a preprocessor EXEC statement attached to the word that follows it.
-     */
+    /// The command level interface to IMS. Unlike EXEC CICS and EXEC SQL it has no dedicated LST
+    /// node; it is preserved as a preprocessor EXEC statement attached to the word that follows it.
     @Test
     void execDli() {
         rewriteRun(
@@ -1023,13 +1014,11 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
-    /**
-     * The REPOSITORY paragraph declares the classes, interfaces, functions and program prototypes
-     * a program refers to. `FUNCTION ALL INTRINSIC` is the only form without a name.
-     */
+    /// The REPOSITORY paragraph declares the classes, interfaces, functions and program prototypes
+    /// a program refers to. `FUNCTION ALL INTRINSIC` is the only form without a name.
     @Test
     void repositoryParagraph() {
-        AtomicInteger repositories = new AtomicInteger();
+        var repositories = new AtomicInteger();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<>() {
               @Override
@@ -1087,9 +1076,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         assertThat(repositories).hasValue(1);
     }
 
-    /**
-     * Every entry is optional, so the paragraph can also stand alone.
-     */
+    /// Every entry is optional, so the paragraph can also stand alone.
     @Test
     void repositoryParagraphWithoutEntries() {
         rewriteRun(
@@ -1820,14 +1807,12 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
-    /**
-     * The colon of a reference modifier ends a word, so {@code (1:5)} is a modifier and not two
-     * subscripts; the {@code :TAG:} placeholder of a copybook written for {@code REPLACING} stays
-     * part of one.
-     */
+    /// The colon of a reference modifier ends a word, so `(1:5)` is a modifier and not two
+    /// subscripts; the `:TAG:` placeholder of a copybook written for `REPLACING` stays
+    /// part of one.
     @Test
     void referenceModifierBesideAPlaceholder() {
-        AtomicInteger modifiers = new AtomicInteger();
+        var modifiers = new AtomicInteger();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<>() {
               @Override
@@ -1943,8 +1928,8 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000012     MOVE C OF R IN T TO W.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<String> shapes = new ArrayList<>();
-                List<String> qualifiers = new ArrayList<>();
+                var shapes = new ArrayList<String>();
+                var qualifiers = new ArrayList<String>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.MoveToStatement visitMoveToStatement(Cobol.MoveToStatement move, Integer p) {
@@ -2056,7 +2041,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
               000025     STOP RUN.
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<String> shapes = new ArrayList<>();
+                var shapes = new ArrayList<String>();
                 new CobolIsoVisitor<Integer>() {
                     @Override
                     public Cobol.Performable visitPerformable(Cobol.Performable performable, Integer p) {
@@ -2300,7 +2285,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
 
     @Test
     void enterStatement() {
-        List<String> enters = new ArrayList<>();
+        var enters = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<>() {
               @Override
@@ -2326,16 +2311,14 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         assertThat(enters).containsExactly("ENTER LINKAGE", "ENTER COBOL", "ENTER ASSEMBLER ASMRTN");
     }
 
-    /**
-     * The name in the EXIT statement's format-1, `paragraph-name. EXIT.`, opens a paragraph. It is
-     * a procedure name that PERFORM THRU and GO TO can target, so it has to reach the LST as one
-     * rather than being folded into the statement.
-     */
+    /// The name in the EXIT statement's format-1, `paragraph-name. EXIT.`, opens a paragraph. It is
+    /// a procedure name that PERFORM THRU and GO TO can target, so it has to reach the LST as one
+    /// rather than being folded into the statement.
     @Issue("https://github.com/openrewrite/rewrite-cobol/issues/111")
     @Test
     void exitParagraphIsAParagraph() {
-        AtomicInteger paragraphs = new AtomicInteger();
-        AtomicInteger exits = new AtomicInteger();
+        var paragraphs = new AtomicInteger();
+        var exits = new AtomicInteger();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<>() {
               @Override
@@ -2607,10 +2590,8 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
         );
     }
 
-    /**
-     * The LIMIT keyword is optional in the RD PAGE clause, so `PAGE 30` says what
-     * `PAGE LIMIT IS 30 LINES` says.
-     */
+    /// The LIMIT keyword is optional in the RD PAGE clause, so `PAGE 30` says what
+    /// `PAGE LIMIT IS 30 LINES` says.
     @Test
     void reportPageLimitClause() {
         rewriteRun(
@@ -2682,7 +2663,7 @@ class CobolParserAnsi85DivisionTest extends CobolTest {
     }
 
     private static List<String> words(Cobol.RepositoryEntry entry) {
-        return entry.getWords().stream().map(Cobol.Word::getWord).collect(toList());
+        return entry.getWords().stream().map(Cobol.Word::getWord).toList();
     }
 
     private static String text(Cobol word) {

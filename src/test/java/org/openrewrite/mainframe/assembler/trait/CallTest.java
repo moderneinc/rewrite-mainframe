@@ -21,7 +21,6 @@ import org.openrewrite.mainframe.cobol.trait.DliCall.Access;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -42,7 +41,7 @@ class CallTest implements RewriteTest {
                        END   CLMU040
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+              .toList()).singleElement().satisfies(call -> {
                 assertThat(call.getTarget()).isEqualTo("CLMU030");
                 assertThat(call.getKind()).isEqualTo(Call.Kind.CALL_MACRO);
                 assertThat(call.getParameterList()).isEqualTo("U40PLST");
@@ -60,7 +59,7 @@ class CallTest implements RewriteTest {
               A10LOOP  CALL  ASMTDLI,(A10GHN,(R11),A10ROOT,A10SSA),VL
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+              .toList()).singleElement().satisfies(call -> {
                 assertThat(call.getTarget()).isEqualTo("ASMTDLI");
                 assertThat(call.getArguments())
                   .containsExactly("A10GHN", "(R11)", "A10ROOT", "A10SSA");
@@ -70,10 +69,8 @@ class CallTest implements RewriteTest {
         );
     }
 
-    /**
-     * A V-con call says nothing on its own. It is a call because a load of the constant into R15 is
-     * followed by a branch that comes back through R14, and that shape is the whole of the evidence.
-     */
+    /// A V-con call says nothing on its own. It is a call because a load of the constant into R15 is
+    /// followed by a branch that comes back through R14, and that shape is the whole of the evidence.
     @Test
     void readsAVConLoadedIntoRegister15AndBranchedTo() {
         rewriteRun(
@@ -87,7 +84,7 @@ class CallTest implements RewriteTest {
                        LR    R2,R3
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
-              .collect(Collectors.toList()))
+              .toList())
               // The second load is never branched to, so it is not a call.
               .singleElement().satisfies(call -> {
                   assertThat(call.getTarget()).isEqualTo("GVBUTMSG");
@@ -107,16 +104,14 @@ class CallTest implements RewriteTest {
               GVBDL96A DC    V(GVBDL96)         ADDRESS OF "GVBDL96"
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement()
+              .toList()).singleElement()
               .extracting(Call::getTarget).isEqualTo("GVBDL96"))
           )
         );
     }
 
-    /**
-     * INTERLINKS 20.5. The function is not written on the call: the first argument names a constant,
-     * and only the constant says which DL/I function was asked for.
-     */
+    /// INTERLINKS 20.5. The function is not written on the call: the first argument names a constant,
+    /// and only the constant says which DL/I function was asked for.
     @Test
     void readsADliCallThroughTheConstantsItsArgumentsName() {
         rewriteRun(
@@ -132,7 +127,7 @@ class CallTest implements RewriteTest {
               A10ROOT  DS    CL65
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<DliCall> calls = new DliCall.Matcher().lower(cu).collect(Collectors.toList());
+                List<DliCall> calls = new DliCall.Matcher().lower(cu).toList();
                 assertThat(calls).extracting(DliCall::getIface, DliCall::getFunction,
                     DliCall::getPcbRegister, DliCall::getIoArea, DliCall::getSsas,
                     DliCall::getSegments, DliCall::getAccess)
@@ -147,10 +142,8 @@ class CallTest implements RewriteTest {
         );
     }
 
-    /**
-     * An SSA the member does not declare names no segment it can read, and its place among the SSAs
-     * is kept, so the second segment searched for is still the second.
-     */
+    /// An SSA the member does not declare names no segment it can read, and its place among the SSAs
+    /// is kept, so the second segment searched for is still the second.
     @Test
     void keepsEachSsasSegmentInItsPlace() {
         rewriteRun(
@@ -162,7 +155,7 @@ class CallTest implements RewriteTest {
               A10DETL  DS    CL65
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new DliCall.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+              .toList()).singleElement().satisfies(call -> {
                 assertThat(call.getSsas()).containsExactly("PARENTQ", "A10SSA");
                 assertThat(call.getSsaSegments()).containsExactly(null, "CLMDETL");
                 assertThat(call.getSegments()).containsExactly("CLMDETL");
@@ -181,7 +174,7 @@ class CallTest implements RewriteTest {
                        END   CLMU030
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+              .toList()).singleElement().satisfies(call -> {
                 assertThat(call.getTarget()).isEqualTo("CLMU040");
                 assertThat(call.getKind()).isEqualTo(Call.Kind.LINK);
                 assertThat(call.getArguments()).containsExactly("CLMRCLM");
@@ -192,10 +185,8 @@ class CallTest implements RewriteTest {
         );
     }
 
-    /**
-     * {@code EPLOC=} addresses eight bytes that hold the name, which a constant declares; through a
-     * register it says nothing that can be read here.
-     */
+    /// `EPLOC=` addresses eight bytes that hold the name, which a constant declares; through a
+    /// register it says nothing that can be read here.
     @Test
     void readsTheNameTheConstantAnEplocAddressesHolds() {
         rewriteRun(
@@ -208,7 +199,7 @@ class CallTest implements RewriteTest {
                        END   CLMU030
               """,
             spec -> spec.afterRecipe(cu -> assertThat(new Call.Matcher().lower(cu)
-              .collect(Collectors.toList())).singleElement().satisfies(call -> {
+              .toList()).singleElement().satisfies(call -> {
                 assertThat(call.getTarget()).isEqualTo("CLMU040");
                 assertThat(call.getKind()).isEqualTo(Call.Kind.XCTL);
             }))

@@ -26,14 +26,14 @@ import org.openrewrite.FileAttributes;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.internal.EncodingDetectingInputStream;
+import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.mainframe.cobol.WrongLanguageException;
 import org.openrewrite.mainframe.controlcard.ControlCards;
 import org.openrewrite.mainframe.controlcard.sort.internal.SortParserVisitor;
 import org.openrewrite.mainframe.controlcard.sort.internal.grammar.SortCardLexer;
 import org.openrewrite.mainframe.controlcard.sort.internal.grammar.SortCardParser;
 import org.openrewrite.mainframe.controlcard.sort.tree.Sort;
-import org.openrewrite.internal.EncodingDetectingInputStream;
-import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingEventListener;
@@ -82,7 +82,7 @@ public class SortParser implements Parser {
 
                         sample.stop(MetricsHelper.successTags(timer).register(Metrics.globalRegistry));
                         parsingListener.parsed(sourceFile, cu);
-                        return requirePrintEqualsInput((SourceFile) cu, sourceFile, relativeTo, ctx);
+                        return requirePrintEqualsInput(cu, sourceFile, relativeTo, ctx);
                     } catch (Throwable t) {
                         sample.stop(MetricsHelper.errorTags(timer, t).register(Metrics.globalRegistry));
                         return ParseError.build(this, sourceFile, relativeTo, pctx, t);

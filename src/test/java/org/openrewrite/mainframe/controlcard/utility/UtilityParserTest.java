@@ -25,12 +25,11 @@ import org.openrewrite.mainframe.controlcard.utility.tree.Utility;
 import org.openrewrite.test.RewriteTest;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlcard.utility.Assertions.utilityCard;
 
@@ -58,11 +57,11 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Utility.Block global = (Utility.Block) cu.getStatements().getFirst();
+                var global = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(global.isVerb("GLOBAL")).isTrue();
                 assertThat(global.getOperand("SQLID").getValueText()).isEqualTo("CLM");
 
-                Utility.Block unload = (Utility.Block) cu.getStatements().get(1);
+                var unload = (Utility.Block) cu.getStatements().get(1);
                 assertThat(unload.getOperand("TABLESPACE").getValueText()).isEqualTo("CLMDB01.CLMTSPOL");
                 assertThat(unload.getOperand("DB2").getValueText()).isEqualTo("NO");
 
@@ -82,10 +81,8 @@ class UtilityParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * Three SELECTs in one UNLOAD is one pass over the table space, so each one has to carry its own
-     * output DD and its own layout rather than the unload carrying one of each.
-     */
+    /// Three SELECTs in one UNLOAD is one pass over the table space, so each one has to carry its own
+    /// output DD and its own layout rather than the unload carrying one of each.
     @Test
     void severalSelectsInOneUnload() {
         rewriteRun(
@@ -104,7 +101,7 @@ class UtilityParserTest implements RewriteTest {
                   FORMAT DELIMITED SEP ',' DELIM '"'
               """,
             spec -> spec.afterRecipe(cu -> {
-                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
+                var unload = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(unload.getBlocks("SELECT")).hasSize(2);
 
                 Utility.Block first = unload.getBlocks("SELECT").getFirst();
@@ -137,7 +134,7 @@ class UtilityParserTest implements RewriteTest {
                        WHEN (STATUS_CODE = 'A')
               """,
             spec -> spec.afterRecipe(cu -> {
-                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
+                var unload = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(unload.getOperand("SHRLEVEL").getValueText()).isEqualTo("REFERENCE");
                 assertThat(unload.getOperand("UNLDDN").getValueText()).isEqualTo("SYSREC");
                 assertThat(unload.getBlocks("SELECT")).isEmpty();
@@ -152,9 +149,7 @@ class UtilityParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * The program name on the EXEC card cannot say which utility runs, so the deck has to.
-     */
+    /// The program name on the EXEC card cannot say which utility runs, so the deck has to.
     @Test
     void dialectIsReadOffTheDeck() {
         rewriteRun(
@@ -191,7 +186,7 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(2);
-                Utility.Block runstats = (Utility.Block) cu.getStatements().getFirst();
+                var runstats = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(runstats.getOperand("TABLESPACE").getValueText()).isEqualTo("CLMDB01.CLMTSPOL");
                 assertThat(runstats.getOperand("TABLE").getValueText()).isEqualTo("(ALL)");
                 assertThat(runstats.getOperand("INDEX").getValueText()).isEqualTo("(ALL)");
@@ -213,7 +208,7 @@ class UtilityParserTest implements RewriteTest {
                   SELECT * FROM CLM.CLAIM_HIST OUTDDN (HSTUNL)
               """,
             spec -> spec.afterRecipe(cu -> {
-                Utility.Block template = (Utility.Block) cu.getStatements().getFirst();
+                var template = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(template.getValueText()).isEqualTo("HSTCARD");
                 assertThat(template.getOperand("DSN").getValueText())
                   .isEqualTo("'&HLQ..UNLOAD.&DB..&TS..LOADCARD'");
@@ -225,10 +220,8 @@ class UtilityParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A semicolon ends a block wherever it is written, but the product also allows one between a
-     * SELECT's SQL and its OUTDDN, so it is what follows that closes a block and not the semicolon.
-     */
+    /// A semicolon ends a block wherever it is written, but the product also allows one between a
+    /// SELECT's SQL and its OUTDDN, so it is what follows that closes a block and not the semicolon.
     @Test
     void semicolonInsideASelect() {
         rewriteRun(
@@ -242,7 +235,7 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(1);
-                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
+                var unload = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(unload.getOperand("COPYDDN").getValueText()).isEqualTo("COPYIN");
                 Utility.Block select = unload.getBlocks("SELECT").getFirst();
                 assertThat(select.getOperand("FROM").getValueText()).isEqualTo("MY.TAB");
@@ -252,10 +245,8 @@ class UtilityParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A card is a comment because of what is in column one: {@code --} anywhere, and {@code *} only
-     * before the first keyword, since after it {@code *} is the whole of a SELECT.
-     */
+    /// A card is a comment because of what is in column one: `--` anywhere, and `*` only
+    /// before the first keyword, since after it `*` is the whole of a SELECT.
     @Test
     void commentCards() {
         rewriteRun(
@@ -270,7 +261,7 @@ class UtilityParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(1);
-                Utility.Block unload = (Utility.Block) cu.getStatements().getFirst();
+                var unload = (Utility.Block) cu.getStatements().getFirst();
                 assertThat(unload.getBlocks("SELECT").getFirst().getValueText()).isEqualTo("*");
             })
           )
@@ -278,7 +269,7 @@ class UtilityParserTest implements RewriteTest {
     }
 
     @Test
-    void aMemberThatRunsNoUtilityIsNotADeck(@TempDir Path tempDir) throws IOException {
+    void aMemberThatRunsNoUtilityIsNotADeck(@TempDir Path tempDir) throws Exception {
         Path member = tempDir.resolve("PRMCLM01.ctl");
         Files.write(member, "19981130 19980101 A N\n".getBytes(StandardCharsets.UTF_8));
 
@@ -286,26 +277,24 @@ class UtilityParserTest implements RewriteTest {
     }
 
     @Test
-    void aSortDeckIsNotADeck(@TempDir Path tempDir) throws IOException {
+    void aSortDeckIsNotADeck(@TempDir Path tempDir) throws Exception {
         Path member = tempDir.resolve("SRTCLM01.ctl");
         Files.write(member, "  SORT FIELDS=(53,4,CH,A,1,10,CH,A)\n".getBytes(StandardCharsets.UTF_8));
 
         assertThat(UtilityParser.builder().build().accept(member)).isFalse();
     }
 
-    /**
-     * A member written on z/OS and moved to a repository keeps the line ending it was moved with, so
-     * a deck has to print back through whichever it was.
-     */
+    /// A member written on z/OS and moved to a repository keeps the line ending it was moved with, so
+    /// a deck has to print back through whichever it was.
     @Test
-    void printsBackACarriageReturnedDeck(@TempDir Path tempDir) throws IOException {
+    void printsBackACarriageReturnedDeck(@TempDir Path tempDir) throws Exception {
         String source = "  UNLOAD TABLESPACE CLMDB01.CLMTSPOL\r\n         DB2 NO\r\n" +
                         "    SELECT * FROM CLM.POLICY\r\n    OUTDDN (POLUNL)\r\n";
         Path member = tempDir.resolve("UNLCLM.ctl");
         Files.write(member, source.getBytes(StandardCharsets.UTF_8));
 
         SourceFile parsed = UtilityParser.builder().build()
-          .parseInputs(singletonList(new Parser.Input(member,
+          .parseInputs(List.of(new Parser.Input(member,
             () -> new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)))),
             null, new InMemoryExecutionContext())
           .findFirst()

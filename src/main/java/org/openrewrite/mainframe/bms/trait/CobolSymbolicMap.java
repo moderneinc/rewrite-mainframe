@@ -18,11 +18,7 @@ package org.openrewrite.mainframe.bms.trait;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.mainframe.bms.tree.Bms;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Writes the COBOL records that assembling a map set with {@code TYPE=DSECT} generates, laid out as

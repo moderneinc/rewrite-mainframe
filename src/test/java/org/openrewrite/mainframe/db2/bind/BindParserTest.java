@@ -33,180 +33,16 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.db2.bind.Assertions.bind;
 
 class BindParserTest implements RewriteTest {
 
-    @Test
-    void packageBind() {
-        rewriteRun(
-          bind(
-            """
-              DSN SYSTEM(DB2P)
-              BIND PACKAGE(CLMPKG) OWNER(CLMPROD) QUALIFIER(CLM) -
-                   MEMBER(CLMD010) LIBRARY('CLM.PROD.DBRMLIB') -
-                   ACTION(REPLACE) VALIDATE(BIND) ISOLATION(CS)
-              END
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                assertThat(cu.getStatements()).hasSize(3);
-                Bind.Command command = (Bind.Command) cu.getStatements().get(1);
-                assertThat(command.getVerb().getText()).isEqualTo("BIND");
-                assertThat(command.getParameter("MEMBER").getValueText()).isEqualTo("(CLMD010)");
-                // The lexer breaks the quoted data set name out on its own, so the value is three
-                // words that have to read back as one.
-                assertThat(command.getParameter("LIBRARY").getValueText()).isEqualTo("('CLM.PROD.DBRMLIB')");
-            })
-          )
-        );
-    }
-
-    @Test
-    void keywordSeparatedFromItsValueByABlank() {
-        rewriteRun(
-          bind(
-            """
-              DSN     SYSTEM    (DB2D)
-              BIND    PACKAGE   (STOCKTRD)   -
-                      MEMBER    (ACCT01)     -
-                      ACTION (REPLACE)  RETAIN
-              END
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                assertThat(((Bind.Command) cu.getStatements().getFirst()).getParameter("SYSTEM").getValueText())
-                  .isEqualTo("(DB2D)");
-                Bind.Command command = (Bind.Command) cu.getStatements().get(1);
-                assertThat(command.getParameter("PACKAGE").getValueText()).isEqualTo("(STOCKTRD)");
-                // RETAIN takes no value, so it has to survive as an operand of its own rather than
-                // being swallowed by the one in front of it.
-                assertThat(command.getParameter("RETAIN").getValue()).isEmpty();
-            })
-          )
-        );
-    }
-
-    @Test
-    void verbOnALineOfItsOwn() {
-        rewriteRun(
-          bind(
-            """
-              BIND                    -
-                   PLAN(&PLAN.)       -
-                   PKLIST(&COLLID..*) -
-                   ACTION(REPLACE)
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                assertThat(cu.getStatements()).hasSize(1);
-                Bind.Command command = (Bind.Command) cu.getStatements().getFirst();
-                assertThat(command.getParameter("PLAN").getValueText()).isEqualTo("(&PLAN.)");
-                assertThat(command.getParameter("PKLIST").getValueText()).isEqualTo("(&COLLID..*)");
-            })
-          )
-        );
-    }
-
-    @Test
-    void listContinuedInsideItsOwnParentheses() {
-        rewriteRun(
-          bind(
-            """
-              BIND PLAN(BANK) -
-               PKLIST( -
-               NULLID.*,PHBANK.* )
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                Bind.Command command = (Bind.Command) cu.getStatements().getFirst();
-                assertThat(command.getParameter("PKLIST").getValueText()).isEqualTo("( NULLID.*,PHBANK.* )");
-            })
-          )
-        );
-    }
-
-    @Test
-    void aBlankLineEndsACommand() {
-        rewriteRun(
-          bind(
-            """
-              DSN SYSTEM(DB2D)
-
-              BIND PACKAGE(A) MEMBER(P1)
-
-              BIND PACKAGE(A) MEMBER(P2)
-              END
-              """,
-            spec -> spec.afterRecipe(cu -> assertThat(cu.getStatements()).hasSize(4))
-          )
-        );
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"BINDPKG1.bnd", "BINDPKG1.BND", "cardlib/BINDPKG1.Bnd"})
-    void acceptsADeckByExtension(String name) {
-        assertThat(BindParser.builder().build().accept(Path.of(name))).isTrue();
-    }
-
-    /**
-     * A {@code CARDLIB} member has no extension to be known by, so the parser reads far enough into
-     * one to see whether it binds anything.
-     */
-    @Test
-    void acceptsAnExtensionlessMemberThatBinds(@TempDir Path tempDir) throws IOException {
-        Path deck = write(tempDir, "BINDPKG1", "DSN SYSTEM(DB2P)\nBIND PACKAGE(CLMPKG) MEMBER(CLMD010)\nEND\n");
-        Path queries = write(tempDir, "CATPKDEP", "SELECT * FROM SYSIBM.SYSPACKDEP;\n");
-        Path notice = write(tempDir, "LICENSE", "Apache License, Version 2.0\n");
-
-        BindParser parser = BindParser.builder().build();
-        assertThat(parser.accept(deck)).isTrue();
-        assertThat(parser.accept(queries)).isFalse();
-        assertThat(parser.accept(notice)).isFalse();
-    }
-
-    /**
-     * The grammar reads any command deck, so a member named for the language but binding, running and
-     * freeing nothing is refused by name rather than read as an empty deck — and under its own type,
-     * so a parse-quality report can tell it from a grammar gap.
-     */
-    @Test
-    void aMemberThatBindsNothingIsSaidSo() {
-        Parser.Input input = new Parser.Input(Path.of("DSNONLY.bnd"),
-          () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nEND\n".getBytes(StandardCharsets.UTF_8)));
-        SourceFile parsed = BindParser.builder().build()
-          .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
-
-        assertThat(parsed).isInstanceOf(ParseError.class);
-        ParseExceptionResult failure = parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow();
-        assertThat(failure.getParserType()).isEqualTo("BindParser");
-        assertThat(failure.getExceptionType()).isEqualTo("WrongLanguageException");
-        assertThat(failure.getMessage()).contains("DSNONLY.bnd is not a bind deck: it has no BIND, REBIND, RUN or FREE subcommand.");
-    }
-
-    /**
-     * {@code FREE} is a DSN subcommand, so a member that frees packages is a deck to read, not one to
-     * refuse.
-     */
-    @Test
-    void aMemberThatFreesIsRead() {
-        Parser.Input input = new Parser.Input(Path.of("FREEPKG.bnd"),
-          () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nFREE PACKAGE(CLMPKG.CLMD010)\nEND\n".getBytes(StandardCharsets.UTF_8)));
-        SourceFile parsed = BindParser.builder().build()
-          .parseInputs(singletonList(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
-
-        assertThat(parsed).isInstanceOfSatisfying(Bind.CompilationUnit.class, cu ->
-          assertThat(cu.getStatements()).extracting(s -> ((Bind.Command) s).getVerb().getText())
-            .containsExactly("DSN", "FREE", "END"));
-    }
-
-    /**
-     * CardDemo opens each DSN deck with its licence, a block of comment lines. They print back where
-     * they were written and are no subcommands, so the deck's first subcommand is its {@code DSN} and
-     * a line is still counted from the top of the member.
-     */
+	/// CardDemo opens each DSN deck with its licence, a block of comment lines. They print back where
+	/// they were written and are no subcommands, so the deck's first subcommand is its `DSN` and
+	/// a line is still counted from the top of the member.
     @Test
     void readsADeckThatOpensWithComments() {
         rewriteRun(
@@ -236,10 +72,161 @@ class BindParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A deck that frees plans and packages and nothing else. CardDemo's ends on its {@code END} with
-     * no line ending after it.
-     */
+    @Test
+    void packageBind() {
+        rewriteRun(
+          bind(
+            """
+              DSN SYSTEM(DB2P)
+              BIND PACKAGE(CLMPKG) OWNER(CLMPROD) QUALIFIER(CLM) -
+                   MEMBER(CLMD010) LIBRARY('CLM.PROD.DBRMLIB') -
+                   ACTION(REPLACE) VALIDATE(BIND) ISOLATION(CS)
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(cu.getStatements()).hasSize(3);
+                var command = (Bind.Command) cu.getStatements().get(1);
+                assertThat(command.getVerb().getText()).isEqualTo("BIND");
+                assertThat(command.getParameter("MEMBER").getValueText()).isEqualTo("(CLMD010)");
+                // The lexer breaks the quoted data set name out on its own, so the value is three
+                // words that have to read back as one.
+                assertThat(command.getParameter("LIBRARY").getValueText()).isEqualTo("('CLM.PROD.DBRMLIB')");
+            })
+          )
+        );
+    }
+
+    @Test
+    void keywordSeparatedFromItsValueByABlank() {
+        rewriteRun(
+          bind(
+            """
+              DSN     SYSTEM    (DB2D)
+              BIND    PACKAGE   (STOCKTRD)   -
+                      MEMBER    (ACCT01)     -
+                      ACTION (REPLACE)  RETAIN
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(((Bind.Command) cu.getStatements().getFirst()).getParameter("SYSTEM").getValueText())
+                  .isEqualTo("(DB2D)");
+                var command = (Bind.Command) cu.getStatements().get(1);
+                assertThat(command.getParameter("PACKAGE").getValueText()).isEqualTo("(STOCKTRD)");
+                // RETAIN takes no value, so it has to survive as an operand of its own rather than
+                // being swallowed by the one in front of it.
+                assertThat(command.getParameter("RETAIN").getValue()).isEmpty();
+            })
+          )
+        );
+    }
+
+    @Test
+    void verbOnALineOfItsOwn() {
+        rewriteRun(
+          bind(
+            """
+              BIND                    -
+                   PLAN(&PLAN.)       -
+                   PKLIST(&COLLID..*) -
+                   ACTION(REPLACE)
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(cu.getStatements()).hasSize(1);
+                var command = (Bind.Command) cu.getStatements().getFirst();
+                assertThat(command.getParameter("PLAN").getValueText()).isEqualTo("(&PLAN.)");
+                assertThat(command.getParameter("PKLIST").getValueText()).isEqualTo("(&COLLID..*)");
+            })
+          )
+        );
+    }
+
+    @Test
+    void listContinuedInsideItsOwnParentheses() {
+        rewriteRun(
+          bind(
+            """
+              BIND PLAN(BANK) -
+               PKLIST( -
+               NULLID.*,PHBANK.* )
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                var command = (Bind.Command) cu.getStatements().getFirst();
+                assertThat(command.getParameter("PKLIST").getValueText()).isEqualTo("( NULLID.*,PHBANK.* )");
+            })
+          )
+        );
+    }
+
+    @Test
+    void aBlankLineEndsACommand() {
+        rewriteRun(
+          bind(
+            """
+              DSN SYSTEM(DB2D)
+
+              BIND PACKAGE(A) MEMBER(P1)
+
+              BIND PACKAGE(A) MEMBER(P2)
+              END
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(cu.getStatements()).hasSize(4))
+          )
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"BINDPKG1.bnd", "BINDPKG1.BND", "cardlib/BINDPKG1.Bnd"})
+    void acceptsADeckByExtension(String name) {
+        assertThat(BindParser.builder().build().accept(Path.of(name))).isTrue();
+    }
+
+    /// A `CARDLIB` member has no extension to be known by, so the parser reads far enough into
+    /// one to see whether it binds anything.
+    @Test
+    void acceptsAnExtensionlessMemberThatBinds(@TempDir Path tempDir) throws Exception {
+        Path deck = write(tempDir, "BINDPKG1", "DSN SYSTEM(DB2P)\nBIND PACKAGE(CLMPKG) MEMBER(CLMD010)\nEND\n");
+        Path queries = write(tempDir, "CATPKDEP", "SELECT * FROM SYSIBM.SYSPACKDEP;\n");
+        Path notice = write(tempDir, "LICENSE", "Apache License, Version 2.0\n");
+
+        BindParser parser = BindParser.builder().build();
+        assertThat(parser.accept(deck)).isTrue();
+        assertThat(parser.accept(queries)).isFalse();
+        assertThat(parser.accept(notice)).isFalse();
+    }
+
+    /// The grammar reads any command deck, so a member named for the language but binding, running and
+    /// freeing nothing is refused by name rather than read as an empty deck — and under its own type,
+    /// so a parse-quality report can tell it from a grammar gap.
+    @Test
+    void aMemberThatBindsNothingIsSaidSo() {
+        var input = new Parser.Input(Path.of("DSNONLY.bnd"),
+          () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nEND\n".getBytes(StandardCharsets.UTF_8)));
+        SourceFile parsed = BindParser.builder().build()
+          .parseInputs(List.of(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
+
+        assertThat(parsed).isInstanceOf(ParseError.class);
+        ParseExceptionResult failure = parsed.getMarkers().findFirst(ParseExceptionResult.class).orElseThrow();
+        assertThat(failure.getParserType()).isEqualTo("BindParser");
+        assertThat(failure.getExceptionType()).isEqualTo("WrongLanguageException");
+        assertThat(failure.getMessage()).contains("DSNONLY.bnd is not a bind deck: it has no BIND, REBIND, RUN or FREE subcommand.");
+    }
+
+    /// `FREE` is a DSN subcommand, so a member that frees packages is a deck to read, not one to
+    /// refuse.
+    @Test
+    void aMemberThatFreesIsRead() {
+        var input = new Parser.Input(Path.of("FREEPKG.bnd"),
+          () -> new ByteArrayInputStream("DSN SYSTEM(DB2P)\nFREE PACKAGE(CLMPKG.CLMD010)\nEND\n".getBytes(StandardCharsets.UTF_8)));
+        SourceFile parsed = BindParser.builder().build()
+          .parseInputs(List.of(input), null, new InMemoryExecutionContext()).findFirst().orElseThrow();
+
+        assertThat(parsed).isInstanceOfSatisfying(Bind.CompilationUnit.class, cu ->
+          assertThat(cu.getStatements()).extracting(s -> ((Bind.Command) s).getVerb().getText())
+            .containsExactly("DSN", "FREE", "END"));
+    }
+
+    /// A deck that frees plans and packages and nothing else. CardDemo's ends on its `END` with
+    /// no line ending after it.
     @Test
     void readsADeckThatFrees() {
         rewriteRun(
@@ -254,17 +241,15 @@ class BindParserTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).extracting(s -> ((Bind.Command) s).getVerb().getText())
                   .containsExactly("DSN", "FREE", "FREE", "FREE", "END");
-                Bind.Command freePackage = (Bind.Command) cu.getStatements().get(3);
+                var freePackage = (Bind.Command) cu.getStatements().get(3);
                 assertThat(freePackage.getParameter("PACKAGE").getValueText()).isEqualTo("(COTRTLIC.*)");
             })
           )
         );
     }
 
-    /**
-     * A comment written among the cards of one subcommand leaves it one subcommand, whether it has a
-     * line of its own or follows the operands, and it may hold the apostrophe a word may not.
-     */
+    /// A comment written among the cards of one subcommand leaves it one subcommand, whether it has a
+    /// line of its own or follows the operands, and it may hold the apostrophe a word may not.
     @Test
     void aCommentInsideASubcommand() {
         rewriteRun(
@@ -279,7 +264,7 @@ class BindParserTest implements RewriteTest {
               """,
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).hasSize(3);
-                Bind.Command bind = (Bind.Command) cu.getStatements().get(1);
+                var bind = (Bind.Command) cu.getStatements().get(1);
                 assertThat(bind.getParameters()).extracting(operand -> operand.getKeyword().getText())
                   .containsExactly("PACKAGE", "MEMBER", "LIBRARY", "ACTION");
                 assertThat(bind.getParameter("MEMBER").getValueText()).isEqualTo("(CLMD010)");
@@ -289,11 +274,9 @@ class BindParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * What the lexer takes for a comment becomes white space, and nothing else does. A comment written
-     * hard against a word is lexed as part of that word, the longest token being the one taken, and
-     * two comments written end to end fill a line of their own. Either way the deck prints back.
-     */
+    /// What the lexer takes for a comment becomes white space, and nothing else does. A comment written
+    /// hard against a word is lexed as part of that word, the longest token being the one taken, and
+    /// two comments written end to end fill a line of their own. Either way the deck prints back.
     @Test
     void onlyWhatIsLexedAsACommentIsWhiteSpace() {
         rewriteRun(
@@ -307,26 +290,24 @@ class BindParserTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 assertThat(cu.getStatements()).extracting(s -> ((Bind.Command) s).getVerb().getText())
                   .containsExactly("DSN", "BIND", "END");
-                Bind.Command bind = (Bind.Command) cu.getStatements().get(1);
+                var bind = (Bind.Command) cu.getStatements().get(1);
                 assertThat(bind.getParameter("MEMBER").getValueText()).isEqualTo("(CLMD010)");
             })
           )
         );
     }
 
-    /**
-     * CardDemo's three DSN decks, as written: .ctl members that open with its licence, told from a
-     * SORT card kept beside them by the {@code DSN} past it — DB2FREE included, which frees and does
-     * nothing else. Each is read from its file and prints back as it was.
-     */
+    /// CardDemo's three DSN decks, as written: .ctl members that open with its licence, told from a
+    /// SORT card kept beside them by the `DSN` past it — DB2FREE included, which frees and does
+    /// nothing else. Each is read from its file and prints back as it was.
     @Test
-    void readsCardDemosDsnDecks(@TempDir Path tempDir) throws IOException {
+    void readsCardDemosDsnDecks(@TempDir Path tempDir) throws Exception {
         String tiad = CARDDEMO_LICENCE + "  DSN SYSTEM(DAZ1)\n  RUN PROGRAM(DSNTIAD) -\n  PARMS('RC0')\n";
         String tep4 = CARDDEMO_LICENCE +
           "  DSN SYSTEM(DAZ1)\n  RUN PROGRAM(DSNTEP4) -\n  PLAN(DSNTEP4) -\n  PARMS('/ALIGN(LHS) MIXED')\n";
         String free = CARDDEMO_LICENCE +
           " DSN SYSTEM(DAZ1)\n  FREE PLAN(CARDDEMO)\n  FREE PLAN(COTRTLIC)\n  FREE PACKAGE(COTRTLIC.*)\n END";
-        List<Path> decks = Arrays.asList(write(tempDir, "DB2TIAD1.ctl", tiad), write(tempDir, "DB2TEP41.ctl", tep4),
+        var decks = List.of(write(tempDir, "DB2TIAD1.ctl", tiad), write(tempDir, "DB2TEP41.ctl", tep4),
           write(tempDir, "DB2FREE.ctl", free));
         Path sort = write(tempDir, "SRTCLM01.ctl", CARDDEMO_LICENCE + "  SORT FIELDS=(1,8,CH,A)\n");
 
@@ -336,7 +317,7 @@ class BindParserTest implements RewriteTest {
 
         List<SourceFile> parsed = parser.parse(decks, tempDir, new InMemoryExecutionContext(t -> {
             throw new IllegalStateException(t);
-        })).collect(Collectors.toList());
+        })).toList();
         assertThat(parsed).allMatch(Bind.CompilationUnit.class::isInstance);
         assertThat(parsed).extracting(SourceFile::printAll).containsExactly(tiad, tep4, free);
 
@@ -352,9 +333,7 @@ class BindParserTest implements RewriteTest {
           .containsExactly("DSN", "FREE", "FREE", "FREE", "END");
     }
 
-    /**
-     * The licence each of CardDemo's DSN decks opens with, every line a comment closed on itself.
-     */
+    /// The licence each of CardDemo's DSN decks opens with, every line a comment closed on itself.
     private static final String CARDDEMO_LICENCE =
       """
         /* Copyright Amazon.com, Inc. or its affiliates.                   */
@@ -373,10 +352,8 @@ class BindParserTest implements RewriteTest {
         /* language governing permissions and limitations under the License*/
         """;
 
-    /**
-     * A TSO batch step's JCL names only {@code IKJEFT01}; the program it runs, the plan and the library
-     * are in the deck its {@code SYSTSIN} reads.
-     */
+    /// A TSO batch step's JCL names only `IKJEFT01`; the program it runs, the plan and the library
+    /// are in the deck its `SYSTSIN` reads.
     @Test
     void readsTheProgramARunDeckRuns() {
         rewriteRun(
@@ -419,12 +396,10 @@ class BindParserTest implements RewriteTest {
         );
     }
 
-    /**
-     * A deck kept with the other control cards is a .ctl member, told from a SORT or IDCAMS card by
-     * opening with {@code DSN}.
-     */
+    /// A deck kept with the other control cards is a .ctl member, told from a SORT or IDCAMS card by
+    /// opening with `DSN`.
     @Test
-    void acceptsAControlCardMemberThatOpensWithDsn(@TempDir Path tempDir) throws IOException {
+    void acceptsAControlCardMemberThatOpensWithDsn(@TempDir Path tempDir) throws Exception {
         Path run = write(tempDir, "RUNCLM01.ctl", "  DSN SYSTEM(DB2P)\n  RUN PROGRAM(CLMD010) PLAN(CLMPLAN)\n  END\n");
         Path binds = write(tempDir, "BNDCLM01.ctl", "DSN SYSTEM(DB2P)\nBIND PACKAGE(CLMPKG) MEMBER(CLMD010)\nEND\n");
         Path sort = write(tempDir, "SRTCLM01.ctl", "  SORT FIELDS=(1,8,CH,A)\n");

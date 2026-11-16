@@ -29,10 +29,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.ims.trait.Psb.ProgramKind.BATCH;
@@ -80,7 +80,7 @@ class ImsCorpusTest {
         List<String> failures = new ArrayList<>();
         boolean fixtureFound = false;
 
-        System.out.println("gen members read, by application:");
+		IO.println("gen members read, by application:");
         for (Path repository : Corpus.repositories(corpus)) {
             List<Path> files = Corpus.imsDefinitions(repository);
             if (files.isEmpty()) {
@@ -95,7 +95,7 @@ class ImsCorpusTest {
                 List<SourceFile> parsed = ImsParser.builder().build()
                         .parseInputs(Corpus.inputs(singletonList(member)), corpus,
                                 new InMemoryExecutionContext())
-                        .collect(Collectors.toList());
+                        .collect(toList());
                 if (parsed.size() != 1 || !(parsed.getFirst() instanceof Ims.CompilationUnit)) {
                     failures.add(name + ": did not parse");
                     continue;
@@ -141,7 +141,7 @@ class ImsCorpusTest {
                     read++;
                 }
 
-                for (Database database : new Database.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (Database database : new Database.Matcher().lower(cu).collect(toList())) {
                     databases++;
                     references += database.getReferences().size();
                     for (Database.Reference reference : database.getReferences()) {
@@ -160,7 +160,7 @@ class ImsCorpusTest {
                     }
                 }
 
-                for (Psb psb : new Psb.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (Psb psb : new Psb.Matcher().lower(cu).collect(toList())) {
                     programSpecifications++;
                     for (Pcb pcb : psb.getPcbs()) {
                         pcbs++;
@@ -171,12 +171,12 @@ class ImsCorpusTest {
                     }
                 }
 
-                for (FormatSet format : new FormatSet.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (FormatSet format : new FormatSet.Matcher().lower(cu).collect(toList())) {
                     formatSets++;
                     devicePages += format.getDevicePages().size();
                     deviceFields += format.getDeviceFields().size();
                 }
-                for (Message message : new Message.Matcher().lower(cu).collect(Collectors.toList())) {
+                for (Message message : new Message.Matcher().lower(cu).collect(toList())) {
                     messages++;
                     messageFields += message.getFields().size();
                 }
@@ -192,8 +192,8 @@ class ImsCorpusTest {
                 members, databases, segments, fields, references, programSpecifications, pcbs,
                 sensitiveSegments, formatSets, devicePages, deviceFields, messages, messageFields);
         if (!failures.isEmpty()) {
-            System.out.println("failures:");
-            failures.forEach(f -> System.out.println("  " + f));
+			IO.println("failures:");
+            failures.forEach(f -> IO.println("  " + f));
         }
 
         assertThat(failures).isEmpty();
@@ -365,7 +365,7 @@ class ImsCorpusTest {
         assertThat(deck).hasSize(1);
 
         List<Application> applications = new Application.Matcher().lower(deck.getFirst())
-                .collect(Collectors.toList());
+                .collect(toList());
         assertThat(applications).extracting(Application::getPsbName, Application::getProgramType,
                         Application::isMessageDriven, Application::getLine)
                 .containsExactly(
@@ -386,7 +386,7 @@ class ImsCorpusTest {
 
         // Five databases, and CLMDBG01 is not among them: a GSAM database is allocated by the batch
         // job that reads it and is never known to the control region.
-        assertThat(new DatabaseAccess.Matcher().lower(deck.getFirst()).collect(Collectors.toList()))
+        assertThat(new DatabaseAccess.Matcher().lower(deck.getFirst()).collect(toList()))
                 .extracting(DatabaseAccess::getName, DatabaseAccess::getAccess, DatabaseAccess::getLine)
                 .containsExactly(
                         tuple("CLMDBD01", "UP", 36),
@@ -434,7 +434,7 @@ class ImsCorpusTest {
                 .filter(device -> device.getFunctionKeyField() != null))
                 .extracting(Device::getFunctionKeyField,
                         device -> device.getFunctionKeys().stream()
-                                .map(Device.FunctionKey::getLiteral).collect(Collectors.toList()))
+                                .map(Device.FunctionKey::getLiteral).collect(toList()))
                 .containsExactly(
                         tuple("CLMPFK", asList("PAGE", "EXIT", "BACK", "FWD")),
                         tuple("CLMPFK2", asList("PAGE", "EXIT", "BACK", "FWD")),
@@ -514,7 +514,7 @@ class ImsCorpusTest {
             List<SourceFile> parsed = ImsParser.builder().build()
                     .parseInputs(Corpus.inputs(singletonList(member)), directory,
                             new InMemoryExecutionContext())
-                    .collect(Collectors.toList());
+                    .collect(toList());
             assertThat(parsed).singleElement().isInstanceOf(Ims.CompilationUnit.class);
             members.add(parsed.getFirst());
         }
@@ -552,6 +552,6 @@ class ImsCorpusTest {
         return cu.getStatements().stream()
                 .filter(Ims.MacroStatement.class::isInstance)
                 .map(Ims.MacroStatement.class::cast)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 }

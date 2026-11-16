@@ -22,17 +22,13 @@ import org.openrewrite.test.RewriteTest;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jclWithProcedures;
 import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.procedureMember;
 
-/**
- * What a step answers once the procedure it calls has been resolved: the program it really runs,
- * the data sets it really opens, and where each symbol's value came from.
- */
+/// What a step answers once the procedure it calls has been resolved: the program it really runs,
+/// the data sets it really opens, and where each symbol's value came from.
 class ExpandedStepTest implements RewriteTest {
 
     private static final List<Path> LIBRARY = List.of(
@@ -62,7 +58,7 @@ class ExpandedStepTest implements RewriteTest {
           """));
 
     private static List<Step> steps(Jcl.CompilationUnit cu) {
-        return new Step.Matcher().lower(cu).collect(Collectors.toList());
+        return new Step.Matcher().lower(cu).toList();
     }
 
     private static final String EXTRACT = """
@@ -72,6 +68,23 @@ class ExpandedStepTest implements RewriteTest {
       //EXTRACT  EXEC CLMBATCH,PGM=CLMB010,HLQ=&HLQ
       //RUN.CLMMAST  DD DISP=SHR,DSN=&HLQ..CLMMAST
       """;
+
+    @Test
+    void aProcedureStepOpensTheDataSetsTheJobNamed() {
+        rewriteRun(
+          jclWithProcedures(EXTRACT, LIBRARY,
+            spec -> spec.afterRecipe(cu -> {
+                Step run = steps(cu).getFirst().getProcedureSteps().getFirst();
+                assertThat(run.getDataDefinitions()).extracting(DataDefinition::getName)
+                  .containsExactly("STEPLIB", "SYSOUT", "SYSTSIN", "CLMMAST");
+                assertThat(run.getDataDefinition("STEPLIB").getDataSets())
+                  .extracting(DataSet::getName).containsExactly("CLM.PROD.LOADLIB");
+                assertThat(run.getDataDefinition("CLMMAST").getDataSets())
+                  .extracting(DataSet::getName).containsExactly("CLM.PROD.CLMMAST");
+            })
+          )
+        );
+    }
 
     @Test
     void aStepRunsTheProceduresSteps() {
@@ -90,23 +103,6 @@ class ExpandedStepTest implements RewriteTest {
                     assertThat(run.getCallingStep()).isNotNull();
                     assertThat(run.getCallingStep().getName()).isEqualTo("EXTRACT");
                 });
-            })
-          )
-        );
-    }
-
-    @Test
-    void aProcedureStepOpensTheDataSetsTheJobNamed() {
-        rewriteRun(
-          jclWithProcedures(EXTRACT, LIBRARY,
-            spec -> spec.afterRecipe(cu -> {
-                Step run = steps(cu).getFirst().getProcedureSteps().getFirst();
-                assertThat(run.getDataDefinitions()).extracting(DataDefinition::getName)
-                  .containsExactly("STEPLIB", "SYSOUT", "SYSTSIN", "CLMMAST");
-                assertThat(run.getDataDefinition("STEPLIB").getDataSets())
-                  .extracting(DataSet::getName).containsExactly("CLM.PROD.LOADLIB");
-                assertThat(run.getDataDefinition("CLMMAST").getDataSets())
-                  .extracting(DataSet::getName).containsExactly("CLM.PROD.CLMMAST");
             })
           )
         );
@@ -144,10 +140,8 @@ class ExpandedStepTest implements RewriteTest {
         );
     }
 
-    /**
-     * A step counted through the traits is a step the job runs, so a two-step procedure called once
-     * is two steps and the calling EXEC is not a third.
-     */
+    /// A step counted through the traits is a step the job runs, so a two-step procedure called once
+    /// is two steps and the calling EXEC is not a third.
     @Test
     void everyStepOfAMultiStepProcedureIsFound() {
         rewriteRun(
@@ -182,7 +176,7 @@ class ExpandedStepTest implements RewriteTest {
         rewriteRun(
           jclWithProcedures(EXTRACT, LIBRARY,
             spec -> spec.afterRecipe(cu ->
-              assertThat(new Job.Matcher().lower(cu).collect(Collectors.toList()))
+              assertThat(new Job.Matcher().lower(cu).toList())
                 .singleElement()
                 .satisfies(job -> assertThat(job.getProcedureLibraries())
                   .containsExactly("CLM.PROD.PROCLIB")))
@@ -190,10 +184,8 @@ class ExpandedStepTest implements RewriteTest {
         );
     }
 
-    /**
-     * A Db2 unload step is passed the subsystem and a user id by position, and the subsystem is a
-     * symbol the calling job supplies — so the PARM answers nothing until the job is expanded.
-     */
+    /// A Db2 unload step is passed the subsystem and a user id by position, and the subsystem is a
+    /// symbol the calling job supplies — so the PARM answers nothing until the job is expanded.
     @Test
     void readsAProcedureStepsParmByPosition() {
         rewriteRun(
@@ -202,7 +194,7 @@ class ExpandedStepTest implements RewriteTest {
               //CLMJ040  JOB (CLM),'UNLOAD CLAIMS',CLASS=P
               //UNL      EXEC CLMUNL,SSID=DB2T,UID=CLMU001
               """,
-            singletonList(procedureMember("CLMUNL",
+            List.of(procedureMember("CLMUNL",
               """
                 //CLMUNL   PROC SSID=DB2P,UID=
                 //UNLOAD   EXEC PGM=INZUTILB,PARM='&SSID,&UID,HIDDEN(&SSID)'
@@ -226,7 +218,7 @@ class ExpandedStepTest implements RewriteTest {
         rewriteRun(
           jclWithProcedures(
             "//CMPI060  EXEC IMSCOBOL,MBR=CLMI060\n",
-            singletonList(LIBRARY.getFirst()),
+            List.of(LIBRARY.getFirst()),
             spec -> spec.afterRecipe(cu -> {
                 Step step = steps(cu).getFirst();
                 assertThat(step.getProcedure()).isEqualTo("IMSCOBOL");

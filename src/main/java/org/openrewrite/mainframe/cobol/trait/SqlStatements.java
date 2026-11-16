@@ -23,11 +23,7 @@ import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.db2.EmbeddedSql.HostVariable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 

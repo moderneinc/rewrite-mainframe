@@ -20,11 +20,7 @@ import lombok.NoArgsConstructor;
 import org.openrewrite.mainframe.cobol.LineEndings;
 import org.openrewrite.mainframe.controlcard.idcams.trait.IdcamsCommand;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Classifies the cards of an IDCAMS deck before they are lexed.

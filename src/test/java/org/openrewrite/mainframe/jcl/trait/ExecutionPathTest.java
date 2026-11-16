@@ -22,61 +22,25 @@ import org.openrewrite.test.RewriteTest;
 import java.nio.file.Path;
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jcl;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jclWithProcedures;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.parmMember;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.procedureMember;
+import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.*;
 
-/**
- * The five fixture unload jobs are the cases here, written down to the lines each one turns on:
- * a deck already in the base utility's dialect, a deck of the unload product's, a deck reached
- * through a procedure symbolic, a member nobody supplied and a procedure nobody supplied.
- */
+/// The five fixture unload jobs are the cases here, written down to the lines each one turns on:
+ /// a deck already in the base utility's dialect, a deck of the unload product's, a deck reached
+ /// through a procedure symbolic, a member nobody supplied and a procedure nobody supplied.
 class ExecutionPathTest implements RewriteTest {
 
-    /**
-     * A member of the procedure library has to be supplied for symbols to be filled in at all, and
-     * these jobs call no procedure. This one stands for the library.
-     */
+    /// A member of the procedure library has to be supplied for symbols to be filled in at all, and
+    /// these jobs call no procedure. This one stands for the library.
     private static final List<Path> LIBRARY = List.of(procedureMember("@JOBCARD",
       """
         //*  THE JOB CARD EVERY JOB INCLUDES
         """));
 
-    @Test
-    void readsAStepWhoseEveryNameResolves() {
-        rewriteRun(
-          jcl(
-            """
-              //CLMUNLB  JOB (CLM,PROD),'UNLOAD POLICY BASE',CLASS=P
-              //UNLPOL   EXEC PGM=DSNUTILB,PARM='DB2P,CLMUNLB.UNLPOL'
-              //SYSREC   DD DSN=CLM.PROD.UNLOAD.POLICY.BASE,DISP=(NEW,CATLG)
-              //SYSIN    DD *
-                UNLOAD TABLESPACE CLMDB01.CLMTSPOL
-                  FROM TABLE CLM.POLICY
-                  UNLDDN SYSREC
-              /*
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                ExecutionPath path = path(cu);
-                // The base utility's defaults are published and the same everywhere, so a deck that
-                // codes none of them still says everything it does.
-                assertThat(path.getGaps()).isEmpty();
-                assertThat(path.getVerdict()).isEqualTo(ExecutionPath.Verdict.RESOLVED);
-                assertThat(path.isResolved()).isTrue();
-            })
-          )
-        );
-    }
-
-    /**
-     * Every name in this job resolves and it still does not say what it writes: {@code FORMAT},
-     * {@code DB2}, {@code LOCK} and {@code QUIESCE} come from the parmlib member on {@code INFPLIB},
-     * which is in no application library. Change the parmlib and the job writes a different file
-     * without a line of it changing.
-     */
+	/// Every name in this job resolves and it still does not say what it writes: `FORMAT`,
+	/// `DB2`, `LOCK` and `QUIESCE` come from the parmlib member on `INFPLIB`,
+	/// which is in no application library. Change the parmlib and the job writes a different file
+	/// without a line of it changing.
     @Test
     void saysWhichKeywordsTheDeckLeavesToTheSite() {
         rewriteRun(
@@ -108,11 +72,35 @@ class ExecutionPathTest implements RewriteTest {
         );
     }
 
-    /**
-     * A deck that codes what it writes and how it reads leaves nothing to the site, and a step whose
-     * names all resolve too is one a transformation may be applied to. This is the deck that says so
-     * and the one above is the deck that does not, and the difference between them is four keywords.
-     */
+    @Test
+    void readsAStepWhoseEveryNameResolves() {
+        rewriteRun(
+          jcl(
+            """
+              //CLMUNLB  JOB (CLM,PROD),'UNLOAD POLICY BASE',CLASS=P
+              //UNLPOL   EXEC PGM=DSNUTILB,PARM='DB2P,CLMUNLB.UNLPOL'
+              //SYSREC   DD DSN=CLM.PROD.UNLOAD.POLICY.BASE,DISP=(NEW,CATLG)
+              //SYSIN    DD *
+                UNLOAD TABLESPACE CLMDB01.CLMTSPOL
+                  FROM TABLE CLM.POLICY
+                  UNLDDN SYSREC
+              /*
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                ExecutionPath path = path(cu);
+                // The base utility's defaults are published and the same everywhere, so a deck that
+                // codes none of them still says everything it does.
+                assertThat(path.getGaps()).isEmpty();
+                assertThat(path.getVerdict()).isEqualTo(ExecutionPath.Verdict.RESOLVED);
+                assertThat(path.isResolved()).isTrue();
+            })
+          )
+        );
+    }
+
+    /// A deck that codes what it writes and how it reads leaves nothing to the site, and a step whose
+    /// names all resolve too is one a transformation may be applied to. This is the deck that says so
+    /// and the one above is the deck that does not, and the difference between them is four keywords.
     @Test
     void aCodedKeywordIsNotInherited() {
         rewriteRun(
@@ -142,13 +130,11 @@ class ExecutionPathTest implements RewriteTest {
         );
     }
 
-    /**
-     * Two substitution systems are written the same way in one deck and only one of them is the
-     * job's. {@code SYMBOLS=JCLONLY} has JES put {@code &HLQ} into the card text before the step
-     * runs; {@code &DB.} and {@code &TS.} are the unload product's own template variables, are still
-     * there when it reads the deck, and no {@code SET} was ever going to define them. Counting those
-     * as symbols nothing set makes every job that uses a template unresolvable.
-     */
+    /// Two substitution systems are written the same way in one deck and only one of them is the
+    /// job's. `SYMBOLS=JCLONLY` has JES put `&HLQ` into the card text before the step
+    /// runs; `&DB.` and `&TS.` are the unload product's own template variables, are still
+    /// there when it reads the deck, and no `SET` was ever going to define them. Counting those
+    /// as symbols nothing set makes every job that uses a template unresolvable.
     @Test
     void aTemplateVariableIsNotASymbolTheJobLeftUnset() {
         rewriteRun(
@@ -180,11 +166,9 @@ class ExecutionPathTest implements RewriteTest {
         );
     }
 
-    /**
-     * A deck that opens a utility statement and holds a card nothing can read is a step whose
-     * behaviour is not known, and saying so is the whole point: read as far as the bad card and the
-     * job looks like one that says everything it does.
-     */
+    /// A deck that opens a utility statement and holds a card nothing can read is a step whose
+    /// behaviour is not known, and saying so is the whole point: read as far as the bad card and the
+    /// job looks like one that says everything it does.
     @Test
     void saysWhenTheDeckDidNotRead() {
         rewriteRun(
@@ -260,10 +244,8 @@ class ExecutionPathTest implements RewriteTest {
         );
     }
 
-    /**
-     * The control card member the SYSIN names is the whole of what the step does, so a job whose
-     * member was not supplied says nothing about the table it unloads.
-     */
+    /// The control card member the SYSIN names is the whole of what the step does, so a job whose
+    /// member was not supplied says nothing about the table it unloads.
     @Test
     void saysWhichMemberWasNotSupplied() {
         rewriteRun(
@@ -287,12 +269,10 @@ class ExecutionPathTest implements RewriteTest {
         );
     }
 
-    /**
-     * The job the whole exercise is about: no line of it says which table is unloaded or how. The
-     * member is the value of a symbolic the EXEC passes, the SYSIN that reads it is written in the
-     * procedure, and the keywords the member leaves out are answered by a parmlib. The verdict is
-     * about the step written here and the reasons are about the step of the procedure it runs.
-     */
+    /// The job the whole exercise is about: no line of it says which table is unloaded or how. The
+    /// member is the value of a symbolic the EXEC passes, the SYSIN that reads it is written in the
+    /// procedure, and the keywords the member leaves out are answered by a parmlib. The verdict is
+    /// about the step written here and the reasons are about the step of the procedure it runs.
     @Test
     void followsTheDeckAProcedureNames() {
         rewriteRun(
@@ -321,7 +301,7 @@ class ExecutionPathTest implements RewriteTest {
                 """)),
             spec -> spec.afterRecipe(cu -> {
                 // One verdict for the one step the job writes, not a second for the procedure's.
-                assertThat(new ExecutionPath.Matcher().lower(cu).collect(toList())).hasSize(1);
+                assertThat(new ExecutionPath.Matcher().lower(cu).toList()).hasSize(1);
 
                 ExecutionPath path = path(cu);
                 assertThat(path.getVerdict()).isEqualTo(ExecutionPath.Verdict.INHERITED);

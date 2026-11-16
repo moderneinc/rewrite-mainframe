@@ -31,25 +31,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jcl;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.jclWithProcedures;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.parmMember;
-import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.procedureMember;
+import static org.openrewrite.mainframe.jcl.tree.ParserAssertions.*;
 
 class ExternalSysinTest implements RewriteTest {
 
-    private static final List<Path> SORT_MEMBER = singletonList(parmMember("MGSLAP8F",
+    private static final List<Path> SORT_MEMBER = List.of(parmMember("MGSLAP8F",
             """
               SORT FIELDS=(8,2,PD,A,10,4,PD,A,14,2,PD,A,16,1,CH,A)
               """));
 
-    /**
-     * The marker sits on the DSN parameter rather than on the statement, so the whole tree is
-     * searched rather than the statement list.
-     */
+    /// The marker sits on the DSN parameter rather than on the statement, so the whole tree is
+    /// searched rather than the statement list.
     private static Optional<ParmMember> parmMarker(Jcl.CompilationUnit cu) {
         return new JclIsoVisitor<List<ParmMember>>() {
             @Override
@@ -67,16 +60,14 @@ class ExternalSysinTest implements RewriteTest {
 
     private static List<String> graftedWords(Jcl.CompilationUnit cu) {
         return cu.getStatements().stream()
-                .filter(s -> s instanceof DataDefinitionStream)
+                .filter(DataDefinitionStream.class::isInstance)
                 .filter(s -> s.getMarkers().findFirst(GeneratedParmContent.class).isPresent())
                 .map(s -> ((DataDefinitionStream) s).getWord().getText())
-                .collect(toList());
+                .toList();
     }
 
-    /**
-     * The grafted words wherever they were put, which for a procedure's own DD is inside the
-     * expansion rather than among the job's own cards.
-     */
+    /// The grafted words wherever they were put, which for a procedure's own DD is inside the
+    /// expansion rather than among the job's own cards.
     private static List<String> graftedAnywhere(Jcl.CompilationUnit cu) {
         return new JclVisitor<List<String>>() {
             @Override
@@ -100,13 +91,26 @@ class ExternalSysinTest implements RewriteTest {
     }
 
     @Test
+    void graftsResolvedMemberContentAsStreamNodes() {
+        rewriteRun(
+          jcl(
+            "//SYSIN DD DSN=DWL.PARMLIB(MGSLAP8F),DISP=SHR",
+            SORT_MEMBER,
+            spec -> spec.afterRecipe(cu -> assertThat(graftedWords(cu)).containsExactly(
+                "SORT",
+                "FIELDS=(8,2,PD,A,10,4,PD,A,14,2,PD,A,16,1,CH,A)"))
+          )
+        );
+    }
+
+    @Test
     void resolvesExternalSysinMember() {
         rewriteRun(
           jcl(
             "//SYSIN DD DSN=DWL.PARMLIB(MGSLAP8F),DISP=SHR",
             SORT_MEMBER,
             spec -> spec.afterRecipe(cu -> {
-                Optional<ParmMember> marker = parmMarker(cu, ParmMember.Status.EXPANDED);
+                var marker = parmMarker(cu, ParmMember.Status.EXPANDED);
                 assertThat(marker).isPresent();
                 assertThat(marker.get().getDdName()).isEqualTo("SYSIN");
                 assertThat(marker.get().getDataSetName()).isEqualTo("DWL.PARMLIB");
@@ -136,19 +140,6 @@ class ExternalSysinTest implements RewriteTest {
             SORT_MEMBER,
             spec -> spec.afterRecipe(cu ->
                 assertThat(parmMarker(cu, ParmMember.Status.EXPANDED)).isPresent())
-          )
-        );
-    }
-
-    @Test
-    void graftsResolvedMemberContentAsStreamNodes() {
-        rewriteRun(
-          jcl(
-            "//SYSIN DD DSN=DWL.PARMLIB(MGSLAP8F),DISP=SHR",
-            SORT_MEMBER,
-            spec -> spec.afterRecipe(cu -> assertThat(graftedWords(cu)).containsExactly(
-                "SORT",
-                "FIELDS=(8,2,PD,A,10,4,PD,A,14,2,PD,A,16,1,CH,A)"))
           )
         );
     }
@@ -188,7 +179,7 @@ class ExternalSysinTest implements RewriteTest {
             "//SYSIN DD DSN=DWL.PARMLIB(NOTHERE),DISP=SHR",
             SORT_MEMBER,
             spec -> spec.afterRecipe(cu -> {
-                Optional<ParmMember> marker = parmMarker(cu, ParmMember.Status.MISSING);
+                var marker = parmMarker(cu, ParmMember.Status.MISSING);
                 assertThat(marker).isPresent();
                 assertThat(marker.get().getMemberName()).isEqualTo("NOTHERE");
             })
@@ -241,7 +232,7 @@ class ExternalSysinTest implements RewriteTest {
             "//PARMIN DD DSN=DWL.CNTL(MGSLAP8F),DISP=SHR",
             SORT_MEMBER,
             spec -> spec.afterRecipe(cu -> {
-                Optional<ParmMember> marker = parmMarker(cu, ParmMember.Status.EXPANDED);
+                var marker = parmMarker(cu, ParmMember.Status.EXPANDED);
                 assertThat(marker).isPresent();
                 assertThat(marker.get().getDdName()).isEqualTo("PARMIN");
                 assertThat(graftedWords(cu)).isNotEmpty();
@@ -267,7 +258,7 @@ class ExternalSysinTest implements RewriteTest {
         rewriteRun(
           jcl(
             "//SYSIN DD DSN=DWL.PARMLIB(MULTI),DISP=SHR",
-            singletonList(parmMember("MULTI",
+            List.of(parmMember("MULTI",
               """
                 SORT FIELDS=(1,4,CH,A)
                 MERGE FIELDS=(5,2,CH,D)
@@ -293,10 +284,10 @@ class ExternalSysinTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 List<String> texts = cu.getStatements().stream()
                         .map(ExternalSysinTest::wordText)
-                        .collect(toList());
-                int dsn = texts.indexOf("//SYSIN");
-                int sort = texts.indexOf("SORT");
-                int sysout = texts.indexOf("//SYSOUT");
+                        .toList();
+                var dsn = texts.indexOf("//SYSIN");
+                var sort = texts.indexOf("SORT");
+                var sysout = texts.indexOf("//SYSOUT");
                 assertThat(sort).isGreaterThan(dsn).isLessThan(sysout);
             })
           )
@@ -348,7 +339,7 @@ class ExternalSysinTest implements RewriteTest {
 
     @Test
     void concatenatedDdsEachExpand() {
-        List<Path> members = List.of(
+        var members = List.of(
           parmMember("MGSLAP8F", "SORT FIELDS=(1,2,CH,A)\n"),
           parmMember("MGSLAP9G", "MERGE FIELDS=(3,4,CH,A)\n"));
         rewriteRun(
@@ -370,12 +361,12 @@ class ExternalSysinTest implements RewriteTest {
     void ignoresSequenceNumberArea() {
         // Columns 73-80 carry sequence numbers in fixed-form PDS members and must not
         // become part of the grafted stream content.
-        String statement = "SORT FIELDS=(1,2,CH,A)";
+        var statement = "SORT FIELDS=(1,2,CH,A)";
         String numbered = statement + " ".repeat(72 - statement.length()) + "00010000\n";
         rewriteRun(
           jcl(
             "//SYSIN DD DSN=DWL.PARMLIB(NUMBERED),DISP=SHR",
-            singletonList(parmMember("NUMBERED", numbered)),
+            List.of(parmMember("NUMBERED", numbered)),
             spec -> spec.afterRecipe(cu ->
                 assertThat(graftedWords(cu)).containsExactly("SORT", "FIELDS=(1,2,CH,A)"))
           )
@@ -387,7 +378,7 @@ class ExternalSysinTest implements RewriteTest {
         rewriteRun(
           jcl(
             "//SYSIN DD DSN=DWL.PARMLIB(REPLMBR),DISP=SHR",
-            singletonList(parmMember("REPLMBR", "REPL DBN=%%NAME.FIELD,SEG=&SEGNAME\n")),
+            List.of(parmMember("REPLMBR", "REPL DBN=%%NAME.FIELD,SEG=&SEGNAME\n")),
             spec -> spec.afterRecipe(cu ->
                 assertThat(graftedWords(cu)).containsExactly(
                     "REPL", "DBN=%%NAME.FIELD,SEG=&SEGNAME"))
@@ -397,11 +388,11 @@ class ExternalSysinTest implements RewriteTest {
 
     @Test
     void graftsCrlfMemberContent() {
-        String content = "SORT FIELDS=(1,4,CH,A)\r\nMERGE FIELDS=(5,2,CH,D)\r\n";
+        var content = "SORT FIELDS=(1,4,CH,A)\r\nMERGE FIELDS=(5,2,CH,D)\r\n";
         rewriteRun(
           jcl(
             "//SYSIN DD DSN=DWL.PARMLIB(CRLFMBR),DISP=SHR",
-            singletonList(parmMember("CRLFMBR", content)),
+            List.of(parmMember("CRLFMBR", content)),
             spec -> spec.afterRecipe(cu ->
                 assertThat(graftedWords(cu)).containsExactly(
                     "SORT", "FIELDS=(1,4,CH,A)",
@@ -432,10 +423,8 @@ class ExternalSysinTest implements RewriteTest {
         );
     }
 
-    /**
-     * The DD is a procedure's, and the member it names is the job's: neither exists until the job
-     * has been expanded and the symbols filled in. This is how a Db2 unload job is written.
-     */
+    /// The DD is a procedure's, and the member it names is the job's: neither exists until the job
+    /// has been expanded and the symbols filled in. This is how a Db2 unload job is written.
     @Test
     void expandsAMemberNamedByAProceduresDd() {
         rewriteRun(
@@ -444,7 +433,7 @@ class ExternalSysinTest implements RewriteTest {
               //CLMJ030  JOB (CLM),'UNLOAD CLAIMS',CLASS=P
               //UNL      EXEC HPUUNL,MEM=CLMUNL01
               """,
-            singletonList(procedureMember("HPUUNL",
+            List.of(procedureMember("HPUUNL",
               """
                 //HPUUNL   PROC CTLLIB=DB2.PROD.CNTL,MEM=NONE
                 //UNLOAD   EXEC PGM=INZUTILB
@@ -452,12 +441,12 @@ class ExternalSysinTest implements RewriteTest {
                 //SYSPRINT DD SYSOUT=*
                 //         PEND
                 """)),
-            singletonList(parmMember("CLMUNL01",
+            List.of(parmMember("CLMUNL01",
               """
                 UNLOAD TABLESPACE CLMDB.CLMTS
                 """)),
             spec -> spec.afterRecipe(cu -> {
-                Optional<ParmMember> marker = parmMarker(cu, ParmMember.Status.EXPANDED);
+                var marker = parmMarker(cu, ParmMember.Status.EXPANDED);
                 assertThat(marker).isPresent();
                 assertThat(marker.get().getDdName()).isEqualTo("SYSIN");
                 assertThat(marker.get().getDataSetName()).isEqualTo("DB2.PROD.CNTL");

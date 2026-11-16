@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.controlcard.sort.Assertions.sortCard;
@@ -38,7 +37,7 @@ class SortStatementTest implements RewriteTest {
                 OPTION EQUALS
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<SortStatement> statements = new SortStatement.Matcher().lower(cu).collect(Collectors.toList());
+                List<SortStatement> statements = new SortStatement.Matcher().lower(cu).toList();
                 assertThat(statements).hasSize(3);
 
                 SortStatement sort = statements.getFirst();
@@ -62,10 +61,8 @@ class SortStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * A {@code SUM} field carries no order, so the parts a field is written with have to be
-     * recognised by what they look like rather than counted off.
-     */
+    /// A `SUM` field carries no order, so the parts a field is written with have to be
+    /// recognised by what they look like rather than counted off.
     @Test
     void sumFieldsHaveNoOrder() {
         rewriteRun(
@@ -75,7 +72,7 @@ class SortStatementTest implements RewriteTest {
                 SUM FIELDS=(66,13,ZD,79,13,ZD,92,13,ZD)
               """,
             spec -> spec.afterRecipe(cu -> {
-                List<SortStatement> statements = new SortStatement.Matcher().lower(cu).collect(Collectors.toList());
+                List<SortStatement> statements = new SortStatement.Matcher().lower(cu).toList();
                 assertThat(statements.get(1).getFields()).containsExactly(
                   new SortStatement.Field(66, 13, "ZD", null),
                   new SortStatement.Field(79, 13, "ZD", null),
@@ -85,10 +82,8 @@ class SortStatementTest implements RewriteTest {
         );
     }
 
-    /**
-     * With a {@code FORMAT} operand the format is left off each field, so a three-part field is a
-     * position, a length and an order.
-     */
+    /// With a `FORMAT` operand the format is left off each field, so a three-part field is a
+    /// position, a length and an order.
     @Test
     void formatWrittenOnceForEveryField() {
         rewriteRun(
@@ -97,7 +92,7 @@ class SortStatementTest implements RewriteTest {
                 SORT FIELDS=(1,10,A,53,4,D),FORMAT=CH
               """,
             spec -> spec.afterRecipe(cu -> {
-                SortStatement sort = new SortStatement.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
+                SortStatement sort = new SortStatement.Matcher().lower(cu).toList().getFirst();
                 assertThat(sort.getOperand("FORMAT")).isEqualTo("CH");
                 assertThat(sort.getFields()).containsExactly(
                   new SortStatement.Field(1, 10, null, "A"),
@@ -115,7 +110,7 @@ class SortStatementTest implements RewriteTest {
                 SORT   FIELDS=COPY
               """,
             spec -> spec.afterRecipe(cu -> {
-                SortStatement sort = new SortStatement.Matcher().lower(cu).collect(Collectors.toList()).getFirst();
+                SortStatement sort = new SortStatement.Matcher().lower(cu).toList().getFirst();
                 assertThat(sort.isCopy()).isTrue();
                 assertThat(sort.getFields()).isEmpty();
             })

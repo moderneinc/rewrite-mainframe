@@ -20,21 +20,18 @@ import org.openrewrite.mainframe.cobol.CobolTest;
 
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 
-/**
- * A change set is keyed by source file id, so two compilation units sharing one would have every
- * diff attributed to whichever of them was seen last.
- */
+/// A change set is keyed by source file id, so two compilation units sharing one would have every
+/// diff attributed to whichever of them was seen last.
 class CompilationUnitIdentityTest extends CobolTest {
 
     @Test
     void twoProgramsAreTwoSourceFiles() {
-        Set<UUID> ids = new LinkedHashSet<>();
+        var ids = new LinkedHashSet<UUID>();
         rewriteRun(
           cobol(
             """
@@ -54,10 +51,8 @@ class CompilationUnitIdentityTest extends CobolTest {
         assertThat(ids).hasSize(2);
     }
 
-    /**
-     * A moved file is the same file at a different path, and that is only readable while the id
-     * stays put — which is why identity is a field rather than something derived from the path.
-     */
+    /// A moved file is the same file at a different path, and that is only readable while the id
+    /// stays put — which is why identity is a field rather than something derived from the path.
     @Test
     void theIdSurvivesARename() {
         rewriteRun(

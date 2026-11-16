@@ -15,6 +15,7 @@
  */
 package org.openrewrite.mainframe.cobol.search;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -41,8 +42,6 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.openrewrite.mainframe.assembler.Assertions.assembler;
@@ -71,47 +70,13 @@ class FindRelationshipsTest extends CobolTest {
         return source.split("\n", -1)[line - 1];
     }
 
-    @Test
-    void aCopyNamesTheFileItDependsOn() {
-        List<SourceFile> mapset = BmsParser.builder().build().parseInputs(singletonList(
-            new Parser.Input(Path.of("COSGN00.bms"), () -> new ByteArrayInputStream(
-              """
-                COSGN00 DFHMSD LANG=COBOL,MODE=INOUT,STORAGE=AUTO
-                COSGN0A DFHMDI SIZE=(24,80)
-                TRNNAME DFHMDF POS=(1,8),LENGTH=4
-                        DFHMSD TYPE=FINAL
-                        END
-                """.getBytes(UTF_8)))),
-          null, new InMemoryExecutionContext()).collect(toList());
-
-        rewriteRun(
-          spec -> spec.parser(CobolParser.builder().copybooks(mapset)).dataTable(Row.class, rows ->
-            // A symbolic map is generated from its map set. DFHAID is the CICS translator's, in no file.
-            assertThat(rows).filteredOn(r -> r.getAction() == COPY)
-              .extracting(Row::getDependency, Row::getDependencyPath)
-              .containsExactly(tuple("COSGN00", "COSGN00.bms"), tuple("DFHAID", null))),
-          cobol(
-            """
-              000000 IDENTIFICATION DIVISION.                                         *
-                     PROGRAM-ID. SIGNON.                                              *
-                     DATA DIVISION.                                                   *
-                     WORKING-STORAGE SECTION.                                         *
-                         COPY COSGN00.                                                *
-                         COPY DFHAID.                                                 *
-              """,
-            "",
-            spec -> spec.after(s -> s)
-          )
-        );
-    }
-
 	@DocumentExample @Test void IC201A() {
-        String linkEdit = """
+        var linkEdit = """
           *
           INCLUDE OBJLIB(IC201A)    MODULE FOO
           *INCLUDE OBJLIB(ABCD02)
           """;
-        String bindPackage = """
+        var bindPackage = """
           BIND PACKAGE(&PROD0.EXT) OWNER(&SBS100S) -                        \s
              QUALIFIER(&SBS100S.EXT) MEMBER(IC201A) -                      \s
              SQLERROR(NOPACKAGE) VALIDATE(BIND) FLAG(I) ISOLATION(CS) -
@@ -119,7 +84,7 @@ class FindRelationshipsTest extends CobolTest {
              ACTION(ADD)     -                                        \s
              ENABLE(*)                                                \s
           """;
-        String bindPlan = """
+        var bindPlan = """
           BIND PLAN(LINKEDIT1) OWNER(SBS100S) -            \s
              QUALIFIER(SBS100S) -                         \s
              PKLIST(PROD0.*)  -                           \s
@@ -170,6 +135,40 @@ class FindRelationshipsTest extends CobolTest {
           linkEdit(linkEdit, spec -> spec.path("linkeditcards/LINKEDIT1")),
           bind(bindPackage, spec -> spec.path("bindcards/BINDCARDPACKAGE")),
           bind(bindPlan, spec -> spec.path("bindcards/BINDCARDPLAN"))
+        );
+    }
+
+    @Test
+    void aCopyNamesTheFileItDependsOn() {
+        List<SourceFile> mapset = BmsParser.builder().build().parseInputs(List.of(
+            new Parser.Input(Path.of("COSGN00.bms"), () -> new ByteArrayInputStream(
+              """
+                COSGN00 DFHMSD LANG=COBOL,MODE=INOUT,STORAGE=AUTO
+                COSGN0A DFHMDI SIZE=(24,80)
+                TRNNAME DFHMDF POS=(1,8),LENGTH=4
+                        DFHMSD TYPE=FINAL
+                        END
+                """.getBytes(UTF_8)))),
+          null, new InMemoryExecutionContext()).toList();
+
+        rewriteRun(
+          spec -> spec.parser(CobolParser.builder().copybooks(mapset)).dataTable(Row.class, rows ->
+            // A symbolic map is generated from its map set. DFHAID is the CICS translator's, in no file.
+            assertThat(rows).filteredOn(r -> r.getAction() == COPY)
+              .extracting(Row::getDependency, Row::getDependencyPath)
+              .containsExactly(tuple("COSGN00", "COSGN00.bms"), tuple("DFHAID", null))),
+          cobol(
+            """
+              000000 IDENTIFICATION DIVISION.                                         *
+                     PROGRAM-ID. SIGNON.                                              *
+                     DATA DIVISION.                                                   *
+                     WORKING-STORAGE SECTION.                                         *
+                         COPY COSGN00.                                                *
+                         COPY DFHAID.                                                 *
+              """,
+            "",
+            spec -> spec.after(s -> s)
+          )
         );
     }
 
@@ -239,14 +238,12 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
-    /**
-     * A VSAM file exists because a {@code DEFINE} made it, and the jobs that read it say only that
-     * they read it. A sort card yields no such edge: {@code SORTIN} is a DD name, and only the JCL
-     * says what it is bound to.
-     */
+    /// A VSAM file exists because a `DEFINE` made it, and the jobs that read it say only that
+    /// they read it. A sort card yields no such edge: `SORTIN` is a DD name, and only the JCL
+    /// says what it is bound to.
     @Test
     void idcamsDefineNamesTheDataSetItMakes() {
-        String define = """
+        var define = """
           /* DEFCLM01 - CLAIM MASTER KSDS. */
           DELETE CLM.PROD.CLMMAST CLUSTER PURGE
           SET MAXCC = 0
@@ -311,7 +308,7 @@ class FindRelationshipsTest extends CobolTest {
 
     @Test
     void anchorsPointAtTheStatement() {
-        String program = """
+        var program = """
           000000 IDENTIFICATION DIVISION.
                  PROGRAM-ID.
                      ANCHORS.
@@ -382,10 +379,8 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
-    /**
-     * A card can hold more than one BIND, and each one's MEMBERs are those written before the next
-     * BIND begins.
-     */
+    /// A card can hold more than one BIND, and each one's MEMBERs are those written before the next
+    /// BIND begins.
     @Test
     void multipleBindsOnOneCard() {
         rewriteRun(
@@ -416,14 +411,12 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
-    /**
-     * A load module exists because a link-edit deck named it, and the step that runs it says only that
-     * it runs it. What the deck leaves out is an answer too: the reserve calculation is included and so
-     * is bound in, while the one CLMB030 calls through a data name is a module of its own.
-     */
+    /// A load module exists because a link-edit deck named it, and the step that runs it says only that
+    /// it runs it. What the deck leaves out is an answer too: the reserve calculation is included and so
+    /// is bound in, while the one CLMB030 calls through a data name is a module of its own.
     @Test
     void aDeckNamesTheLoadModuleAndWhatIsBoundIntoIt() {
-        String deck = """
+        var deck = """
           *  CLMC020 - CLAIM INQUIRY.  CLMU020 IS CALLED STATICALLY.
             INCLUDE SYSLIB(DFHECI)
             INCLUDE OBJLIB(CLMU020)
@@ -452,12 +445,10 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
-    /**
-     * INTERLINKS 12. A deck names an object and never what it was written in, so what each name is
-     * has to be answered elsewhere: {@code CLMU030} is assembler because {@code asm/CLMU030} offers
-     * the name, {@code DFSLI000} and the {@code DLITCBL} the module is entered at are the DL/I
-     * language interface's and no program anybody keeps, and a name nothing else claims is COBOL.
-     */
+    /// INTERLINKS 12. A deck names an object and never what it was written in, so what each name is
+    /// has to be answered elsewhere: `CLMU030` is assembler because `asm/CLMU030` offers
+    /// the name, `DFSLI000` and the `DLITCBL` the module is entered at are the DL/I
+    /// language interface's and no program anybody keeps, and a name nothing else claims is COBOL.
     @Test
     void aDeckNamesObjectsOfMoreThanOneLanguage() {
         rewriteRun(
@@ -475,24 +466,26 @@ class FindRelationshipsTest extends CobolTest {
                   tuple(CONTAINS, "DFSLI000", CSECT),
                   tuple(CONTAINS, "CLMU030", ASSEMBLER));
           }),
-          linkEdit("""
+          linkEdit(
+			  """
             *  CLMI050 - CLAIM CLOSE.  DL/I, AND CLMU030 STATICALLY.
               INCLUDE RESLIB(DFSLI000)
               INCLUDE OBJLIB(CLMU030)
               ENTRY DLITCBL
               NAME CLMI050(R)
-            """, spec -> spec.path("linklib/CLMI050.lnk")),
-          assembler("""
+            """,
+			  spec -> spec.path("linklib/CLMI050.lnk")),
+          assembler(
+			  """
             *  CLMU030 - CLAIM NUMBER EDIT.
                      END   CLMU030
-            """, spec -> spec.path("asm/CLMU030.asm")));
+            """,
+			  spec -> spec.path("asm/CLMU030.asm")));
     }
 
-    /**
-     * INTERLINKS 14. A listing types its names the same way a deck does: a DL/I module is entered at
-     * the {@code DLITCBL} label the program declares, which is a place in the module and not a
-     * program of its own.
-     */
+    /// INTERLINKS 14. A listing types its names the same way a deck does: a DL/I module is entered at
+    /// the `DLITCBL` label the program declares, which is a place in the module and not a
+    /// program of its own.
     @Test
     void aListingEntersADliModuleAtItsLabel() {
         rewriteRun(
@@ -522,11 +515,9 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
-    /**
-     * A deck says what a module was meant to hold and a listing says what it holds: the language
-     * interface and the runtime the autocall pulled in are in the module and in no deck anybody wrote,
-     * so a module's parts are only complete once the listing has been read.
-     */
+    /// A deck says what a module was meant to hold and a listing says what it holds: the language
+    /// interface and the runtime the autocall pulled in are in the module and in no deck anybody wrote,
+    /// so a module's parts are only complete once the listing has been read.
     @Test
     void aListingNamesTheSectionsAModuleHolds() {
         String listing = String.join("\n",
@@ -562,14 +553,12 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
-    /**
-     * A control section is a node of its own on a diagram, so both ends of the row have to be
-     * openable: the {@code CSECT} statement that emitted the section, and the listing line the binder
-     * reported it on.
-     */
+    /// A control section is a node of its own on a diagram, so both ends of the row have to be
+    /// openable: the `CSECT` statement that emitted the section, and the listing line the binder
+    /// reported it on.
     @Test
     void aControlSectionIsAnchoredWhereItWasWrittenDown() {
-        String program = """
+        var program = """
           *  CLMU040 - CLAIM MASTER RECORD EDIT.
           CLMU040  CSECT
           CLMU040  AMODE 31
@@ -872,7 +861,7 @@ class FindRelationshipsTest extends CobolTest {
 
     @Test
     void aCopyInACopy() {
-        String program = """
+        var program = """
           000000 IDENTIFICATION DIVISION.                                         *
                  PROGRAM-ID. IC109A.                                              *
                  DATA DIVISION.                                                   *
@@ -1037,15 +1026,13 @@ class FindRelationshipsTest extends CobolTest {
         );
     }
 
-    /**
-     * A statement's tables are read off the statement rather than off the word after a keyword. That
-     * word was only the first table of a join, half of a qualified name COBOL writes as more than one
-     * word, nothing at all when the table was on the line after its verb, and the cursor a fetch
-     * reads from when the cursor was declared further down.
-     */
+    /// A statement's tables are read off the statement rather than off the word after a keyword. That
+    /// word was only the first table of a join, half of a qualified name COBOL writes as more than one
+    /// word, nothing at all when the table was on the line after its verb, and the cursor a fetch
+    /// reads from when the cursor was declared further down.
     @Test
     void readsEveryTableAStatementNames() {
-        String program = """
+        var program = """
           000000 IDENTIFICATION DIVISION.
                  PROGRAM-ID.
                      TABLES.
@@ -1112,7 +1099,7 @@ class FindRelationshipsTest extends CobolTest {
 
     @Test
     void controlMScheduleToJcl() {
-        String schedule = """
+        var schedule = """
           +---------------------------------- BROWSE -----------------------------------+
           | MEMNAME JCL_JOB         MEMLIB LIB_NAME                                     |
           | OWNER                  TASKTYPE         PREVENT-NCT2 DFLT                   |
@@ -1205,14 +1192,12 @@ class FindRelationshipsTest extends CobolTest {
           controlM(schedule, spec -> spec.after(s -> s).path("CTM_SCHEDULE.ctms")));
     }
 
-    /**
-     * What a DBD writes down, which nothing else in an estate does: the database it gens, the
-     * segments in it, and the other databases it is tied to. The {@code XDFLD} names a field of this
-     * same database, so it is no edge between databases and yields nothing here.
-     */
+    /// What a DBD writes down, which nothing else in an estate does: the database it gens, the
+    /// segments in it, and the other databases it is tied to. The `XDFLD` names a field of this
+    /// same database, so it is no edge between databases and yields nothing here.
     @Test
     void databaseDefinition() {
-        String dbd = """
+        var dbd = """
           *  THE CLAIM DATABASE
                 DBD   NAME=CLMDBD01,ACCESS=(HDAM,VSAM)
                 DATASET DD1=CLMDB01,DEVICE=3390
@@ -1250,14 +1235,12 @@ class FindRelationshipsTest extends CobolTest {
           ims(dbd, spec -> spec.path("ims/dbd/CLMDBD01.dbd")));
     }
 
-    /**
-     * What a PSB lets a program reach. Most PCBs are named by nothing but where they come, so an
-     * unnamed one is the PSB and its position — which is what a program counting masks works from
-     * anyway — and the position rides along as the action metadata.
-     */
+    /// What a PSB lets a program reach. Most PCBs are named by nothing but where they come, so an
+    /// unnamed one is the PSB and its position — which is what a program counting masks works from
+    /// anyway — and the position rides along as the action metadata.
     @Test
     void programSpecificationBlock() {
-        String psb = """
+        var psb = """
           *  CONVERSATIONAL CLAIM INQUIRY
                 PCB   TYPE=TP,NAME=CLMLTRM,MODIFY=YES
                 PCB   TYPE=DB,DBDNAME=CLMDBD01,PROCSEQ=CLMDBX01,PROCOPT=G
@@ -1297,14 +1280,12 @@ class FindRelationshipsTest extends CobolTest {
           ims(psb, spec -> spec.path("ims/psb/CLMPSB02.psb")));
     }
 
-    /**
-     * The stage 1 deck, which is the only place a transaction code is tied to a PSB. What it does not
-     * say is the program: a message driven application is loaded by the name its PSB has, and which
-     * program was link-edited under that name is for the link-edit deck to say.
-     */
+    /// The stage 1 deck, which is the only place a transaction code is tied to a PSB. What it does not
+    /// say is the program: a message driven application is loaded by the name its PSB has, and which
+    /// program was link-edited under that name is for the link-edit deck to say.
     @Test
     void systemDefinition() {
-        String stage1 = """
+        var stage1 = """
           *  THE CLAIMS CONTRIBUTION TO THE IMS SYSTEM DEFINITION
                 APPLCTN PSB=CLMPSB02,PGMTYPE=(TP,,2)
                 TRANSACT CODE=CLMINQ,SPA=(150,)
@@ -1336,14 +1317,12 @@ class FindRelationshipsTest extends CobolTest {
           ims(stage1, spec -> spec.path("ims/stage1/CLMGEN01.gen")));
     }
 
-    /**
-     * What a format set ties together: the messages laid out on it, and the message each is answered
-     * by. The {@code NXT=} chain is the only place the MID a reply arrives on is written down, since
-     * the call that reads the reply names no format at all.
-     */
+    /// What a format set ties together: the messages laid out on it, and the message each is answered
+    /// by. The `NXT=` chain is the only place the MID a reply arrives on is written down, since
+    /// the call that reads the reply names no format at all.
     @Test
     void formatSet() {
-        String mfs = """
+        var mfs = """
           *  CLAIM INQUIRY, THE FIRST SCREEN OF CONVERSATION CLMINQ
           CLMF01   FMT
                    DEV   TYPE=(3270,2),FEAT=IGNORE,SYSMSG=CLMSYS
@@ -1385,15 +1364,13 @@ class FindRelationshipsTest extends CobolTest {
           ims(mfs, spec -> spec.path("ims/mfs/CLMF01.mfs")));
     }
 
-    /**
-     * The MOD a program names, which is the whole of what its COBOL says about a screen under IMS:
-     * the fourth argument of an {@code ISRT} against a message PCB, resolved from working storage.
-     * Nothing here names the MID the reply arrives on — the {@code GU} that reads it takes three
-     * arguments — so that edge is the format set's {@code NXT=} and not this program's.
-     */
+    /// The MOD a program names, which is the whole of what its COBOL says about a screen under IMS:
+    /// the fourth argument of an `ISRT` against a message PCB, resolved from working storage.
+    /// Nothing here names the MID the reply arrives on — the `GU` that reads it takes three
+    /// arguments — so that edge is the format set's `NXT=` and not this program's.
     @Test
     void messageOutputDescriptor() {
-        String program = """
+        var program = """
           000000 IDENTIFICATION DIVISION.
                  PROGRAM-ID.
                      CLMI030.
@@ -1426,15 +1403,13 @@ class FindRelationshipsTest extends CobolTest {
           cobol(program, "", spec -> spec.after(s -> s).path("CLMI030.CBL")));
     }
 
-    /**
-     * INTERLINKS 20.2, 20.3 and 20.5. An assembler member says a name and never what kind of name it
-     * is: {@code COPY CLMREGS} and {@code CLMSAVE} both reach {@code CLM.PROD.MACLIB}, and only the
-     * library says which of the macros the shop wrote — {@code CALL} and {@code DCB} come out of
-     * {@code SYS1.MACLIB}, which is nowhere in the repository.
-     */
+    /// INTERLINKS 20.2, 20.3 and 20.5. An assembler member says a name and never what kind of name it
+    /// is: `COPY CLMREGS` and `CLMSAVE` both reach `CLM.PROD.MACLIB`, and only the
+    /// library says which of the macros the shop wrote — `CALL` and `DCB` come out of
+    /// `SYS1.MACLIB`, which is nowhere in the repository.
     @Test
     void anAssemblerMemberReachesItsMacroLibraryAndItsSubroutine() {
-        String program = """
+        var program = """
           *  CLMU040 - CLAIM MASTER RECORD EDIT.
                    COPY  CLMREGS
                    COPY  CLMRECD
@@ -1464,38 +1439,46 @@ class FindRelationshipsTest extends CobolTest {
                 assertThat(lineAt(program, r.getDependentLine())).contains(r.getDependency()));
           }),
           assembler(program, spec -> spec.path("CLMU040.asm")),
-          assembler("""
+          assembler(
+			  """
             *  CLMU030 - CLAIM NUMBER EDIT.
                      END   CLMU030
-            """, spec -> spec.path("CLMU030.asm")),
-          assembler("""
+            """,
+			  spec -> spec.path("CLMU030.asm")),
+          assembler(
+			  """
                      MACRO
             &NAME    CLMSAVE &BASE,&SAVE=,&ID=
                      MEND
-            """, spec -> spec.path("CLMSAVE.mac")),
-          assembler("""
+            """,
+			  spec -> spec.path("CLMSAVE.mac")),
+          assembler(
+			  """
                      MACRO
             &NAME    CLMRTRN &RC,&REG=
                      MEND
-            """, spec -> spec.path("CLMRTRN.mac")),
-          assembler("""
+            """,
+			  spec -> spec.path("CLMRTRN.mac")),
+          assembler(
+			  """
             R1       EQU   1
-            """, spec -> spec.path("CLMREGS.mac")),
-          assembler("""
+            """,
+			  spec -> spec.path("CLMREGS.mac")),
+          assembler(
+			  """
             CLMRECD  DSECT
             CLMRCLM  DS    CL10
-            """, spec -> spec.path("CLMRECD.mac")));
+            """,
+			  spec -> spec.path("CLMRECD.mac")));
     }
 
-    /**
-     * INTERLINKS 20. The other end of an {@code ENTRY}: a name a member uses and does not define. It
-     * is a reference and not a call — the {@code CALL} writes its own row — and it is the row a build
-     * reconciliation joins on, since an {@code EXTRN} no link-edit deck includes is what the binder's
-     * autocall goes hunting for.
-     */
+    /// INTERLINKS 20. The other end of an `ENTRY`: a name a member uses and does not define. It
+    /// is a reference and not a call — the `CALL` writes its own row — and it is the row a build
+    /// reconciliation joins on, since an `EXTRN` no link-edit deck includes is what the binder's
+    /// autocall goes hunting for.
     @Test
     void anExternalNameIsWhatTheBinderResolves() {
-        String program = """
+        var program = """
           *  CLMA010 - IMS CLAIM PURGE.
           CLMA010  CSECT
                    EXTRN CLMU030
@@ -1515,20 +1498,20 @@ class FindRelationshipsTest extends CobolTest {
                 assertThat(lineAt(program, r.getDependentLine())).contains(r.getDependency()));
           }),
           assembler(program, spec -> spec.path("asm/CLMA010.asm")),
-          assembler("""
+          assembler(
+			  """
             *  CLMU030 - CLAIM NUMBER EDIT.
                      END   CLMU030
-            """, spec -> spec.path("asm/CLMU030.asm")));
+            """,
+			  spec -> spec.path("asm/CLMU030.asm")));
     }
 
-    /**
-     * INTERLINKS 21.2 and 21.5. A SAS report reaches its macro library by member name and DB2 through
-     * a passthrough connection. What it reaches by DD name — {@code SASSRC}, {@code CLMSAS} — is left
-     * on the traits: a DD name closes only against the job that ran the program.
-     */
+    /// INTERLINKS 21.2 and 21.5. A SAS report reaches its macro library by member name and DB2 through
+    /// a passthrough connection. What it reaches by DD name — `SASSRC`, `CLMSAS` — is left
+    /// on the traits: a DD name closes only against the job that ran the program.
     @Test
     void aSasMemberIncludesItsMacroLibraryAndReadsADb2View() {
-        String program = """
+        var program = """
           %INCLUDE SASSRC(CLMSMAC);
 
           LIBNAME CLMSAS;
@@ -1557,13 +1540,11 @@ class FindRelationshipsTest extends CobolTest {
           text(program, spec -> spec.path("sas/CLMSPOL.sas")));
     }
 
-    /**
-     * INTERLINKS 8.7 and 21.1. A job may carry a SAS program instead of naming one, and that program
-     * has no member name at all — so the job is what the edge hangs on, and the line is the job's own.
-     */
+    /// INTERLINKS 8.7 and 21.1. A job may carry a SAS program instead of naming one, and that program
+    /// has no member name at all — so the job is what the edge hangs on, and the line is the job's own.
     @Test
     void aSasProgramWrittenInAJob() {
-        String job = """
+        var job = """
           //CLMSTAT  JOB (CLM,PROD),'CLAIM STATISTICS'
           //TOP20    EXEC CLMSAS
           //SAS.SASLIST  DD SYSOUT=(A,,CLMR)
@@ -1589,11 +1570,9 @@ class FindRelationshipsTest extends CobolTest {
           jcl(job, spec -> spec.path("jcl/CLMSTAT.jcl")));
     }
 
-    /**
-     * Which language is on the other end of a {@code CALL} is not written in the COBOL. It can only be
-     * answered by reading every member first, which is why the callee's type is decided from the names
-     * the assembler members of the estate offer.
-     */
+    /// Which language is on the other end of a `CALL` is not written in the COBOL. It can only be
+    /// answered by reading every member first, which is why the callee's type is decided from the names
+    /// the assembler members of the estate offer.
     @Test
     void aCobolProgramCallingAssembler() {
         rewriteRun(
@@ -1603,7 +1582,8 @@ class FindRelationshipsTest extends CobolTest {
               .containsExactly(
                 tuple("CLMI050", "CLMU030", ASSEMBLER),
                 tuple("CLMI050", "CLMB020", COBOL))),
-          cobol("""
+          cobol(
+			  """
             000000 IDENTIFICATION DIVISION.
                    PROGRAM-ID.
                        CLMI050.
@@ -1611,17 +1591,18 @@ class FindRelationshipsTest extends CobolTest {
                        CALL 'CLMU030' USING CD-CLAIM-NO.
                        CALL 'CLMB020' USING CD-CLAIM-NO.
                        GOBACK.
-            """, "", spec -> spec.after(s -> s).path("CLMI050.CBL")),
-          assembler("""
+            """,
+			  "", spec -> spec.after(s -> s).path("CLMI050.CBL")),
+          assembler(
+			  """
             *  CLMU030 - CLAIM NUMBER EDIT.
                      END   CLMU030
-            """, spec -> spec.path("CLMU030.asm")));
+            """,
+			  spec -> spec.path("CLMU030.asm")));
     }
 
-    /**
-     * INTERLINKS 20.5. What an assembler DL/I call reaches is written nowhere on the call: the
-     * function comes from the constant the first argument names and the segment from the SSA's.
-     */
+    /// INTERLINKS 20.5. What an assembler DL/I call reaches is written nowhere on the call: the
+    /// function comes from the constant the first argument names and the segment from the SSA's.
     @Test
     void anAssemblerDliCall() {
         rewriteRun(
@@ -1633,21 +1614,21 @@ class FindRelationshipsTest extends CobolTest {
                 tuple("CLMA010", "(R11)", IMS_PCB, "GHN"),
                 tuple("CLMA010", "CLMROOT", IMS_SEGMENT, "GHN"),
                 tuple("CLMA010", "(R11)", IMS_PCB, "DLET"))),
-          assembler("""
+          assembler(
+			  """
             A10LOOP  CALL  ASMTDLI,(A10GHN,(R11),A10ROOT,A10SSA),VL
                      CALL  ASMTDLI,(A10DLET,(R11),A10ROOT),VL
             A10GHN   DC    CL4'GHN '
             A10DLET  DC    CL4'DLET'
             A10SSA   DC    CL9'CLMROOT'
                      END   CLMA010
-            """, spec -> spec.path("CLMA010.asm")));
+            """,
+			  spec -> spec.path("CLMA010.asm")));
     }
 
-    /**
-     * INTERLINKS 17.1. What a CLIST reaches, which is how a job is started by hand: the setup it calls,
-     * the job it submits and the program it runs in the foreground. The name a script computed draws no
-     * edge — {@code &JOB} is whatever the person at the terminal typed.
-     */
+    /// INTERLINKS 17.1. What a CLIST reaches, which is how a job is started by hand: the setup it calls,
+    /// the job it submits and the program it runs in the foreground. The name a script computed draws no
+    /// edge — `&JOB` is whatever the person at the terminal typed.
     @Test
     void aClistSubmitsJobsAndCallsPrograms() {
         rewriteRun(
@@ -1658,19 +1639,19 @@ class FindRelationshipsTest extends CobolTest {
                 tuple("CLMFXTR", CLIST, CALL, "CLMSETUP", CLIST, "EXEC"),
                 tuple("CLMFXTR", CLIST, SUBMITS, "CLMJ010", JCL, "SUBMIT"),
                 tuple("CLMFXTR", CLIST, CALL, "CLMB010", COBOL, "CALL"))),
-          text("""
+          text(
+			  """
             PROC 0 ENV(PROD)
             %CLMSETUP ENV(&ENV)
             SUBMIT 'CLM.PROD.JCL(CLMJ010)'
             SUBMIT '&CLMHLQ..JCL(&JOB)'
             CALL 'CLM.PROD.LOADLIB(CLMB010)'
-            """, spec -> spec.path("CLMFXTR.clist")));
+            """,
+			  spec -> spec.path("CLMFXTR.clist")));
     }
 
-    /**
-     * INTERLINKS 17.2. An exec reaches the same members a CLIST does, and is one itself: which library
-     * a {@code %name} is found in is the session's answer, so an exec calling one reaches {@code SYSEXEC}.
-     */
+    /// INTERLINKS 17.2. An exec reaches the same members a CLIST does, and is one itself: which library
+    /// a `%name` is found in is the session's answer, so an exec calling one reaches `SYSEXEC`.
     @Test
     void aRexxExecSubmitsAJob() {
         rewriteRun(
@@ -1680,20 +1661,20 @@ class FindRelationshipsTest extends CobolTest {
               .containsExactly(
                 tuple("CLMRERUN", REXX, SUBMITS, "CLMJ030", JCL),
                 tuple("CLMRERUN", REXX, CALL, "CLMPICK", REXX))),
-          text("""
+          text(
+			  """
             /* REXX */
             HLQ = 'CLM.PROD'
             "SUBMIT '"HLQ".JCL(CLMJ030)'"
             "SUBMIT '"HLQ".JCL("JOB")'"
             %CLMPICK
-            """, spec -> spec.path("CLMRERUN.rexx")));
+            """,
+			  spec -> spec.path("CLMRERUN.rexx")));
     }
 
-    /**
-     * INTERLINKS 18.1. What a run book documents is the one edge its text draws by itself. The other
-     * names it mentions are names and not references: whether one is a component at all is answered by
-     * looking it up among the members a repository holds.
-     */
+    /// INTERLINKS 18.1. What a run book documents is the one edge its text draws by itself. The other
+    /// names it mentions are names and not references: whether one is a component at all is answered by
+    /// looking it up among the members a repository holds.
     @Test
     void aRunBookDocumentsAComponent() {
         rewriteRun(
@@ -1704,29 +1685,31 @@ class FindRelationshipsTest extends CobolTest {
               .containsExactly(
                 tuple("CLMJ010", DOCUMENT, REFERENCES, "CLMJ010", JCL, "DOCJOB", 3),
                 tuple("CLMEXTR", DOCUMENT, REFERENCES, "CLM.PROD.EXTRACT", DATA_SET, "DOCFICH", 3))),
-          text("""
+          text(
+			  """
             DOCJOB   CLMJ010                                CASCADE MUTUAL - CLAIMS
             ========================================================================
             JOB          CLMJ010                    LIBRARY  CLM.PROD.JCL
             STEPS
               EXTRACT    PROC CLMBATCH  PGM CLMB010
-            """, spec -> spec.path("CLMJ010.docjob")),
-          text("""
+            """,
+			  spec -> spec.path("CLMJ010.docjob")),
+          text(
+			  """
             DOCFICH  CLMEXTR                                CASCADE MUTUAL - CLAIMS
             ========================================================================
             FILE         CLM.PROD.EXTRACT           APPLICATION  CLAIMS
             LAYOUT       COPYBOOK CLMEXTR
-            """, spec -> spec.path("CLMEXTR.docfich")));
+            """,
+			  spec -> spec.path("CLMEXTR.docfich")));
     }
 
-    /**
-     * The two halves that say what a load module is made of are named so that a recipe already drawing
-     * the rest of these edges runs them alone rather than the whole of this one and every other edge a
-     * second time. Alone they write the rows this recipe writes.
-     */
+    /// The two halves that say what a load module is made of are named so that a recipe already drawing
+    /// the rest of these edges runs them alone rather than the whole of this one and every other edge a
+    /// second time. Alone they write the rows this recipe writes.
     @Test
     void theLoadModuleHalvesRunOnTheirOwn() {
-        String deck = """
+        var deck = """
           *  CLMC020 - CLAIM INQUIRY.  CLMU020 IS CALLED STATICALLY.
             INCLUDE SYSLIB(DFHECI)
             INCLUDE OBJLIB(CLMU020)
@@ -1751,14 +1734,14 @@ class FindRelationshipsTest extends CobolTest {
           "      CLMU020       00002F68  000006E8  SD     31",
           "");
 
-        List<Row> whole = new ArrayList<>();
+        var whole = new ArrayList<Row>();
         rewriteRun(
           spec -> spec.dataTable(Row.class, whole::addAll),
           linkEdit(deck, spec -> spec.path("linklib/CLMC020.lnk")),
           text(listing, spec -> spec.path("listload/CICSLOAD.amblist"))
         );
 
-        List<Row> halves = new ArrayList<>();
+        var halves = new ArrayList<Row>();
         rewriteRun(
           spec -> spec.recipe(new LoadModuleRelationships()).dataTable(Row.class, halves::addAll),
           linkEdit(deck, spec -> spec.path("linklib/CLMC020.lnk")),
@@ -1769,26 +1752,20 @@ class FindRelationshipsTest extends CobolTest {
         assertThat(halves).containsExactlyInAnyOrderElementsOf(whole);
     }
 
-    /**
-     * What a recipe with edges of its own asks these two halves for, which is what
-     * {@code AnalyzeLoadModuleRelationships} in the recipes does.
-     */
+    /// What a recipe with edges of its own asks these two halves for, which is what
+    /// `AnalyzeLoadModuleRelationships` in the recipes does.
     static class LoadModuleRelationships extends Recipe {
         transient CobolRelationships relationships = new CobolRelationships(this);
 
-        @Override
-        public String getDisplayName() {
-            return "Find the relationships of a load module";
-        }
+		@Getter
+		final String displayName = "Find the relationships of a load module";
 
-        @Override
-        public String getDescription() {
-            return "The link-edit and listing halves of `FindRelationships`, run without the rest of it.";
-        }
+		@Getter
+		final String description = "The link-edit and listing halves of `FindRelationships`, run without the rest of it.";
 
         @Override
         public TreeVisitor<?, ExecutionContext> getVisitor() {
-            FindRelationships.Assemblers assemblers = new FindRelationships.Assemblers();
+            var assemblers = new FindRelationships.Assemblers();
             TreeVisitor<?, ExecutionContext> decks =
               new FindRelationships.LinkEditRelationships(relationships, assemblers);
             TreeVisitor<?, ExecutionContext> listings =

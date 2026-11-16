@@ -26,12 +26,7 @@ import org.openrewrite.text.PlainText;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * What AMBLIST or the binder reported about a load library, read for the modules it names rather than

@@ -21,12 +21,12 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.mainframe.cobol.internal.CobolPrinter;
 import org.openrewrite.mainframe.cobol.internal.IbmAnsi85;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Space;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.SourceSpecs;
 

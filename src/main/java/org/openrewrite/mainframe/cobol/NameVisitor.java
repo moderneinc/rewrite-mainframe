@@ -15,8 +15,8 @@
  */
 package org.openrewrite.mainframe.cobol;
 
-import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.mainframe.cobol.tree.Cobol;
 
 public class NameVisitor<P> extends CobolIsoVisitor<P> {
 

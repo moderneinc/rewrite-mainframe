@@ -18,15 +18,10 @@ package org.openrewrite.mainframe.controlcard.utility;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.*;
 
 /**
  * The words a Db2 utility control card is written out of.
@@ -84,21 +79,21 @@ public final class Keywords {
 
         // FROM TABLE, the base utility's answer to a SELECT: a table, a field list and a condition.
         block("FROM",
-                Collections.emptyList(),
+                emptyList(),
                 asList("WHEN", "HEADER", "LIMIT", "SAMPLE", "PART"));
 
         // INTO TABLE, the same shape on a LOAD.
         block("INTO",
-                Collections.emptyList(),
+                emptyList(),
                 asList("WHEN", "PART", "RESUME", "REPLACE", "IGNOREFIELDS", "PRESORTED", "NUMRECS"));
 
         block("FORMAT",
-                Collections.emptyList(),
+                emptyList(),
                 asList("LIKE", "SEP", "DELIM", "NULLVAL", "TITLE", "ALTERNATE", "COL", "TYPE",
                         "LOADDDN", "LOADOPT", "LOADDDL"));
 
         block("OPTIONS",
-                Collections.emptyList(),
+                emptyList(),
                 asList("NULL", "DATE", "DATEDELIM", "TIME", "TIMEDELIM", "TIMESTAMP", "PIC", "LOADOPT",
                         "LOADDDL", "LENGTHBYTE", "LENGTH", "NULLID", "NULLPOS", "LOADINDDN", "FLOAT",
                         "UNLROWSET", "NULLPAD", "AUTOTAG", "IFERROR", "TRIM", "PADDING", "REFORMAT",
@@ -109,7 +104,7 @@ public final class Keywords {
                         "TEMPLATEDD", "LISTDEFDD", "PREVIEW", "EVENT", "FILSZ", "KEY", "OFF"));
 
         block("GLOBAL",
-                Collections.singletonList("OPTIONS"),
+                singletonList("OPTIONS"),
                 asList("DB2", "LOCK", "QUIESCE", "QUIESCECAT", "INDEXSCAN", "EXECUTE", "PROCMSG",
                         "SELMSG", "PARALLELISM", "SORT", "QSAM-BUFFERS", "VSAM-BUFFERS", "MAXPART",
                         "TAPEUNIT", "TAPEREPORT", "SQLID", "APPLCOMPAT", "PROGRESS_MSG_FREQ",
@@ -124,11 +119,11 @@ public final class Keywords {
                         "SQL_LOCK_TIMEOUT", "USE_RTS_FOR_ESTIMATION", "SEQ_IO_METHOD", "SRTNBVRE"));
 
         block("PROCESS_OPTIONS",
-                Collections.emptyList(),
+                emptyList(),
                 asList("LISTDEFDD", "TEMPLATEDD", "PATH_VARIABLES", "OFF"));
 
         block("TEMPLATE",
-                Collections.emptyList(),
+                emptyList(),
                 asList("DSN", "PATH", "SUBSYS", "LRECL", "RECFM", "UNIT", "MODELDCB", "BUFNO",
                         "DATACLAS", "MGMTCLAS", "STORCLAS", "RETPD", "EXPDL", "VOLUMES", "VOLCNT",
                         "UNCNT", "GDGLIMIT", "LIMIT", "TIME", "DISP", "SPACE", "PCTPRIME", "MAXPRIME",
@@ -136,14 +131,14 @@ public final class Keywords {
                         "PATHOPTS", "PATHMODE", "PATHDISP"));
 
         block("LISTDEF",
-                Collections.emptyList(),
+                emptyList(),
                 asList("INCLUDE", "EXCLUDE", "TABLESPACES", "INDEXSPACES", "COPY", "LIST", "DATABASE",
                         "TABLESPACE", "INDEXSPACE", "TABLE", "INDEX", "PARTLEVEL", "CLONED", "RI"));
         BLOCKS.put("LISTDEFTBV", BLOCKS.get("LISTDEF"));
         OPERANDS.put("LISTDEFTBV", OPERANDS.get("LISTDEF"));
 
         block("LOAD",
-                Collections.singletonList("INTO"),
+                singletonList("INTO"),
                 asList("DATA", "INDDN", "INCURSOR", "RESUME", "REPLACE", "SHRLEVEL", "LOG", "ENFORCE",
                         "SORTKEYS", "ERRDDN", "MAPDDN", "DISCARDDN", "DISCARDS", "WORKDDN", "SORTDEVT",
                         "SORTNUM", "COPYDDN", "RECOVERYDDN", "STATISTICS", "FORMAT", "DELIMITED",
@@ -152,13 +147,13 @@ public final class Keywords {
                         "FLOAT", "NOSUBS", "IDENTITYOVERRIDE"));
 
         block("COPY",
-                Collections.emptyList(),
+                emptyList(),
                 asList("TABLESPACE", "INDEXSPACE", "LIST", "COPYDDN", "RECOVERYDDN", "SHRLEVEL",
                         "FULL", "DSNUM", "FILTERDDN", "CHECKPAGE", "PARALLEL", "CONCURRENT",
                         "SYSTEMPAGES", "SCOPE", "FLASHCOPY", "CLONE"));
 
         block("REORG",
-                Collections.emptyList(),
+                emptyList(),
                 asList("TABLESPACE", "INDEX", "INDEXSPACE", "LIST", "PART", "SHRLEVEL", "SORTDATA",
                         "SORTKEYS", "COPYDDN", "RECOVERYDDN", "UNLDDN", "PUNCHDDN", "STATISTICS",
                         "KEEPDICTIONARY", "LOG", "DEADLINE", "MAXRO", "LONGLOG", "DELAY", "DRAIN",
@@ -167,54 +162,54 @@ public final class Keywords {
                         "AUX", "PREFORMAT"));
 
         block("RUNSTATS",
-                Collections.emptyList(),
+                emptyList(),
                 asList("TABLESPACE", "INDEX", "INDEXSPACE", "LIST", "TABLE", "COLUMN", "SAMPLE",
                         "SHRLEVEL", "REPORT", "UPDATE", "HISTORY", "KEYCARD", "FREQVAL", "COUNT",
                         "NUMCOLS", "SORTDEVT", "SORTNUM", "FORCEROLLUP", "COLGROUP", "TABLESPACES"));
 
         block("QUIESCE",
-                Collections.emptyList(),
+                emptyList(),
                 asList("TABLESPACE", "LIST", "TABLESPACESET", "WRITE", "RANGE", "CLONE"));
 
         block("CHECK",
-                Collections.emptyList(),
+                emptyList(),
                 asList("DATA", "INDEX", "LOB", "TABLESPACE", "INDEXSPACE", "LIST", "PART", "SHRLEVEL",
                         "SCOPE", "ERRDDN", "WORKDDN", "SORTDEVT", "SORTNUM", "EXCEPTIONS", "AUXERROR",
                         "FOR", "DELETE", "YES", "CLONE"));
 
         block("MERGECOPY",
-                Collections.emptyList(),
+                emptyList(),
                 asList("TABLESPACE", "LIST", "DSNUM", "NEWCOPY", "COPYDDN", "RECOVERYDDN", "WORKDDN"));
 
         block("MODIFY",
-                Collections.emptyList(),
+                emptyList(),
                 asList("RECOVERY", "STATISTICS", "TABLESPACE", "INDEXSPACE", "LIST", "DSNUM", "DELETE",
                         "AGE", "DATE", "RETAIN"));
 
         block("REBUILD",
-                Collections.emptyList(),
+                emptyList(),
                 asList("INDEX", "INDEXSPACE", "LIST", "PART", "SHRLEVEL", "SORTDEVT", "SORTNUM",
                         "WORKDDN", "STATISTICS", "REUSE", "SCOPE", "CLONE"));
 
         block("RECOVER",
-                Collections.emptyList(),
+                emptyList(),
                 asList("TABLESPACE", "INDEX", "INDEXSPACE", "LIST", "DSNUM", "TOCOPY", "TORBA",
                         "TOLOGPOINT", "TOLASTCOPY", "TOLASTFULLCOPY", "LOGONLY", "ERROR", "PARALLEL",
                         "CURRENTCOPYONLY", "RESTOREBEFORE", "CLONE"));
 
         block("REPAIR",
-                Collections.emptyList(),
+                emptyList(),
                 asList("OBJECT", "LOCATE", "TABLESPACE", "INDEX", "INDEXSPACE", "DBD", "SET", "PAGE",
                         "DSNUM", "VERIFY", "REPLACE", "DELETE", "DUMP", "LOG", "CLONE"));
 
         block("COPYTOCOPY",
-                Collections.emptyList(),
+                emptyList(),
                 asList("TABLESPACE", "INDEXSPACE", "LIST", "DSNUM", "FROMLASTCOPY", "FROMLASTFULLCOPY",
                         "FROMLASTINCRCOPY", "FROMCOPY", "FROMCOPYDDN", "FROMSEQNO", "FROMVOLUME",
                         "COPYDDN", "RECOVERYDDN", "CLONE"));
 
-        block("STOSPACE", Collections.emptyList(), asList("STOGROUP", "LIST"));
-        block("DIAGNOSE", Collections.emptyList(), asList("TYPE", "DISPLAY", "ALLDUMPS", "NODUMPS",
+        block("STOSPACE", emptyList(), asList("STOGROUP", "LIST"));
+        block("DIAGNOSE", emptyList(), asList("TYPE", "DISPLAY", "ALLDUMPS", "NODUMPS",
                 "DATABASE", "TABLESPACE", "INDEX", "MEPL", "AVAILABLE", "WAIT", "ABEND", "END"));
     }
 
@@ -239,7 +234,7 @@ public final class Keywords {
      * tolerates, not what it writes.
      */
     private static final List<String> INHERITED =
-            Collections.unmodifiableList(asList("FORMAT", "DB2", "QUIESCE", "LOCK"));
+            unmodifiableList(asList("FORMAT", "DB2", "QUIESCE", "LOCK"));
 
     private static void block(String verb, List<String> blocks, List<String> operands) {
         BLOCKS.put(verb, upper(blocks));
@@ -255,7 +250,7 @@ public final class Keywords {
         for (String word : words) {
             set.add(word.toUpperCase(Locale.ROOT));
         }
-        return Collections.unmodifiableSet(set);
+        return unmodifiableSet(set);
     }
 
     /**

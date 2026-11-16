@@ -16,22 +16,22 @@
 package org.openrewrite.mainframe.cobol;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.openrewrite.mainframe.cobol.Assertions.cobolPostProcess;
 
 class PartialWordReplacingTest extends CobolTest {
 
-    /**
-     * A reductive replacement chooses its type by comparing the number of words it matches against
-     * the number it replaces them with. It used to compare against the number of <em>sites</em> the
-     * rule matched instead, so a rule was silently skipped whenever it happened to match exactly as
-     * many times as it has words — three words matching at three sites, here.
-     * <p>
-     * Nothing fails when that happens: the copybook is expanded with the library text intact, and
-     * {@code DISPLAY OLD ONE TWO} is as valid as {@code DISPLAY NEWNAME}. The program parses, and
-     * every analysis built on it is wrong.
-     */
+	/// A reductive replacement chooses its type by comparing the number of words it matches against
+	/// the number it replaces them with. It used to compare against the number of _sites_ the
+	/// rule matched instead, so a rule was silently skipped whenever it happened to match exactly as
+	/// many times as it has words — three words matching at three sites, here.
+	///
+	/// Nothing fails when that happens: the copybook is expanded with the library text intact, and
+	/// `DISPLAY OLD ONE TWO` is as valid as `DISPLAY NEWNAME`. The program parses, and
+	/// every analysis built on it is wrong.
+    @DocumentExample
     @Test
     void reductiveReplacementMatchingAsManyTimesAsItHasWords() {
         rewriteRun(

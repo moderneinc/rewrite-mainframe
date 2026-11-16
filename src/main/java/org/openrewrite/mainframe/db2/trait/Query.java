@@ -22,14 +22,7 @@ import org.openrewrite.mainframe.db2.tree.Db2;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A query, and the tables it reads. A view or a materialized query table is built from one, and an

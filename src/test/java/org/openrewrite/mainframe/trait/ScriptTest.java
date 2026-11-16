@@ -21,7 +21,6 @@ import org.openrewrite.text.PlainText;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -29,10 +28,37 @@ import static org.openrewrite.test.SourceSpecs.text;
 
 class ScriptTest implements RewriteTest {
 
-    /**
-     * The statements of a CLIST that reach a member, one of each shape. Everything else — the
-     * conditions, the messages, the return codes — reaches nothing and is left alone.
-     */
+	/// Every name a script writes, which is what a search for a member name finds in it. It
+	/// over-answers on purpose: an English word of eight letters or fewer is spelled exactly like a
+	/// member name, and which of these is a component is a join and not a lexical rule.
+    @Test
+    void findsEveryNameAScriptWritesDown() {
+        rewriteRun(
+          text(
+            """
+              /*  RUN THE NIGHTLY STREAM, TABLE CLMNIGHT  */
+              SET &JOB1 = CLMJ010
+              SET &JOB2 = CLMJ020
+              %CLMSUB &JOB NOASK
+              """,
+            spec -> spec.path("CLMNITE.clist").afterRecipe(cu -> {
+                var names = new ArrayList<String>();
+                new Script.Matcher().require(cu, null).getMentions().forEach(name -> names.add(name.getText()));
+                assertThat(names).contains("CLMNIGHT", "CLMJ010", "CLMJ020", "CLMSUB");
+                // A name is distinct and carries the line it was first written on.
+                assertThat(new Script.Matcher().require(cu, null).getMentions())
+                  .filteredOn(name -> "CLMJ020".equals(name.getText()))
+                  .singleElement()
+                  .satisfies(name -> assertThat(name.getLine()).isEqualTo(3));
+                // Not a name: a word with a lower case letter is prose, and a word of more than
+                // eight characters is longer than a member name may be.
+                assertThat(names).doesNotContain("NOASK1234", "Claims");
+            }))
+        );
+    }
+
+    /// The statements of a CLIST that reach a member, one of each shape. Everything else — the
+    /// conditions, the messages, the return codes — reaches nothing and is left alone.
     @Test
     void readsWhatEachStatementOfAClistReaches() {
         rewriteRun(
@@ -68,10 +94,8 @@ class ScriptTest implements RewriteTest {
         );
     }
 
-    /**
-     * Every script writes {@code WRITE ...: SUBMIT &JOB (Y/N)?} somewhere, so the verb of a statement
-     * decides and a word in the middle of a message reaches nothing.
-     */
+    /// Every script writes `WRITE ...: SUBMIT &JOB (Y/N)?` somewhere, so the verb of a statement
+    /// decides and a word in the middle of a message reaches nothing.
     @Test
     void readsTheVerbOfTheStatementAndNotAWordInAMessage() {
         rewriteRun(
@@ -87,10 +111,8 @@ class ScriptTest implements RewriteTest {
         );
     }
 
-    /**
-     * A name a script computes is reported as it stands and said to be by argument. A CLIST writes one
-     * with a leading {@code &}, and the qualifier being a variable does not make the library one.
-     */
+    /// A name a script computes is reported as it stands and said to be by argument. A CLIST writes one
+    /// with a leading `&`, and the qualifier being a variable does not make the library one.
     @Test
     void saysWhichNamesTheScriptComputedAndWhichItWroteDown() {
         rewriteRun(
@@ -109,12 +131,10 @@ class ScriptTest implements RewriteTest {
         );
     }
 
-    /**
-     * REXX builds a command out of strings and variables written side by side, so the double quotes
-     * come off and what was between them joins up. What was written outside them is what the exec
-     * computed, which is the difference between the job {@code CLMJ010} and the job named by the
-     * argument.
-     */
+    /// REXX builds a command out of strings and variables written side by side, so the double quotes
+    /// come off and what was between them joins up. What was written outside them is what the exec
+    /// computed, which is the difference between the job `CLMJ010` and the job named by the
+    /// argument.
     @Test
     void joinsUpTheStringsARexxExecBuildsACommandFrom() {
         rewriteRun(
@@ -138,10 +158,8 @@ class ScriptTest implements RewriteTest {
         );
     }
 
-    /**
-     * An exec kept without an extension — which is how a PDS member arrives when it is copied off as
-     * it stands — is known by the comment TSO itself reads, and by nothing else.
-     */
+    /// An exec kept without an extension — which is how a PDS member arrives when it is copied off as
+    /// it stands — is known by the comment TSO itself reads, and by nothing else.
     @Test
     void readsAnExecKeptWithoutAnExtension() {
         rewriteRun(
@@ -156,42 +174,9 @@ class ScriptTest implements RewriteTest {
         );
     }
 
-    /**
-     * Every name a script writes, which is what a search for a member name finds in it. It
-     * over-answers on purpose: an English word of eight letters or fewer is spelled exactly like a
-     * member name, and which of these is a component is a join and not a lexical rule.
-     */
-    @Test
-    void findsEveryNameAScriptWritesDown() {
-        rewriteRun(
-          text(
-            """
-              /*  RUN THE NIGHTLY STREAM, TABLE CLMNIGHT  */
-              SET &JOB1 = CLMJ010
-              SET &JOB2 = CLMJ020
-              %CLMSUB &JOB NOASK
-              """,
-            spec -> spec.path("CLMNITE.clist").afterRecipe(cu -> {
-                List<String> names = new ArrayList<>();
-                new Script.Matcher().require(cu, null).getMentions().forEach(name -> names.add(name.getText()));
-                assertThat(names).contains("CLMNIGHT", "CLMJ010", "CLMJ020", "CLMSUB");
-                // A name is distinct and carries the line it was first written on.
-                assertThat(new Script.Matcher().require(cu, null).getMentions())
-                  .filteredOn(name -> "CLMJ020".equals(name.getText()))
-                  .singleElement()
-                  .satisfies(name -> assertThat(name.getLine()).isEqualTo(3));
-                // Not a name: a word with a lower case letter is prose, and a word of more than
-                // eight characters is longer than a member name may be.
-                assertThat(names).doesNotContain("NOASK1234", "Claims");
-            }))
-        );
-    }
-
-    /**
-     * The other half of a submit by argument: what the member sets, what it calls and what it takes.
-     * The job is written down under the {@code WHEN} that chooses it and handed on as a variable, so
-     * nothing but the caller and the callee together says which job is submitted.
-     */
+    /// The other half of a submit by argument: what the member sets, what it calls and what it takes.
+    /// The job is written down under the `WHEN` that chooses it and handed on as a variable, so
+    /// nothing but the caller and the callee together says which job is submitted.
     @Test
     void readsWhatAClistSetsCallsAndDeclares() {
         rewriteRun(
@@ -234,11 +219,9 @@ class ScriptTest implements RewriteTest {
         );
     }
 
-    /**
-     * An exec takes its arguments with {@code PARSE ARG}, assigns without a verb and calls another
-     * exec by writing its name where a command goes, so none of the three readings is the same
-     * reading there and none of them is done.
-     */
+    /// An exec takes its arguments with `PARSE ARG`, assigns without a verb and calls another
+    /// exec by writing its name where a command goes, so none of the three readings is the same
+    /// reading there and none of them is done.
     @Test
     void readsNeitherAssignmentNorParameterOfARexxExec() {
         rewriteRun(
@@ -262,10 +245,8 @@ class ScriptTest implements RewriteTest {
         );
     }
 
-    /**
-     * A run book is not a script, so the matcher leaves it alone: the trait would report the
-     * {@code CALLS} and {@code RUN BY} lines of a run book as statements, and they are prose.
-     */
+    /// A run book is not a script, so the matcher leaves it alone: the trait would report the
+    /// `CALLS` and `RUN BY` lines of a run book as statements, and they are prose.
     @Test
     void doesNotReadARunBookAsAScript() {
         rewriteRun(
@@ -275,7 +256,7 @@ class ScriptTest implements RewriteTest {
               CALLS        NONE
               """,
             spec -> spec.path("CLMB010.docpgm").afterRecipe(cu ->
-              assertThat(new Script.Matcher().lower(cu).collect(Collectors.toList())).isEmpty()))
+              assertThat(new Script.Matcher().lower(cu).toList()).isEmpty()))
         );
     }
 

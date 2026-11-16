@@ -32,7 +32,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 class DataDescriptionTest implements RewriteTest {
 
     private List<DataDescription> entries(String source) {
-        List<DataDescription> found = new ArrayList<>();
+        var found = new ArrayList<DataDescription>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new DataDescription.Matcher().<ExecutionContext>asVisitor((entry, ctx) -> {
               found.add(entry);
@@ -49,7 +49,7 @@ class DataDescriptionTest implements RewriteTest {
 
     @Test
     void findsTheEntryARedefinitionNamesByPosition() {
-        List<DataDescription> entries = entries(
+        var entries = entries(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. REDEF.                                              \s
@@ -78,7 +78,7 @@ class DataDescriptionTest implements RewriteTest {
 
     @Test
     void placesEachEntryUnderTheOneItIsDeclaredUnder() {
-        List<DataDescription> entries = entries(
+        var entries = entries(
           """
             000000 IDENTIFICATION DIVISION.                                        \s
             000000 PROGRAM-ID. LEVELS.                                             \s

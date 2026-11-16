@@ -31,9 +31,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -280,7 +280,7 @@ class BmsParserTest {
     private static Bms.CompilationUnit parse(String source) {
         List<SourceFile> parsed = BmsParser.builder().build()
           .parse(new InMemoryExecutionContext(), source)
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(Bms.CompilationUnit.class);
         return (Bms.CompilationUnit) parsed.getFirst();

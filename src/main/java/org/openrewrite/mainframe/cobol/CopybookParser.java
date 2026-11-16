@@ -23,6 +23,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.mainframe.assembler.AssemblerParser;
 import org.openrewrite.mainframe.cobol.internal.CobolDialect;
 import org.openrewrite.mainframe.cobol.internal.CobolPreprocessorParserVisitor;
@@ -30,7 +31,6 @@ import org.openrewrite.mainframe.cobol.internal.grammar.CobolPreprocessorLexer;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.Space;
-import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.mainframe.internal.PredictionListener;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.text.PlainText;
@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 /**

@@ -24,7 +24,6 @@ import org.openrewrite.mainframe.db2.marker.OmitEquals;
 import org.openrewrite.mainframe.db2.marker.Semicolon;
 import org.openrewrite.mainframe.db2.tree.*;
 import org.openrewrite.marker.Marker;
-import org.openrewrite.marker.Markers;
 
 import java.util.Iterator;
 import java.util.List;

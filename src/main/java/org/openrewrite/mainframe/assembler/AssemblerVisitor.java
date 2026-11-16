@@ -16,9 +16,9 @@
 package org.openrewrite.mainframe.assembler;
 
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.assembler.tree.Assembler;
 import org.openrewrite.mainframe.assembler.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 public class AssemblerVisitor<P> extends TreeVisitor<Assembler, P> {
 

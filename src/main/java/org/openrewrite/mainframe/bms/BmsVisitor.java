@@ -16,9 +16,9 @@
 package org.openrewrite.mainframe.bms;
 
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.bms.tree.Bms;
 import org.openrewrite.mainframe.bms.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 public class BmsVisitor<P> extends TreeVisitor<Bms, P> {
 

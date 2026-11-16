@@ -34,9 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
@@ -44,7 +41,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 class CopybookReferenceTest implements RewriteTest {
 
     private List<CopybookReference> parse(String source) {
-        List<CopybookReference> found = new ArrayList<>();
+        var found = new ArrayList<CopybookReference>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() ->
             new CopybookReference.Matcher().<ExecutionContext>asVisitor((reference, ctx) -> {
@@ -56,17 +53,15 @@ class CopybookReferenceTest implements RewriteTest {
         return found;
     }
 
-    /**
-     * {@code COPY} and {@code EXEC SQL INCLUDE} are unrelated node types holding the name in
-     * different places. They mean the same thing, so they read the same here.
-     */
+    /// `COPY` and `EXEC SQL INCLUDE` are unrelated node types holding the name in
+    /// different places. They mean the same thing, so they read the same here.
     @ParameterizedTest
     @ValueSource(strings = {
       "COPY INCEPTION_3.",
       "EXEC SQL INCLUDE INCEPTION_3 END-EXEC.",
     })
     void readsEitherWayOfWritingIt(String written) {
-        List<CopybookReference> references = parse(
+        var references = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -86,7 +81,7 @@ class CopybookReferenceTest implements RewriteTest {
 
     @Test
     void reportsACopybookNothingResolvedTo() {
-        List<CopybookReference> references = parse(
+        var references = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -106,7 +101,7 @@ class CopybookReferenceTest implements RewriteTest {
 
     @Test
     void readsANameWithAPeriodAsOneName() {
-        List<CopybookReference> references = parse(
+        var references = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -121,14 +116,12 @@ class CopybookReferenceTest implements RewriteTest {
           .satisfies(reference -> assertThat(reference.getName()).isEqualTo("NOSUCH.BOOK"));
     }
 
-    /**
-     * A copybook that copies another is reached too, and reached once. INCEPTION copies INCEPTION_2,
-     * which copies INCEPTION_3, and preprocessing hangs each of the three off a word of the program
-     * — so walking into a resolved copybook as well reports the inner ones once per level above them.
-     */
+    /// A copybook that copies another is reached too, and reached once. INCEPTION copies INCEPTION_2,
+    /// which copies INCEPTION_3, and preprocessing hangs each of the three off a word of the program
+    /// — so walking into a resolved copybook as well reports the inner ones once per level above them.
     @Test
     void reachesACopybookThatCopiesAnotherExactlyOnce() {
-        List<CopybookReference> references = parse(
+        var references = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -143,13 +136,11 @@ class CopybookReferenceTest implements RewriteTest {
           .containsExactly("INCEPTION", "INCEPTION_2", "INCEPTION_3");
     }
 
-    /**
-     * The word the reference hangs off is where the program text around it is, which is what a
-     * caller reports as context.
-     */
+    /// The word the reference hangs off is where the program text around it is, which is what a
+    /// caller reports as context.
     @Test
     void knowsTheWordItHangsOff() {
-        List<CopybookReference> references = parse(
+        var references = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. IC109A.                                              *
@@ -166,7 +157,7 @@ class CopybookReferenceTest implements RewriteTest {
 
     @Test
     void resolvesAMemberTheCompilerSupplies() {
-        List<CopybookReference> references = parse(
+        var references = parse(
           """
             000000 IDENTIFICATION DIVISION.                                         *
                    PROGRAM-ID. SUPPLIED.                                            *
@@ -188,13 +179,13 @@ class CopybookReferenceTest implements RewriteTest {
 
     @Test
     void prefersAMemberTheRepositoryHolds() {
-        String sqlca = """
+        var sqlca = """
                  01  SQLCA.                                                       \s
                      05  SQLCODE    PIC S9(9) COMP-5.                             \s
           """;
-        List<SourceFile> copybooks = CopybookParser.builder().build().parseInputs(singletonList(
+        List<SourceFile> copybooks = CopybookParser.builder().build().parseInputs(List.of(
             new Parser.Input(Path.of("SQLCA.cpy"), () -> new ByteArrayInputStream(sqlca.getBytes(UTF_8)))),
-          null, new InMemoryExecutionContext()).collect(toList());
+          null, new InMemoryExecutionContext()).toList();
         SourceFile program = CobolParser.builder().copybooks(copybooks).build().parse(
           """
             000000 IDENTIFICATION DIVISION.                                         *
@@ -205,7 +196,7 @@ class CopybookReferenceTest implements RewriteTest {
             """
         ).findFirst().orElseThrow();
 
-        List<CopybookReference> references = new ArrayList<>();
+        var references = new ArrayList<CopybookReference>();
         new CopybookReference.Matcher().<Integer>asVisitor((reference, p) -> {
             references.add(reference);
             return reference.getTree();
@@ -229,26 +220,26 @@ class CopybookReferenceTest implements RewriteTest {
 
     @Test
     void aSourceThatCannotBeCopiedIsPassedOver() {
-        List<SourceFile> library = PlainTextParser.builder().build().parseInputs(singletonList(
+        List<SourceFile> library = PlainTextParser.builder().build().parseInputs(List.of(
             new Parser.Input(Path.of("COSGN00.copy"), () -> new ByteArrayInputStream("COSGN00".getBytes(UTF_8)))),
-          null, new InMemoryExecutionContext()).collect(toList());
+          null, new InMemoryExecutionContext()).toList();
 
         assertThat(copying("COSGN00", library).isMissing()).isTrue();
     }
 
     @Test
     void aCopybookOfTheMapsetsNameWins() {
-        String cosgn00 = """
+        var cosgn00 = """
                  01  COSGN0AI.                                                    \s
                      05  TRNNAMEI   PIC X(4).                                     \s
           """;
-        List<SourceFile> copybook = CopybookParser.builder().build().parseInputs(singletonList(
+        List<SourceFile> copybook = CopybookParser.builder().build().parseInputs(List.of(
             new Parser.Input(Path.of("COSGN00.cpy"), () -> new ByteArrayInputStream(cosgn00.getBytes(UTF_8)))),
-          null, new InMemoryExecutionContext()).collect(toList());
+          null, new InMemoryExecutionContext()).toList();
 
         // Ahead of the copybook in the library, whether it parsed or not.
         for (String mapset : new String[]{COSGN00, "not a map set"}) {
-            List<SourceFile> library = new ArrayList<>(mapset("COSGN00.bms", mapset));
+            var library = new ArrayList<SourceFile>(mapset("COSGN00.bms", mapset));
             library.addAll(copybook);
             assertThat(copying("COSGN00", library).getSourcePath()).isEqualTo(Path.of("COSGN00.cpy"));
         }
@@ -263,9 +254,9 @@ class CopybookReferenceTest implements RewriteTest {
       """;
 
     private static List<SourceFile> mapset(String path, String source) {
-        return BmsParser.builder().build().parseInputs(singletonList(
+        return BmsParser.builder().build().parseInputs(List.of(
             new Parser.Input(Path.of(path), () -> new ByteArrayInputStream(source.getBytes(UTF_8)))),
-          null, new InMemoryExecutionContext()).collect(toList());
+          null, new InMemoryExecutionContext()).toList();
     }
 
     private static CopybookReference copying(String member, List<SourceFile> library) {
@@ -279,7 +270,7 @@ class CopybookReferenceTest implements RewriteTest {
             """.formatted(member)
         ).findFirst().orElseThrow();
 
-        List<CopybookReference> references = new ArrayList<>();
+        var references = new ArrayList<CopybookReference>();
         new CopybookReference.Matcher().<Integer>asVisitor((reference, p) -> {
             references.add(reference);
             return reference.getTree();

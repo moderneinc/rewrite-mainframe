@@ -28,17 +28,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-/**
- * Where a statement sits, read from its cursor. Analyses used to track this as visitor state, which
- * meant extending a base class to get at it and meant the answer outlived what it was about.
- */
+/// Where a statement sits, read from its cursor. Analyses used to track this as visitor state, which
+/// meant extending a base class to get at it and meant the answer outlived what it was about.
 class ProcedureTest implements RewriteTest {
 
-    /**
-     * Every {@code DISPLAY} in the source, as "program/procedure".
-     */
+    /// Every `DISPLAY` in the source, as "program/procedure".
     private List<String> locations(String source) {
-        List<String> found = new ArrayList<>();
+        var found = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -52,10 +48,8 @@ class ProcedureTest implements RewriteTest {
         return found;
     }
 
-    /**
-     * A paragraph within a section answers with the paragraph: it is the finer of the two names, and
-     * the one a {@code PERFORM} would have to use to reach the statement.
-     */
+    /// A paragraph within a section answers with the paragraph: it is the finer of the two names, and
+    /// the one a `PERFORM` would have to use to reach the statement.
     @Test
     void readsTheParagraphWithinASection() {
         assertThat(locations(
@@ -72,10 +66,8 @@ class ProcedureTest implements RewriteTest {
         )).containsExactly("SECTPGM/FIRST-PARA", "SECTPGM/SECOND-PARA");
     }
 
-    /**
-     * The name stops applying at the end of what it names. Tracked as visitor state it did not: a
-     * statement after the last paragraph kept reporting that paragraph.
-     */
+    /// The name stops applying at the end of what it names. Tracked as visitor state it did not: a
+    /// statement after the last paragraph kept reporting that paragraph.
     @Test
     void readsNothingOutsideAnyProcedure() {
         assertThat(locations(
@@ -88,13 +80,11 @@ class ProcedureTest implements RewriteTest {
         )).containsExactly("FLATPGM/");
     }
 
-    /**
-     * An analysis that reports once per file asks at the compilation unit, where there is no program
-     * above to find.
-     */
+    /// An analysis that reports once per file asks at the compilation unit, where there is no program
+    /// above to find.
     @Test
     void readsTheProgramOfTheFileItself() {
-        List<String> found = new ArrayList<>();
+        var found = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CobolIsoVisitor<ExecutionContext>() {
               @Override
@@ -138,7 +128,7 @@ class ProcedureTest implements RewriteTest {
 
     @Test
     void readsADeclarativeSection() {
-        String source = """
+        var source = """
           000000 IDENTIFICATION DIVISION.                                        \s
           000000 PROGRAM-ID. DECLPGM.                                            \s
           000000 PROCEDURE DIVISION.                                             \s
@@ -152,7 +142,7 @@ class ProcedureTest implements RewriteTest {
           """;
         assertThat(locations(source)).containsExactly("DECLPGM/IO-ERROR", "DECLPGM/MAIN-PARA");
 
-        List<String> matched = new ArrayList<>();
+        var matched = new ArrayList<String>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new Procedure.Matcher().<ExecutionContext>asVisitor((procedure, ctx) -> {
               matched.add(procedure.toString());

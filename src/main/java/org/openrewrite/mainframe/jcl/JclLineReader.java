@@ -18,18 +18,10 @@ package org.openrewrite.mainframe.jcl;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
 import org.jspecify.annotations.Nullable;
-
 import org.openrewrite.mainframe.cobol.LineEndings;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 public class JclLineReader {
     /**

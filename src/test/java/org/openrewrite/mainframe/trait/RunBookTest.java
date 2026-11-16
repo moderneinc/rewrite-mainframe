@@ -54,12 +54,10 @@ class RunBookTest implements RewriteTest {
         );
     }
 
-    /**
-     * The labelled fields, which is where the member says a name is a component. A label stands in
-     * the first thirteen columns and its value in the rest of the line and every line indented under
-     * it; the header block writes a second field from column forty one, so the job and the library it
-     * is in are two fields and not one field with a stray word in it.
-     */
+    /// The labelled fields, which is where the member says a name is a component. A label stands in
+    /// the first thirteen columns and its value in the rest of the line and every line indented under
+    /// it; the header block writes a second field from column forty one, so the job and the library it
+    /// is in are two fields and not one field with a stray word in it.
     @Test
     void readsTheLabelledFieldsAndNotTheProseAsOne() {
         rewriteRun(
@@ -100,11 +98,9 @@ class RunBookTest implements RewriteTest {
         );
     }
 
-    /**
-     * A {@code DOCFICH} is named for the last qualifier of its data set where that is a name and given
-     * one where it is a word, so the {@code FILE} line and not the member name is what a data set
-     * reference resolves through.
-     */
+    /// A `DOCFICH` is named for the last qualifier of its data set where that is a name and given
+    /// one where it is a word, so the `FILE` line and not the member name is what a data set
+    /// reference resolves through.
     @Test
     void readsTheDataSetADocfichDocumentsRatherThanItsOwnName() {
         rewriteRun(
@@ -125,11 +121,9 @@ class RunBookTest implements RewriteTest {
         );
     }
 
-    /**
-     * The first word is where the mainframe keeps the shape, since a member's name says only what it
-     * is about. A member that opens with something else is typed by the extension it reached the
-     * repository with.
-     */
+    /// The first word is where the mainframe keeps the shape, since a member's name says only what it
+    /// is about. A member that opens with something else is typed by the extension it reached the
+    /// repository with.
     @Test
     void readsTheShapeFromTheFirstWordAndFallsBackToTheExtension() {
         rewriteRun(
@@ -156,11 +150,9 @@ class RunBookTest implements RewriteTest {
         );
     }
 
-    /**
-     * Every name a run book mentions, which is what a name index joins on. It over-answers on purpose,
-     * and what it will not answer with is prose: a word holding a lower case letter, and a word longer
-     * than a member name may be.
-     */
+    /// Every name a run book mentions, which is what a name index joins on. It over-answers on purpose,
+    /// and what it will not answer with is prose: a word holding a lower case letter, and a word longer
+    /// than a member name may be.
     @Test
     void findsEveryNameARunBookMentions() {
         rewriteRun(
@@ -174,11 +166,12 @@ class RunBookTest implements RewriteTest {
               LAST CHANGE  05/18/1994 RJM  Written with the IMS load
               """,
             spec -> spec.path("doc/CLMJ060.docjob").afterRecipe(cu -> {
-                List<String> names = texts(book(cu).getMentions());
-                assertThat(names).contains("CLMJ030", "CLMNIGHT_CLMJ030_OK", "IMSP-DBR-CLMDBD01",
-                  "CLMDB01", "CLM.PROD.IMS.CLMDB01.LOG");
-                // Prose, a date and a line of rules are not names.
-                assertThat(names).doesNotContain("Written", "OPERATIONS", "05", "1994");
+                var names = texts(book(cu).getMentions());
+                assertThat(names)
+                        .contains("CLMJ030", "CLMNIGHT_CLMJ030_OK", "IMSP-DBR-CLMDBD01",
+                  "CLMDB01", "CLM.PROD.IMS.CLMDB01.LOG")
+                        // Prose, a date and a line of rules are not names.
+                        .doesNotContain("Written", "OPERATIONS", "05", "1994");
             }))
         );
     }
@@ -188,7 +181,7 @@ class RunBookTest implements RewriteTest {
     }
 
     private static List<String> texts(List<Mention> names) {
-        List<String> texts = new ArrayList<>(names.size());
+        var texts = new ArrayList<String>(names.size());
         for (Mention name : names) {
             texts.add(name.getText());
         }

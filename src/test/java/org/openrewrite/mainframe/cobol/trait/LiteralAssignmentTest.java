@@ -20,26 +20,18 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.mainframe.cobol.Assertions.cobol;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-/**
- * Each program ends in an {@code XCTL} per item under test, and each item is asked about where its
- * {@code XCTL} names it.
- */
+/// Each program ends in an `XCTL` per item under test, and each item is asked about where its
+ /// `XCTL` names it.
 class LiteralAssignmentTest implements RewriteTest {
 
     private Map<String, @Nullable Set<String>> candidates(String source) {
-        Map<String, @Nullable Set<String>> found = new HashMap<>();
+        var found = new HashMap<String, @Nullable Set<String>>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new CicsCommand.Matcher().<ExecutionContext>asVisitor((command, ctx) -> {
               if (command.isVerb("XCTL")) {
@@ -55,7 +47,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void readsLeaveTheSetComplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. READS.
@@ -92,7 +84,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void moveFromAnIdentifierMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. MOVES.
@@ -112,7 +104,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void writeToAnEnclosingGroupMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. GROUPS.
@@ -141,7 +133,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void writeToAnOverlappingItemMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. OVERLAP.
@@ -164,14 +156,15 @@ class LiteralAssignmentTest implements RewriteTest {
             """
         );
 
-        assertThat(found).containsEntry("WS-PGM", null);
-        assertThat(found).containsEntry("WS-PART", null);
+        assertThat(found)
+                .containsEntry("WS-PGM", null)
+                .containsEntry("WS-PART", null);
         assertThat(found.get("WS-GROUP")).containsExactly("PGMB");
     }
 
     @Test
     void valueOnSharedStorageMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. INITVAL.
@@ -192,14 +185,15 @@ class LiteralAssignmentTest implements RewriteTest {
             """
         );
 
-        assertThat(found).containsEntry("WS-PGM", null);
-        assertThat(found).containsEntry("WS-PGM-VALUES", null);
-        assertThat(found).containsEntry("WS-NAME", null);
+        assertThat(found)
+                .containsEntry("WS-PGM", null)
+                .containsEntry("WS-PGM-VALUES", null)
+                .containsEntry("WS-NAME", null);
     }
 
     @Test
     void referenceModifiedLiteralMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. REFMOD.
@@ -218,7 +212,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void anythingElseNamingTheItemMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. STMTS.
@@ -242,14 +236,15 @@ class LiteralAssignmentTest implements RewriteTest {
             """
         );
 
-        assertThat(found).containsEntry("WS-READ", null);
-        // Every operation on the file sets its status.
-        assertThat(found).containsEntry("WS-STATUS", null);
+        assertThat(found)
+                .containsEntry("WS-READ", null)
+                // Every operation on the file sets its status.
+                .containsEntry("WS-STATUS", null);
     }
 
     @Test
     void cicsOptionsReturningDataMakeTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. CICSOUT.
@@ -275,18 +270,19 @@ class LiteralAssignmentTest implements RewriteTest {
             """
         );
 
-        assertThat(found).containsEntry("WS-RETRIEVED", null);
-        // RETRIEVE returns the queue the starting transaction named.
-        assertThat(found).containsEntry("WS-QUEUE", null);
-        // READNEXT returns the key of the record it read.
-        assertThat(found).containsEntry("WS-KEY", null);
-        // The linked program can change the commarea it is handed.
-        assertThat(found).containsEntry("WS-LINKED", null);
+        assertThat(found)
+                .containsEntry("WS-RETRIEVED", null)
+                // RETRIEVE returns the queue the starting transaction named.
+                .containsEntry("WS-QUEUE", null)
+                // READNEXT returns the key of the record it read.
+                .containsEntry("WS-KEY", null)
+                // The linked program can change the commarea it is handed.
+                .containsEntry("WS-LINKED", null);
     }
 
     @Test
     void sqlIntoMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. SQLINTO.
@@ -303,13 +299,14 @@ class LiteralAssignmentTest implements RewriteTest {
             """
         );
 
-        assertThat(found).containsEntry("WS-SELECTED", null);
-        assertThat(found).containsEntry("WS-FETCHED", null);
+        assertThat(found)
+                .containsEntry("WS-SELECTED", null)
+                .containsEntry("WS-FETCHED", null);
     }
 
     @Test
     void sqlIntoWritesTheFieldNotItsStructure() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. SQLQUAL.
@@ -332,7 +329,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void handingOutAReferenceMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. CALLS.
@@ -357,15 +354,16 @@ class LiteralAssignmentTest implements RewriteTest {
             """
         );
 
-        assertThat(found).containsEntry("WS-DEFAULT", null);
-        assertThat(found).containsEntry("WS-EXPLICIT", null);
-        assertThat(found).containsEntry("WS-ADDRESSED", null);
-        assertThat(found).containsEntry("WS-POINTED", null);
+        assertThat(found)
+                .containsEntry("WS-DEFAULT", null)
+                .containsEntry("WS-EXPLICIT", null)
+                .containsEntry("WS-ADDRESSED", null)
+                .containsEntry("WS-POINTED", null);
     }
 
     @Test
     void dliCallWritesWhatItReturns() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. DLICALL.
@@ -394,14 +392,15 @@ class LiteralAssignmentTest implements RewriteTest {
 
         assertThat(found.get("GU-FUNC")).containsExactly("GU");
         assertThat(found.get("WS-SSA")).containsExactly("ACCOUNT");
-        assertThat(found).containsEntry("WS-IO", null);
-        assertThat(found).containsEntry("WS-SAVED", null);
-        assertThat(found).containsEntry("WS-COUNTED", null);
+        assertThat(found)
+                .containsEntry("WS-IO", null)
+                .containsEntry("WS-SAVED", null)
+                .containsEntry("WS-COUNTED", null);
     }
 
     @Test
     void setOfAConditionNameMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. SETCOND.
@@ -421,7 +420,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void storageOthersWriteMakesTheSetIncomplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. STORAGE.
@@ -439,15 +438,16 @@ class LiteralAssignmentTest implements RewriteTest {
             """
         );
 
-        assertThat(found).containsEntry("WS-SHARED", null);
-        assertThat(found).containsEntry("LK-PGM", null);
-        // An item the program does not declare could share storage with anything.
-        assertThat(found).containsEntry("WS-UNDECLARED", null);
+        assertThat(found)
+                .containsEntry("WS-SHARED", null)
+                .containsEntry("LK-PGM", null)
+                // An item the program does not declare could share storage with anything.
+                .containsEntry("WS-UNDECLARED", null);
     }
 
     @Test
     void figurativeConstantsLeaveTheSetComplete() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. CLEARS.
@@ -470,7 +470,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void keepsANestedProgramsStorageApart() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. OUTERPGM.
@@ -511,7 +511,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void seesWhatANestedProgramWritesToAGlobalItem() {
-        Map<String, @Nullable Set<String>> found = candidates(
+        var found = candidates(
           """
             000000 IDENTIFICATION DIVISION.
             000000 PROGRAM-ID. OUTERPGM.
@@ -558,7 +558,7 @@ class LiteralAssignmentTest implements RewriteTest {
 
     @Test
     void aValueOnAFillerLandsInNothingANameReaches() {
-        List<List<String>> targets = new ArrayList<>();
+        var targets = new ArrayList<List<String>>();
         rewriteRun(
           spec -> spec.recipe(toRecipe(() -> new LiteralAssignment.Matcher().<ExecutionContext>asVisitor((assignment, ctx) -> {
               targets.add(assignment.getTargets());
@@ -579,6 +579,6 @@ class LiteralAssignmentTest implements RewriteTest {
           )
         );
 
-        assertThat(targets).containsExactly(emptyList(), singletonList("WS-KEY"));
+        assertThat(targets).containsExactly(List.of(), List.of("WS-KEY"));
     }
 }

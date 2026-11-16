@@ -26,12 +26,12 @@ import org.openrewrite.mainframe.ims.tree.Space;
 import org.openrewrite.mainframe.ims.tree.Statement;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.reverse;
 
 /**
  * Walking the statements around one, which is how a gen member says what belongs to what.
@@ -67,7 +67,7 @@ final class Definitions {
      */
     static List<Statement> withinPsb(Cursor cursor) {
         List<Statement> within = new ArrayList<>(preceding(cursor, Definitions::endsPsb));
-        Collections.reverse(within);
+        reverse(within);
         return within;
     }
 

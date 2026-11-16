@@ -31,10 +31,26 @@ class InlineExecStatementTest extends CobolTest {
     }
 
     private static Class<?> statementType(String command) {
-        if (command.startsWith("EXEC CICS")) return Cobol.ExecCicsStatement.class;
-        if (command.startsWith("EXEC DLI")) return Cobol.ExecDliStatement.class;
-        if (command.startsWith("EXEC SQLIMS")) return Cobol.ExecSqlImsStatement.class;
+		if (command.startsWith("EXEC CICS")) {
+			return Cobol.ExecCicsStatement.class;
+		}
+		if (command.startsWith("EXEC DLI")) {
+			return Cobol.ExecDliStatement.class;
+		}
+		if (command.startsWith("EXEC SQLIMS")) {
+			return Cobol.ExecSqlImsStatement.class;
+		}
         return Cobol.ExecSqlStatement.class;
+    }
+
+    @Test
+    void commentsSequenceNumbersAndCrLfKeepTheirExactBytes() {
+        String input = source("EVALUATE FLAG-NUM\nWHEN 1 EXEC CICS RETURN END-EXEC\nWHEN OTHER CONTINUE\nEND-EVALUATE.")
+          .replace("000000 WHEN 1", "123456 WHEN 1")
+          .replace("000000 EVALUATE", "012345* BEFORE SELECTION\n000000 EVALUATE")
+          .replace("END-EXEC\n", "END-EXEC *> AFTER COMMAND\n");
+        rewriteRun(cobol(input));
+        rewriteRun(cobol(input.replace("\n", "\r\n")));
     }
 
     @ParameterizedTest
@@ -93,16 +109,6 @@ class InlineExecStatementTest extends CobolTest {
     }
 
     @Test
-    void commentsSequenceNumbersAndCrLfKeepTheirExactBytes() {
-        String input = source("EVALUATE FLAG-NUM\nWHEN 1 EXEC CICS RETURN END-EXEC\nWHEN OTHER CONTINUE\nEND-EVALUATE.")
-          .replace("000000 WHEN 1", "123456 WHEN 1")
-          .replace("000000 EVALUATE", "012345* BEFORE SELECTION\n000000 EVALUATE")
-          .replace("END-EXEC\n", "END-EXEC *> AFTER COMMAND\n");
-        rewriteRun(cobol(input));
-        rewriteRun(cobol(input.replace("\n", "\r\n")));
-    }
-
-    @Test
     void aLiteralBeforeTheCommandIsNotPartOfItsTemplate() {
         rewriteRun(cobol(source("DISPLAY 'EXEC WHEN' EXEC CICS RETURN END-EXEC.")));
     }
@@ -118,7 +124,7 @@ class InlineExecStatementTest extends CobolTest {
     @ParameterizedTest
     @ValueSource(ints = {71, 72})
     void finalCommandsAtTheContentBoundaryKeepTrailingSourceSpaces(int column) {
-        String line = "000000 MOVE 1 TO FLAG-NUM EXEC CICS RETURN END-EXEC.";
+        var line = "000000 MOVE 1 TO FLAG-NUM EXEC CICS RETURN END-EXEC.";
         String padded = line.replace("FLAG-NUM EXEC", "FLAG-NUM" + " ".repeat(column - line.length()) + " EXEC");
         String input = source("MOVE 1 TO FLAG-NUM EXEC CICS RETURN END-EXEC.")
           .replace("000000 GOBACK.\n", "").stripTrailing().replace(line, padded) + "   ";

@@ -23,7 +23,6 @@ import org.openrewrite.mainframe.jcl.marker.ExpandedMember;
 import org.openrewrite.mainframe.jcl.marker.Symbolic;
 import org.openrewrite.mainframe.jcl.marker.Symbolics;
 import org.openrewrite.mainframe.jcl.tree.Jcl;
-import org.openrewrite.mainframe.jcl.tree.Parameter;
 import org.openrewrite.mainframe.jcl.tree.Statement;
 import org.openrewrite.trait.SimpleTraitMatcher;
 import org.openrewrite.trait.Trait;

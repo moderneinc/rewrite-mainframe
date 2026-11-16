@@ -18,19 +18,21 @@ package org.openrewrite.mainframe.cobol;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.cobol.tree.Cobol;
 import org.openrewrite.mainframe.cobol.tree.CobolPreprocessor;
 import org.openrewrite.mainframe.cobol.tree.CommentArea;
 import org.openrewrite.mainframe.cobol.tree.Replacement;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.mainframe.cobol.tree.Space.EMPTY;
@@ -124,7 +126,7 @@ public class PreprocessReplaceVisitor<P> extends CobolPreprocessorIsoVisitor<P> 
         static Matches find(CobolPreprocessor tree, List<CobolPreprocessor.Word> from, List<CobolPreprocessor.Word> to) {
             List<CobolPreprocessor.Word> words = new ArrayList<>();
             // A word leaves the tree by mapping to null, which only a list of words lets it do.
-            Set<CobolPreprocessor.Word> inText = Collections.newSetFromMap(new IdentityHashMap<>());
+            Set<CobolPreprocessor.Word> inText = newSetFromMap(new IdentityHashMap<>());
             new CobolPreprocessorIsoVisitor<Integer>() {
                 @Override
                 public CobolPreprocessor.Word visitWord(CobolPreprocessor.Word word, Integer p) {
@@ -291,8 +293,8 @@ public class PreprocessReplaceVisitor<P> extends CobolPreprocessorIsoVisitor<P> 
             return copyStatement;
         }
 
-        @Override
-        public CobolPreprocessor.Word visitWord(CobolPreprocessor.Word word, ExecutionContext executionContext) {
+		@Override
+		public  CobolPreprocessor.@Nullable Word visitWord(CobolPreprocessor.Word word, ExecutionContext executionContext) {
             Matches.TextWord textWord = textWords.get(word);
             if (textWord != null) {
                 return textWord.words.get(0) == word ? replaceTextWord(word, textWord) : null;

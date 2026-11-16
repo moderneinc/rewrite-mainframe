@@ -18,11 +18,9 @@ package org.openrewrite.mainframe.assembler.trait;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
+
+import static java.util.Collections.unmodifiableSet;
 
 /**
  * What an operation is, which nothing in the source says.
@@ -189,6 +187,6 @@ final class Operations {
     }
 
     private static Set<String> set(String... names) {
-        return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(names)));
+        return unmodifiableSet(new HashSet<>(Arrays.asList(names)));
     }
 }

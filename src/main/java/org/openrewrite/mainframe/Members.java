@@ -24,11 +24,7 @@ import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextParser;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;

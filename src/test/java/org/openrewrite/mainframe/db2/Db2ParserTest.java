@@ -36,19 +36,17 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * What the grammar reads, and what it refuses to read.
@@ -72,7 +70,7 @@ class Db2ParserTest {
         assertThat(column.getAttributes()).hasSize(2);
         Db2.Option generated = (Db2.Option) column.getAttributes().get(1);
         assertThat(generated.getValues()).isEmpty();
-        assertThat(generated.getKeywords().stream().map(Db2.Keyword::getText).collect(Collectors.joining(" ")))
+        assertThat(generated.getKeywords().stream().map(Db2.Keyword::getText).collect(joining(" ")))
           .isEqualTo("GENERATED " + mode + " FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP");
         assertThat(names(constraints(table).getFirst().getColumns())).containsExactly("ID");
     }
@@ -326,7 +324,7 @@ class Db2ParserTest {
         for (Db2.AlterTable alter : Db2.elementsOf(ddl.getStatements(), Db2.AlterTable.class)) {
             adds.addAll(Db2.elementsOf(alter.getActions(), Db2.Option.class));
         }
-        assertThat(adds).extracting(add -> add.getKeywords().stream().map(Db2.Keyword::getType).collect(Collectors.toList()))
+        assertThat(adds).extracting(add -> add.getKeywords().stream().map(Db2.Keyword::getType).collect(toList()))
           .containsExactly(Arrays.asList(Db2.Keyword.Type.Add, Db2.Keyword.Type.Column), singletonList(Db2.Keyword.Type.Add));
         List<Db2.ColumnDefinition> columns = new ArrayList<>();
         adds.forEach(add -> columns.addAll(Db2.elementsOf(add.getValues(), Db2.ColumnDefinition.class)));
@@ -418,12 +416,12 @@ class Db2ParserTest {
 
         assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateMask.class))
           .extracting(mask -> mask.getName().getFullName(), mask -> mask.getTable().getFullName(),
-            mask -> Db2.elementsOf(mask.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+            mask -> Db2.elementsOf(mask.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(toList()))
           .containsExactly(tuple("CLM.SSN_MASK", "CLM.POLICY", List.of("SSN")),
             tuple("CLM.RATE_MASK", "CLM.POLICY", List.of("P", "RATE")));
         assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreatePermission.class))
           .extracting(permission -> permission.getName().getFullName(), permission -> permission.getTable().getFullName(),
-            permission -> Db2.elementsOf(permission.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+            permission -> Db2.elementsOf(permission.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(toList()))
           .containsExactly(tuple("CLM.OWN_ROWS", "CLM.CLAIM", List.of("C")),
             tuple("CLM.ALL_ROWS", "CLM.POLICY", List.of()));
     }
@@ -454,7 +452,7 @@ class Db2ParserTest {
 
         assertThat(Db2.elementsOf(ddl.getStatements(), Db2.CreateAuxiliaryTable.class))
           .extracting(aux -> aux.getName().getFullName(),
-            aux -> Db2.elementsOf(aux.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(Collectors.toList()))
+            aux -> Db2.elementsOf(aux.getOptions(), Db2.Name.class).stream().map(Db2.Name::getFullName).collect(toList()))
           .containsExactly(tuple("CLM.POLICY_DOC_AUX", List.of("CLMDB.TSDOCAUX", "CLM.POLICY", "DOC")),
             tuple("CLM.CLAIM_NOTE_AUX", List.of("CLM.CLAIM", "NOTE")));
     }
@@ -1023,7 +1021,7 @@ class Db2ParserTest {
         assertThat(parser.accept(sybase)).isFalse();
         assertThat(parser.accept(db2)).isTrue();
         assertThat(parser.parse(singletonList(sybase), directory, new InMemoryExecutionContext(t -> {
-        })).collect(Collectors.toList())).isEmpty();
+        })).collect(toList())).isEmpty();
     }
 
     /**
@@ -1133,13 +1131,13 @@ class Db2ParserTest {
         private List<String> keyOf(Db2.Option partitioning) {
             return Db2.elementsOf(partitioning.getValues(), Db2.Name.class).stream()
               .map(Db2.Name::getFullName)
-              .collect(Collectors.toList());
+              .collect(toList());
         }
 
         private List<String> wordsOf(Db2.Option partitioning) {
             return Db2.elementsOf(partitioning.getValues(), Db2.Word.class).stream()
               .map(Db2.Word::getText)
-              .collect(Collectors.toList());
+              .collect(toList());
         }
     }
 
@@ -1325,7 +1323,7 @@ class Db2ParserTest {
     void everyWordTheLexerKnowsIsAKeywordType() {
         Set<String> types = Arrays.stream(Db2.Keyword.Type.values())
           .map(type -> type.name().toUpperCase(Locale.ROOT))
-          .collect(Collectors.toSet());
+          .collect(toSet());
         List<String> words = new ArrayList<>();
         for (int token = 1; token <= DB2Parser.VOCABULARY.getMaxTokenType(); token++) {
             String literal = DB2Parser.VOCABULARY.getLiteralName(token);
@@ -1352,8 +1350,8 @@ class Db2ParserTest {
 
     private static boolean isNotNull(Db2.ColumnDefinition column) {
         for (Db2.Option option : Db2.elementsOf(column.getAttributes(), Db2.Option.class)) {
-            if (Db2.has(option.getKeywords(), Db2.Keyword.Type.Not)
-                && Db2.has(option.getKeywords(), Db2.Keyword.Type.Null)) {
+            if (Db2.has(option.getKeywords(), Db2.Keyword.Type.Not) &&
+                Db2.has(option.getKeywords(), Db2.Keyword.Type.Null)) {
                 return true;
             }
         }
@@ -1364,7 +1362,7 @@ class Db2ParserTest {
         assertThat(columns).isNotNull();
         return columns.getElements().stream()
           .map(Db2.Name::getSimpleName)
-          .collect(Collectors.toList());
+          .collect(toList());
     }
 
     private static List<String> errorsIn(String source) {
@@ -1388,7 +1386,7 @@ class Db2ParserTest {
           .parse(new InMemoryExecutionContext(t -> {
               throw new IllegalStateException(t);
           }), source)
-          .collect(Collectors.toList());
+          .collect(toList());
         assertThat(parsed).hasSize(1);
         assertThat(parsed.getFirst()).isInstanceOf(Db2.Ddl.class);
         Db2.Ddl ddl = (Db2.Ddl) parsed.getFirst();

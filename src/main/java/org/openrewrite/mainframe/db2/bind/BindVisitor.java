@@ -16,9 +16,9 @@
 package org.openrewrite.mainframe.db2.bind;
 
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.db2.bind.tree.Bind;
 import org.openrewrite.mainframe.db2.bind.tree.Space;
-import org.openrewrite.internal.ListUtils;
 
 public class BindVisitor<P> extends TreeVisitor<Bind, P> {
 
