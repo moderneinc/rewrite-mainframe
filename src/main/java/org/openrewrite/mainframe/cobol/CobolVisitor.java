@@ -21,6 +21,8 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.tree.*;
 
+import org.openrewrite.mainframe.cobol.tree.Continuation;
+
 public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
 
     @Nullable
@@ -4140,7 +4142,7 @@ public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
         if (continuation == null) {
             return null;
         }
-        org.openrewrite.mainframe.cobol.tree.Continuation c = continuation;
+        Continuation c = continuation;
         return c.withMarkers(visitMarkers(c.getMarkers(), p));
     }
 
