@@ -282,7 +282,7 @@ public class JclParser implements Parser {
         return new JclParser.Builder();
     }
 
-    public static class Builder extends org.openrewrite.Parser.Builder {
+    public static class Builder extends Parser.Builder {
         private List<Path> parmMembers = emptyList();
         private List<Path> procedureLibrary = emptyList();
 
