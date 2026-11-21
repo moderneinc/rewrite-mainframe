@@ -79,10 +79,10 @@ class PredicateCombinationTest {
     }
 
     private static long rules(SemanticContext context) {
-        if (!(context instanceof SemanticContext.AND)) {
+        if (!(context instanceof SemanticContext.AND nD)) {
             return 1;
         }
-        return Arrays.stream(((SemanticContext.AND) context).opnds)
+        return Arrays.stream(nD.opnds)
           .filter(SemanticContext.Predicate.class::isInstance)
           .mapToInt(operand -> ((SemanticContext.Predicate) operand).ruleIndex)
           .distinct()

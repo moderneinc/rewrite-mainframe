@@ -67,11 +67,10 @@ class SourcePositionsCorpusTest {
               .parseInputs(Corpus.inputs(jobs), corpus, new InMemoryExecutionContext())
               .collect(toList());
             for (SourceFile source : parsed) {
-                if (!(source instanceof Jcl.CompilationUnit)) {
+                if (!(source instanceof Jcl.CompilationUnit cu)) {
                     continue;
                 }
                 members++;
-                Jcl.CompilationUnit cu = (Jcl.CompilationUnit) source;
                 SourcePositions positions = SourcePositions.of(cu);
 
                 List<Statement> written = new ArrayList<>();

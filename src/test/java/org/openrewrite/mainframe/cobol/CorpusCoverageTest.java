@@ -147,10 +147,9 @@ class CorpusCoverageTest {
         int statements = 0;
         int placedStatements = 0;
         for (SourceFile program : programs) {
-            if (!(program instanceof Cobol.CompilationUnit)) {
+            if (!(program instanceof Cobol.CompilationUnit cu)) {
                 continue;
             }
-            Cobol.CompilationUnit cu = (Cobol.CompilationUnit) program;
             SourcePositions positions = SourcePositions.of(cu);
             for (Cobol.Word word : wordsIn(cu)) {
                 // A continued word is broken around the column areas it spans, so its position covers them

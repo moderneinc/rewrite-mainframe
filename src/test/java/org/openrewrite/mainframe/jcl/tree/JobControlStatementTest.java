@@ -16,6 +16,7 @@
 package org.openrewrite.mainframe.jcl.tree;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.mainframe.jcl.JclIsoVisitor;
 import org.openrewrite.test.RewriteTest;
 
@@ -30,6 +31,36 @@ import static org.openrewrite.mainframe.jcl.Assertions.jcl;
 /// round-trips perfectly while telling you nothing. These check that the words are grouped into the
 /// statements they belong to and that the parts of a statement are what they claim to be.
 class JobControlStatementTest implements RewriteTest {
+
+	/// The point of a tree over a report: a parameter can be replaced and the source printed back with
+	 // that one change and nothing else. No derived model can do this.
+	@DocumentExample @Test
+	void aParameterCanBeChanged() {
+        rewriteRun(
+          spec -> spec.recipe(org.openrewrite.test.RewriteTest.toRecipe(() -> new JclIsoVisitor<org.openrewrite.ExecutionContext>() {
+              @Override
+              public Jcl.KeywordParameter visitKeywordParameter(Jcl.KeywordParameter parameter, org.openrewrite.ExecutionContext ctx) {
+                  if ("DISP".equalsIgnoreCase(parameter.getKeyword().getText()) &&
+                      "SHR".equals(parameter.getValueText())) {
+                      return parameter.withValueText("OLD");
+                  }
+                  return parameter;
+              }
+          })),
+          jcl(
+            """
+              //ACCTDD   DD  DSN=PROD.ACCOUNT.MASTER,
+              //             DISP=SHR,
+              //             UNIT=SYSDA
+              """,
+            """
+              //ACCTDD   DD  DSN=PROD.ACCOUNT.MASTER,
+              //             DISP=OLD,
+              //             UNIT=SYSDA
+              """
+          )
+        );
+    }
 
     @Test
     void aStatementIsOneNode() {
@@ -166,36 +197,6 @@ class JobControlStatementTest implements RewriteTest {
                   assertThat(job.getParameter("CLASS").getValueText()).isEqualTo("A");
                   assertThat(job.getParameter("MSGCLASS").getValueText()).isEqualTo("X");
               }))
-          )
-        );
-    }
-
-    /// The point of a tree over a report: a parameter can be replaced and the source printed back with
-    /// that one change and nothing else. No derived model can do this.
-    @Test
-    void aParameterCanBeChanged() {
-        rewriteRun(
-          spec -> spec.recipe(org.openrewrite.test.RewriteTest.toRecipe(() -> new JclIsoVisitor<org.openrewrite.ExecutionContext>() {
-              @Override
-              public Jcl.KeywordParameter visitKeywordParameter(Jcl.KeywordParameter parameter, org.openrewrite.ExecutionContext ctx) {
-                  if ("DISP".equalsIgnoreCase(parameter.getKeyword().getText()) &&
-                      "SHR".equals(parameter.getValueText())) {
-                      return parameter.withValueText("OLD");
-                  }
-                  return parameter;
-              }
-          })),
-          jcl(
-            """
-              //ACCTDD   DD  DSN=PROD.ACCOUNT.MASTER,
-              //             DISP=SHR,
-              //             UNIT=SYSDA
-              """,
-            """
-              //ACCTDD   DD  DSN=PROD.ACCOUNT.MASTER,
-              //             DISP=OLD,
-              //             UNIT=SYSDA
-              """
           )
         );
     }

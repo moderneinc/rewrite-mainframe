@@ -21,8 +21,6 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.mainframe.cobol.marker.CopiedStatement;
 import org.openrewrite.mainframe.cobol.tree.*;
 
-import org.openrewrite.mainframe.cobol.tree.Continuation;
-
 public class CobolVisitor<P> extends TreeVisitor<Cobol, P> {
 
     @Nullable
