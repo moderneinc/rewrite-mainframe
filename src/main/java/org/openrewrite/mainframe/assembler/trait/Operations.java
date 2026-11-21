@@ -18,7 +18,10 @@ package org.openrewrite.mainframe.assembler.trait;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 import static java.util.Collections.unmodifiableSet;
 
